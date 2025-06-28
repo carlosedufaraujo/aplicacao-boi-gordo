@@ -1,0 +1,156 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        // B3X Corporate Colors
+        'b3x-navy': {
+          50: '#f0f0ff',
+          100: '#e6e6ff',
+          200: '#d1d1ff',
+          300: '#b3b3ff',
+          400: '#8a8aff',
+          500: '#6161ff',
+          600: '#4a4aff',
+          700: '#3333ff',
+          800: '#2626cc',
+          900: '#0a0a4b',
+          950: '#050528',
+        },
+        'b3x-lime': {
+          50: '#f7ffe6',
+          100: '#efffcc',
+          200: '#e1ff99',
+          300: '#ccff66',
+          400: '#b8ff33',
+          500: '#a6e60d',
+          600: '#8fcc00',
+          700: '#6b9900',
+          800: '#547a00',
+          900: '#456600',
+          950: '#243300',
+        },
+        // Primary colors aligned with b3x-lime
+        primary: {
+          50: '#f7ffe6',
+          100: '#efffcc',
+          200: '#e1ff99',
+          300: '#ccff66',
+          400: '#b8ff33',
+          500: '#a6e60d',
+          600: '#8fcc00',
+          700: '#6b9900',
+          800: '#547a00',
+          900: '#456600',
+        },
+        // Neutral colors for text and backgrounds
+        neutral: {
+          50: '#fafafa',
+          100: '#f5f5f5',
+          200: '#e5e5e5',
+          300: '#d4d4d4',
+          400: '#a3a3a3',
+          500: '#737373',
+          600: '#525252',
+          700: '#404040',
+          800: '#262626',
+          900: '#171717',
+        },
+        // Semantic colors
+        success: {
+          50: '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#22c55e',
+          600: '#16a34a',
+          700: '#15803d',
+          800: '#166534',
+          900: '#14532d',
+        },
+        warning: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
+          300: '#fcd34d',
+          400: '#fbbf24',
+          500: '#f59e0b',
+          600: '#d97706',
+          700: '#b45309',
+          800: '#92400e',
+          900: '#78350f',
+        },
+        error: {
+          50: '#fef2f2',
+          100: '#fee2e2',
+          200: '#fecaca',
+          300: '#fca5a5',
+          400: '#f87171',
+          500: '#ef4444',
+          600: '#dc2626',
+          700: '#b91c1c',
+          800: '#991b1b',
+          900: '#7f1d1d',
+        },
+        info: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+        },
+        // Kanban specific colors
+        kanban: {
+          orange: {
+            50: '#fff7ed',
+            500: '#f97316',
+            600: '#ea580c',
+          },
+          purple: {
+            50: '#faf5ff',
+            500: '#a855f7',
+            600: '#9333ea',
+          },
+          blue: {
+            50: '#eff6ff',
+            500: '#3b82f6',
+            600: '#2563eb',
+          },
+          yellow: {
+            50: '#fefce8',
+            500: '#eab308',
+            600: '#ca8a04',
+          },
+          green: {
+            50: '#f0fdf4',
+            500: '#22c55e',
+            600: '#16a34a',
+          },
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      spacing: {
+        '18': '4.5rem',
+        '76': '19rem', // Nova largura para colunas do Pipeline
+        '88': '22rem',
+      },
+      boxShadow: {
+        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+        'soft-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+      },
+      backdropBlur: {
+        xs: '2px',
+      },
+    },
+  },
+  plugins: [],
+};

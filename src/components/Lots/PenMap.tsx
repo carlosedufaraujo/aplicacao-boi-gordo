@@ -1,0 +1,475 @@
+import React, { useState } from 'react';
+import { useAppStore } from '../../stores/useAppStore';
+import { PenRegistrationForm } from '../Forms/PenRegistrationForm';
+import { PenAllocationForm } from '../Forms/PenAllocationForm';
+import { PenMovementModal } from './PenMovementModal';
+import { Plus, Edit, Trash2, Home, ArrowRightLeft, Scale, Heart, ArrowRight } from 'lucide-react';
+import { clsx } from 'clsx';
+import { Portal } from '../Common/Portal';
+import { WeightReadingForm } from '../Forms/WeightReadingForm';
+import { HealthRecordForm } from '../Forms/HealthRecordForm';
+import { LotMovementForm } from '../Forms/LotMovementForm';
+
+export const PenMap: React.FC = () => {
+  const { 
+    penStatuses, 
+    penRegistrations,
+    penAllocations,
+    cattleLots,
+    getTotalConfinedAnimals, 
+    getUnallocatedAnimals,
+    deletePenRegistration,
+    updatePenRegistration
+  } = useAppStore();
+  
+  const [selectedPen, setSelectedPen] = useState<string | null>(null);
+  const [showPenForm, setShowPenForm] = useState(false);
+  const [showAllocationForm, setShowAllocationForm] = useState(false);
+  const [showMovementModal, setShowMovementModal] = useState(false);
+  const [showWeightForm, setShowWeightForm] = useState(false);
+  const [showHealthForm, setShowHealthForm] = useState(false);
+  const [showLotMovementForm, setShowLotMovementForm] = useState(false);
+  const [editPenNumber, setEditPenNumber] = useState<string>('');
+  const [selectedLotId, setSelectedLotId] = useState<string>('');
+
+  const totalAnimals = getTotalConfinedAnimals();
+  const unallocatedAnimals = getUnallocatedAnimals();
+  const occupiedPens = penStatuses.filter(pen => pen.status === 'occupied').length;
+
+  const handlePenClick = (penNumber: string) => {
+    const pen = penStatuses.find(p => p.penNumber === penNumber);
+    if (pen && pen.status === 'occupied') {
+      setSelectedPen(penNumber);
+    } else {
+      if (unallocatedAnimals > 0) {
+        setEditPenNumber(penNumber);
+        setShowAllocationForm(true);
+      } else {
+        setEditPenNumber(penNumber);
+        setShowPenForm(true);
+      }
+    }
+  };
+
+  const handleAddPen = () => {
+    setEditPenNumber('');
+    setShowPenForm(true);
+  };
+
+  const handleEditPen = (penNumber: string) => {
+    setEditPenNumber(penNumber);
+    setShowPenForm(true);
+  };
+
+  const handleDeletePen = (penNumber: string) => {
+    const penRegistration = penRegistrations.find(pen => pen.penNumber === penNumber);
+    if (penRegistration) {
+      deletePenRegistration(penRegistration.id);
+    }
+  };
+
+  const handleMovePen = (penNumber: string) => {
+    setEditPenNumber(penNumber);
+    setShowMovementModal(true);
+  };
+
+  const getPenInfo = (penNumber: string) => {
+    return penStatuses.find(pen => pen.penNumber === penNumber);
+  };
+
+  const getPenStatusColor = (pen: any) => {
+    switch (pen.status) {
+      case 'occupied':
+        return 'bg-success-100 border-success-300 text-success-800 hover:bg-success-200';
+      case 'maintenance':
+        return 'bg-warning-100 border-warning-300 text-warning-800 hover:bg-warning-200';
+      case 'quarantine':
+        return 'bg-error-100 border-error-300 text-error-800 hover:bg-error-200';
+      default:
+        return 'bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50';
+    }
+  };
+
+  // Group pens by sector for better organization
+  const pensBySector = penStatuses.reduce((acc, pen) => {
+    const penReg = penRegistrations.find(p => p.penNumber === pen.penNumber);
+    const sector = penReg?.location || 'Sem Setor';
+    
+    if (!acc[sector]) {
+      acc[sector] = [];
+    }
+    
+    acc[sector].push(pen);
+    return acc;
+  }, {} as Record<string, typeof penStatuses>);
+
+  // Get lots in selected pen
+  const getLotsInPen = (penNumber: string) => {
+    const allocations = penAllocations.filter(alloc => alloc.penNumber === penNumber);
+    return allocations.map(alloc => {
+      const lot = cattleLots.find(l => l.id === alloc.lotId);
+      return {
+        allocation: alloc,
+        lot
+      };
+    }).filter(item => item.lot);
+  };
+
+  // Handle health record for a lot in the pen
+  const handleHealthRecord = (lotId: string) => {
+    setSelectedLotId(lotId);
+    setShowHealthForm(true);
+  };
+
+  // Handle weight reading for a lot in the pen
+  const handleWeightReading = (lotId: string) => {
+    setSelectedLotId(lotId);
+    setShowWeightForm(true);
+  };
+
+  // Handle lot movement for a lot in the pen
+  const handleLotMovement = (lotId: string) => {
+    setSelectedLotId(lotId);
+    setShowLotMovementForm(true);
+  };
+
+  return (
+    <>
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
+        {/* Header com estatísticas - Mais compacto */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-b3x-navy-900">Mapa de Currais</h3>
+            <button
+              onClick={handleAddPen}
+              className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-b3x-lime-500 to-b3x-lime-600 text-b3x-navy-900 font-medium rounded-lg hover:from-b3x-lime-600 hover:to-b3x-lime-700 transition-all duration-200 shadow-soft text-sm"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Adicionar Curral</span>
+            </button>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="bg-gradient-to-br from-b3x-lime-50 to-b3x-lime-100 rounded-lg p-3 text-center border border-b3x-lime-200">
+              <div className="text-xl font-bold text-b3x-lime-600">{totalAnimals}</div>
+              <div className="text-xs text-b3x-navy-700">Total de Animais</div>
+            </div>
+            <div className="bg-gradient-to-br from-success-50 to-success-100 rounded-lg p-3 text-center border border-success-200">
+              <div className="text-xl font-bold text-success-600">{occupiedPens}</div>
+              <div className="text-xs text-success-700">Currais Ocupados</div>
+            </div>
+            <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-lg p-3 text-center border border-neutral-200">
+              <div className="text-xl font-bold text-neutral-600">{penStatuses.length - occupiedPens}</div>
+              <div className="text-xs text-neutral-700">Currais Disponíveis</div>
+            </div>
+            <div className="bg-gradient-to-br from-warning-50 to-warning-100 rounded-lg p-3 text-center border border-warning-200">
+              <div className="text-xl font-bold text-warning-600">{unallocatedAnimals}</div>
+              <div className="text-xs text-warning-700">Não Alocados</div>
+            </div>
+          </div>
+
+          {/* Legenda - Mais compacta */}
+          <div className="flex flex-wrap items-center gap-3 text-xs mb-3">
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-success-100 border-2 border-success-300 rounded"></div>
+              <span className="text-neutral-600">Ocupado</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-white border-2 border-neutral-300 rounded"></div>
+              <span className="text-neutral-600">Disponível</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-warning-100 border-2 border-warning-300 rounded"></div>
+              <span className="text-neutral-600">Manutenção</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <div className="w-3 h-3 bg-error-100 border-2 border-error-300 rounded"></div>
+              <span className="text-neutral-600">Quarentena</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Grid de Currais por Setor */}
+        {Object.entries(pensBySector).map(([sector, pens]) => (
+          <div key={sector} className="mb-6">
+            <h4 className="text-sm font-semibold text-b3x-navy-900 mb-2 border-b pb-1">{sector}</h4>
+            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2">
+              {pens.map((pen) => {
+                const isSelected = selectedPen === pen.penNumber;
+                
+                return (
+                  <div
+                    key={pen.penNumber}
+                    className={clsx(
+                      'aspect-square border-2 rounded-lg p-2 transition-all duration-200 cursor-pointer relative group',
+                      getPenStatusColor(pen),
+                      isSelected && 'ring-2 ring-b3x-lime-500 ring-offset-2'
+                    )}
+                    onClick={() => handlePenClick(pen.penNumber)}
+                    title={
+                      pen.status === 'occupied' 
+                        ? `Curral ${pen.penNumber} - ${pen.currentAnimals}/${pen.capacity} animais`
+                        : `Curral ${pen.penNumber} - Disponível (${pen.capacity} animais)`
+                    }
+                  >
+                    <div className="h-full flex flex-col justify-between text-center">
+                      <div className="text-xs font-bold">{pen.penNumber}</div>
+                      
+                      {pen.status === 'occupied' && (
+                        <div className="text-xs">
+                          <div className="font-medium">{pen.currentAnimals}</div>
+                          <div className="text-[10px] opacity-75">/{pen.capacity}</div>
+                        </div>
+                      )}
+                      
+                      {pen.status === 'occupied' && (
+                        <div className="absolute bottom-1 right-1 w-1.5 h-1.5 bg-success-500 rounded-full"></div>
+                      )}
+                    </div>
+
+                    {/* Botões de ação (aparecem no hover) */}
+                    <div className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-0.5">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditPen(pen.penNumber);
+                        }}
+                        className="p-0.5 bg-white/90 rounded shadow-sm hover:bg-white transition-colors"
+                        title="Editar curral"
+                      >
+                        <Edit className="w-2 h-2 text-neutral-600" />
+                      </button>
+                      
+                      {pen.status === 'occupied' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMovePen(pen.penNumber);
+                          }}
+                          className="p-0.5 bg-white/90 rounded shadow-sm hover:bg-white transition-colors"
+                          title="Movimentar animais"
+                        >
+                          <ArrowRightLeft className="w-2 h-2 text-warning-600" />
+                        </button>
+                      )}
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePen(pen.penNumber);
+                        }}
+                        className="p-0.5 bg-white/90 rounded shadow-sm hover:bg-white transition-colors"
+                        title="Excluir curral"
+                      >
+                        <Trash2 className="w-2 h-2 text-error-600" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {/* Detalhes do Curral Selecionado - Mais compacto */}
+        {selectedPen && (
+          <div className="mt-4 p-3 bg-gradient-to-br from-b3x-lime-50 to-b3x-lime-100 rounded-lg border border-b3x-lime-200">
+            <h4 className="font-semibold text-b3x-navy-900 mb-2 text-sm">
+              Detalhes do Curral {selectedPen}
+            </h4>
+            
+            {(() => {
+              const pen = getPenInfo(selectedPen);
+              if (!pen) return null;
+              
+              // Get lots in this pen
+              const lotsInPen = getLotsInPen(selectedPen);
+              
+              return (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="text-neutral-600">Capacidade:</span>
+                      <div className="font-medium text-b3x-navy-900">{pen.capacity} animais</div>
+                    </div>
+                    <div>
+                      <span className="text-neutral-600">Ocupação Atual:</span>
+                      <div className="font-medium text-b3x-navy-900">{pen.currentAnimals} animais</div>
+                    </div>
+                    <div>
+                      <span className="text-neutral-600">Taxa de Ocupação:</span>
+                      <div className="font-medium text-b3x-navy-900">
+                        {((pen.currentAnimals / pen.capacity) * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-neutral-600">Status:</span>
+                      <div className="font-medium text-b3x-navy-900 capitalize">
+                        {pen.status === 'occupied' ? 'Ocupado' : 
+                         pen.status === 'available' ? 'Disponível' :
+                         pen.status === 'maintenance' ? 'Manutenção' : 'Quarentena'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lotes no Curral */}
+                  {lotsInPen.length > 0 && (
+                    <div>
+                      <h5 className="font-medium text-b3x-navy-900 mb-2 text-xs">Lotes neste Curral:</h5>
+                      <div className="space-y-2">
+                        {lotsInPen.map(({allocation, lot}) => (
+                          <div key={allocation.id} className="bg-white/80 rounded p-3 border border-neutral-200">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <div className="font-medium text-b3x-navy-900 text-sm">Lote {lot?.lotNumber}</div>
+                                <div className="text-xs text-neutral-600">
+                                  {allocation.quantity} animais • {allocation.entryWeight.toLocaleString('pt-BR')} kg
+                                </div>
+                              </div>
+                              <div className="text-xs px-2 py-1 bg-success-100 text-success-700 rounded-full">
+                                {lot?.status === 'active' ? 'Ativo' : 'Vendido'}
+                              </div>
+                            </div>
+                            
+                            {/* Ações para o lote */}
+                            {lot?.status === 'active' && (
+                              <div className="flex space-x-2 mt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleHealthRecord(lot.id);
+                                  }}
+                                  className="flex-1 px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors flex items-center justify-center space-x-1"
+                                >
+                                  <Heart className="w-3 h-3" />
+                                  <span>Protocolo</span>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleWeightReading(lot.id);
+                                  }}
+                                  className="flex-1 px-2 py-1 text-xs bg-warning-500 text-white rounded hover:bg-warning-600 transition-colors flex items-center justify-center space-x-1"
+                                >
+                                  <Scale className="w-3 h-3" />
+                                  <span>Pesagem</span>
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleLotMovement(lot.id);
+                                  }}
+                                  className="flex-1 px-2 py-1 text-xs bg-neutral-500 text-white rounded hover:bg-neutral-600 transition-colors flex items-center justify-center space-x-1"
+                                >
+                                  <ArrowRight className="w-3 h-3" />
+                                  <span>Mover</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end space-x-2">
+                    <button
+                      onClick={() => setSelectedPen(null)}
+                      className="px-3 py-1.5 text-xs bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition-colors"
+                    >
+                      Fechar
+                    </button>
+                    
+                    {pen.status === 'occupied' && (
+                      <button
+                        onClick={() => {
+                          setShowMovementModal(true);
+                          setEditPenNumber(selectedPen);
+                        }}
+                        className="px-3 py-1.5 text-xs bg-warning-500 text-white rounded-lg hover:bg-warning-600 transition-colors"
+                      >
+                        Movimentar Animais
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={() => {
+                        setEditPenNumber(selectedPen);
+                        setShowPenForm(true);
+                      }}
+                      className="px-3 py-1.5 text-xs bg-b3x-lime-500 text-b3x-navy-900 rounded-lg hover:bg-b3x-lime-600 transition-colors"
+                    >
+                      Editar Curral
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+
+      {/* Forms */}
+      {showPenForm && (
+        <Portal>
+          <PenRegistrationForm
+            isOpen={showPenForm}
+            onClose={() => setShowPenForm(false)}
+            penNumber={editPenNumber}
+          />
+        </Portal>
+      )}
+
+      {showAllocationForm && (
+        <Portal>
+          <PenAllocationForm
+            isOpen={showAllocationForm}
+            onClose={() => setShowAllocationForm(false)}
+            penNumber={editPenNumber}
+          />
+        </Portal>
+      )}
+
+      {showMovementModal && (
+        <Portal>
+          <PenMovementModal
+            isOpen={showMovementModal}
+            onClose={() => setShowMovementModal(false)}
+            sourcePenNumber={editPenNumber}
+          />
+        </Portal>
+      )}
+
+      {/* Forms for lot actions */}
+      {showWeightForm && (
+        <Portal>
+          <WeightReadingForm
+            isOpen={showWeightForm}
+            onClose={() => setShowWeightForm(false)}
+            lotId={selectedLotId}
+          />
+        </Portal>
+      )}
+
+      {showHealthForm && (
+        <Portal>
+          <HealthRecordForm
+            isOpen={showHealthForm}
+            onClose={() => setShowHealthForm(false)}
+            lotId={selectedLotId}
+          />
+        </Portal>
+      )}
+
+      {showLotMovementForm && (
+        <Portal>
+          <LotMovementForm
+            isOpen={showLotMovementForm}
+            onClose={() => setShowLotMovementForm(false)}
+            lotId={selectedLotId}
+          />
+        </Portal>
+      )}
+    </>
+  );
+};
