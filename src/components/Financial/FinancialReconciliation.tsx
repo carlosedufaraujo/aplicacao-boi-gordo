@@ -333,10 +333,10 @@ export const FinancialReconciliation: React.FC = () => {
   return (
     <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-2">
         <div>
-          <h2 className="text-xl font-bold text-b3x-navy-900 mb-1">Conciliação Financeira</h2>
-          <p className="text-neutral-600 text-sm">Reconcilie extratos bancários com contas a pagar e receber</p>
+          <h2 className="text-xl font-bold text-b3x-navy-900">Conciliação Financeira</h2>
+          <p className="text-neutral-600 text-sm mt-1">Reconcilie extratos bancários com contas a pagar e receber</p>
         </div>
         
         <div className="flex flex-wrap gap-2">
@@ -382,350 +382,228 @@ export const FinancialReconciliation: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 mb-4">
-        <div className="border-b border-neutral-200/50">
-          <div className="flex">
-            <button
-              onClick={() => setActiveTab('statements')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 ${
-                activeTab === 'statements' 
-                  ? 'border-b3x-lime-500 text-b3x-navy-900' 
-                  : 'border-transparent text-neutral-600 hover:text-b3x-navy-900 hover:border-neutral-300'
-              }`}
-            >
-              Extratos e Conciliação
-            </button>
-            <button
-              onClick={() => setActiveTab('reconciliations')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 ${
-                activeTab === 'reconciliations' 
-                  ? 'border-b3x-lime-500 text-b3x-navy-900' 
-                  : 'border-transparent text-neutral-600 hover:text-b3x-navy-900 hover:border-neutral-300'
-              }`}
-            >
-              Histórico de Conciliações
-            </button>
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`px-4 py-3 text-sm font-medium border-b-2 ${
-                activeTab === 'analytics' 
-                  ? 'border-b3x-lime-500 text-b3x-navy-900' 
-                  : 'border-transparent text-neutral-600 hover:text-b3x-navy-900 hover:border-neutral-300'
-              }`}
-            >
-              Análise Financeira
-            </button>
-          </div>
+      {/* Tabs e Filtros */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
+        {/* Tabs */}
+        <div className="bg-neutral-100 rounded-lg p-1 inline-flex mb-4">
+          <button
+            onClick={() => setActiveTab('statements')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+              activeTab === 'statements' 
+                ? 'bg-white text-b3x-navy-900 shadow-sm' 
+                : 'text-neutral-600 hover:text-b3x-navy-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <FileText className="w-4 h-4" />
+              <span>Extratos e Conciliação</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('reconciliations')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+              activeTab === 'reconciliations' 
+                ? 'bg-white text-b3x-navy-900 shadow-sm' 
+                : 'text-neutral-600 hover:text-b3x-navy-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-4 h-4" />
+              <span>Histórico de Conciliações</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+              activeTab === 'analytics' 
+                ? 'bg-white text-b3x-navy-900 shadow-sm' 
+                : 'text-neutral-600 hover:text-b3x-navy-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <BarChart4 className="w-4 h-4" />
+              <span>Análise Financeira</span>
+            </div>
+          </button>
         </div>
 
-        {/* Conteúdo da Tab Ativa */}
-        {activeTab === 'statements' && (
-          <div className="p-4">
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="p-2 bg-warning-100 rounded-lg">
-                    <AlertTriangle className="w-4 h-4 text-warning-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-b3x-navy-900 text-sm">Não Conciliados</h3>
-                    <p className="text-xs text-neutral-600">Extratos bancários</p>
-                  </div>
+        {/* Filtros */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center space-x-2 text-sm text-neutral-600">
+            <Filter className="w-4 h-4" />
+            <span className="font-medium">Filtros:</span>
+          </div>
+          
+          {/* Busca */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Buscar por descrição..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent bg-white/50"
+            />
+          </div>
+          
+          {/* Filtro de Conta */}
+          <select
+            value={selectedBankAccount}
+            onChange={(e) => setSelectedBankAccount(e.target.value)}
+            className="px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent bg-white/50"
+          >
+            <option value="">Todas as Contas</option>
+            {payerAccounts.map(account => (
+              <option key={account.id} value={account.bankAccount}>
+                {account.name}
+              </option>
+            ))}
+          </select>
+          
+          {/* Filtro de Status */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent bg-white/50"
+          >
+            <option value="all">Todos os Status</option>
+            <option value="reconciled">Conciliados</option>
+            <option value="unreconciled">Não Conciliados</option>
+            <option value="discrepancy">Com Discrepância</option>
+          </select>
+          
+          {/* Filtro de Tipo */}
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as any)}
+            className="px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent bg-white/50"
+          >
+            <option value="all">Todos os Tipos</option>
+            <option value="credit">Crédito</option>
+            <option value="debit">Débito</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Conteúdo da Tab Ativa */}
+      {activeTab === 'statements' && (
+        <div className="space-y-4">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 bg-warning-100 rounded-lg">
+                  <AlertTriangle className="w-4 h-4 text-warning-600" />
                 </div>
-                <div className="text-xl font-bold text-warning-600 mb-1">
-                  {unreconciledStatements.length}
-                </div>
-                <div className="text-xs text-neutral-600">
-                  R$ {totalUnreconciled.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-b3x-navy-900 text-sm">Não Conciliados</h3>
+                  <p className="text-xs text-neutral-600">Extratos bancários</p>
                 </div>
               </div>
-
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="p-2 bg-error-100 rounded-lg">
-                    <DollarSign className="w-4 h-4 text-error-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-b3x-navy-900 text-sm">Contas Pendentes</h3>
-                    <p className="text-xs text-neutral-600">A pagar/receber</p>
-                  </div>
-                </div>
-                <div className="text-xl font-bold text-error-600 mb-1">
-                  {pendingAccounts.length}
-                </div>
-                <div className="text-xs text-neutral-600">
-                  R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
+              <div className="text-xl font-bold text-warning-600 mb-1">
+                {unreconciledStatements.length}
               </div>
-
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="p-2 bg-success-100 rounded-lg">
-                    <CheckCircle className="w-4 h-4 text-success-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-b3x-navy-900 text-sm">Conciliados</h3>
-                    <p className="text-xs text-neutral-600">Este período</p>
-                  </div>
-                </div>
-                <div className="text-xl font-bold text-success-600 mb-1">
-                  {financialReconciliations.filter(r => r.status === 'reconciled').length}
-                </div>
-                <div className="text-xs text-neutral-600">
-                  R$ {totalReconciled.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="p-2 bg-info-100 rounded-lg">
-                    <BarChart4 className="w-4 h-4 text-info-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-semibold text-b3x-navy-900 text-sm">Taxa de Conciliação</h3>
-                    <p className="text-xs text-neutral-600">Eficiência</p>
-                  </div>
-                </div>
-                <div className="text-xl font-bold text-info-600 mb-1">
-                  {reconciliationRate.toFixed(0)}%
-                </div>
-                <div className="text-xs text-neutral-600">
-                  {reconciledStatements} de {totalStatements} transações
-                </div>
+              <div className="text-xs text-neutral-600">
+                R$ {totalUnreconciled.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
             </div>
 
-            {/* Filtros */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50 mb-6">
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Filtro de Período */}
-                <div className="flex items-center space-x-2">
-                  <Calendar className="w-4 h-4 text-neutral-500" />
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="date"
-                      value={dateFilter.startDate.toISOString().split('T')[0]}
-                      onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: new Date(e.target.value) }))}
-                      className="px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-                    />
-                    <span className="text-xs text-neutral-600">até</span>
-                    <input
-                      type="date"
-                      value={dateFilter.endDate.toISOString().split('T')[0]}
-                      onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: new Date(e.target.value) }))}
-                      className="px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-                    />
-                  </div>
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 bg-error-100 rounded-lg">
+                  <DollarSign className="w-4 h-4 text-error-600" />
                 </div>
-                
-                {/* Filtro de Conta */}
-                <div className="flex items-center space-x-2">
-                  <CreditCard className="w-4 h-4 text-neutral-500" />
-                  <select
-                    value={selectedBankAccount}
-                    onChange={(e) => setSelectedBankAccount(e.target.value)}
-                    className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-                  >
-                    <option value="">Todas as Contas</option>
-                    {payerAccounts.map(account => (
-                      <option key={account.id} value={account.bankAccount}>
-                        {account.name} ({account.bankAccount})
-                      </option>
-                    ))}
-                  </select>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-b3x-navy-900 text-sm">Contas Pendentes</h3>
+                  <p className="text-xs text-neutral-600">A pagar/receber</p>
                 </div>
-                
-                {/* Filtro de Status */}
-                <div className="flex items-center space-x-2">
-                  <Filter className="w-4 h-4 text-neutral-500" />
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
-                    className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-                  >
-                    <option value="all">Todos os Status</option>
-                    <option value="reconciled">Conciliados</option>
-                    <option value="unreconciled">Não Conciliados</option>
-                    <option value="discrepancy">Com Discrepância</option>
-                  </select>
+              </div>
+              <div className="text-xl font-bold text-error-600 mb-1">
+                {pendingAccounts.length}
+              </div>
+              <div className="text-xs text-neutral-600">
+                R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 bg-success-100 rounded-lg">
+                  <CheckCircle className="w-4 h-4 text-success-600" />
                 </div>
-                
-                {/* Filtro de Tipo */}
-                <div className="flex items-center space-x-2">
-                  <Wallet className="w-4 h-4 text-neutral-500" />
-                  <select
-                    value={typeFilter}
-                    onChange={(e) => setTypeFilter(e.target.value as any)}
-                    className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-                  >
-                    <option value="all">Todos os Tipos</option>
-                    <option value="debit">Débitos</option>
-                    <option value="credit">Créditos</option>
-                  </select>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-b3x-navy-900 text-sm">Conciliados</h3>
+                  <p className="text-xs text-neutral-600">Este período</p>
                 </div>
-                
-                {/* Busca */}
-                <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+              </div>
+              <div className="text-xl font-bold text-success-600 mb-1">
+                {financialReconciliations.filter(r => r.status === 'reconciled').length}
+              </div>
+              <div className="text-xs text-neutral-600">
+                R$ {totalReconciled.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="p-2 bg-info-100 rounded-lg">
+                  <BarChart4 className="w-4 h-4 text-info-600" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-b3x-navy-900 text-sm">Taxa de Conciliação</h3>
+                  <p className="text-xs text-neutral-600">Eficiência</p>
+                </div>
+              </div>
+              <div className="text-xl font-bold text-info-600 mb-1">
+                {reconciliationRate.toFixed(0)}%
+              </div>
+              <div className="text-xs text-neutral-600">
+                {reconciledStatements} de {totalStatements} transações
+              </div>
+            </div>
+          </div>
+
+          {/* Filtros */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50 mb-6">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Filtro de Período */}
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-4 h-4 text-neutral-500" />
+                <div className="flex items-center space-x-2">
                   <input
-                    type="text"
-                    placeholder="Buscar por descrição..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
+                    type="date"
+                    value={dateFilter.startDate.toISOString().split('T')[0]}
+                    onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: new Date(e.target.value) }))}
+                    className="px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
+                  />
+                  <span className="text-xs text-neutral-600">até</span>
+                  <input
+                    type="date"
+                    value={dateFilter.endDate.toISOString().split('T')[0]}
+                    onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: new Date(e.target.value) }))}
+                    className="px-2 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
                   />
                 </div>
-                
-                {/* Botão de Limpar Filtros */}
-                <button
-                  onClick={() => {
-                    setDateFilter({
-                      startDate: subDays(new Date(), 30),
-                      endDate: new Date()
-                    });
-                    setStatusFilter('all');
-                    setTypeFilter('all');
-                    setSearchTerm('');
-                    setSelectedBankAccount('');
-                  }}
-                  className="px-3 py-1.5 text-xs text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100 rounded-lg transition-colors"
-                >
-                  Limpar Filtros
-                </button>
               </div>
             </div>
+          </div>
 
-            {/* Extratos Bancários e Contas Pendentes */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-              {/* Extratos Bancários */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50">
-                <div className="p-4 border-b border-neutral-200/50 flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-lg font-semibold text-b3x-navy-900">Extratos Bancários</h3>
-                    <span className="px-2 py-1 bg-warning-100 text-warning-800 rounded-full text-xs font-medium">
-                      {unreconciledStatements.length} pendentes
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => toggleSection('pendingStatements')}
-                    className="p-1 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded transition-colors"
-                  >
-                    {expandedSections.pendingStatements ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-                
-                {expandedSections.pendingStatements && (
-                  <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
-                    {unreconciledStatements.length > 0 ? (
-                      unreconciledStatements.map((statement) => (
-                        <div key={statement.id} className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg border hover:border-b3x-lime-200 transition-colors">
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium text-b3x-navy-900 text-sm truncate">{statement.description}</div>
-                            <div className="text-xs text-neutral-600">
-                              {format(statement.date, 'dd/MM/yyyy')} • {statement.bankAccount}
-                            </div>
-                          </div>
-                          <div className="text-right ml-3">
-                            <div className={`font-bold text-sm ${statement.type === 'credit' ? 'text-success-600' : 'text-error-600'}`}>
-                              {statement.type === 'credit' ? '+' : '-'}R$ {Math.abs(statement.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </div>
-                            <button
-                              onClick={() => {
-                                setSelectedAccount(statement.id);
-                                setShowReconciliationModal(true);
-                              }}
-                              className="text-xs text-b3x-lime-600 hover:text-b3x-lime-700"
-                            >
-                              Conciliar
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-6 text-neutral-500">
-                        <CheckCircle className="w-10 h-10 mx-auto mb-3 text-success-500" />
-                        <p className="text-sm">Todos os extratos foram conciliados!</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Contas Financeiras */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50">
-                <div className="p-4 border-b border-neutral-200/50 flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="text-lg font-semibold text-b3x-navy-900">Contas Financeiras</h3>
-                    <span className="px-2 py-1 bg-error-100 text-error-800 rounded-full text-xs font-medium">
-                      {pendingAccounts.length} pendentes
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => toggleSection('pendingAccounts')}
-                    className="p-1 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded transition-colors"
-                  >
-                    {expandedSections.pendingAccounts ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-                
-                {expandedSections.pendingAccounts && (
-                  <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
-                    {pendingAccounts.length > 0 ? (
-                      pendingAccounts.map((account) => (
-                        <div key={account.id} className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg border hover:border-b3x-lime-200 transition-colors">
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium text-b3x-navy-900 text-sm truncate">{account.description}</div>
-                            <div className="text-xs text-neutral-600">
-                              Venc: {format(account.dueDate, 'dd/MM/yyyy')} • {account.type === 'payable' ? 'A Pagar' : 'A Receber'}
-                            </div>
-                          </div>
-                          <div className="text-right ml-3">
-                            <div className={`font-bold text-sm ${account.type === 'receivable' ? 'text-success-600' : 'text-error-600'}`}>
-                              R$ {account.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </div>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              account.status === 'overdue' ? 'bg-error-100 text-error-700' : 'bg-warning-100 text-warning-700'
-                            }`}>
-                              {account.status === 'overdue' ? 'Vencido' : 'Pendente'}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-6 text-neutral-500">
-                        <DollarSign className="w-10 h-10 mx-auto mb-3 text-success-500" />
-                        <p className="text-sm">Nenhuma conta pendente!</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Conciliações Recentes */}
+          {/* Extratos Bancários e Contas Pendentes */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            {/* Extratos Bancários */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50">
               <div className="p-4 border-b border-neutral-200/50 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <h3 className="text-lg font-semibold text-b3x-navy-900">Conciliações Recentes</h3>
-                  <span className="px-2 py-1 bg-info-100 text-info-800 rounded-full text-xs font-medium">
-                    {filteredReconciliations.length} registros
+                  <h3 className="text-lg font-semibold text-b3x-navy-900">Extratos Bancários</h3>
+                  <span className="px-2 py-1 bg-warning-100 text-warning-800 rounded-full text-xs font-medium">
+                    {unreconciledStatements.length} pendentes
                   </span>
                 </div>
                 <button
-                  onClick={() => toggleSection('recentReconciliations')}
+                  onClick={() => toggleSection('pendingStatements')}
                   className="p-1 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded transition-colors"
                 >
-                  {expandedSections.recentReconciliations ? (
+                  {expandedSections.pendingStatements ? (
                     <ChevronDown className="w-4 h-4" />
                   ) : (
                     <ChevronRight className="w-4 h-4" />
@@ -733,181 +611,293 @@ export const FinancialReconciliation: React.FC = () => {
                 </button>
               </div>
               
-              {expandedSections.recentReconciliations && (
-                <TableWithPagination
-                  data={filteredReconciliations}
-                  columns={reconciliationColumns}
-                  itemsPerPage={10}
-                />
+              {expandedSections.pendingStatements && (
+                <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
+                  {unreconciledStatements.length > 0 ? (
+                    unreconciledStatements.map((statement) => (
+                      <div key={statement.id} className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg border hover:border-b3x-lime-200 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-b3x-navy-900 text-sm truncate">{statement.description}</div>
+                          <div className="text-xs text-neutral-600">
+                            {format(statement.date, 'dd/MM/yyyy')} • {statement.bankAccount}
+                          </div>
+                        </div>
+                        <div className="text-right ml-3">
+                          <div className={`font-bold text-sm ${statement.type === 'credit' ? 'text-success-600' : 'text-error-600'}`}>
+                            {statement.type === 'credit' ? '+' : '-'}R$ {Math.abs(statement.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </div>
+                          <button
+                            onClick={() => {
+                              setSelectedAccount(statement.id);
+                              setShowReconciliationModal(true);
+                            }}
+                            className="text-xs text-b3x-lime-600 hover:text-b3x-lime-700"
+                          >
+                            Conciliar
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-neutral-500">
+                      <CheckCircle className="w-10 h-10 mx-auto mb-3 text-success-500" />
+                      <p className="text-sm">Todos os extratos foram conciliados!</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Contas Financeiras */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50">
+              <div className="p-4 border-b border-neutral-200/50 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-lg font-semibold text-b3x-navy-900">Contas Financeiras</h3>
+                  <span className="px-2 py-1 bg-error-100 text-error-800 rounded-full text-xs font-medium">
+                    {pendingAccounts.length} pendentes
+                  </span>
+                </div>
+                <button
+                  onClick={() => toggleSection('pendingAccounts')}
+                  className="p-1 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded transition-colors"
+                >
+                  {expandedSections.pendingAccounts ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              
+              {expandedSections.pendingAccounts && (
+                <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
+                  {pendingAccounts.length > 0 ? (
+                    pendingAccounts.map((account) => (
+                      <div key={account.id} className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg border hover:border-b3x-lime-200 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-b3x-navy-900 text-sm truncate">{account.description}</div>
+                          <div className="text-xs text-neutral-600">
+                            Venc: {format(account.dueDate, 'dd/MM/yyyy')} • {account.type === 'payable' ? 'A Pagar' : 'A Receber'}
+                          </div>
+                        </div>
+                        <div className="text-right ml-3">
+                          <div className={`font-bold text-sm ${account.type === 'receivable' ? 'text-success-600' : 'text-error-600'}`}>
+                            R$ {account.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </div>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            account.status === 'overdue' ? 'bg-error-100 text-error-700' : 'bg-warning-100 text-warning-700'
+                          }`}>
+                            {account.status === 'overdue' ? 'Vencido' : 'Pendente'}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-neutral-500">
+                      <DollarSign className="w-10 h-10 mx-auto mb-3 text-success-500" />
+                      <p className="text-sm">Nenhuma conta pendente!</p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
-        )}
 
-        {activeTab === 'reconciliations' && (
-          <div className="p-4">
-            {/* Histórico de Conciliações */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 mb-6">
-              <div className="p-4 border-b border-neutral-200/50">
-                <h3 className="text-lg font-semibold text-b3x-navy-900">Histórico Completo de Conciliações</h3>
-                <p className="text-sm text-neutral-600 mt-1">Visualize todas as conciliações realizadas no período</p>
+          {/* Conciliações Recentes */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50">
+            <div className="p-4 border-b border-neutral-200/50 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <h3 className="text-lg font-semibold text-b3x-navy-900">Conciliações Recentes</h3>
+                <span className="px-2 py-1 bg-info-100 text-info-800 rounded-full text-xs font-medium">
+                  {filteredReconciliations.length} registros
+                </span>
               </div>
-              
+              <button
+                onClick={() => toggleSection('recentReconciliations')}
+                className="p-1 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded transition-colors"
+              >
+                {expandedSections.recentReconciliations ? (
+                  <ChevronDown className="w-4 h-4" />
+                ) : (
+                  <ChevronRight className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+            
+            {expandedSections.recentReconciliations && (
               <TableWithPagination
                 data={filteredReconciliations}
                 columns={reconciliationColumns}
-                itemsPerPage={15}
+                itemsPerPage={10}
               />
-            </div>
-            
-            {/* Extratos Bancários */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 mb-6">
-              <div className="p-4 border-b border-neutral-200/50">
-                <h3 className="text-lg font-semibold text-b3x-navy-900">Extratos Bancários</h3>
-                <p className="text-sm text-neutral-600 mt-1">Todos os extratos do período selecionado</p>
-              </div>
-              
-              <TableWithPagination
-                data={bankStatements.filter(stmt => 
-                  (selectedBankAccount ? stmt.bankAccount === selectedBankAccount : true) &&
-                  (typeFilter === 'all' || stmt.type === typeFilter) &&
-                  (searchTerm === '' || stmt.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                  isAfter(stmt.date, dateFilter.startDate) && 
-                  isBefore(stmt.date, dateFilter.endDate)
-                )}
-                columns={bankStatementColumns}
-                itemsPerPage={15}
-              />
-            </div>
-            
-            {/* Contas Financeiras */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50">
-              <div className="p-4 border-b border-neutral-200/50">
-                <h3 className="text-lg font-semibold text-b3x-navy-900">Contas Financeiras</h3>
-                <p className="text-sm text-neutral-600 mt-1">Todas as contas a pagar e receber do período</p>
-              </div>
-              
-              <TableWithPagination
-                data={financialAccounts.filter(acc => 
-                  (searchTerm === '' || acc.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
-                  isAfter(acc.dueDate, dateFilter.startDate) && 
-                  isBefore(acc.dueDate, dateFilter.endDate)
-                )}
-                columns={financialAccountColumns}
-                itemsPerPage={15}
-              />
-            </div>
+            )}
           </div>
-        )}
+        </div>
+      )}
 
-        {activeTab === 'analytics' && (
-          <div className="p-4">
-            {/* Análise Financeira */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-              {/* Gráfico de Fluxo de Caixa */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
-                <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">Fluxo de Caixa</h3>
-                <div className="h-64 flex items-center justify-center">
-                  <p className="text-neutral-500">Gráfico de fluxo de caixa será exibido aqui</p>
-                </div>
-              </div>
-              
-              {/* Gráfico de Conciliação */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
-                <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">Taxa de Conciliação</h3>
-                <div className="h-64 flex items-center justify-center">
-                  <p className="text-neutral-500">Gráfico de taxa de conciliação será exibido aqui</p>
-                </div>
-              </div>
+      {activeTab === 'reconciliations' && (
+        <div className="p-4">
+          {/* Histórico de Conciliações */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 mb-6">
+            <div className="p-4 border-b border-neutral-200/50">
+              <h3 className="text-lg font-semibold text-b3x-navy-900">Histórico Completo de Conciliações</h3>
+              <p className="text-sm text-neutral-600 mt-1">Visualize todas as conciliações realizadas no período</p>
             </div>
             
-            {/* Estatísticas de Conciliação */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4 mb-6">
-              <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">Estatísticas de Conciliação</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-neutral-50 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-neutral-700 mb-2">Taxa de Conciliação</h4>
-                  <div className="text-2xl font-bold text-b3x-navy-900">{reconciliationRate.toFixed(0)}%</div>
-                  <div className="text-xs text-neutral-600 mt-1">
-                    {reconciledStatements} de {totalStatements} transações
-                  </div>
-                </div>
-                
-                <div className="bg-neutral-50 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-neutral-700 mb-2">Tempo Médio de Conciliação</h4>
-                  <div className="text-2xl font-bold text-b3x-navy-900">2.3 dias</div>
-                  <div className="text-xs text-neutral-600 mt-1">
-                    Entre lançamento e conciliação
-                  </div>
-                </div>
-                
-                <div className="bg-neutral-50 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-neutral-700 mb-2">Conciliação Automática</h4>
-                  <div className="text-2xl font-bold text-b3x-navy-900">65%</div>
-                  <div className="text-xs text-neutral-600 mt-1">
-                    Taxa de automação
-                  </div>
-                </div>
-                
-                <div className="bg-neutral-50 p-4 rounded-lg">
-                  <h4 className="text-sm font-medium text-neutral-700 mb-2">Discrepâncias</h4>
-                  <div className="text-2xl font-bold text-b3x-navy-900">3%</div>
-                  <div className="text-xs text-neutral-600 mt-1">
-                    Taxa de discrepâncias
-                  </div>
-                </div>
-              </div>
+            <TableWithPagination
+              data={filteredReconciliations}
+              columns={reconciliationColumns}
+              itemsPerPage={15}
+            />
+          </div>
+          
+          {/* Extratos Bancários */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 mb-6">
+            <div className="p-4 border-b border-neutral-200/50">
+              <h3 className="text-lg font-semibold text-b3x-navy-900">Extratos Bancários</h3>
+              <p className="text-sm text-neutral-600 mt-1">Todos os extratos do período selecionado</p>
             </div>
             
-            {/* Relatórios Disponíveis */}
+            <TableWithPagination
+              data={bankStatements.filter(stmt => 
+                (selectedBankAccount ? stmt.bankAccount === selectedBankAccount : true) &&
+                (typeFilter === 'all' || stmt.type === typeFilter) &&
+                (searchTerm === '' || stmt.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                isAfter(stmt.date, dateFilter.startDate) && 
+                isBefore(stmt.date, dateFilter.endDate)
+              )}
+              columns={bankStatementColumns}
+              itemsPerPage={15}
+            />
+          </div>
+          
+          {/* Contas Financeiras */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50">
+            <div className="p-4 border-b border-neutral-200/50">
+              <h3 className="text-lg font-semibold text-b3x-navy-900">Contas Financeiras</h3>
+              <p className="text-sm text-neutral-600 mt-1">Todas as contas a pagar e receber do período</p>
+            </div>
+            
+            <TableWithPagination
+              data={financialAccounts.filter(acc => 
+                (searchTerm === '' || acc.description.toLowerCase().includes(searchTerm.toLowerCase())) &&
+                isAfter(acc.dueDate, dateFilter.startDate) && 
+                isBefore(acc.dueDate, dateFilter.endDate)
+              )}
+              columns={financialAccountColumns}
+              itemsPerPage={15}
+            />
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="p-4">
+          {/* Análise Financeira */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+            {/* Gráfico de Fluxo de Caixa */}
             <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
-              <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">Relatórios Disponíveis</h3>
+              <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">Fluxo de Caixa</h3>
+              <div className="h-64 flex items-center justify-center">
+                <p className="text-neutral-500">Gráfico de fluxo de caixa será exibido aqui</p>
+              </div>
+            </div>
+            
+            {/* Gráfico de Conciliação */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
+              <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">Taxa de Conciliação</h3>
+              <div className="h-64 flex items-center justify-center">
+                <p className="text-neutral-500">Gráfico de taxa de conciliação será exibido aqui</p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Estatísticas de Conciliação */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4 mb-6">
+            <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">Estatísticas de Conciliação</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-neutral-50 p-4 rounded-lg">
+                <h4 className="text-sm font-medium text-neutral-700 mb-2">Taxa de Conciliação</h4>
+                <div className="text-2xl font-bold text-b3x-navy-900">{reconciliationRate.toFixed(0)}%</div>
+                <div className="text-xs text-neutral-600 mt-1">
+                  {reconciledStatements} de {totalStatements} transações
+                </div>
+              </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200 hover:border-b3x-lime-200 transition-colors cursor-pointer">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <FileText className="w-5 h-5 text-b3x-navy-600" />
-                    <h4 className="font-medium text-b3x-navy-900">Fluxo de Caixa</h4>
-                  </div>
-                  <p className="text-xs text-neutral-600 mb-3">
-                    Relatório detalhado de entradas e saídas no período selecionado
-                  </p>
-                  <button className="text-xs text-b3x-lime-600 hover:text-b3x-lime-700 font-medium">
-                    Gerar Relatório
-                  </button>
+              <div className="bg-neutral-50 p-4 rounded-lg">
+                <h4 className="text-sm font-medium text-neutral-700 mb-2">Tempo Médio de Conciliação</h4>
+                <div className="text-2xl font-bold text-b3x-navy-900">2.3 dias</div>
+                <div className="text-xs text-neutral-600 mt-1">
+                  Entre lançamento e conciliação
                 </div>
-                
-                <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200 hover:border-b3x-lime-200 transition-colors cursor-pointer">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <FileText className="w-5 h-5 text-b3x-navy-600" />
-                    <h4 className="font-medium text-b3x-navy-900">Conciliação Bancária</h4>
-                  </div>
-                  <p className="text-xs text-neutral-600 mb-3">
-                    Relatório de conciliação bancária com detalhamento de pendências
-                  </p>
-                  <button className="text-xs text-b3x-lime-600 hover:text-b3x-lime-700 font-medium">
-                    Gerar Relatório
-                  </button>
+              </div>
+              
+              <div className="bg-neutral-50 p-4 rounded-lg">
+                <h4 className="text-sm font-medium text-neutral-700 mb-2">Conciliação Automática</h4>
+                <div className="text-2xl font-bold text-b3x-navy-900">65%</div>
+                <div className="text-xs text-neutral-600 mt-1">
+                  Taxa de automação
                 </div>
-                
-                <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200 hover:border-b3x-lime-200 transition-colors cursor-pointer">
-                  <div className="flex items-center space-x-3 mb-3">
-                    <FileText className="w-5 h-5 text-b3x-navy-600" />
-                    <h4 className="font-medium text-b3x-navy-900">DRE Simplificado</h4>
-                  </div>
-                  <p className="text-xs text-neutral-600 mb-3">
-                    Demonstrativo de Resultado do Exercício com base nas conciliações
-                  </p>
-                  <button className="text-xs text-b3x-lime-600 hover:text-b3x-lime-700 font-medium">
-                    Gerar Relatório
-                  </button>
+              </div>
+              
+              <div className="bg-neutral-50 p-4 rounded-lg">
+                <h4 className="text-sm font-medium text-neutral-700 mb-2">Discrepâncias</h4>
+                <div className="text-2xl font-bold text-b3x-navy-900">3%</div>
+                <div className="text-xs text-neutral-600 mt-1">
+                  Taxa de discrepâncias
                 </div>
               </div>
             </div>
           </div>
-        )}
-      </div>
+          
+          {/* Relatórios Disponíveis */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
+            <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">Relatórios Disponíveis</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200 hover:border-b3x-lime-200 transition-colors cursor-pointer">
+                <div className="flex items-center space-x-3 mb-3">
+                  <FileText className="w-5 h-5 text-b3x-navy-600" />
+                  <h4 className="font-medium text-b3x-navy-900">Fluxo de Caixa</h4>
+                </div>
+                <p className="text-xs text-neutral-600 mb-3">
+                  Relatório detalhado de entradas e saídas no período selecionado
+                </p>
+                <button className="text-xs text-b3x-lime-600 hover:text-b3x-lime-700 font-medium">
+                  Gerar Relatório
+                </button>
+              </div>
+              
+              <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200 hover:border-b3x-lime-200 transition-colors cursor-pointer">
+                <div className="flex items-center space-x-3 mb-3">
+                  <FileText className="w-5 h-5 text-b3x-navy-600" />
+                  <h4 className="font-medium text-b3x-navy-900">Conciliação Bancária</h4>
+                </div>
+                <p className="text-xs text-neutral-600 mb-3">
+                  Relatório de conciliação bancária com detalhamento de pendências
+                </p>
+                <button className="text-xs text-b3x-lime-600 hover:text-b3x-lime-700 font-medium">
+                  Gerar Relatório
+                </button>
+              </div>
+              
+              <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200 hover:border-b3x-lime-200 transition-colors cursor-pointer">
+                <div className="flex items-center space-x-3 mb-3">
+                  <FileText className="w-5 h-5 text-b3x-navy-600" />
+                  <h4 className="font-medium text-b3x-navy-900">DRE Simplificado</h4>
+                </div>
+                <p className="text-xs text-neutral-600 mb-3">
+                  Demonstrativo de Resultado do Exercício com base nas conciliações
+                </p>
+                <button className="text-xs text-b3x-lime-600 hover:text-b3x-lime-700 font-medium">
+                  Gerar Relatório
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modais e Formulários */}
       {showStatementForm && (

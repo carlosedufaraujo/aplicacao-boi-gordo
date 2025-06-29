@@ -689,14 +689,14 @@ export const FinancialCenterManagement: React.FC = () => {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div>
-          <h2 className="text-xl font-bold text-b3x-navy-900 mb-1">Centro Financeiro Completo</h2>
-          <p className="text-neutral-600 text-sm">Gestão unificada de entradas e saídas financeiras</p>
+          <h2 className="text-xl font-bold text-b3x-navy-900">Centro Financeiro</h2>
+          <p className="text-neutral-600 text-sm mt-1">Gestão unificada de entradas e saídas financeiras</p>
         </div>
-        
+
         <div className="flex space-x-2">
           {activeTab === 'expenses' ? (
             <>
@@ -736,67 +736,67 @@ export const FinancialCenterManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs de navegação */}
-      <div className="bg-neutral-100 rounded-lg p-1 mb-6 inline-flex">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-            activeTab === 'overview'
-              ? 'bg-white text-b3x-navy-900 shadow-sm'
-              : 'text-neutral-600 hover:text-b3x-navy-900'
-          }`}
-        >
-          <div className="flex items-center space-x-2">
-            <Layers className="w-4 h-4" />
-            <span>Visão Geral</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('expenses')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-            activeTab === 'expenses'
-              ? 'bg-white text-b3x-navy-900 shadow-sm'
-              : 'text-neutral-600 hover:text-b3x-navy-900'
-          }`}
-        >
-          <div className="flex items-center space-x-2">
-            <TrendingDown className="w-4 h-4" />
-            <span>Saídas</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('revenues')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-            activeTab === 'revenues'
-              ? 'bg-white text-b3x-navy-900 shadow-sm'
-              : 'text-neutral-600 hover:text-b3x-navy-900'
-          }`}
-        >
-          <div className="flex items-center space-x-2">
-            <TrendingUp className="w-4 h-4" />
-            <span>Entradas</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setActiveTab('cashflow')}
-          className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
-            activeTab === 'cashflow'
-              ? 'bg-white text-b3x-navy-900 shadow-sm'
-              : 'text-neutral-600 hover:text-b3x-navy-900'
-          }`}
-        >
-          <div className="flex items-center space-x-2">
-            <Activity className="w-4 h-4" />
-            <span>Fluxo de Caixa</span>
-          </div>
-        </button>
-      </div>
+      {/* Tabs e Filtros */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
+        {/* Tabs de navegação */}
+        <div className="bg-neutral-100 rounded-lg p-1 inline-flex">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+              activeTab === 'overview'
+                ? 'bg-white text-b3x-navy-900 shadow-sm'
+                : 'text-neutral-600 hover:text-b3x-navy-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <Layers className="w-4 h-4" />
+              <span>Visão Geral</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('expenses')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+              activeTab === 'expenses'
+                ? 'bg-white text-b3x-navy-900 shadow-sm'
+                : 'text-neutral-600 hover:text-b3x-navy-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <TrendingDown className="w-4 h-4" />
+              <span>Saídas</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('revenues')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+              activeTab === 'revenues'
+                ? 'bg-white text-b3x-navy-900 shadow-sm'
+                : 'text-neutral-600 hover:text-b3x-navy-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="w-4 h-4" />
+              <span>Entradas</span>
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('cashflow')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+              activeTab === 'cashflow'
+                ? 'bg-white text-b3x-navy-900 shadow-sm'
+                : 'text-neutral-600 hover:text-b3x-navy-900'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <Activity className="w-4 h-4" />
+              <span>Fluxo de Caixa</span>
+            </div>
+          </button>
+        </div>
 
-      {/* Conteúdo baseado na tab ativa */}
-      {activeTab === 'overview' && (
-        <>
-          {/* Filtro de Período Global */}
-          <div className="flex items-center justify-between mb-4">
+        {/* Filtro de Período - Alinhado à direita */}
+        {activeTab === 'overview' && (
+          <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-3">
               <Calendar className="w-4 h-4 text-neutral-500" />
               <span className="text-sm font-medium text-neutral-700">Período:</span>
@@ -856,7 +856,7 @@ export const FinancialCenterManagement: React.FC = () => {
             </div>
             
             {selectedPeriod !== 'all' && (
-              <div className="text-sm text-neutral-600">
+              <div className="text-xs text-neutral-600">
                 Exibindo dados de {
                   selectedPeriod === 'week' ? 'últimos 7 dias' :
                   selectedPeriod === 'month' ? format(startOfMonth(new Date()), 'MMMM yyyy', { locale: ptBR }) :
@@ -866,7 +866,12 @@ export const FinancialCenterManagement: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+      </div>
 
+      {/* Conteúdo baseado na tab ativa */}
+      {activeTab === 'overview' && (
+        <div className="space-y-4">
           {/* KPIs principais */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <KPICard
@@ -1194,7 +1199,7 @@ export const FinancialCenterManagement: React.FC = () => {
               itemsPerPage={10}
             />
           </div>
-        </>
+        </div>
       )}
 
       {activeTab === 'expenses' && (

@@ -15,7 +15,16 @@ import { NotificationCenter } from './components/Notifications/NotificationCente
 import { CreateTestOrders } from './components/Pipeline/CreateTestOrders';
 
 function App() {
-  const { currentPage, sidebarCollapsed } = useAppStore();
+  const { currentPage, sidebarCollapsed, darkMode } = useAppStore();
+
+  // Aplicar classe dark no elemento root quando darkMode estiver ativo
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   const renderCurrentPage = () => {
     switch (currentPage) {
@@ -43,7 +52,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-neutral-50 to-neutral-100 flex">
+    <div className={`h-screen w-screen overflow-hidden ${darkMode ? 'dark bg-neutral-900' : 'bg-gradient-to-br from-neutral-50 to-neutral-100'} flex`}>
       <Sidebar />
       <div className="flex-1 flex flex-col min-h-0">
         <Header />
