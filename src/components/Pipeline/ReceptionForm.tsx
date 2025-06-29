@@ -15,24 +15,20 @@ const cattleLotSchema = z.object({
   quantityDifferenceReason: z.string().optional(),
   freightKm: z.number().min(0, 'Distância não pode ser negativa'),
   freightCostPerKm: z.number().min(0, 'Custo por km não pode ser negativo'),
+  freightType: z.enum(['own', 'third']),
+  freightPaymentType: z.enum(['cash', 'installment']).optional(),
+  freightPaymentDate: z.date().optional(),
+  transportCompanyId: z.string().optional(),
   transportCompany: z.string().optional(),
   entryDate: z.date({
     required_error: "Data de entrada é obrigatória",
     invalid_type_error: "Data inválida"
   }),
-  freightPaymentDate: z.date({
-    required_error: "Data de pagamento do frete é obrigatória",
-    invalid_type_error: "Data inválida"
-  }).optional(),
   cocoEntryDate: z.date({
     required_error: "Data de entrada no curral é obrigatória",
     invalid_type_error: "Data inválida"
   }),
   estimatedGmd: z.number().min(0, 'GMD não pode ser negativo'),
-  penAllocations: z.array(z.object({
-    penNumber: z.string(),
-    quantity: z.number().min(1)
-  })).min(1, 'Aloque os animais em pelo menos um curral'),
   observations: z.string().optional()
 });
 
@@ -70,17 +66,19 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
     setValue,
     setError,
     clearErrors
-  } = useForm<z.infer<typeof cattleLotSchema> & { quantityDifferenceReason?: string; observations?: string }>({
+  } = useForm<z.infer<typeof cattleLotSchema>>({
     resolver: zodResolver(cattleLotSchema),
     defaultValues: {
+      purchaseOrderId: order.id,
       entryQuantity: order.quantity,
       entryWeight: order.totalWeight,
-      freightType: 'third' as const,
+      freightType: 'third',
       freightKm: order.freightKm || 0,
       freightCostPerKm: order.freightCostPerKm || 0,
       transportCompanyId: order.transportCompanyId || '',
-      freightPaymentType: 'cash' as const,
-      cocoEntryDate: new Date()
+      freightPaymentType: 'cash',
+      cocoEntryDate: new Date(),
+      estimatedGmd: 1.5
     }
   });
 
