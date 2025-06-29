@@ -249,33 +249,33 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({
           </div>
 
           {/* Bank Information - Mais compacto */}
-          <div className="bg-gradient-to-br from-b3x-lime-50 to-b3x-lime-100 rounded-xl p-4 border border-b3x-lime-200">
+          <div className="bg-neutral-100 rounded-xl p-4 border border-neutral-200">
             <h3 className="text-base font-semibold text-b3x-navy-900 mb-3 flex items-center">
-              <CreditCard className="w-4 h-4 mr-2 text-b3x-lime-600" />
+              <CreditCard className="w-4 h-4 mr-2 text-neutral-600" />
               Dados Bancários
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-xs font-medium text-b3x-navy-700 mb-1">
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
                   Banco
                 </label>
                 <input
                   type="text"
                   {...register('bankName')}
-                  className="w-full px-3 py-2 text-sm border border-b3x-lime-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-b3x-lime-500 bg-white/90 transition-all duration-200"
+                  className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                   placeholder="Ex: Banco do Brasil"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-b3x-navy-700 mb-1">
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
                   Agência
                 </label>
                 <input
                   type="text"
                   {...register('bankAgency')}
-                  className="w-full px-3 py-2 text-sm border border-b3x-lime-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-b3x-lime-500 bg-white/90 transition-all duration-200"
+                  className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                   placeholder="Ex: 1234-5"
                 />
               </div>
@@ -283,24 +283,24 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-b3x-navy-700 mb-1">
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
                   Conta
                 </label>
                 <input
                   type="text"
                   {...register('bankAccount')}
-                  className="w-full px-3 py-2 text-sm border border-b3x-lime-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-b3x-lime-500 bg-white/90 transition-all duration-200"
+                  className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                   placeholder="Ex: 12345-6"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-b3x-navy-700 mb-1">
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
                   Tipo de Conta
                 </label>
                 <select
                   {...register('bankAccountType')}
-                  className="w-full px-3 py-2 text-sm border border-b3x-lime-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-b3x-lime-500 bg-white/90 transition-all duration-200"
+                  className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                 >
                   <option value="checking">Conta Corrente</option>
                   <option value="savings">Poupança</option>
@@ -310,12 +310,12 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({
 
             {/* Preview dos dados bancários - INCLUINDO NOME E CPF */}
             {showSummary && (
-              <div className="mt-3 p-3 bg-white/80 backdrop-blur-sm rounded-lg border border-b3x-lime-200 shadow-soft">
+              <div className="mt-3 p-3 bg-white rounded-lg border border-neutral-200">
                 <h4 className="text-xs font-medium text-b3x-navy-900 mb-2 flex items-center">
-                  <span className="w-2 h-2 bg-b3x-lime-500 rounded-full mr-2"></span>
+                  <span className="w-2 h-2 bg-neutral-400 rounded-full mr-2"></span>
                   Resumo dos Dados Bancários:
                 </h4>
-                <div className="text-xs text-b3x-navy-700 space-y-1">
+                <div className="text-xs text-neutral-700 space-y-1">
                   {/* DADOS PESSOAIS */}
                   {name && (
                     <div className="flex items-start space-x-2">
@@ -332,7 +332,7 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({
                   
                   {/* SEPARADOR SE HOUVER DADOS PESSOAIS E BANCÁRIOS */}
                   {hasPersonalData && hasBankData && (
-                    <div className="border-t border-b3x-lime-300 my-2 pt-2"></div>
+                    <div className="border-t border-neutral-300 my-2 pt-2"></div>
                   )}
                   
                   {/* DADOS BANCÁRIOS */}

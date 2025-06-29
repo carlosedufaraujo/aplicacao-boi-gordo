@@ -147,7 +147,7 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
 
   return (
     <>
-      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-neutral-200/50 shadow-soft hover:shadow-soft-lg hover:border-b3x-lime-200/50 transition-all duration-200 p-3 relative">
+      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-neutral-200/50 shadow-soft hover:shadow-soft-lg hover:border-b3x-lime-200/50 transition-all duration-200 p-3 sm:p-4 relative w-full">
         {/* Indicador de notificações */}
         {orderNotifications.length > 0 && (
           <div className="absolute -top-1 -right-1">
@@ -156,10 +156,10 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
         )}
         
         {/* Header - Melhor espaçamento */}
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center">
-              <h4 className="font-semibold text-b3x-navy-900 text-sm truncate">{order.code}</h4>
+              <h4 className="font-semibold text-b3x-navy-900 text-sm sm:text-base truncate">{order.code}</h4>
               <button 
                 onClick={() => setShowEditForm(true)}
                 className="ml-2 p-1 text-b3x-lime-600 hover:text-b3x-lime-700 hover:bg-neutral-100 rounded transition-colors"
@@ -168,45 +168,45 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
                 <Edit className="w-3 h-3" />
               </button>
             </div>
-            <div className="flex items-center text-xs text-neutral-600 mt-1">
-              <Calendar className="w-3 h-3 mr-1 flex-shrink-0" />
+            <div className="flex items-center text-xs sm:text-sm text-neutral-600 mt-1">
+              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
               <span className="truncate">{format(order.date, 'dd/MM/yyyy')}</span>
             </div>
           </div>
-          <span className={`text-xs font-medium ${statusInfo.textColor} ${statusInfo.bgColor} px-2 py-1 rounded-full border border-${statusInfo.bgColor.split('-')[1]}-200 flex-shrink-0 ml-2`}>
+          <span className={`text-xs sm:text-sm font-medium ${statusInfo.textColor} ${statusInfo.bgColor} px-2 py-1 rounded-full border border-${statusInfo.bgColor.split('-')[1]}-200 flex-shrink-0 self-start`}>
             {statusInfo.label}
           </span>
         </div>
 
-        {/* Informações principais - Melhor organização */}
+        {/* Informações principais - Melhor organização e responsivo */}
         <div className="space-y-2 mb-3">
-          <div className="flex items-center text-xs text-neutral-600">
-            <MapPin className="w-3 h-3 mr-2 text-neutral-400 flex-shrink-0" />
+          <div className="flex items-center text-xs sm:text-sm text-neutral-600">
+            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-neutral-400 flex-shrink-0" />
             <span className="truncate">{order.city}, {order.state}</span>
           </div>
           
-          <div className="flex items-center text-xs text-neutral-600">
-            <User className="w-3 h-3 mr-2 text-neutral-400 flex-shrink-0" />
+          <div className="flex items-center text-xs sm:text-sm text-neutral-600">
+            <User className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-neutral-400 flex-shrink-0" />
             <span className="truncate">{vendor?.name || 'Vendedor não encontrado'}</span>
           </div>
 
           {broker && (
-            <div className="flex items-center text-xs text-neutral-600">
-              <UserCheck className="w-3 h-3 mr-2 text-neutral-400 flex-shrink-0" />
+            <div className="flex items-center text-xs sm:text-sm text-neutral-600">
+              <UserCheck className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-neutral-400 flex-shrink-0" />
               <div className="truncate">
-                <span className="text-xs text-neutral-500">Corretor:</span>
+                <span className="text-xs sm:text-sm text-neutral-500">Corretor:</span>
                 <span className="ml-1">{broker.name}</span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Dados numéricos - Grid melhorado */}
-        <div className="bg-neutral-50/80 rounded-lg p-2 mb-3">
-          <div className="grid grid-cols-2 gap-2 text-xs">
+        {/* Dados numéricos - Grid responsivo */}
+        <div className="bg-neutral-50/80 rounded-lg p-2 sm:p-3 mb-3">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <Users className="w-3 h-3 mr-1 text-neutral-400" />
+                <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-neutral-400" />
                 <span className="text-neutral-600">Qtd:</span>
               </div>
               <span className="font-medium text-b3x-navy-900">{order.quantity}</span>
@@ -214,7 +214,7 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
             
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <Scale className="w-3 h-3 mr-1 text-neutral-400" />
+                <Scale className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-neutral-400" />
                 <span className="text-neutral-600">Peso:</span>
               </div>
               <span className="font-medium text-b3x-navy-900">{order.totalWeight.toLocaleString('pt-BR')} kg</span>
@@ -222,7 +222,7 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
             
             <div className="flex items-center justify-between col-span-2">
               <div className="flex items-center">
-                <DollarSign className="w-3 h-3 mr-1 text-neutral-400" />
+                <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-neutral-400" />
                 <span className="text-neutral-600">Valor Total:</span>
               </div>
               <span className="font-medium text-b3x-navy-900">
@@ -392,17 +392,17 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
           </div>
         )}
 
-        {/* Action Buttons - Melhor espaçamento */}
+        {/* Action Buttons - Melhor espaçamento e responsivo */}
         <div className="flex items-center space-x-2 mt-3">
           {/* Botão Voltar Etapa */}
           {canGoBack && (
             <button
               onClick={handleMoveToPreviousStage}
-              className="flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition-colors flex-shrink-0"
+              className="flex items-center justify-center space-x-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition-colors flex-shrink-0"
               title="Voltar etapa"
             >
-              <ArrowLeft className="w-3 h-3" />
-              <span>Voltar</span>
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Voltar</span>
             </button>
           )}
 
@@ -411,7 +411,7 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
             <button
               onClick={handleMoveToNextStage}
               disabled={order.status === 'payment_validation' && !canAdvanceFromPaymentValidation}
-              className={`flex-1 flex items-center justify-center space-x-2 py-2 px-3 text-sm font-medium rounded-lg transition-all duration-200 shadow-soft hover:shadow-soft-lg ${
+              className={`flex-1 flex items-center justify-center space-x-1 sm:space-x-2 py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 shadow-soft hover:shadow-soft-lg ${
                 order.status === 'payment_validation' && !canAdvanceFromPaymentValidation
                   ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-b3x-lime-500 to-b3x-lime-600 text-b3x-navy-900 hover:from-b3x-lime-600 hover:to-b3x-lime-700'
@@ -419,18 +419,18 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
             >
               {order.status === 'reception' && !relatedLot ? (
                 <>
-                  <Truck className="w-3 h-3" />
+                  <Truck className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>Registrar Recepção</span>
                 </>
               ) : order.status === 'reception' && relatedLot ? (
                 <>
                   <span>Alocar em Curral</span>
-                  <ArrowRight className="w-3 h-3" />
+                  <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
                 </>
               ) : (
                 <>
                   <span>Avançar</span>
-                  <ArrowRight className="w-3 h-3" />
+                  <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
                 </>
               )}
             </button>

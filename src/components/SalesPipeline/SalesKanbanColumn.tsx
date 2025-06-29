@@ -38,15 +38,15 @@ export const SalesKanbanColumn: React.FC<SalesKanbanColumnProps> = ({ stage, ite
 
   return (
     <div className="flex flex-col h-full">
-      {/* Column Header */}
+      {/* Column Header - Com título e informações consolidadas */}
       <div className={clsx(
         'p-3 rounded-t-lg border-2 border-b-0 backdrop-blur-sm shadow-soft',
         colorMap[stage.color as keyof typeof colorMap] || colorMap.gray
       )}>
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 min-w-0 flex-1">
             <div className={clsx(
-              "p-1.5 rounded-lg",
+              "p-1.5 rounded-lg flex-shrink-0",
               stage.id === 'next_slaughter' && "bg-warning-100 text-warning-600",
               stage.id === 'shipped' && "bg-info-100 text-info-600",
               stage.id === 'slaughtered' && "bg-purple-100 text-purple-600",
@@ -56,18 +56,25 @@ export const SalesKanbanColumn: React.FC<SalesKanbanColumnProps> = ({ stage, ite
             </div>
             <h3 className="font-semibold text-b3x-navy-900 text-sm truncate">{stage.title}</h3>
           </div>
-          <div className="text-xs text-neutral-600 font-medium">
-            {items.length} lote{items.length !== 1 ? 's' : ''}
-          </div>
         </div>
         
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-neutral-600">
-            {totalAnimals} animais
-          </span>
-          <span className="font-medium text-b3x-lime-700">
-            R$ {(totalValue/1000).toFixed(0)}k
-          </span>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <div className="text-sm font-bold text-b3x-navy-900">{items.length}</div>
+            <div className="text-xs text-neutral-600">
+              {stage.id === 'next_slaughter' || stage.id === 'shipped' ? 'Currais' : 'Lotes'}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm font-bold text-b3x-navy-900">{totalAnimals}</div>
+            <div className="text-xs text-neutral-600">Animais</div>
+          </div>
+          <div>
+            <div className="text-sm font-bold text-b3x-lime-600">
+              {(totalValue/1000).toFixed(0)}k
+            </div>
+            <div className="text-xs text-neutral-600">Valor</div>
+          </div>
         </div>
       </div>
 

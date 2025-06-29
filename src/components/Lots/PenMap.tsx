@@ -80,11 +80,11 @@ export const PenMap: React.FC = () => {
   const getPenStatusColor = (pen: any) => {
     switch (pen.status) {
       case 'occupied':
-        return 'bg-success-100 border-success-300 text-success-800 hover:bg-success-200';
+        return 'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200';
       case 'maintenance':
-        return 'bg-warning-100 border-warning-300 text-warning-800 hover:bg-warning-200';
+        return 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200';
       case 'quarantine':
-        return 'bg-error-100 border-error-300 text-error-800 hover:bg-error-200';
+        return 'bg-rose-100 border-rose-300 text-rose-800 hover:bg-rose-200';
       default:
         return 'bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50';
     }
@@ -150,28 +150,28 @@ export const PenMap: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-            <div className="bg-gradient-to-br from-b3x-lime-50 to-b3x-lime-100 rounded-lg p-3 text-center border border-b3x-lime-200">
-              <div className="text-xl font-bold text-b3x-lime-600">{totalAnimals}</div>
-              <div className="text-xs text-b3x-navy-700">Total de Animais</div>
+            <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-lg p-3 text-center border border-neutral-300">
+              <div className="text-xl font-bold text-neutral-800">{totalAnimals}</div>
+              <div className="text-xs text-neutral-700">Total de Animais</div>
             </div>
-            <div className="bg-gradient-to-br from-success-50 to-success-100 rounded-lg p-3 text-center border border-success-200">
-              <div className="text-xl font-bold text-success-600">{occupiedPens}</div>
-              <div className="text-xs text-success-700">Currais Ocupados</div>
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-3 text-center border border-emerald-200">
+              <div className="text-xl font-bold text-emerald-700">{occupiedPens}</div>
+              <div className="text-xs text-emerald-600">Currais Ocupados</div>
             </div>
-            <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-lg p-3 text-center border border-neutral-200">
-              <div className="text-xl font-bold text-neutral-600">{penStatuses.length - occupiedPens}</div>
-              <div className="text-xs text-neutral-700">Currais Disponíveis</div>
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-3 text-center border border-slate-200">
+              <div className="text-xl font-bold text-slate-700">{penStatuses.length - occupiedPens}</div>
+              <div className="text-xs text-slate-600">Currais Disponíveis</div>
             </div>
-            <div className="bg-gradient-to-br from-warning-50 to-warning-100 rounded-lg p-3 text-center border border-warning-200">
-              <div className="text-xl font-bold text-warning-600">{unallocatedAnimals}</div>
-              <div className="text-xs text-warning-700">Não Alocados</div>
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-lg p-3 text-center border border-amber-200">
+              <div className="text-xl font-bold text-amber-700">{unallocatedAnimals}</div>
+              <div className="text-xs text-amber-600">Não Alocados</div>
             </div>
           </div>
 
           {/* Legenda - Mais compacta */}
           <div className="flex flex-wrap items-center gap-3 text-xs mb-3">
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-success-100 border-2 border-success-300 rounded"></div>
+              <div className="w-3 h-3 bg-emerald-100 border-2 border-emerald-300 rounded"></div>
               <span className="text-neutral-600">Ocupado</span>
             </div>
             <div className="flex items-center space-x-1">
@@ -179,11 +179,11 @@ export const PenMap: React.FC = () => {
               <span className="text-neutral-600">Disponível</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-warning-100 border-2 border-warning-300 rounded"></div>
+              <div className="w-3 h-3 bg-amber-100 border-2 border-amber-300 rounded"></div>
               <span className="text-neutral-600">Manutenção</span>
             </div>
             <div className="flex items-center space-x-1">
-              <div className="w-3 h-3 bg-error-100 border-2 border-error-300 rounded"></div>
+              <div className="w-3 h-3 bg-rose-100 border-2 border-rose-300 rounded"></div>
               <span className="text-neutral-600">Quarentena</span>
             </div>
           </div>
@@ -229,7 +229,7 @@ export const PenMap: React.FC = () => {
 
                       {/* Indicador de status */}
                       {pen.status === 'occupied' && (
-                        <div className="absolute bottom-1 right-1 w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
+                        <div className="absolute bottom-1 right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                       )}
 
                       {/* Botões de ação (aparecem no hover) */}
@@ -322,7 +322,7 @@ export const PenMap: React.FC = () => {
                                   {allocation.quantity} animais • {allocation.entryWeight.toLocaleString('pt-BR')} kg
                                 </div>
                               </div>
-                              <div className="text-xs px-2 py-1 bg-success-100 text-success-700 rounded-full">
+                              <div className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">
                                 {lot?.status === 'active' ? 'Ativo' : 'Vendido'}
                               </div>
                             </div>
@@ -335,7 +335,7 @@ export const PenMap: React.FC = () => {
                                     e.stopPropagation();
                                     handleHealthRecord(lot.id);
                                   }}
-                                  className="flex-1 px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600 transition-colors flex items-center justify-center space-x-1"
+                                  className="flex-1 px-2 py-1 text-xs bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center justify-center space-x-1"
                                 >
                                   <Heart className="w-3 h-3" />
                                   <span>Protocolo</span>
@@ -345,7 +345,7 @@ export const PenMap: React.FC = () => {
                                     e.stopPropagation();
                                     handleWeightReading(lot.id);
                                   }}
-                                  className="flex-1 px-2 py-1 text-xs bg-warning-500 text-white rounded hover:bg-warning-600 transition-colors flex items-center justify-center space-x-1"
+                                  className="flex-1 px-2 py-1 text-xs bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors flex items-center justify-center space-x-1"
                                 >
                                   <Scale className="w-3 h-3" />
                                   <span>Pesagem</span>
@@ -355,7 +355,7 @@ export const PenMap: React.FC = () => {
                                     e.stopPropagation();
                                     handleLotMovement(lot.id);
                                   }}
-                                  className="flex-1 px-2 py-1 text-xs bg-neutral-500 text-white rounded hover:bg-neutral-600 transition-colors flex items-center justify-center space-x-1"
+                                  className="flex-1 px-2 py-1 text-xs bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors flex items-center justify-center space-x-1"
                                 >
                                   <ArrowRight className="w-3 h-3" />
                                   <span>Mover</span>
@@ -382,7 +382,7 @@ export const PenMap: React.FC = () => {
                           setShowMovementModal(true);
                           setEditPenNumber(selectedPen);
                         }}
-                        className="px-3 py-1.5 text-xs bg-warning-500 text-white rounded-lg hover:bg-warning-600 transition-colors"
+                        className="px-3 py-1.5 text-xs bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
                       >
                         Movimentar Animais
                       </button>

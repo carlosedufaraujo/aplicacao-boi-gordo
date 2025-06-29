@@ -95,38 +95,47 @@ export const TableWithPagination: React.FC<TableWithPaginationProps> = ({
         <table className="w-full">
           <thead className="bg-neutral-50/70 border-b border-neutral-200/50">
             <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className={`px-4 py-3 text-${column.align || 'left'} text-xs font-semibold text-neutral-600 uppercase tracking-wider ${
-                    column.sortable ? 'cursor-pointer hover:bg-neutral-100 transition-colors' : ''
-                  }`}
-                  style={{ width: column.width }}
-                  onClick={() => column.sortable && handleSort(column.key)}
-                >
-                  <div className={`flex items-center ${column.align === 'right' ? 'justify-end' : column.align === 'center' ? 'justify-center' : ''}`}>
-                    {column.label}
-                    {column.sortable && getSortIcon(column.key)}
-                  </div>
-                </th>
-              ))}
+              {columns.map((column) => {
+                const alignClass = column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left';
+                const justifyClass = column.align === 'right' ? 'justify-end' : column.align === 'center' ? 'justify-center' : '';
+                
+                return (
+                  <th
+                    key={column.key}
+                    className={`px-4 py-3 ${alignClass} text-xs font-semibold text-neutral-600 uppercase tracking-wider ${
+                      column.sortable ? 'cursor-pointer hover:bg-neutral-100 transition-colors' : ''
+                    }`}
+                    style={{ width: column.width }}
+                    onClick={() => column.sortable && handleSort(column.key)}
+                  >
+                    <div className={`flex items-center ${justifyClass}`}>
+                      {column.label}
+                      {column.sortable && getSortIcon(column.key)}
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200/50">
             {currentData.map((row, index) => (
               <tr key={index} className="hover:bg-neutral-50/50 transition-colors">
-                {columns.map((column) => (
-                  <td 
-                    key={column.key} 
-                    className={`px-4 py-3 text-sm text-${column.align || 'left'}`}
-                    style={{ width: column.width }}
-                  >
-                    {column.render 
-                      ? column.render(row[column.key], row)
-                      : row[column.key]
-                    }
-                  </td>
-                ))}
+                {columns.map((column) => {
+                  const alignClass = column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left';
+                  
+                  return (
+                    <td 
+                      key={column.key} 
+                      className={`px-4 py-3 text-sm ${alignClass}`}
+                      style={{ width: column.width }}
+                    >
+                      {column.render 
+                        ? column.render(row[column.key], row)
+                        : row[column.key]
+                      }
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

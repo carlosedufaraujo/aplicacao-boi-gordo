@@ -105,9 +105,9 @@ export const PenRegistrationForm: React.FC<PenRegistrationFormProps> = ({
 
         <form onSubmit={handleSubmit(handleFormSubmit)} className="p-4 space-y-4">
           {/* Basic Information - Mais compacto */}
-          <div className="bg-gradient-to-br from-success-50 to-success-100 rounded-xl p-4 border border-success-200">
+          <div className="bg-neutral-100 rounded-xl p-4 border border-neutral-200">
             <h3 className="text-base font-semibold text-b3x-navy-900 mb-3 flex items-center">
-              <Home className="w-4 h-4 mr-2 text-success-600" />
+              <Home className="w-4 h-4 mr-2 text-neutral-600" />
               Informações do Curral
             </h3>
             
@@ -118,8 +118,8 @@ export const PenRegistrationForm: React.FC<PenRegistrationFormProps> = ({
               <input
                 type="text"
                 {...register('penNumber')}
-                disabled={!!existingPen} // Não permitir editar número se já existe
-                className="w-full px-3 py-2 text-sm border border-success-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 bg-white/90 transition-all duration-200 disabled:bg-neutral-100 disabled:cursor-not-allowed"
+                disabled={false} // Permitir editar número sempre
+                className="w-full px-3 py-2 text-sm border border-success-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 bg-white/90 transition-all duration-200"
                 placeholder="Ex: 25, A1, B2"
               />
               {errors.penNumber && (

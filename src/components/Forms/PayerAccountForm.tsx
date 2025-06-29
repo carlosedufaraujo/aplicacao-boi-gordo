@@ -94,21 +94,21 @@ export const PayerAccountForm: React.FC<PayerAccountFormProps> = ({
           </div>
 
           {/* Bank Information - Mais compacto */}
-          <div className="bg-gradient-to-br from-info-50 to-info-100 rounded-xl p-4 border border-info-200">
+          <div className="bg-neutral-100 rounded-xl p-4 border border-neutral-200">
             <h3 className="text-base font-semibold text-b3x-navy-900 mb-3 flex items-center">
-              <Building className="w-4 h-4 mr-2 text-info-600" />
+              <Building className="w-4 h-4 mr-2 text-neutral-600" />
               Dados Bancários
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="block text-xs font-medium text-info-700 mb-1">
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
                   Banco *
                 </label>
                 <input
                   type="text"
                   {...register('bankName')}
-                  className="w-full px-3 py-2 text-sm border border-info-300 rounded-lg focus:ring-2 focus:ring-info-500 focus:border-info-500 bg-white/90 transition-all duration-200"
+                  className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                   placeholder="Ex: Banco do Brasil"
                 />
                 {errors.bankName && (
@@ -117,13 +117,13 @@ export const PayerAccountForm: React.FC<PayerAccountFormProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-info-700 mb-1">
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
                   Agência *
                 </label>
                 <input
                   type="text"
                   {...register('bankAgency')}
-                  className="w-full px-3 py-2 text-sm border border-info-300 rounded-lg focus:ring-2 focus:ring-info-500 focus:border-info-500 bg-white/90 transition-all duration-200"
+                  className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                   placeholder="Ex: 1234-5"
                 />
                 {errors.bankAgency && (
@@ -134,13 +134,13 @@ export const PayerAccountForm: React.FC<PayerAccountFormProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-info-700 mb-1">
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
                   Conta *
                 </label>
                 <input
                   type="text"
                   {...register('bankAccount')}
-                  className="w-full px-3 py-2 text-sm border border-info-300 rounded-lg focus:ring-2 focus:ring-info-500 focus:border-info-500 bg-white/90 transition-all duration-200"
+                  className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                   placeholder="Ex: 12345-6"
                 />
                 {errors.bankAccount && (
@@ -149,12 +149,12 @@ export const PayerAccountForm: React.FC<PayerAccountFormProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-info-700 mb-1">
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
                   Tipo de Conta *
                 </label>
                 <select
                   {...register('bankAccountType')}
-                  className="w-full px-3 py-2 text-sm border border-info-300 rounded-lg focus:ring-2 focus:ring-info-500 focus:border-info-500 bg-white/90 transition-all duration-200"
+                  className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                 >
                   <option value="checking">Conta Corrente</option>
                   <option value="savings">Poupança</option>
@@ -164,12 +164,12 @@ export const PayerAccountForm: React.FC<PayerAccountFormProps> = ({
 
             {/* Preview da conta - Mais compacto */}
             {showPreview && (
-              <div className="mt-3 p-3 bg-white/80 backdrop-blur-sm rounded-lg border border-info-200 shadow-soft">
+              <div className="mt-3 p-3 bg-white rounded-lg border border-neutral-200">
                 <h4 className="text-xs font-medium text-b3x-navy-900 mb-2 flex items-center">
-                  <CreditCard className="w-3 h-3 mr-2 text-info-600" />
+                  <CreditCard className="w-3 h-3 mr-2 text-neutral-600" />
                   Preview da Conta:
                 </h4>
-                <div className="text-xs text-b3x-navy-700 space-y-1">
+                <div className="text-xs text-neutral-700 space-y-1">
                   {name && (
                     <div className="flex items-start space-x-2">
                       <strong className="min-w-[60px]">Nome:</strong> 

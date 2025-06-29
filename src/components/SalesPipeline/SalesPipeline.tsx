@@ -140,7 +140,7 @@ export const SalesPipeline: React.FC = () => {
         searchTerm === '' || 
         pen.penNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (pen.lotsInPen && pen.lotsInPen.some(lotNumber => 
-          lotNumber.toLowerCase().includes(searchTerm.toLowerCase())
+          lotNumber?.toLowerCase().includes(searchTerm.toLowerCase())
         ))
       ),
       shipped: shippedPens.filter(pen => 
@@ -149,7 +149,7 @@ export const SalesPipeline: React.FC = () => {
         searchTerm === '' || 
         pen.penNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (pen.lotsInPen && pen.lotsInPen.some(lotNumber => 
-          lotNumber.toLowerCase().includes(searchTerm.toLowerCase())
+          lotNumber?.toLowerCase().includes(searchTerm.toLowerCase())
         ))
       ),
       slaughtered: slaughteredLots.filter(lot => 
@@ -166,30 +166,6 @@ export const SalesPipeline: React.FC = () => {
   };
   
   const pipelineData = getSalesPipelineData();
-  
-  // Calculate totals for each stage
-  const stageTotals = {
-    next_slaughter: {
-      items: pipelineData.next_slaughter.length,
-      animals: pipelineData.next_slaughter.reduce((sum, item) => sum + item.quantity, 0),
-      value: pipelineData.next_slaughter.reduce((sum, item) => sum + item.estimatedValue, 0),
-    },
-    shipped: {
-      items: pipelineData.shipped.length,
-      animals: pipelineData.shipped.reduce((sum, item) => sum + item.quantity, 0),
-      value: pipelineData.shipped.reduce((sum, item) => sum + item.estimatedValue, 0),
-    },
-    slaughtered: {
-      items: pipelineData.slaughtered.length,
-      animals: pipelineData.slaughtered.reduce((sum, item) => sum + item.quantity, 0),
-      value: pipelineData.slaughtered.reduce((sum, item) => sum + item.grossValue, 0),
-    },
-    reconciled: {
-      items: pipelineData.reconciled.length,
-      animals: pipelineData.reconciled.reduce((sum, item) => sum + item.quantity, 0),
-      value: pipelineData.reconciled.reduce((sum, item) => sum + item.grossValue, 0),
-    },
-  };
 
   return (
     <div className="p-3 lg:p-4 h-full flex flex-col">
@@ -236,64 +212,12 @@ export const SalesPipeline: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-        {stages.map((stage) => {
-          const stageData = stageTotals[stage.id as keyof typeof stageTotals];
-          const Icon = stage.icon;
-          
-          return (
-            <div 
-              key={stage.id}
-              className={clsx(
-                "bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-3",
-                "hover:shadow-soft-lg transition-all duration-200"
-              )}
-            >
-              <div className="flex items-center space-x-3 mb-2">
-                <div className={clsx(
-                  "p-2 rounded-lg",
-                  stage.id === 'next_slaughter' && "bg-warning-100 text-warning-600",
-                  stage.id === 'shipped' && "bg-info-100 text-info-600",
-                  stage.id === 'slaughtered' && "bg-purple-100 text-purple-600",
-                  stage.id === 'reconciled' && "bg-success-100 text-success-600",
-                )}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-b3x-navy-900 text-sm">{stage.title}</h3>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-lg font-bold text-b3x-navy-900">{stageData.items}</div>
-                  <div className="text-xs text-neutral-600">
-                    {stage.id === 'next_slaughter' || stage.id === 'shipped' ? 'Currais' : 'Lotes'}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-b3x-navy-900">{stageData.animals}</div>
-                  <div className="text-xs text-neutral-600">Animais</div>
-                </div>
-                <div>
-                  <div className="text-lg font-bold text-b3x-lime-600">
-                    {(stageData.value / 1000).toFixed(0)}k
-                  </div>
-                  <div className="text-xs text-neutral-600">Valor</div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Kanban Board - Agora ocupa todo o espaço disponível */}
+      {/* Kanban Board - Agora com colunas responsivas */}
       <div className="flex-1 min-h-0">
-        <div className="h-full overflow-x-auto overflow-y-hidden">
-          <div className="flex gap-2 lg:gap-3 h-full pb-2" style={{ minWidth: 'max-content' }}>
+        <div className="h-full">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3 h-full auto-rows-fr">
             {stages.map((stage) => (
-              <div key={stage.id} className="flex-shrink-0 w-64 sm:w-72 lg:w-76 h-full">
+              <div key={stage.id} className="min-h-0">
                 <SalesKanbanColumn
                   stage={stage}
                   items={pipelineData[stage.id as keyof typeof pipelineData]}

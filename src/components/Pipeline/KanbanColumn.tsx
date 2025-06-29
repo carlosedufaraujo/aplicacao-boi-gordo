@@ -9,6 +9,7 @@ interface KanbanColumnProps {
     id: string;
     title: string;
     color: string;
+    icon?: React.ElementType;
   };
   orders: PurchaseOrder[];
   onNewOrder?: () => void;
@@ -33,25 +34,25 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ stage, orders, onNew
 
   return (
     <div className="flex flex-col h-full">
-      {/* Column Header - Com contagem de animais */}
+      {/* Column Header - Com título e informações consolidadas */}
       <div className={clsx(
         'p-3 rounded-t-lg border-2 border-b-0 backdrop-blur-sm shadow-soft',
         colorMap[stage.color as keyof typeof colorMap] || colorMap.gray
       )}>
         <div className="flex items-center justify-between mb-2">
-          <div className="min-w-0 flex-1">
+          <div className="flex items-center space-x-2 min-w-0 flex-1">
+            {stage.icon && (
+              <div className={clsx(
+                "p-1.5 rounded-lg flex-shrink-0",
+                stage.id === 'order' && "bg-neutral-100 text-neutral-600",
+                stage.id === 'payment_validation' && "bg-warning-100 text-warning-600",
+                stage.id === 'reception' && "bg-info-100 text-info-600",
+                stage.id === 'confined' && "bg-success-100 text-success-600",
+              )}>
+                <stage.icon className="w-3.5 h-3.5" />
+              </div>
+            )}
             <h3 className="font-semibold text-b3x-navy-900 text-sm truncate">{stage.title}</h3>
-            <div className="flex items-center space-x-2 text-xs text-neutral-600">
-              <span>{orders.length} ordem{orders.length !== 1 ? 's' : ''}</span>
-              {totalAnimals > 0 && (
-                <>
-                  <span>•</span>
-                  <span className="font-medium text-b3x-lime-700">
-                    {totalAnimals.toLocaleString('pt-BR')} animais
-                  </span>
-                </>
-              )}
-            </div>
           </div>
           {onNewOrder && (
             <button 
@@ -63,11 +64,22 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ stage, orders, onNew
           )}
         </div>
         
-        {totalValue > 0 && (
-          <div className="text-xs text-neutral-600">
-            Total: R$ {(totalValue/1000).toFixed(0)}k
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <div className="text-sm font-bold text-b3x-navy-900">{orders.length}</div>
+            <div className="text-xs text-neutral-600">Ordens</div>
           </div>
-        )}
+          <div>
+            <div className="text-sm font-bold text-b3x-navy-900">{totalAnimals}</div>
+            <div className="text-xs text-neutral-600">Animais</div>
+          </div>
+          <div>
+            <div className="text-sm font-bold text-b3x-lime-600">
+              {(totalValue/1000).toFixed(0)}k
+            </div>
+            <div className="text-xs text-neutral-600">Valor</div>
+          </div>
+        </div>
       </div>
 
       {/* Column Content - Melhor enquadramento dos cards */}
