@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -84,6 +84,11 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
 
   const watchedValues = watch();
   
+  // Debug: monitorar erros
+  useEffect(() => {
+    console.log('Form errors:', errors);
+  }, [errors]);
+  
   // CORREÇÃO: Cálculo da quebra de peso (agora mostra valor negativo quando o peso de entrada é menor)
   const weightDifference = watchedValues.entryWeight - order.totalWeight;
   const weightLossPercentage = order.totalWeight > 0 ? (weightDifference / order.totalWeight) * 100 : 0;
@@ -96,6 +101,8 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
   const transportCompanies = partners.filter(p => p.type === 'vendor' && p.isActive && p.isTransporter);
 
   const handleFormSubmit = (data: any) => {
+    console.log('Form submitted with data:', data);
+    
     // VALIDAÇÃO: Se quantidade diferente, motivo é obrigatório
     if (quantityDifference && !data.quantityDifferenceReason?.trim()) {
       setError('quantityDifferenceReason', {
@@ -127,34 +134,64 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
       finalObservations = finalObservations ? `${finalObservations}\n\n${freteProprioNote}` : freteProprioNote;
     }
 
-    // Create cattle lot
-    addCattleLot({
-      lotNumber: lotNumber,
-      purchaseOrderId: order.id,
-      entryWeight: data.entryWeight,
-      entryQuantity: data.entryQuantity,
-      quantityDifference: quantityDifference ? quantityLoss : undefined,
-      quantityDifferenceReason: data.quantityDifferenceReason,
-      freightKm: data.freightKm,
-      freightCostPerKm: data.freightCostPerKm,
-      transportCompany: data.transportCompanyId ? 
-        partners.find(p => p.id === data.transportCompanyId)?.name : undefined,
-      entryDate: data.cocoEntryDate || new Date(),
-      cocoEntryDate: data.cocoEntryDate,
-      estimatedGmd: 1.5,
-      deaths: 0,
-      observations: finalObservations,
-      status: 'active',
-      custoAcumulado: {
-        aquisicao: 0,
-        sanidade: 0,
-        alimentacao: 0,
-        operacional: 0,
-        frete: data.freightType === 'own' ? freightCost : 0, // Se frete próprio, incluir no custo
-        outros: 0,
-        total: data.freightType === 'own' ? freightCost : 0
-      }
-    });
+    // CORREÇÃO: Buscar e atualizar o lote existente ao invés de criar um novo
+    const existingLot = cattleLots.find(lot => lot.purchaseOrderId === order.id);
+    
+    if (existingLot) {
+      // Atualizar o lote existente com os dados da recepção
+      updateCattleLot(existingLot.id, {
+        entryWeight: data.entryWeight,
+        entryQuantity: data.entryQuantity,
+        quantityDifference: quantityDifference ? quantityLoss : undefined,
+        quantityDifferenceReason: data.quantityDifferenceReason,
+        freightKm: data.freightKm,
+        freightCostPerKm: data.freightCostPerKm,
+        transportCompany: data.transportCompanyId ? 
+          partners.find(p => p.id === data.transportCompanyId)?.name : undefined,
+        entryDate: data.cocoEntryDate || new Date(),
+        cocoEntryDate: data.cocoEntryDate,
+        observations: finalObservations,
+        custoAcumulado: {
+          ...existingLot.custoAcumulado,
+          frete: data.freightType === 'own' ? freightCost : 0,
+          total: existingLot.custoAcumulado.aquisicao + 
+                 existingLot.custoAcumulado.sanidade +
+                 existingLot.custoAcumulado.alimentacao +
+                 existingLot.custoAcumulado.operacional +
+                 (data.freightType === 'own' ? freightCost : 0) +
+                 existingLot.custoAcumulado.outros
+        }
+      });
+    } else {
+      // Se por algum motivo o lote não existe, criar um novo (fallback)
+      addCattleLot({
+        lotNumber: lotNumber,
+        purchaseOrderId: order.id,
+        entryWeight: data.entryWeight,
+        entryQuantity: data.entryQuantity,
+        quantityDifference: quantityDifference ? quantityLoss : undefined,
+        quantityDifferenceReason: data.quantityDifferenceReason,
+        freightKm: data.freightKm,
+        freightCostPerKm: data.freightCostPerKm,
+        transportCompany: data.transportCompanyId ? 
+          partners.find(p => p.id === data.transportCompanyId)?.name : undefined,
+        entryDate: data.cocoEntryDate || new Date(),
+        cocoEntryDate: data.cocoEntryDate,
+        estimatedGmd: 1.5,
+        deaths: 0,
+        observations: finalObservations,
+        status: 'active',
+        custoAcumulado: {
+          aquisicao: 0,
+          sanidade: 0,
+          alimentacao: 0,
+          operacional: 0,
+          frete: data.freightType === 'own' ? freightCost : 0,
+          outros: 0,
+          total: data.freightType === 'own' ? freightCost : 0
+        }
+      });
+    }
     
     // Se frete terceiro, criar conta a pagar
     if (data.freightType === 'third' && freightCost > 0) {
@@ -288,7 +325,9 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="p-4 space-y-4">
+        <form onSubmit={handleSubmit(handleFormSubmit, (errors) => {
+          console.log('Validation errors:', errors);
+        })} className="p-4 space-y-4">
           {/* Order Summary */}
           <div className="bg-white rounded-xl p-4 border border-neutral-200 shadow-soft">
             <div className="flex items-center space-x-2 mb-3">
@@ -638,6 +677,17 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
           <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-200">
             <button
               type="button"
+              onClick={() => {
+                console.log('Test button clicked!');
+                console.log('Form values:', watch());
+                console.log('Form errors:', errors);
+              }}
+              className="px-3 py-1.5 text-sm text-white bg-blue-500 rounded-lg hover:bg-blue-600"
+            >
+              Debug Form
+            </button>
+            <button
+              type="button"
               onClick={onClose}
               className="px-3 py-1.5 text-sm text-neutral-600 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
             >
@@ -645,6 +695,7 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
             </button>
             <button
               type="submit"
+              onClick={() => console.log('Button clicked!')}
               className="px-4 py-1.5 bg-gradient-to-r from-b3x-lime-500 to-b3x-lime-600 text-b3x-navy-900 font-medium rounded-lg hover:from-b3x-lime-600 hover:to-b3x-lime-700 transition-all duration-200 shadow-soft flex items-center space-x-2 text-sm"
             >
               <Truck className="w-3 h-3" />

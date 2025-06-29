@@ -29,7 +29,8 @@ export const LotsTable: React.FC = () => {
   // FILTRO CORRETO: Apenas lotes que têm ordens de compra válidas no status "confined"
   const confinedLots = cattleLots.filter(lot => {
     const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
-    return order && order.status === 'confined' && lot.status === 'active';
+    // CORREÇÃO: Mostrar lotes em qualquer status após payment_validation
+    return order && (order.status === 'payment_validation' || order.status === 'reception' || order.status === 'confined') && lot.status === 'active';
   });
   
   // Aplicar filtros
@@ -148,23 +149,24 @@ export const LotsTable: React.FC = () => {
         <div className="w-16 h-16 bg-neutral-100 rounded-full mx-auto mb-4 flex items-center justify-center">
           <span className="text-2xl">🐄</span>
         </div>
-        <h3 className="text-lg font-medium text-b3x-navy-900 mb-2">Nenhum lote confinado encontrado</h3>
+        <h3 className="text-lg font-medium text-b3x-navy-900 mb-2">Nenhum lote encontrado</h3>
         <p className="text-neutral-600 text-sm mb-4">
-          Para que os lotes apareçam aqui, eles precisam seguir o fluxo completo no Pipeline de Compras até a etapa "Confinado".
+          Os lotes aparecem aqui após a validação do pagamento no Pipeline de Compras.
         </p>
         
         <div className="text-xs text-neutral-500 bg-neutral-50 rounded-lg p-4 max-w-md mx-auto">
-          <p className="font-medium mb-2">Informações do Sistema:</p>
+          <p className="font-medium mb-2">Status do Sistema:</p>
           <div className="space-y-1 text-left">
             <p>• Total de lotes: {cattleLots.length}</p>
             <p>• Ordens de compra: {purchaseOrders.length}</p>
-            <p>• Ordens "confined": {purchaseOrders.filter(o => o.status === 'confined').length}</p>
-            <p>• Lotes ativos: {cattleLots.filter(l => l.status === 'active').length}</p>
+            <p>• Ordens aguardando validação: {purchaseOrders.filter(o => o.status === 'order').length}</p>
+            <p>• Ordens em validação/recepção: {purchaseOrders.filter(o => o.status === 'payment_validation' || o.status === 'reception').length}</p>
+            <p>• Ordens confinadas: {purchaseOrders.filter(o => o.status === 'confined').length}</p>
           </div>
           
           <div className="mt-3 p-2 bg-info-50 rounded border border-info-200">
             <p className="text-info-700 font-medium text-xs">
-              💡 Para criar lotes: Pipeline de Compras → Nova Ordem → Validar Pagamento → Registrar Recepção → Alocar em Curral
+              💡 Fluxo: Pipeline de Compras → Validar Pagamento → Lote criado automaticamente
             </p>
           </div>
         </div>

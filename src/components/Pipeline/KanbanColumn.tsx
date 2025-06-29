@@ -25,11 +25,16 @@ const colorMap = {
 };
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({ stage, orders, onNewOrder }) => {
+  // Calcular valor total usando a mesma fórmula do PurchaseOrderCard
   const totalValue = orders.reduce((sum, order) => {
-    return sum + ((order.totalWeight / 15) * order.pricePerArroba + order.commission + order.taxes + order.otherCosts);
+    const rcPercentage = order.rcPercentage || 50;
+    const carcassWeight = order.totalWeight * (rcPercentage / 100);
+    const arrobas = carcassWeight / 15;
+    const animalValue = arrobas * order.pricePerArroba;
+    return sum + (animalValue + order.commission + order.otherCosts);
   }, 0);
 
-  // 🆕 NOVO: Calcular total de animais na etapa
+  // Calcular total de animais na etapa
   const totalAnimals = orders.reduce((sum, order) => sum + order.quantity, 0);
 
   return (
@@ -83,7 +88,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ stage, orders, onNew
       </div>
 
       {/* Column Content - Melhor enquadramento dos cards */}
-      <div className="flex-1 p-3 bg-white/60 backdrop-blur-sm border-2 border-t-0 border-neutral-200/50 rounded-b-lg overflow-y-auto space-y-3 shadow-soft min-h-0">
+      <div className="flex-1 p-3 bg-white/60 backdrop-blur-sm border-2 border-t-0 border-neutral-200/50 rounded-b-lg overflow-y-auto space-y-2 shadow-soft min-h-0">
         {orders.map((order) => (
           <PurchaseOrderCard key={order.id} order={order} />
         ))}

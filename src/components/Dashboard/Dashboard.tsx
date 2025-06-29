@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { KPICard } from './KPICard';
 import { LatestMovements } from './LatestMovements';
 import { useAppStore } from '../../stores/useAppStore';
-import { Plus, ShoppingCart, Users, Home, Heart, Scale, ArrowRight, DollarSign, CreditCard, Building2, Clock, TrendingDown, AlertTriangle } from 'lucide-react';
+import { Plus, ShoppingCart, Users, Home, Heart, Scale, ArrowRight, DollarSign, CreditCard, Building2, Clock, TrendingDown, AlertTriangle, Truck } from 'lucide-react';
 import { PurchaseOrderForm } from '../Forms/PurchaseOrderForm';
 import { PartnerForm } from '../Forms/PartnerForm';
 import { PenRegistrationForm } from '../Forms/PenRegistrationForm';
@@ -37,30 +37,63 @@ export const Dashboard: React.FC = () => {
   // Calcular custo total de aquisição
   const [totalAcquisitionCost, setTotalAcquisitionCost] = useState<number>(0);
   const [averagePurchaseCostPerArroba, setAveragePurchaseCostPerArroba] = useState<number>(0);
+  const [pendingOrdersValue, setPendingOrdersValue] = useState<number>(0);
+  const [confirmedAnimals, setConfirmedAnimals] = useState<number>(0);
+  const [pendingAnimals, setPendingAnimals] = useState<number>(0);
 
   // Atualizar KPIs e calcular custo total de aquisição quando o componente montar
   useEffect(() => {
     updateKPIs();
     
-    // Calcular custo total de aquisição
-    const acquisitionCost = purchaseOrders.reduce((total, order) => {
-      const rcPercentage = order.rcPercentage || 50; // Default 50% se não informado
-      const carcassWeight = order.totalWeight * (rcPercentage / 100);
-      const arrobas = carcassWeight / 15;
-      const animalValue = arrobas * order.pricePerArroba;
-      const orderTotal = animalValue + order.commission + order.taxes + order.otherCosts;
-      return total + orderTotal;
-    }, 0);
+    // Calcular animais confirmados vs pendentes
+    const animalsConfirmed = purchaseOrders
+      .filter(order => order.status !== 'order')
+      .reduce((total, order) => total + order.quantity, 0);
+    
+    const animalsPending = purchaseOrders
+      .filter(order => order.status === 'order')
+      .reduce((total, order) => total + order.quantity, 0);
+    
+    setConfirmedAnimals(animalsConfirmed);
+    setPendingAnimals(animalsPending);
+    
+    // Calcular custo total de aquisição - APENAS ORDENS COM PAGAMENTO VALIDADO
+    const acquisitionCost = purchaseOrders
+      .filter(order => order.status !== 'order') // Excluir ordens ainda não validadas
+      .reduce((total, order) => {
+        const rcPercentage = order.rcPercentage || 50; // Default 50% se não informado
+        const carcassWeight = order.totalWeight * (rcPercentage / 100);
+        const arrobas = carcassWeight / 15;
+        const animalValue = arrobas * order.pricePerArroba;
+        const orderTotal = animalValue + order.commission + order.taxes + order.otherCosts;
+        return total + orderTotal;
+      }, 0);
     
     setTotalAcquisitionCost(acquisitionCost);
     
-    // Calcular custo médio de compra por arroba
-    const totalArrobas = purchaseOrders.reduce((total, order) => {
-      const rcPercentage = order.rcPercentage || 50; // Default 50% se não informado
-      const carcassWeight = order.totalWeight * (rcPercentage / 100);
-      const arrobas = carcassWeight / 15;
-      return total + arrobas;
-    }, 0);
+    // Calcular valor das ordens pendentes (ainda não validadas)
+    const pendingValue = purchaseOrders
+      .filter(order => order.status === 'order')
+      .reduce((total, order) => {
+        const rcPercentage = order.rcPercentage || 50;
+        const carcassWeight = order.totalWeight * (rcPercentage / 100);
+        const arrobas = carcassWeight / 15;
+        const animalValue = arrobas * order.pricePerArroba;
+        const orderTotal = animalValue + order.commission + order.taxes + order.otherCosts;
+        return total + orderTotal;
+      }, 0);
+    
+    setPendingOrdersValue(pendingValue);
+    
+    // Calcular custo médio de compra por arroba - APENAS ORDENS COM PAGAMENTO VALIDADO
+    const totalArrobas = purchaseOrders
+      .filter(order => order.status !== 'order') // Excluir ordens ainda não validadas
+      .reduce((total, order) => {
+        const rcPercentage = order.rcPercentage || 50; // Default 50% se não informado
+        const carcassWeight = order.totalWeight * (rcPercentage / 100);
+        const arrobas = carcassWeight / 15;
+        return total + arrobas;
+      }, 0);
     
     if (totalArrobas > 0) {
       setAveragePurchaseCostPerArroba(acquisitionCost / totalArrobas);
@@ -139,8 +172,17 @@ export const Dashboard: React.FC = () => {
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-3 hover:shadow-soft-lg hover:border-b3x-lime-200/50 transition-all duration-200">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-neutral-600 mb-1 leading-tight h-8">Animais Confinados</p>
-              <p className="text-xl font-bold text-b3x-navy-900 mb-1 truncate">{kpis[0]?.value || "0"}</p>
+              <p className="text-xs font-medium text-neutral-600 mb-1 leading-tight h-8">Animais Ativos</p>
+              <p className="text-xl font-bold text-b3x-navy-900 mb-1 truncate">{confirmedAnimals.toLocaleString('pt-BR')}</p>
+              <div className="flex items-center mt-1">
+                {pendingAnimals > 0 ? (
+                  <span className="text-xs text-warning-600 truncate">
+                    + {pendingAnimals.toLocaleString('pt-BR')} pendentes
+                  </span>
+                ) : (
+                  <span className="text-xs text-neutral-500 truncate">Em confinamento</span>
+                )}
+              </div>
             </div>
             
             <div className="ml-2 p-2 bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-lg shadow-soft flex-shrink-0">
@@ -195,13 +237,19 @@ export const Dashboard: React.FC = () => {
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-3 hover:shadow-soft-lg hover:border-b3x-lime-200/50 transition-all duration-200">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-neutral-600 mb-1 leading-tight h-8">Custo Total Aquisição</p>
+              <p className="text-xs font-medium text-neutral-600 mb-1 leading-tight h-8">Custo Total Ativo</p>
               <p className="text-xl font-bold text-b3x-navy-900 mb-1 truncate">
                 R$ {totalAcquisitionCost.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
               </p>
               
               <div className="flex items-center mt-1">
-                <span className="text-xs text-neutral-500 truncate">Compra, Comissão, Frete</span>
+                {pendingOrdersValue > 0 ? (
+                  <span className="text-xs text-warning-600 truncate">
+                    + R$ {pendingOrdersValue.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} pendente
+                  </span>
+                ) : (
+                  <span className="text-xs text-neutral-500 truncate">Valores ativos</span>
+                )}
               </div>
             </div>
             
@@ -228,6 +276,73 @@ export const Dashboard: React.FC = () => {
             <div className="ml-2 p-2 bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-lg shadow-soft flex-shrink-0">
               <DollarSign className="w-4 h-4 text-neutral-600" />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Status do Pipeline - Novo Card */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4 hover:shadow-soft-lg transition-all duration-200">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-b3x-navy-900 flex items-center">
+            <ShoppingCart className="w-4 h-4 mr-2 text-b3x-lime-600" />
+            Status do Pipeline de Compras
+          </h3>
+          <button
+            onClick={() => navigateTo('pipeline')}
+            className="text-xs text-b3x-lime-600 hover:text-b3x-lime-700 font-medium flex items-center"
+          >
+            Ver Pipeline
+            <ArrowRight className="w-3 h-3 ml-1" />
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Ordens Pendentes */}
+          <div className="bg-warning-50 border border-warning-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-warning-700">Aguardando Validação</span>
+              <Clock className="w-3 h-3 text-warning-600" />
+            </div>
+            <p className="text-lg font-bold text-warning-900">{purchaseOrders.filter(o => o.status === 'order').length}</p>
+            <p className="text-xs text-warning-600 mt-1">
+              {pendingAnimals} animais • R$ {(pendingOrdersValue/1000).toFixed(0)}k
+            </p>
+          </div>
+          
+          {/* Em Validação */}
+          <div className="bg-info-50 border border-info-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-info-700">Em Validação</span>
+              <CreditCard className="w-3 h-3 text-info-600" />
+            </div>
+            <p className="text-lg font-bold text-info-900">{purchaseOrders.filter(o => o.status === 'payment_validation').length}</p>
+            <p className="text-xs text-info-600 mt-1">
+              {purchaseOrders.filter(o => o.status === 'payment_validation').reduce((sum, o) => sum + o.quantity, 0)} animais
+            </p>
+          </div>
+          
+          {/* Em Recepção */}
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-purple-700">Em Recepção</span>
+              <Truck className="w-3 h-3 text-purple-600" />
+            </div>
+            <p className="text-lg font-bold text-purple-900">{purchaseOrders.filter(o => o.status === 'reception').length}</p>
+            <p className="text-xs text-purple-600 mt-1">
+              {purchaseOrders.filter(o => o.status === 'reception').reduce((sum, o) => sum + o.quantity, 0)} animais
+            </p>
+          </div>
+          
+          {/* Confinados */}
+          <div className="bg-success-50 border border-success-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-success-700">Confinados</span>
+              <Home className="w-3 h-3 text-success-600" />
+            </div>
+            <p className="text-lg font-bold text-success-900">{purchaseOrders.filter(o => o.status === 'confined').length}</p>
+            <p className="text-xs text-success-600 mt-1">
+              {purchaseOrders.filter(o => o.status === 'confined').reduce((sum, o) => sum + o.quantity, 0)} animais
+            </p>
           </div>
         </div>
       </div>

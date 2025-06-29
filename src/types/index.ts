@@ -149,10 +149,6 @@ export interface PurchaseOrder {
   // 🆕 NOVO: Condições de pagamento da comissão
   commissionPaymentType?: 'cash' | 'installment';
   commissionPaymentDate?: Date;
-  taxes: number;
-  // 🆕 NOVO: Condições de pagamento dos impostos
-  taxesPaymentType?: 'cash' | 'installment';
-  taxesPaymentDate?: Date;
   otherCosts: number;
   otherCostsDescription?: string;
   // 🆕 NOVO: Condições de pagamento dos outros custos
@@ -637,10 +633,6 @@ export interface PurchaseOrderFormData {
   // 🆕 NOVO: Condições de pagamento da comissão
   commissionPaymentType?: 'cash' | 'installment';
   commissionPaymentDate?: Date;
-  taxes: number;
-  // 🆕 NOVO: Condições de pagamento dos impostos
-  taxesPaymentType?: 'cash' | 'installment';
-  taxesPaymentDate?: Date;
   otherCosts: number;
   otherCostsDescription?: string;
   // 🆕 NOVO: Condições de pagamento dos outros custos

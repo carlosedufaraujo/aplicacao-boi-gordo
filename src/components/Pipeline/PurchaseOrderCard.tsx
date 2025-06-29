@@ -65,12 +65,12 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
   };
 
   // Calcular valor total incluindo todos os custos
-  // 🆕 CORRIGIDO: Considerar R.C.% no cálculo
+  // CÁLCULO: Valor dos animais + Comissão + Outros Custos
   const rcPercentage = order.rcPercentage || 50; // Default 50% se não informado
   const carcassWeight = order.totalWeight * (rcPercentage / 100);
   const arrobas = carcassWeight / 15;
   const animalValue = arrobas * order.pricePerArroba;
-  const totalValue = animalValue + order.commission + (order.taxes || 0) + order.otherCosts;
+  const totalValue = animalValue + order.commission + order.otherCosts;
 
   // Verificar se pode avançar da etapa de validação de pagamento
   const canAdvanceFromPaymentValidation = order.status === 'payment_validation' && 
@@ -112,15 +112,15 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
     switch (order.status) {
       case 'order':
         return {
-          label: 'Ordem Criada',
-          bgColor: 'bg-neutral-100',
-          textColor: 'text-neutral-700'
+          label: 'Pendente de Pagamento',
+          bgColor: 'bg-warning-100',
+          textColor: 'text-warning-700'
         };
       case 'payment_validation':
         return {
           label: 'Validando Pagamento',
-          bgColor: 'bg-warning-100',
-          textColor: 'text-warning-700'
+          bgColor: 'bg-info-100',
+          textColor: 'text-info-700'
         };
       case 'reception':
         return {
@@ -147,7 +147,7 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
 
   return (
     <>
-      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-neutral-200/50 shadow-soft hover:shadow-soft-lg hover:border-b3x-lime-200/50 transition-all duration-200 p-3 sm:p-4 relative w-full">
+      <div className="bg-white/95 backdrop-blur-sm rounded-lg border border-neutral-200/50 shadow-soft hover:shadow-soft-lg hover:border-b3x-lime-200/50 transition-all duration-200 p-2 relative w-full">
         {/* Indicador de notificações */}
         {orderNotifications.length > 0 && (
           <div className="absolute -top-1 -right-1">
@@ -156,78 +156,111 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
         )}
         
         {/* Header - Melhor espaçamento */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 mb-2">
           <div className="min-w-0 flex-1">
             <div className="flex items-center">
-              <h4 className="font-semibold text-b3x-navy-900 text-sm sm:text-base truncate">{order.code}</h4>
+              <h4 className="font-semibold text-b3x-navy-900 text-[11px] truncate">{order.code}</h4>
               <button 
                 onClick={() => setShowEditForm(true)}
-                className="ml-2 p-1 text-b3x-lime-600 hover:text-b3x-lime-700 hover:bg-neutral-100 rounded transition-colors"
+                className="ml-1 p-0.5 text-b3x-lime-600 hover:text-b3x-lime-700 hover:bg-neutral-100 rounded transition-colors"
                 title="Editar ordem"
               >
-                <Edit className="w-3 h-3" />
+                <Edit className="w-2.5 h-2.5" />
               </button>
             </div>
-            <div className="flex items-center text-xs sm:text-sm text-neutral-600 mt-1">
-              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
+            <div className="flex items-center text-[10px] text-neutral-600 mt-0.5">
+              <Calendar className="w-2.5 h-2.5 mr-1 flex-shrink-0" />
               <span className="truncate">{format(order.date, 'dd/MM/yyyy')}</span>
             </div>
           </div>
-          <span className={`text-xs sm:text-sm font-medium ${statusInfo.textColor} ${statusInfo.bgColor} px-2 py-1 rounded-full border border-${statusInfo.bgColor.split('-')[1]}-200 flex-shrink-0 self-start`}>
+          <span className={`text-[10px] font-medium ${statusInfo.textColor} ${statusInfo.bgColor} px-1.5 py-0.5 rounded-full border border-${statusInfo.bgColor.split('-')[1]}-200 flex-shrink-0 self-start`}>
             {statusInfo.label}
           </span>
         </div>
 
         {/* Informações principais - Melhor organização e responsivo */}
-        <div className="space-y-2 mb-3">
-          <div className="flex items-center text-xs sm:text-sm text-neutral-600">
-            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-neutral-400 flex-shrink-0" />
+        <div className="space-y-1 mb-2">
+          <div className="flex items-center text-[10px] text-neutral-600">
+            <MapPin className="w-2.5 h-2.5 mr-1 text-neutral-400 flex-shrink-0" />
             <span className="truncate">{order.city}, {order.state}</span>
           </div>
           
-          <div className="flex items-center text-xs sm:text-sm text-neutral-600">
-            <User className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-neutral-400 flex-shrink-0" />
+          <div className="flex items-center text-[10px] text-neutral-600">
+            <User className="w-2.5 h-2.5 mr-1 text-neutral-400 flex-shrink-0" />
             <span className="truncate">{vendor?.name || 'Vendedor não encontrado'}</span>
           </div>
 
           {broker && (
-            <div className="flex items-center text-xs sm:text-sm text-neutral-600">
-              <UserCheck className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-neutral-400 flex-shrink-0" />
+            <div className="flex items-center text-[10px] text-neutral-600">
+              <UserCheck className="w-2.5 h-2.5 mr-1 text-neutral-400 flex-shrink-0" />
               <div className="truncate">
-                <span className="text-xs sm:text-sm text-neutral-500">Corretor:</span>
-                <span className="ml-1">{broker.name}</span>
+                <span className="text-[10px] text-neutral-500">Corretor:</span>
+                <span className="ml-0.5">{broker.name}</span>
               </div>
             </div>
           )}
         </div>
 
         {/* Dados numéricos - Grid responsivo */}
-        <div className="bg-neutral-50/80 rounded-lg p-2 sm:p-3 mb-3">
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-neutral-400" />
-                <span className="text-neutral-600">Qtd:</span>
+        <div className="bg-neutral-50/80 rounded-lg p-2 mb-2">
+          <div className="space-y-2">
+            {/* Primeira linha - Quantidade e Peso Total */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/70 rounded-md p-1.5 border border-neutral-200/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Users className="w-2.5 h-2.5 mr-1 text-neutral-400" />
+                    <span className="text-[10px] text-neutral-600">Quantidade:</span>
+                  </div>
+                  <span className="font-medium text-b3x-navy-900 text-[10px]">{order.quantity}</span>
+                </div>
               </div>
-              <span className="font-medium text-b3x-navy-900">{order.quantity}</span>
+              
+              <div className="bg-white/70 rounded-md p-1.5 border border-neutral-200/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Scale className="w-2.5 h-2.5 mr-1 text-neutral-400" />
+                    <span className="text-[10px] text-neutral-600">Peso Total:</span>
+                  </div>
+                  <span className="font-medium text-b3x-navy-900 text-[10px]">{order.totalWeight.toLocaleString('pt-BR')} kg</span>
+                </div>
+              </div>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Scale className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-neutral-400" />
-                <span className="text-neutral-600">Peso:</span>
+            {/* Segunda linha - Peso Médio e Preço */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white/70 rounded-md p-1.5 border border-neutral-200/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Scale className="w-2.5 h-2.5 mr-1 text-neutral-400" />
+                    <span className="text-[10px] text-neutral-600">Peso Médio:</span>
+                  </div>
+                  <span className="font-medium text-b3x-navy-900 text-[10px]">{(order.totalWeight / order.quantity).toFixed(0)} kg</span>
+                </div>
               </div>
-              <span className="font-medium text-b3x-navy-900">{order.totalWeight.toLocaleString('pt-BR')} kg</span>
+              
+              <div className="bg-white/70 rounded-md p-1.5 border border-neutral-200/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <DollarSign className="w-2.5 h-2.5 mr-1 text-neutral-400" />
+                    <span className="text-[10px] text-neutral-600">Preço (R$/@):</span>
+                  </div>
+                  <span className="font-medium text-b3x-navy-900 text-[10px]">{order.pricePerArroba.toFixed(2)}</span>
+                </div>
+              </div>
             </div>
             
-            <div className="flex items-center justify-between col-span-2">
-              <div className="flex items-center">
-                <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-neutral-400" />
-                <span className="text-neutral-600">Valor Total:</span>
+            {/* Terceira linha - Valor Total */}
+            <div className="bg-b3x-lime-50/50 rounded-md p-1.5 border border-b3x-lime-200/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <DollarSign className="w-2.5 h-2.5 mr-1 text-b3x-lime-600" />
+                  <span className="text-[10px] text-neutral-700 font-medium">Valor Total:</span>
+                </div>
+                <span className="font-bold text-b3x-navy-900 text-[11px]">
+                  R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
               </div>
-              <span className="font-medium text-b3x-navy-900">
-                R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </span>
             </div>
           </div>
         </div>
@@ -236,10 +269,10 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
         {order.status === 'reception' && relatedLot && (
           <div className="border-t border-neutral-100 pt-3 space-y-3">
             {/* Aguardando Alocação em Curral */}
-            <div className="bg-b3x-lime-50 border border-b3x-lime-200 rounded-lg p-3">
-              <div className="flex items-center space-x-2 mb-2">
-                <Clock className="w-4 h-4 text-b3x-lime-600 flex-shrink-0" />
-                <span className="text-sm font-medium text-b3x-lime-800">
+            <div className="bg-b3x-lime-50 border border-b3x-lime-200 rounded-lg p-2">
+              <div className="flex items-center space-x-2 mb-1">
+                <Clock className="w-3 h-3 text-b3x-lime-600 flex-shrink-0" />
+                <span className="text-xs font-medium text-b3x-lime-800">
                   Aguardando Alocação em Curral
                 </span>
               </div>
@@ -249,8 +282,8 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
             </div>
 
             {/* Informações da Recepção */}
-            <div className="bg-neutral-50 rounded-lg p-3 space-y-2">
-              <h5 className="text-xs font-medium text-neutral-700 mb-2">Dados da Recepção:</h5>
+            <div className="bg-neutral-50 rounded-lg p-2 space-y-2">
+              <h5 className="text-xs font-medium text-neutral-700 mb-1">Dados da Recepção:</h5>
               
               <div className="space-y-2 text-xs">
                 {/* Quebra de Peso */}
@@ -303,11 +336,11 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
           <div className="border-t border-neutral-100 pt-3 space-y-3">
             {/* ALERTA se não tem conta pagadora ou pagamento não validado */}
             {(!order.payerAccountId || !order.paymentValidated) && (
-              <div className="bg-warning-50 border border-warning-200 rounded-lg p-3 flex items-start space-x-2">
-                <AlertTriangle className="w-4 h-4 text-warning-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-warning-700 min-w-0">
+              <div className="bg-warning-50 border border-warning-200 rounded-lg p-2 flex items-start space-x-2">
+                <AlertTriangle className="w-3 h-3 text-warning-600 mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-warning-700 min-w-0">
                   <p className="font-medium">Validação Pendente</p>
-                  <p className="text-xs mt-1">
+                  <p className="text-xs mt-0.5">
                     {!order.payerAccountId && 'Selecione a conta pagadora. '}
                     {!order.paymentValidated && 'Marque o pagamento como validado.'}
                   </p>
@@ -317,13 +350,13 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
 
             {/* Seleção da Conta Pagadora */}
             <div>
-              <label className="block text-xs font-medium text-neutral-700 mb-2">
+              <label className="block text-xs font-medium text-neutral-700 mb-1">
                 Conta Pagadora *
               </label>
               <select
                 value={order.payerAccountId || ''}
                 onChange={(e) => handlePayerAccountChange(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-b3x-lime-500"
+                className="w-full px-2 py-1.5 text-xs border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-b3x-lime-500"
               >
                 <option value="">Selecione a conta</option>
                 {payerAccounts.filter(acc => acc.isActive).map(account => (
@@ -340,9 +373,9 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
                 type="checkbox" 
                 checked={order.paymentValidated}
                 onChange={(e) => handlePaymentValidation(e.target.checked)}
-                className="rounded border-neutral-300 text-b3x-lime-600 focus:ring-b3x-lime-500"
+                className="rounded border-neutral-300 text-b3x-lime-600 focus:ring-b3x-lime-500 w-3 h-3"
               />
-              <span className="ml-2 text-sm text-neutral-700">Pagamento Validado</span>
+              <span className="ml-2 text-xs text-neutral-700">Pagamento Validado</span>
             </label>
             
             {/* Upload de Comprovante */}
@@ -355,7 +388,7 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
               />
               <label
                 htmlFor={`payment-proof-${order.id}`}
-                className="flex items-center space-x-2 px-3 py-2 text-xs border border-neutral-300 rounded-lg cursor-pointer hover:bg-neutral-50 transition-colors"
+                className="flex items-center space-x-2 px-2 py-1.5 text-xs border border-neutral-300 rounded-lg cursor-pointer hover:bg-neutral-50 transition-colors"
               >
                 <Upload className="w-3 h-3" />
                 <span>Anexar Comprovante</span>
@@ -363,8 +396,8 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
             </div>
 
             {/* Informações de Pagamento */}
-            <div className="bg-neutral-50 rounded-lg p-3 text-xs text-neutral-600">
-              <div className="flex items-center space-x-2 mb-2">
+            <div className="bg-neutral-50 rounded-lg p-2 text-xs text-neutral-600">
+              <div className="flex items-center space-x-2 mb-1">
                 <CreditCard className="w-3 h-3" />
                 <span className="font-medium">
                   {order.paymentType === 'cash' ? 'À Vista' : 'A Prazo'}
@@ -393,15 +426,15 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
         )}
 
         {/* Action Buttons - Melhor espaçamento e responsivo */}
-        <div className="flex items-center space-x-2 mt-3">
+        <div className="flex items-center space-x-1.5 mt-2">
           {/* Botão Voltar Etapa */}
           {canGoBack && (
             <button
               onClick={handleMoveToPreviousStage}
-              className="flex items-center justify-center space-x-1 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-neutral-200 text-neutral-700 rounded-lg hover:bg-neutral-300 transition-colors flex-shrink-0"
+              className="flex items-center justify-center space-x-0.5 px-1.5 py-0.5 text-[10px] bg-neutral-200 text-neutral-700 rounded-md hover:bg-neutral-300 transition-colors flex-shrink-0"
               title="Voltar etapa"
             >
-              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+              <ArrowLeft className="w-2.5 h-2.5" />
               <span className="hidden sm:inline">Voltar</span>
             </button>
           )}
@@ -411,7 +444,7 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
             <button
               onClick={handleMoveToNextStage}
               disabled={order.status === 'payment_validation' && !canAdvanceFromPaymentValidation}
-              className={`flex-1 flex items-center justify-center space-x-1 sm:space-x-2 py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 shadow-soft hover:shadow-soft-lg ${
+              className={`flex-1 flex items-center justify-center space-x-0.5 py-0.5 px-1.5 text-[10px] font-medium rounded-md transition-all duration-200 shadow-soft hover:shadow-soft-lg ${
                 order.status === 'payment_validation' && !canAdvanceFromPaymentValidation
                   ? 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-b3x-lime-500 to-b3x-lime-600 text-b3x-navy-900 hover:from-b3x-lime-600 hover:to-b3x-lime-700'
@@ -419,18 +452,18 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
             >
               {order.status === 'reception' && !relatedLot ? (
                 <>
-                  <Truck className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <Truck className="w-2.5 h-2.5" />
                   <span>Registrar Recepção</span>
                 </>
               ) : order.status === 'reception' && relatedLot ? (
                 <>
                   <span>Alocar em Curral</span>
-                  <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <ArrowRight className="w-2.5 h-2.5" />
                 </>
               ) : (
                 <>
                   <span>Avançar</span>
-                  <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <ArrowRight className="w-2.5 h-2.5" />
                 </>
               )}
             </button>

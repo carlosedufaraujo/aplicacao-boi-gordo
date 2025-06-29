@@ -299,9 +299,6 @@ interface AppState {
   deleteFinancialInstitution: (id: string) => void;
   
   // Estados de Atualizações do Sistema
-  systemUpdates: SystemUpdate[];
-  updateFeedbacks: UpdateFeedback[];
-  lastViewedUpdateDate?: Date;
   
   // Ações - Atualizações do Sistema
   setLastViewedUpdateDate: (date: Date) => void;
@@ -473,14 +470,168 @@ export const useAppStore = create<AppState>((set, get) => ({
   })),
   
   // Ações - Ordens de Compra
-  addPurchaseOrder: (order) => set((state) => ({
-    purchaseOrders: [...state.purchaseOrders, { 
+  addPurchaseOrder: (order) => set((state) => {
+    const orderId = uuidv4();
+    const orderWithId = { 
       ...order, 
-      id: uuidv4(), 
+      id: orderId, 
       createdAt: new Date(),
       updatedAt: new Date()
-    }]
-  })),
+    };
+    
+    // 🆕 NOVO: Calcular valor dos animais com base no RC% e preço por arroba
+    const rcPercentage = order.rcPercentage || 50;
+    const carcassWeight = order.totalWeight * (rcPercentage / 100);
+    const arrobas = carcassWeight / 15;
+    const animalValue = arrobas * order.pricePerArroba;
+    
+    // 🆕 NOVO: Criar lote automaticamente ao criar a ordem
+    const newLot: CattleLot = {
+      id: uuidv4(),
+      lotNumber: order.code,
+      purchaseOrderId: orderId,
+      entryWeight: order.totalWeight,
+      entryQuantity: order.quantity,
+      freightKm: 0,
+      freightCostPerKm: 0,
+      entryDate: new Date(),
+      estimatedGmd: 1.5,
+      deaths: 0,
+      status: 'active',
+      observations: 'Lote pendente - Aguardando validação de pagamento',
+      custoAcumulado: {
+        aquisicao: animalValue,
+        sanidade: 0,
+        alimentacao: 0,
+        operacional: 0,
+        frete: 0,
+        outros: 0,
+        total: animalValue
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // 🆕 NOVO: Criar contas a pagar ao criar a ordem
+    const newAccounts: FinancialAccount[] = [];
+    const newExpenses: Expense[] = [];
+    
+    // Conta principal - valor dos animais
+    const mainAccount: FinancialAccount = {
+      id: uuidv4(),
+      type: 'payable',
+      description: `Compra de gado - ${order.code} - ${order.quantity} animais`,
+      amount: animalValue,
+      dueDate: order.paymentDate || new Date(),
+      status: 'pending',
+      relatedEntityType: 'purchase_order',
+      relatedEntityId: orderId,
+      createdAt: new Date()
+    };
+    newAccounts.push(mainAccount);
+    
+    // Despesa de aquisição
+    const acquisitionExpense: Expense = {
+      id: uuidv4(),
+      date: order.date,
+      description: `Aquisição de gado - ${order.code}`,
+      category: 'animal_purchase',
+      totalAmount: animalValue,
+      supplierId: order.vendorId,
+      paymentStatus: 'pending',
+      paymentDate: order.paymentDate,
+      allocations: [],
+      impactsCashFlow: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    newExpenses.push(acquisitionExpense);
+    
+    // Conta para comissão
+    if (order.commission > 0) {
+      const commissionAccount: FinancialAccount = {
+        id: uuidv4(),
+        type: 'payable',
+        description: `Comissão - ${order.code}`,
+        amount: order.commission,
+        dueDate: order.commissionPaymentDate || order.paymentDate || new Date(),
+        status: 'pending',
+        relatedEntityType: 'commission',
+        relatedEntityId: orderId,
+        createdAt: new Date()
+      };
+      newAccounts.push(commissionAccount);
+      
+      // Despesa de comissão
+      const commissionExpense: Expense = {
+        id: uuidv4(),
+        date: order.date,
+        description: `Comissão - ${order.code}`,
+        category: 'commission',
+        totalAmount: order.commission,
+        supplierId: order.brokerId,
+        paymentStatus: 'pending',
+        paymentDate: order.commissionPaymentDate,
+        allocations: [],
+        impactsCashFlow: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      newExpenses.push(commissionExpense);
+    }
+    
+    // Conta para outros custos
+    if (order.otherCosts > 0) {
+      const otherCostsAccount: FinancialAccount = {
+        id: uuidv4(),
+        type: 'payable',
+        description: `${order.otherCostsDescription || 'Outros custos'} - ${order.code}`,
+        amount: order.otherCosts,
+        dueDate: order.otherCostsPaymentDate || order.paymentDate || new Date(),
+        status: 'pending',
+        relatedEntityType: 'other_costs',
+        relatedEntityId: orderId,
+        createdAt: new Date()
+      };
+      newAccounts.push(otherCostsAccount);
+      
+      // Despesa de outros custos
+      const otherCostsExpense: Expense = {
+        id: uuidv4(),
+        date: order.date,
+        description: `${order.otherCostsDescription || 'Outros custos'} - ${order.code}`,
+        category: 'acquisition_other',
+        totalAmount: order.otherCosts,
+        paymentStatus: 'pending',
+        paymentDate: order.otherCostsPaymentDate,
+        allocations: [],
+        impactsCashFlow: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      newExpenses.push(otherCostsExpense);
+    }
+    
+    // Notificação
+    const notification: Notification = {
+      id: uuidv4(),
+      title: 'Nova Ordem de Compra',
+      message: `Ordem ${order.code} criada com sucesso. Lote e contas a pagar foram gerados automaticamente.`,
+      type: 'success',
+      isRead: false,
+      relatedEntityType: 'purchase_order',
+      relatedEntityId: orderId,
+      createdAt: new Date()
+    };
+    
+    return {
+      purchaseOrders: [...state.purchaseOrders, orderWithId],
+      cattleLots: [...state.cattleLots, newLot],
+      financialAccounts: [...state.financialAccounts, ...newAccounts],
+      expenses: [...state.expenses, ...newExpenses],
+      notifications: [...state.notifications, notification]
+    };
+  }),
   updatePurchaseOrder: (id, data) => set((state) => ({
     purchaseOrders: state.purchaseOrders.map(order => 
       order.id === id ? { ...order, ...data, updatedAt: new Date() } : order
@@ -499,107 +650,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     switch (order.status) {
       case 'order':
         nextStatus = 'payment_validation';
-        
-        // 🆕 INTEGRAÇÃO FINANCEIRA: Criar contas a pagar quando vai para validação
-        const rcPercentage = order.rcPercentage || 50;
-        const carcassWeight = order.totalWeight * (rcPercentage / 100);
-        const arrobas = carcassWeight / 15;
-        const animalValue = arrobas * order.pricePerArroba;
-        
-        // Criar conta a pagar principal (valor dos animais)
-        const mainAccount: FinancialAccount = {
-          id: uuidv4(),
-          type: 'payable',
-          description: `Compra de gado - ${order.code} - ${order.quantity} animais`,
-          amount: animalValue,
-          dueDate: order.paymentDate || new Date(),
-          status: 'pending',
-          relatedEntityType: 'purchase_order',
-          relatedEntityId: order.id,
-          createdAt: new Date()
-        };
-        
-        updatedState.financialAccounts = [...updatedState.financialAccounts, mainAccount];
-        
-        // Criar conta a pagar para comissão
-        if (order.commission > 0) {
-          const commissionAccount: FinancialAccount = {
-            id: uuidv4(),
-            type: 'payable',
-            description: `Comissão - ${order.code}`,
-            amount: order.commission,
-            dueDate: order.commissionPaymentDate || order.paymentDate || new Date(),
-            status: 'pending',
-            relatedEntityType: 'commission',
-            relatedEntityId: order.id,
-            createdAt: new Date()
-          };
-          updatedState.financialAccounts.push(commissionAccount);
-        }
-        
-        // Criar conta a pagar para impostos
-        if (order.taxes && order.taxes > 0) {
-          const taxAccount: FinancialAccount = {
-            id: uuidv4(),
-            type: 'payable',
-            description: `Impostos - ${order.code}`,
-            amount: order.taxes,
-            dueDate: order.taxesPaymentDate || order.paymentDate || new Date(),
-            status: 'pending',
-            relatedEntityType: 'taxes',
-            relatedEntityId: order.id,
-            createdAt: new Date()
-          };
-          updatedState.financialAccounts.push(taxAccount);
-        }
-        
-        // Criar conta a pagar para outros custos
-        if (order.otherCosts > 0) {
-          const otherCostsAccount: FinancialAccount = {
-            id: uuidv4(),
-            type: 'payable',
-            description: `${order.otherCostsDescription || 'Outros custos'} - ${order.code}`,
-            amount: order.otherCosts,
-            dueDate: order.otherCostsPaymentDate || order.paymentDate || new Date(),
-            status: 'pending',
-            relatedEntityType: 'other_costs',
-            relatedEntityId: order.id,
-            createdAt: new Date()
-          };
-          updatedState.financialAccounts.push(otherCostsAccount);
-        }
-        
-        // 🆕 INTEGRAÇÃO CENTRO DE CUSTOS: Criar despesas associadas
-        // Despesa de aquisição
-        const acquisitionExpense: Expense = {
-          id: uuidv4(),
-          date: order.date,
-          description: `Aquisição de gado - ${order.code}`,
-          category: 'animal_purchase',
-          totalAmount: animalValue,
-          supplierId: order.vendorId,
-          paymentStatus: 'pending',
-          paymentDate: order.paymentDate,
-          allocations: [],
-          impactsCashFlow: true, // Aquisição impacta o caixa
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        updatedState.expenses = [...updatedState.expenses, acquisitionExpense];
-        
-        // Adicionar notificação
-        const notification: Notification = {
-          id: uuidv4(),
-          title: 'Contas a pagar criadas',
-          message: `Foram criadas as contas a pagar para a ordem ${order.code}`,
-          type: 'info',
-          isRead: false,
-          relatedEntityType: 'purchase_order',
-          relatedEntityId: order.id,
-          createdAt: new Date()
-        };
-        updatedState.notifications = [...updatedState.notifications, notification];
-        
         break;
         
       case 'payment_validation':
@@ -625,6 +675,74 @@ export const useAppStore = create<AppState>((set, get) => ({
         
       case 'reception':
         nextStatus = 'confined';
+        
+        // 🆕 NOVO: Criar conta de frete ao recepcionar (quando temos o KM real)
+        const freightCost = (order.freightKm || 0) * (order.freightCostPerKm || 0);
+        if (freightCost > 0) {
+          const freightAccount: FinancialAccount = {
+            id: uuidv4(),
+            type: 'payable',
+            description: `Frete - ${order.code} - ${order.freightKm || 0} km`,
+            amount: freightCost,
+            dueDate: order.paymentDate || new Date(),
+            status: 'pending',
+            relatedEntityType: 'freight',
+            relatedEntityId: order.id,
+            createdAt: new Date()
+          };
+          updatedState.financialAccounts = [...updatedState.financialAccounts, freightAccount];
+          
+          // Criar despesa de frete
+          const freightExpense: Expense = {
+            id: uuidv4(),
+            date: new Date(),
+            description: `Frete - ${order.code} - ${order.freightKm || 0} km`,
+            category: 'freight',
+            totalAmount: freightCost,
+            supplierId: order.transportCompanyId,
+            paymentStatus: 'pending',
+            paymentDate: order.paymentDate,
+            allocations: [],
+            impactsCashFlow: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          updatedState.expenses = [...updatedState.expenses, freightExpense];
+          
+          // Atualizar custo do lote com o frete
+          const lot = updatedState.cattleLots.find(l => l.purchaseOrderId === order.id);
+          if (lot) {
+            updatedState.cattleLots = updatedState.cattleLots.map(l => 
+              l.id === lot.id 
+                ? {
+                    ...l,
+                    freightKm: order.freightKm || 0,
+                    freightCostPerKm: order.freightCostPerKm || 0,
+                    custoAcumulado: {
+                      ...l.custoAcumulado,
+                      frete: freightCost,
+                      total: l.custoAcumulado.total + freightCost
+                    },
+                    updatedAt: new Date()
+                  }
+                : l
+            );
+          }
+          
+          // Notificação sobre frete
+          const freightNotification: Notification = {
+            id: uuidv4(),
+            title: 'Frete Adicionado',
+            message: `Frete de R$ ${freightCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} adicionado à ordem ${order.code}`,
+            type: 'info',
+            isRead: false,
+            relatedEntityType: 'purchase_order',
+            relatedEntityId: order.id,
+            createdAt: new Date()
+          };
+          updatedState.notifications = [...updatedState.notifications, freightNotification];
+        }
+        
         break;
         
       default:
@@ -1485,7 +1603,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const carcassWeight = order.totalWeight * (rcPercentage / 100);
       const arrobas = carcassWeight / 15;
       const animalValue = arrobas * order.pricePerArroba;
-      acquisitionCost = animalValue + order.commission + (order.taxes || 0) + order.otherCosts;
+      acquisitionCost = animalValue + order.commission + order.otherCosts;
     }
     
     // Custos alocados proporcionalmente
@@ -1783,7 +1901,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const carcassWeight = order.totalWeight * (rcPercentage / 100);
       const arrobas = carcassWeight / 15;
       const animalValue = arrobas * order.pricePerArroba;
-      acquisitionCost = animalValue + order.commission + (order.taxes || 0) + order.otherCosts;
+      acquisitionCost = animalValue + order.commission + order.otherCosts;
     }
     
     // Custos sanitários
@@ -1846,7 +1964,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const carcassWeight = order.totalWeight * (rcPercentage / 100);
       const arrobas = carcassWeight / 15;
       const animalValue = arrobas * order.pricePerArroba;
-      acquisitionCost = animalValue + order.commission + (order.taxes || 0) + order.otherCosts;
+      acquisitionCost = animalValue + order.commission + order.otherCosts;
     }
     
     // Custos sanitários
@@ -2358,6 +2476,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       id: uuidv4(),
       entityType,
       entityId: entityId || 'global',
+      entityName: entityType === 'global' ? 'Global' : 
+                  entityType === 'lot' ? state.cattleLots.find(l => l.id === entityId)?.lotNumber || entityId :
+                  `Curral ${entityId}`,
       periodStart,
       periodEnd,
       revenue: { grossSales: 0, salesDeductions: 0, netSales: 0 },
@@ -2845,7 +2966,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const summary: IndirectCostSummary = {
       entityType,
       entityId: entityId || 'global',
-      entityName,
+      entityName: entityType === 'global' ? 'Global' : 
+                  entityType === 'lot' ? state.cattleLots.find(l => l.id === entityId)?.lotNumber || entityId :
+                  `Curral ${entityId || ''}`,
       period: { startDate: periodStart, endDate: periodEnd },
       costs,
       percentageOfTotal: 100, // Será calculado se necessário

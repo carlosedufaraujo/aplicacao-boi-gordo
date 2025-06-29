@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -114,6 +114,77 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
   const brokers = partners.filter(p => p.type === 'broker' && p.isActive);
   const activeCycles = cycles.filter(c => c.status === 'active');
 
+  // Carregar custos adicionais quando estiver editando
+  useEffect(() => {
+    if (isEditing && initialData && initialData.otherCosts > 0) {
+      // Se há um valor de outros custos mas não temos a descrição detalhada,
+      // criar um item genérico
+      if (!initialData.otherCostsDescription) {
+        setAdditionalCosts([{
+          id: Date.now().toString(),
+          type: 'Outros Custos',
+          value: initialData.otherCosts,
+          paymentType: initialData.otherCostsPaymentType || 'cash',
+          paymentDate: initialData.otherCostsPaymentDate
+        }]);
+      } else {
+        // Tentar parsear a descrição para recriar os custos individuais
+        try {
+          const costs: AdditionalCost[] = [];
+          const costDescriptions = initialData.otherCostsDescription.split('; ');
+          
+          costDescriptions.forEach((desc, index) => {
+            // Formato esperado: "Tipo: R$ 0,00 (À Vista)" ou "Tipo: R$ 0,00 (A Prazo - dd/mm/yyyy)"
+            const typeMatch = desc.match(/^([^:]+):/);
+            const valueMatch = desc.match(/R\$ ([\d.,]+)/);
+            const paymentTypeMatch = desc.match(/\((À Vista|A Prazo)/);
+            
+            if (typeMatch && valueMatch) {
+              const cost: AdditionalCost = {
+                id: `${Date.now()}-${index}`,
+                type: typeMatch[1] as any,
+                value: parseFloat(valueMatch[1].replace(/\./g, '').replace(',', '.')),
+                paymentType: paymentTypeMatch && paymentTypeMatch[1] === 'A Prazo' ? 'installment' : 'cash'
+              };
+              
+              // Tentar extrair a data se for a prazo
+              const dateMatch = desc.match(/(\d{2}\/\d{2}\/\d{4})/);
+              if (dateMatch) {
+                const [day, month, year] = dateMatch[1].split('/');
+                cost.paymentDate = new Date(`${year}-${month}-${day}`);
+              }
+              
+              costs.push(cost);
+            }
+          });
+          
+          if (costs.length > 0) {
+            setAdditionalCosts(costs);
+          } else {
+            // Fallback: criar um item genérico se não conseguir parsear
+            setAdditionalCosts([{
+              id: Date.now().toString(),
+              type: 'Outros Custos',
+              value: initialData.otherCosts,
+              paymentType: initialData.otherCostsPaymentType || 'cash',
+              paymentDate: initialData.otherCostsPaymentDate
+            }]);
+          }
+        } catch (error) {
+          // Em caso de erro, criar um item genérico
+          console.error('Erro ao parsear custos adicionais:', error);
+          setAdditionalCosts([{
+            id: Date.now().toString(),
+            type: 'Outros Custos',
+            value: initialData.otherCosts,
+            paymentType: initialData.otherCostsPaymentType || 'cash',
+            paymentDate: initialData.otherCostsPaymentDate
+          }]);
+        }
+      }
+    }
+  }, [isEditing, initialData]);
+
   const watchedValues = watch();
   const totalAdditionalCosts = additionalCosts.reduce((sum, cost) => sum + cost.value, 0);
   
@@ -208,8 +279,15 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
   const handleDeleteOrder = () => {
     if (initialData) {
       deletePurchaseOrder(initialData.id);
+      setAdditionalCosts([]);
       onClose();
     }
+  };
+
+  const handleClose = () => {
+    reset();
+    setAdditionalCosts([]);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -227,7 +305,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
               </p>
             </div>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 hover:bg-b3x-navy-700 rounded-lg transition-colors"
             >
               <X className="w-4 h-4" />
@@ -865,7 +943,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
               <div className="flex space-x-3">
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="px-3 py-1.5 text-sm text-neutral-600 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
                 >
                   Cancelar
