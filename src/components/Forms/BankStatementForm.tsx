@@ -7,14 +7,18 @@ import { useAppStore } from '../../stores/useAppStore';
 import { BankStatementFormData } from '../../types';
 
 const bankStatementSchema = z.object({
-  bankAccount: z.string().min(1, 'Conta bancária é obrigatória'),
-  date: z.date(),
+  bankAccount: z.string().min(1, 'Selecione uma conta bancária'),
+  date: z.date({
+    required_error: "Data é obrigatória",
+    invalid_type_error: "Data inválida"
+  }),
   description: z.string().min(1, 'Descrição é obrigatória'),
-  amount: z.number().min(0.01, 'Valor deve ser maior que 0'),
+  amount: z.number().refine(val => val !== 0, 'Valor não pode ser zero'),
   type: z.enum(['debit', 'credit']),
   reference: z.string().optional(),
   category: z.string().optional(),
   payee: z.string().optional(),
+  tags: z.array(z.string()).optional()
 });
 
 interface BankStatementFormProps {

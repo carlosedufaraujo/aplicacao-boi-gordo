@@ -8,27 +8,32 @@ import { PurchaseOrder, Expense } from '../../types';
 import { PartnerForm } from '../Forms/PartnerForm';
 import { Portal } from '../Common/Portal';
 
-const receptionSchema = z.object({
+const cattleLotSchema = z.object({
+  purchaseOrderId: z.string().min(1, 'Selecione uma ordem de compra'),
   entryWeight: z.number().min(1, 'Peso de entrada deve ser maior que 0'),
-  entryQuantity: z.number().min(1, 'Quantidade de entrada deve ser maior que 0'),
+  entryQuantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
   quantityDifferenceReason: z.string().optional(),
-  freightType: z.enum(['own', 'third']),
-  freightKm: z.number().min(0, 'KM do frete deve ser maior ou igual a 0'),
-  freightCostPerKm: z.number().min(0, 'Custo por KM deve ser maior ou igual a 0'),
-  transportCompanyId: z.string().optional(),
-  freightPaymentType: z.enum(['cash', 'installment']).optional(),
-  freightPaymentDate: z.date().optional(),
-  cocoEntryDate: z.date({
-    required_error: "Data de entrada no cocho é obrigatória",
+  freightKm: z.number().min(0, 'Distância não pode ser negativa'),
+  freightCostPerKm: z.number().min(0, 'Custo por km não pode ser negativo'),
+  transportCompany: z.string().optional(),
+  entryDate: z.date({
+    required_error: "Data de entrada é obrigatória",
     invalid_type_error: "Data inválida"
   }),
-  observations: z.string().optional(),
-}).refine((data) => {
-  // Se a quantidade for diferente da comprada, motivo é obrigatório
-  return true; // Validação será feita no componente
-}, {
-  message: "Motivo é obrigatório quando a quantidade for diferente",
-  path: ["quantityDifferenceReason"]
+  freightPaymentDate: z.date({
+    required_error: "Data de pagamento do frete é obrigatória",
+    invalid_type_error: "Data inválida"
+  }).optional(),
+  cocoEntryDate: z.date({
+    required_error: "Data de entrada no curral é obrigatória",
+    invalid_type_error: "Data inválida"
+  }),
+  estimatedGmd: z.number().min(0, 'GMD não pode ser negativo'),
+  penAllocations: z.array(z.object({
+    penNumber: z.string(),
+    quantity: z.number().min(1)
+  })).min(1, 'Aloque os animais em pelo menos um curral'),
+  observations: z.string().optional()
 });
 
 interface ReceptionFormProps {
@@ -64,8 +69,8 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
     setValue,
     setError,
     clearErrors
-  } = useForm<z.infer<typeof receptionSchema> & { quantityDifferenceReason?: string; observations?: string }>({
-    resolver: zodResolver(receptionSchema),
+  } = useForm<z.infer<typeof cattleLotSchema> & { quantityDifferenceReason?: string; observations?: string }>({
+    resolver: zodResolver(cattleLotSchema),
     defaultValues: {
       entryQuantity: order.quantity,
       entryWeight: order.totalWeight,

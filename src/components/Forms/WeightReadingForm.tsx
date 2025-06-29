@@ -9,9 +9,12 @@ import { WeightReadingFormData } from '../../types';
 const weightReadingSchema = z.object({
   lotId: z.string().min(1, 'Selecione um lote'),
   penNumber: z.string().min(1, 'Selecione um curral'),
-  date: z.date(),
-  sampleWeight: z.number().min(1, 'Peso da amostra deve ser maior que 0'),
-  sampleQuantity: z.number().min(1, 'Quantidade da amostra deve ser maior que 0'),
+  date: z.date({
+    required_error: "Data é obrigatória",
+    invalid_type_error: "Data inválida"
+  }),
+  sampleWeight: z.number().min(1, 'Peso deve ser maior que 0'),
+  sampleQuantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
   technician: z.string().optional(),
   observations: z.string().optional(),
 });

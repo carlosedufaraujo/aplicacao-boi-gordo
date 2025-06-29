@@ -13,41 +13,38 @@ import {
   Truck,
   Layers,
   FileText,
-  Building2
+  Building2,
+  RefreshCw,
+  LucideIcon
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { clsx } from 'clsx';
 
-const navigation = [
-  { 
-    section: 'Visão Geral',
-    items: [
-      { id: 'dashboard', name: 'Dashboard', icon: BarChart3 },
-    ]
-  },
-  {
-    section: 'Operacional',
-    items: [
-      { id: 'pipeline', name: 'Pipeline de Compras', icon: ShoppingCart },
-      { id: 'sales-pipeline', name: 'Pipeline de Abate', icon: Truck },
-      { id: 'lots', name: 'Lotes e Mapa', icon: MapPin },
-    ]
-  },
-  {
-    section: 'Financeiro',
-    items: [
-      { id: 'financial-center', name: 'Centro Financeiro', icon: Layers },
-      { id: 'dre', name: 'DRE Integrado', icon: FileText },
-      { id: 'calendar', name: 'Calendário Financeiro', icon: Calendar },
-      { id: 'financial-reconciliation', name: 'Conciliação', icon: DollarSign },
-    ]
-  },
-  {
-    section: 'Sistema',
-    items: [
-      { id: 'registrations', name: 'Cadastros', icon: Users },
-    ]
-  }
+type NavigationItem = {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  separator?: never;
+} | {
+  separator: true;
+  id?: never;
+  name?: never;
+  icon?: never;
+};
+
+const navigation: NavigationItem[] = [
+  { id: 'dashboard', name: 'Dashboard', icon: BarChart3 },
+  { separator: true },
+  { id: 'pipeline', name: 'Pipeline de Compras', icon: ShoppingCart },
+  { id: 'sales-pipeline', name: 'Pipeline de Abate', icon: Truck },
+  { id: 'lots', name: 'Lotes e Mapa', icon: MapPin },
+  { separator: true },
+  { id: 'financial', name: 'Centro Financeiro', icon: Layers },
+  { id: 'dre', name: 'DRE Integrado', icon: FileText },
+  { id: 'calendar', name: 'Calendário Financeiro', icon: Calendar },
+  { id: 'financial-reconciliation', name: 'Conciliação', icon: DollarSign },
+  { separator: true },
+  { id: 'registrations', name: 'Cadastros', icon: Users },
 ];
 
 export const Sidebar: React.FC = () => {
@@ -89,8 +86,8 @@ export const Sidebar: React.FC = () => {
                 </div>
                 {!sidebarCollapsed && (
                   <div className="ml-3">
-                    <h1 className="text-lg font-bold text-white leading-tight">CEAC Agropecuária</h1>
-                    <p className="text-xs text-b3x-lime-400 leading-tight">e Mercantil Ltda</p>
+                    <h1 className="text-[17px] font-bold text-white leading-tight">CEAC Agropecuária</h1>
+                    <p className="text-[11px] text-b3x-lime-400 leading-tight">Gestão de Ciclo Pecuário</p>
                   </div>
                 )}
               </div>
@@ -99,68 +96,76 @@ export const Sidebar: React.FC = () => {
         </div>
         
         {/* Linha gradiente abaixo do header */}
-        <div className="mx-3 mb-4 h-0.5 bg-gradient-to-r from-transparent via-b3x-lime-400/50 to-transparent"></div>
+        <div className="mx-3 mb-4 h-1 bg-gradient-to-r from-transparent via-b3x-lime-400/70 to-transparent rounded-full"></div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
-          {navigation.map((section, sectionIndex) => (
-            <div key={sectionIndex}>
-              {!sidebarCollapsed && (
-                <>
-                  <h3 className="px-3 mb-2 text-xs font-semibold text-b3x-navy-400 uppercase tracking-wider">
-                    {section.section}
-                  </h3>
-                  <div className="mx-3 mb-3 h-px bg-gradient-to-r from-transparent via-b3x-lime-400/30 to-transparent"></div>
-                </>
-              )}
-              <div className="space-y-1">
-                {section.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentPage === item.id;
-                  
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setCurrentPage(item.id)}
-                      className={clsx(
-                        'w-full flex items-center px-3 py-2.5 rounded-lg text-left transition-all duration-200',
-                        'hover:bg-b3x-navy-800/50 hover:backdrop-blur-sm',
-                        isActive
-                          ? 'bg-gradient-to-r from-b3x-lime-500/20 to-b3x-lime-400/10 text-b3x-lime-400 border border-b3x-lime-500/30 shadow-soft'
-                          : 'text-b3x-navy-200 hover:text-white',
-                        sidebarCollapsed && 'justify-center'
-                      )}
-                      title={sidebarCollapsed ? item.name : undefined}
-                    >
-                      <Icon className={clsx(
-                        'w-4 h-4 transition-colors duration-200 flex-shrink-0',
-                        isActive ? 'text-b3x-lime-400' : 'text-b3x-navy-300'
-                      )} />
-                      {!sidebarCollapsed && (
-                        <span className="ml-3 font-medium transition-opacity duration-200 text-sm truncate">{item.name}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {navigation.map((item, index) => {
+            if (item.separator) {
+              return (
+                <div key={`separator-${index}`} className="my-3">
+                  <div className="mx-3 h-0.5 bg-gradient-to-r from-transparent via-b3x-lime-400/50 to-transparent rounded-full"></div>
+                </div>
+              );
+            }
+
+            const Icon = item.icon;
+            const isActive = currentPage === item.id;
+            
+            return (
+              <button
+                key={item.id}
+                onClick={() => setCurrentPage(item.id)}
+                className={clsx(
+                  'w-full flex items-center px-3 py-2.5 rounded-lg text-left transition-all duration-200',
+                  'hover:bg-b3x-navy-800/50 hover:backdrop-blur-sm',
+                  isActive
+                    ? 'bg-gradient-to-r from-b3x-lime-500/20 to-b3x-lime-400/10 text-b3x-lime-400 border border-b3x-lime-500/30 shadow-soft'
+                    : 'text-b3x-navy-200 hover:text-white',
+                  sidebarCollapsed && 'justify-center'
+                )}
+                title={sidebarCollapsed ? item.name : undefined}
+              >
+                <Icon className={clsx(
+                  'w-4 h-4 transition-colors duration-200 flex-shrink-0',
+                  isActive ? 'text-b3x-lime-400' : 'text-b3x-navy-300'
+                )} />
+                {!sidebarCollapsed && (
+                  <span className="ml-3 font-medium transition-opacity duration-200 text-sm truncate">{item.name}</span>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Bottom Section */}
         <div className="flex-shrink-0">
-          {/* Linha gradiente acima das configurações */}
-          <div className="mx-3 mb-3 h-0.5 bg-gradient-to-r from-transparent via-b3x-lime-400/50 to-transparent"></div>
+          {/* Linha gradiente acima das atualizações */}
+          <div className="mx-3 mb-3 h-1 bg-gradient-to-r from-transparent via-b3x-lime-400/70 to-transparent rounded-full"></div>
           
-          {/* Settings */}
-          {!sidebarCollapsed && (
-            <div className="p-3">
-              <button className="w-full flex items-center px-3 py-2.5 rounded-lg text-b3x-navy-200 hover:bg-b3x-navy-800/50 hover:text-white transition-all duration-200">
-                <Settings className="w-4 h-4 flex-shrink-0" />
-                <span className="ml-3 font-medium text-sm truncate">Configurações</span>
-              </button>
-            </div>
-          )}
+          {/* System Updates */}
+          <div className="p-3">
+            <button 
+              onClick={() => setCurrentPage('system-updates')}
+              className={clsx(
+                'w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200',
+                'hover:bg-b3x-navy-800/50 hover:backdrop-blur-sm',
+                currentPage === 'system-updates'
+                  ? 'bg-gradient-to-r from-b3x-lime-500/20 to-b3x-lime-400/10 text-b3x-lime-400 border border-b3x-lime-500/30 shadow-soft'
+                  : 'text-b3x-navy-200 hover:text-white',
+                sidebarCollapsed && 'justify-center'
+              )}
+              title={sidebarCollapsed ? 'Atualizações do Sistema' : undefined}
+            >
+              <RefreshCw className={clsx(
+                'w-4 h-4 flex-shrink-0',
+                currentPage === 'system-updates' ? 'text-b3x-lime-400' : 'text-b3x-navy-300'
+              )} />
+              {!sidebarCollapsed && (
+                <span className="ml-3 font-medium text-sm truncate">Atualizações do Sistema</span>
+              )}
+            </button>
+          </div>
           
           {/* Collapse Toggle */}
           <div className="p-3">

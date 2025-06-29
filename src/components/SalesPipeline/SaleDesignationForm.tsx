@@ -8,7 +8,10 @@ import { clsx } from 'clsx';
 
 const saleDesignationSchema = z.object({
   penNumbers: z.array(z.string()).min(1, 'Selecione pelo menos um curral'),
-  scheduledDate: z.date(),
+  scheduledDate: z.date({
+    required_error: "Data de abate é obrigatória",
+    invalid_type_error: "Data inválida"
+  }),
   slaughterhouseId: z.string().min(1, 'Selecione um frigorífico'),
   estimatedPricePerArroba: z.number().min(1, 'Preço deve ser maior que 0'),
   observations: z.string().optional(),

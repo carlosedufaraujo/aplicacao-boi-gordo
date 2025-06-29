@@ -30,16 +30,51 @@ export interface Partner {
   createdAt: Date;
 }
 
+// Interface para Transportadoras
+export interface Transporter {
+  id: string;
+  name: string;
+  document: string; // CNPJ
+  phone: string;
+  email?: string;
+  address?: string;
+  city: string;
+  state: string;
+  zipCode?: string;
+  pricePerKm: number;
+  minDistance?: number;
+  isActive: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Interface para Instituições Financeiras
+export interface FinancialInstitution {
+  id: string;
+  name: string;
+  code: string; // Código do banco (ex: 001 para BB)
+  type: 'bank' | 'cooperative' | 'fintech';
+  isActive: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 // NOVA INTERFACE: Conta Pagadora
 export interface PayerAccount {
   id: string;
-  name: string;
+  institutionId?: string; // ID da instituição financeira
+  accountName?: string; // Nome da conta
+  name?: string; // Nome da conta (compatibilidade)
   bankName: string;
-  bankAgency: string;
-  bankAccount: string;
-  bankAccountType: 'checking' | 'savings';
+  agency?: string; // Agência
+  bankAgency?: string; // Agência (compatibilidade)
+  accountNumber?: string; // Número da conta
+  bankAccount?: string; // Número da conta (compatibilidade)
+  accountType?: 'checking' | 'savings'; // Tipo de conta
+  bankAccountType?: 'checking' | 'savings'; // Tipo de conta (compatibilidade)
+  balance?: number; // Saldo
   isActive: boolean;
-  isDefault: boolean;
+  isDefault?: boolean;
   createdAt: Date;
 }
 
@@ -551,6 +586,36 @@ export interface Notification {
   relatedEntityType?: 'purchase_order' | 'cattle_lot' | 'health_record' | 'feed_cost' | 'financial_account' | 'sale_record' | 'pen' | 'weight_reading';
   relatedEntityId?: string;
   actionUrl?: string;
+  createdAt: Date;
+}
+
+// Interface para Atualizações do Sistema
+export interface SystemUpdate {
+  id: string;
+  version: string;
+  title: string;
+  description: string;
+  type: 'feature' | 'improvement' | 'bugfix' | 'security' | 'performance';
+  category: 'pipeline' | 'financial' | 'reports' | 'ui' | 'api' | 'general';
+  changes: {
+    id: string;
+    description: string;
+    icon?: string;
+  }[];
+  releaseDate: Date;
+  author?: string;
+  isHighlighted?: boolean;
+  imageUrl?: string;
+  createdAt: Date;
+}
+
+// Interface para Feedback de Atualizações
+export interface UpdateFeedback {
+  id: string;
+  updateId: string;
+  userId?: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  comment?: string;
   createdAt: Date;
 }
 

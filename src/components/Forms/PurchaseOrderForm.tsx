@@ -11,7 +11,10 @@ import { ConfirmDialog } from '../Common/ConfirmDialog';
 
 const purchaseOrderSchema = z.object({
   cycleId: z.string().min(1, 'Selecione um ciclo'),
-  date: z.date(),
+  date: z.date({
+    required_error: "Data da compra é obrigatória",
+    invalid_type_error: "Data inválida",
+  }),
   vendorId: z.string().min(1, 'Selecione um vendedor'),
   brokerId: z.string().optional(),
   city: z.string().min(1, 'Cidade é obrigatória'),
@@ -23,14 +26,26 @@ const purchaseOrderSchema = z.object({
   pricePerArroba: z.number().min(1, 'Preço por arroba deve ser maior que 0'),
   commission: z.number().min(0, 'Comissão deve ser maior ou igual a 0'),
   commissionPaymentType: z.enum(['cash', 'installment']).optional(),
-  commissionPaymentDate: z.date().optional(),
+  commissionPaymentDate: z.date({
+    required_error: "Data de pagamento da comissão é obrigatória para pagamento a prazo",
+    invalid_type_error: "Data inválida",
+  }).optional(),
   taxes: z.number().min(0, 'Impostos devem ser maior ou igual a 0').optional(),
   taxesPaymentType: z.enum(['cash', 'installment']).optional(),
-  taxesPaymentDate: z.date().optional(),
+  taxesPaymentDate: z.date({
+    required_error: "Data de pagamento dos impostos é obrigatória para pagamento a prazo",
+    invalid_type_error: "Data inválida",
+  }).optional(),
   otherCostsPaymentType: z.enum(['cash', 'installment']).optional(),
-  otherCostsPaymentDate: z.date().optional(),
+  otherCostsPaymentDate: z.date({
+    required_error: "Data de pagamento dos outros custos é obrigatória para pagamento a prazo",
+    invalid_type_error: "Data inválida",
+  }).optional(),
   paymentType: z.enum(['cash', 'installment']),
-  paymentDate: z.date().optional(),
+  paymentDate: z.date({
+    required_error: "Data de pagamento é obrigatória para pagamento a prazo",
+    invalid_type_error: "Data inválida",
+  }).optional(),
   observations: z.string().optional(),
   rcPercentage: z.number().min(40, 'R.C. deve ser maior ou igual a 40%').max(60, 'R.C. deve ser menor ou igual a 60%').optional(),
 }).refine((data) => {
@@ -249,6 +264,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                 <input
                   type="date"
                   {...register('date', { valueAsDate: true })}
+                  required
                   className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
                 />
                 {errors.date && (

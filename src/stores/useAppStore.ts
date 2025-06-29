@@ -8,6 +8,8 @@ import {
   BudgetPlan, FinancialReport, PenRegistration, PenAllocation, 
   PayerAccount, SaleRecord, Notification, LoteCurralLink, 
   CostProportionalAllocation, SaleDesignation,
+  Transporter, FinancialInstitution,
+  SystemUpdate, UpdateFeedback,
   // 🆕 TIPOS DO DRC
   CashFlowEntry, CashFlowPeriod, CashFlowProjection, WorkingCapital,
   FinancialContribution, CashFlowEntryFormData, FinancialContributionFormData,
@@ -55,6 +57,13 @@ interface AppState {
   loteCurralLinks: LoteCurralLink[];
   costProportionalAllocations: CostProportionalAllocation[];
   saleDesignations: SaleDesignation[];
+  transporters: Transporter[];
+  financialInstitutions: FinancialInstitution[];
+  
+  // Estados de Atualizações do Sistema
+  systemUpdates: SystemUpdate[];
+  updateFeedbacks: UpdateFeedback[];
+  lastViewedUpdateDate?: Date;
   
   // 🆕 ESTADOS DO DRC
   cashFlowEntries: CashFlowEntry[];
@@ -278,6 +287,29 @@ interface AppState {
   
   // 🆕 FUNÇÃO PARA LIMPAR DADOS DE TESTE
   clearAllTestData: () => void;
+  
+  // Ações - Transportadoras
+  addTransporter: (transporter: Omit<Transporter, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateTransporter: (id: string, data: Partial<Transporter>) => void;
+  deleteTransporter: (id: string) => void;
+  
+  // Ações - Instituições Financeiras
+  addFinancialInstitution: (institution: Omit<FinancialInstitution, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateFinancialInstitution: (id: string, data: Partial<FinancialInstitution>) => void;
+  deleteFinancialInstitution: (id: string) => void;
+  
+  // Estados de Atualizações do Sistema
+  systemUpdates: SystemUpdate[];
+  updateFeedbacks: UpdateFeedback[];
+  lastViewedUpdateDate?: Date;
+  
+  // Ações - Atualizações do Sistema
+  setLastViewedUpdateDate: (date: Date) => void;
+  addSystemUpdate: (update: Omit<SystemUpdate, 'id' | 'createdAt'>) => void;
+  updateSystemUpdate: (id: string, data: Partial<SystemUpdate>) => void;
+  deleteSystemUpdate: (id: string) => void;
+  addUpdateFeedback: (feedback: Omit<UpdateFeedback, 'id' | 'createdAt'>) => void;
+  getUnviewedUpdatesCount: () => number;
 }
 
 // Helper function to generate 50 pens
@@ -380,6 +412,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   loteCurralLinks: [],
   costProportionalAllocations: [],
   saleDesignations: [],
+  transporters: [],
+  financialInstitutions: [],
+  
+  // Estados de Atualizações do Sistema
+  systemUpdates: [],
+  updateFeedbacks: [],
+  lastViewedUpdateDate: undefined,
   
   // 🆕 ESTADOS DO DRC
   cashFlowEntries: [],
@@ -2863,100 +2902,152 @@ export const useAppStore = create<AppState>((set, get) => ({
   })),
   
   // 🆕 IMPLEMENTAÇÃO DA FUNÇÃO PARA LIMPAR DADOS DE TESTE
-  clearAllTestData: () => set((state) => {
-    // Manter apenas os dados essenciais do sistema
-    const cleanState = {
-      // Manter estado de navegação
-      currentPage: state.currentPage,
-      darkMode: state.darkMode,
-      sidebarCollapsed: state.sidebarCollapsed,
-      
-      // Limpar todos os dados transacionais
-      cycles: [],
-      partners: [],
-      purchaseOrders: [],
-      cattleLots: [],
-      weightReadings: [],
-      healthRecords: [],
-      feedCosts: [],
-      lotMovements: [],
-      financialAccounts: [],
-      
-      // Resetar KPIs
-      kpis: [
-        {
-          label: 'Animais Confinados',
-          value: '0',
-          icon: 'Beef'
-        },
-        {
-          label: 'Média Dia/Confinado',
-          value: '0',
-          icon: 'Clock'
-        },
-        {
-          label: 'Média Quebra de Peso',
-          value: '0%',
-          icon: 'TrendingDown'
-        },
-        {
-          label: 'Mortalidade Acumulada',
-          value: '0%',
-          icon: 'AlertTriangle'
-        }
-      ],
-      
-      // Manter estrutura de currais mas limpar alocações
-      penRegistrations: state.penRegistrations,
-      penAllocations: [],
-      penStatuses: state.penStatuses.map(pen => ({
-        ...pen,
-        currentAnimals: 0,
-        status: 'available' as const
-      })),
-      
-      // Limpar dados financeiros
-      debts: [],
-      bankStatements: [],
-      financialReconciliations: [],
-      costCenters: [],
-      costAllocations: [],
-      expenses: [],
-      budgetPlans: [],
-      financialReports: [],
-      
-      // Limpar contas pagadoras
-      payerAccounts: [],
-      
-      // Limpar vendas e notificações
-      saleRecords: [],
-      notifications: [],
-      
-      // Limpar modelo operacional
-      loteCurralLinks: [],
-      costProportionalAllocations: [],
-      saleDesignations: [],
-      
-      // Limpar dados do DRC
-      cashFlowEntries: [],
-      financialContributions: [],
-      cashFlowPeriods: [],
-      cashFlowProjections: [],
-      workingCapitalHistory: [],
-      
-      // Limpar lançamentos não-caixa
-      nonCashExpenses: [],
-      
-      // Limpar DRE
-      dreStatements: [],
-      dreComparisons: [],
-      
-      // Limpar rateio de custos indiretos
-      indirectCostAllocations: [],
-      allocationTemplates: [],
-      indirectCostCenters: []
-    };
+  clearAllTestData: () => set((state) => ({
+    // Manter estado de navegação
+    currentPage: state.currentPage,
+    darkMode: state.darkMode,
+    sidebarCollapsed: state.sidebarCollapsed,
     
-    return cleanState;
-  })
+    // Limpar todos os dados transacionais
+    cycles: [],
+    partners: [],
+    purchaseOrders: [],
+    cattleLots: [],
+    weightReadings: [],
+    healthRecords: [],
+    feedCosts: [],
+    lotMovements: [],
+    financialAccounts: [],
+    
+    // Resetar KPIs
+    kpis: [
+      {
+        label: 'Animais Confinados',
+        value: '0',
+        icon: 'Beef'
+      },
+      {
+        label: 'Média Dia/Confinado',
+        value: '0',
+        icon: 'Clock'
+      },
+      {
+        label: 'Média Quebra de Peso',
+        value: '0%',
+        icon: 'TrendingDown'
+      },
+      {
+        label: 'Mortalidade Acumulada',
+        value: '0%',
+        icon: 'AlertTriangle'
+      }
+    ],
+    
+    // Manter estrutura de currais mas limpar alocações
+    penRegistrations: state.penRegistrations,
+    penAllocations: [],
+    penStatuses: state.penStatuses.map(pen => ({
+      ...pen,
+      currentAnimals: 0,
+      status: 'available' as const
+    })),
+    
+    // Limpar dados financeiros
+    debts: [],
+    bankStatements: [],
+    financialReconciliations: [],
+    costCenters: [],
+    costAllocations: [],
+    expenses: [],
+    budgetPlans: [],
+    financialReports: [],
+    
+    // Limpar contas pagadoras
+    payerAccounts: [],
+    
+    // Limpar vendas e notificações
+    saleRecords: [],
+    notifications: [],
+    
+    // Limpar modelo operacional
+    loteCurralLinks: [],
+    costProportionalAllocations: [],
+    saleDesignations: [],
+    
+    // Limpar transportadoras e instituições financeiras
+    transporters: [],
+    financialInstitutions: [],
+    
+    // Manter estados de atualizações do sistema
+    systemUpdates: state.systemUpdates,
+    updateFeedbacks: state.updateFeedbacks,
+    lastViewedUpdateDate: state.lastViewedUpdateDate,
+    
+    // Limpar dados do DRC
+    cashFlowEntries: [],
+    financialContributions: [],
+    cashFlowPeriods: [],
+    cashFlowProjections: [],
+    workingCapitalHistory: [],
+    
+    // Limpar lançamentos não-caixa
+    nonCashExpenses: [],
+    
+    // Limpar DRE
+    dreStatements: [],
+    dreComparisons: [],
+    
+    // Limpar rateio de custos indiretos
+    indirectCostAllocations: [],
+    allocationTemplates: [],
+    indirectCostCenters: []
+  })),
+  
+  // Ações - Transportadoras
+  addTransporter: (transporter) => set((state) => ({
+    transporters: [...state.transporters, { ...transporter, id: uuidv4(), createdAt: new Date(), updatedAt: new Date() }]
+  })),
+  updateTransporter: (id, data) => set((state) => ({
+    transporters: state.transporters.map(transporter => 
+      transporter.id === id ? { ...transporter, ...data, updatedAt: new Date() } : transporter
+    )
+  })),
+  deleteTransporter: (id) => set((state) => ({
+    transporters: state.transporters.filter(transporter => transporter.id !== id)
+  })),
+  
+  // Ações - Instituições Financeiras
+  addFinancialInstitution: (institution) => set((state) => ({
+    financialInstitutions: [...state.financialInstitutions, { ...institution, id: uuidv4(), createdAt: new Date(), updatedAt: new Date() }]
+  })),
+  updateFinancialInstitution: (id, data) => set((state) => ({
+    financialInstitutions: state.financialInstitutions.map(institution => 
+      institution.id === id ? { ...institution, ...data, updatedAt: new Date() } : institution
+    )
+  })),
+  deleteFinancialInstitution: (id) => set((state) => ({
+    financialInstitutions: state.financialInstitutions.filter(institution => institution.id !== id)
+  })),
+  
+  // Ações - Atualizações do Sistema
+  setLastViewedUpdateDate: (date) => set({ lastViewedUpdateDate: date }),
+  addSystemUpdate: (update) => set((state) => ({
+    systemUpdates: [...state.systemUpdates, { ...update, id: uuidv4(), createdAt: new Date() }]
+  })),
+  updateSystemUpdate: (id, data) => set((state) => ({
+    systemUpdates: state.systemUpdates.map(update => 
+      update.id === id ? { ...update, ...data, updatedAt: new Date() } : update
+    )
+  })),
+  deleteSystemUpdate: (id) => set((state) => ({
+    systemUpdates: state.systemUpdates.filter(update => update.id !== id)
+  })),
+  addUpdateFeedback: (feedback) => set((state) => ({
+    updateFeedbacks: [...state.updateFeedbacks, { ...feedback, id: uuidv4(), createdAt: new Date() }]
+  })),
+  getUnviewedUpdatesCount: () => {
+    const { systemUpdates, lastViewedUpdateDate } = get();
+    if (!lastViewedUpdateDate) return systemUpdates.length;
+    return systemUpdates.filter(update => update.releaseDate > lastViewedUpdateDate).length;
+  }
 }));

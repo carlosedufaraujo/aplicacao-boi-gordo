@@ -7,9 +7,12 @@ import { useAppStore } from '../../stores/useAppStore';
 import { HealthRecordFormData } from '../../types';
 
 const healthRecordSchema = z.object({
-  lotId: z.string().optional(), // Agora opcional pois trabalharemos com curral
+  lotId: z.string().min(1, 'Selecione um lote'),
   penNumber: z.string().min(1, 'Selecione um curral'),
-  date: z.date(),
+  date: z.date({
+    required_error: "Data é obrigatória",
+    invalid_type_error: "Data inválida"
+  }),
   protocol: z.string().min(1, 'Protocolo é obrigatório'),
   description: z.string().min(1, 'Descrição é obrigatória'),
   cost: z.number().min(0, 'Custo deve ser maior ou igual a 0'),

@@ -6,12 +6,20 @@ import { X, CheckCircle, Calendar, DollarSign, CreditCard, FileText, Upload } fr
 import { useAppStore } from '../../stores/useAppStore';
 
 const reconciliationSchema = z.object({
-  reconciliationDate: z.date(),
-  paymentDate: z.date(),
+  reconciliationDate: z.date({
+    required_error: "Data de conciliação é obrigatória",
+    invalid_type_error: "Data inválida"
+  }),
+  paymentDate: z.date({
+    required_error: "Data de pagamento é obrigatória",
+    invalid_type_error: "Data inválida"
+  }),
   receivedAmount: z.number().min(1, 'Valor deve ser maior que 0'),
   bankAccount: z.string().min(1, 'Selecione uma conta bancária'),
   transactionId: z.string().optional(),
   observations: z.string().optional(),
+  invoiceNumber: z.string().min(1, 'Número da nota fiscal é obrigatório'),
+  finalAmount: z.number().min(0, 'Valor final deve ser maior ou igual a zero'),
 });
 
 interface ReconciliationFormProps {

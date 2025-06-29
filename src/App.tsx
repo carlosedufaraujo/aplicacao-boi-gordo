@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Header } from './components/Layout/Header';
 import { Dashboard } from './components/Dashboard/Dashboard';
@@ -9,10 +10,19 @@ import { Calendar } from './components/Calendar/Calendar';
 import { Registrations } from './components/Registrations/Registrations';
 import { FinancialReconciliation } from './components/Financial/FinancialReconciliation';
 import { FinancialCenterManagement } from './components/Financial/FinancialCenterManagement';
-import { DREStatementComponent } from './components/DRE';
+import { DREViewer } from './components/DRE';
 import { useAppStore } from './stores/useAppStore';
 import { NotificationCenter } from './components/Notifications/NotificationCenter';
-import { CreateTestOrders } from './components/Pipeline/CreateTestOrders';
+import { TestDataManager } from './components/TestData/TestDataManager';
+import { NotificationSettings } from './components/Notifications/NotificationSettings';
+import { ProfileSettings } from './components/Profile/ProfileSettings';
+import { OrganizationSettings } from './components/Profile/OrganizationSettings';
+import { UserManagement } from './components/Profile/UserManagement';
+import { GeneralSettings } from './components/Profile/GeneralSettings';
+import { ChangePassword } from './components/Profile/ChangePassword';
+import { SystemUpdates } from './components/System/SystemUpdates';
+import { NotificationProvider } from './components/Notifications/NotificationProvider';
+import { registerExistingUpdates } from './utils/systemUpdates';
 
 function App() {
   const { currentPage, sidebarCollapsed, darkMode } = useAppStore();
@@ -26,6 +36,11 @@ function App() {
     }
   }, [darkMode]);
 
+  // Inicializar atualizações do sistema
+  useEffect(() => {
+    registerExistingUpdates();
+  }, []);
+
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard':
@@ -36,16 +51,28 @@ function App() {
         return <SalesPipeline />;
       case 'lots':
         return <Lots />;
+      case 'financial':
+        return <FinancialCenterManagement />;
       case 'calendar':
         return <Calendar />;
-      case 'financial-reconciliation':
-        return <FinancialReconciliation />;
-      case 'financial-center':
-        return <FinancialCenterManagement />;
-      case 'dre':
-        return <DREStatementComponent />;
       case 'registrations':
         return <Registrations />;
+      case 'dre':
+        return <DREViewer />;
+      case 'notifications':
+        return <NotificationSettings />;
+      case 'profile':
+        return <ProfileSettings />;
+      case 'organization':
+        return <OrganizationSettings />;
+      case 'users':
+        return <UserManagement />;
+      case 'settings':
+        return <GeneralSettings />;
+      case 'change-password':
+        return <ChangePassword />;
+      case 'system-updates':
+        return <SystemUpdates />;
       default:
         return <Dashboard />;
     }
@@ -56,16 +83,18 @@ function App() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-h-0">
         <Header />
-        <main className="flex-1 overflow-y-auto p-4">
-          {renderCurrentPage()}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 md:p-6">
+            {renderCurrentPage()}
+          </div>
         </main>
       </div>
       
       {/* Sistema de Notificações */}
       <NotificationCenter />
       
-      {/* Componente para criar ordens de teste */}
-      <CreateTestOrders />
+      {/* Gerenciador de Dados de Teste */}
+      <TestDataManager />
     </div>
   );
 }

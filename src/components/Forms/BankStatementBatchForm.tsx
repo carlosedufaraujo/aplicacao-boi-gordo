@@ -6,12 +6,18 @@ import { X, Upload, CreditCard, Calendar, FileText, DollarSign, Tag, User, Brief
 import { useAppStore } from '../../stores/useAppStore';
 import { BankStatementFormData } from '../../types';
 
-const batchEntrySchema = z.object({
-  date: z.date(),
-  description: z.string().min(1, 'Descrição é obrigatória'),
-  amount: z.number().min(0.01, 'Valor deve ser maior que 0'),
+const batchSchema = z.object({
+  bankAccount: z.string().min(1, 'Selecione uma conta bancária'),
   type: z.enum(['debit', 'credit']),
-  reference: z.string().optional(),
+  date: z.date({
+    required_error: "Data é obrigatória",
+    invalid_type_error: "Data inválida"
+  }),
+  totalAmount: z.number().min(0.01, 'Valor total deve ser maior que 0'),
+  description: z.string().min(1, 'Descrição é obrigatória'),
+  quantity: z.number().min(1, 'Quantidade deve ser maior que 0').max(100, 'Máximo 100 lançamentos por vez'),
+  category: z.string().optional(),
+  tags: z.array(z.string()).optional()
 });
 
 interface BankStatementBatchFormProps {
@@ -55,7 +61,7 @@ export const BankStatementBatchForm: React.FC<BankStatementBatchFormProps> = ({
     reset,
     watch
   } = useForm<any>({
-    resolver: zodResolver(batchEntrySchema),
+    resolver: zodResolver(batchSchema),
     defaultValues: {
       date: new Date(),
       type: 'debit'

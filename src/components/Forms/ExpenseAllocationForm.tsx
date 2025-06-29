@@ -6,7 +6,10 @@ import { X, Calculator, Plus, Trash2, DollarSign, Building2, Users, FileText, Cr
 import { useAppStore } from '../../stores/useAppStore';
 
 const expenseAllocationSchema = z.object({
-  date: z.date(),
+  date: z.date({
+    required_error: "Data é obrigatória",
+    invalid_type_error: "Data inválida"
+  }),
   description: z.string().min(1, 'Descrição é obrigatória'),
   category: z.string().min(1, 'Categoria é obrigatória'),
   totalAmount: z.number().min(0.01, 'Valor deve ser maior que 0'),
