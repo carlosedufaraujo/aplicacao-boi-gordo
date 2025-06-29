@@ -123,248 +123,436 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
       <head>
         <title>Simulação de Venda - Lote ${currentLot.lotNumber}</title>
         <style>
-          @page {
-            size: A4;
-            margin: 10mm;
-          }
           @media print {
+            @page { 
+              size: A4;
+              margin: 15mm;
+            }
             body { 
               margin: 0;
+              font-family: Arial, sans-serif;
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
+            .page { 
+              padding: 0;
+              page-break-after: avoid;
+            }
+            h1 { font-size: 20px; margin-bottom: 10px; color: #1a2332; }
+            h2 { font-size: 16px; margin-top: 15px; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #1a2332; }
+            h3 { font-size: 14px; margin-top: 10px; margin-bottom: 5px; color: #1a2332; }
+            .header-info { font-size: 12px; color: #666; margin-bottom: 20px; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+            .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+            .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+            .card { 
+              border: 1px solid #ddd; 
+              padding: 10px; 
+              border-radius: 6px; 
+              page-break-inside: avoid;
+              background-color: #fafafa;
+            }
+            .card-lime { background-color: #f7fee7; border-color: #bef264; }
+            .card-info { background-color: #e0f2fe; border-color: #7dd3fc; }
+            .card-neutral { background-color: #f9f9f9; border-color: #e5e7eb; }
+            .card-title { font-size: 11px; color: #666; margin-bottom: 4px; font-weight: normal; }
+            .card-value { font-size: 16px; font-weight: bold; color: #1a2332; }
+            .card-subtitle { font-size: 10px; color: #888; margin-top: 2px; }
+            .info-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; border-bottom: 1px solid #f0f0f0; }
+            .info-row:last-child { border-bottom: none; }
+            .info-label { color: #666; }
+            .info-value { font-weight: 500; color: #1a2332; }
+            .section { margin-bottom: 20px; page-break-inside: avoid; }
+            .timeline { 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: center; 
+              margin: 20px 0; 
+              padding: 15px; 
+              background-color: #f5f5f5; 
+              border-radius: 8px;
+            }
+            .timeline-item { 
+              text-align: center; 
+              flex: 1;
+              position: relative;
+            }
+            .timeline-item:not(:last-child)::after {
+              content: '→';
+              position: absolute;
+              right: -20px;
+              top: 50%;
+              transform: translateY(-50%);
+              font-size: 20px;
+              color: #8bc34a;
+            }
+            .timeline-icon {
+              width: 40px;
+              height: 40px;
+              margin: 0 auto 8px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 20px;
+            }
+            .timeline-title { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+            .timeline-info { font-size: 11px; color: #666; }
+            .success { color: #4caf50; }
+            .error { color: #f44336; }
+            .warning { color: #ff9800; }
+            .info { color: #2196f3; }
+            .recommendation {
+              background-color: #e3f2fd;
+              border: 2px solid #2196f3;
+              padding: 15px;
+              border-radius: 8px;
+              margin-top: 20px;
+            }
+            .recommendation.success {
+              background-color: #e8f5e9;
+              border-color: #4caf50;
+            }
+            .recommendation.warning {
+              background-color: #fff3e0;
+              border-color: #ff9800;
+            }
+            .cost-composition {
+              margin-top: 10px;
+            }
+            .cost-bar {
+              display: flex;
+              align-items: center;
+              margin: 8px 0;
+            }
+            .cost-label {
+              width: 100px;
+              font-size: 11px;
+              color: #666;
+            }
+            .cost-progress {
+              flex: 1;
+              height: 10px;
+              background: #eee;
+              margin: 0 10px;
+              position: relative;
+              border-radius: 5px;
+            }
+            .cost-fill {
+              height: 100%;
+              border-radius: 5px;
+            }
+            .cost-value {
+              font-size: 11px;
+              font-weight: bold;
+              min-width: 100px;
+              text-align: right;
+            }
+            .comparison-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 10px;
+            }
+            .comparison-table th {
+              background-color: #f5f5f5;
+              padding: 8px;
+              text-align: left;
+              font-size: 12px;
+              font-weight: bold;
+              border: 1px solid #ddd;
+            }
+            .comparison-table td {
+              padding: 6px 8px;
+              font-size: 11px;
+              border: 1px solid #ddd;
+            }
+            .comparison-table .metric-name {
+              font-weight: 500;
+              color: #666;
+            }
+            .comparison-table .value {
+              text-align: right;
+              font-weight: bold;
+            }
+            .footer {
+              margin-top: 30px;
+              text-align: center;
+              font-size: 10px;
+              color: #666;
+              border-top: 1px solid #ddd;
+              padding-top: 10px;
+            }
           }
-          body {
-            font-family: Arial, sans-serif;
-            font-size: 9px;
-            line-height: 1.2;
-            color: #333;
-            margin: 0;
-            padding: 0;
-          }
-          .container { max-width: 100%; }
-          .header {
-            background-color: #1a2332;
-            color: white;
-            padding: 8px;
-            margin-bottom: 8px;
-            border-radius: 4px;
-          }
-          .header h1 {
-            margin: 0 0 3px 0;
-            font-size: 14px;
-          }
-          .header p {
-            margin: 0;
-            font-size: 9px;
-          }
-          h2 {
-            font-size: 11px;
-            margin: 0 0 6px 0;
-            color: #1a2332;
-            border-bottom: 1px solid #8bc34a;
-            padding-bottom: 2px;
-          }
-          h3 {
-            font-size: 10px;
-            margin: 0 0 4px 0;
-          }
-          .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 8px;
-          }
-          .grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-          }
-          .box {
-            border: 1px solid #e0e0e0;
-            padding: 6px;
-            border-radius: 4px;
-            background-color: #fafafa;
-          }
-          .box-lime { background-color: #f7fee7; border-color: #bef264; }
-          .box-info { background-color: #e0f2fe; border-color: #7dd3fc; }
-          .timeline {
-            display: flex;
-            justify-content: space-between;
-            margin: 8px 0;
-            padding: 8px;
-            background-color: #f5f5f5;
-            border-radius: 4px;
-          }
-          .timeline-item {
-            text-align: center;
-            flex: 1;
-            font-size: 8px;
-          }
-          .timeline-item strong { font-size: 9px; }
-          .metric {
-            display: flex;
-            justify-content: space-between;
-            padding: 2px 0;
-            font-size: 8px;
-          }
-          .metric-label { color: #666; }
-          .metric-value { font-weight: 500; }
-          .success { color: #4caf50; }
-          .error { color: #f44336; }
-          .warning { color: #ff9800; }
-          .params {
-            background-color: #f9f9f9;
-            padding: 6px;
-            border-radius: 4px;
-            margin-bottom: 8px;
-          }
-          .params-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            font-size: 8px;
-          }
-          .costs-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-            font-size: 8px;
-          }
-          .recommendation {
-            background-color: #e3f2fd;
-            border: 1px solid #2196f3;
-            padding: 6px;
-            border-radius: 4px;
-            font-size: 9px;
-          }
-          .recommendation.success {
-            background-color: #e8f5e9;
-            border-color: #4caf50;
-          }
-          .recommendation.warning {
-            background-color: #fff3e0;
-            border-color: #ff9800;
-          }
-          hr {
-            margin: 4px 0;
-            border: none;
-            border-top: 1px solid #ddd;
-          }
-          .footer {
-            margin-top: 8px;
-            text-align: center;
-            font-size: 8px;
-            color: #666;
-            border-top: 1px solid #ddd;
-            padding-top: 4px;
+          @media screen {
+            body { margin: 20px; font-family: Arial, sans-serif; }
+            .page { max-width: 800px; margin: 0 auto; }
           }
         </style>
       </head>
       <body>
-        <div class="container">
-          <div class="header">
-            <h1>Simulação de Venda - Lote ${currentLot.lotNumber}</h1>
-            <p>${currentAnimals} animais • ${daysInConfinement} dias em confinamento • Entrada: ${format(new Date(currentLot.entryDate), 'dd/MM/yyyy')}</p>
-          </div>
-
-          <!-- Evolução do Lote -->
+        <div class="page">
+          <h1>Simulação de Venda - Lote ${currentLot.lotNumber}</h1>
+          <p class="header-info">
+            ${currentAnimals} animais • ${daysInConfinement} dias em confinamento • 
+            Entrada: ${format(new Date(currentLot.entryDate), 'dd/MM/yyyy')} • 
+            ${currentPens.length > 0 ? `Currais: ${currentPens.map(p => p.curralId).join(', ')}` : ''}
+          </p>
+          
           <h2>Evolução do Lote</h2>
           <div class="timeline">
             <div class="timeline-item">
-              <strong>Chegada</strong><br>
-              ${format(new Date(currentLot.entryDate), 'dd/MM')}<br>
-              ${currentLot.entryQuantity} animais<br>
-              ${entryAverageWeight.toFixed(1)} kg/animal
-            </div>
-            <div class="timeline-item">
-              <strong>Atual</strong><br>
-              ${daysInConfinement} dias<br>
-              ${currentAverageWeight.toFixed(1)} kg<br>
-              <span class="success">+${(currentAverageWeight - entryAverageWeight).toFixed(1)} kg</span>
-            </div>
-            <div class="timeline-item">
-              <strong>Projeção</strong><br>
-              +${projectedDays} dias<br>
-              ${projectedAverageWeight.toFixed(1)} kg<br>
-              <span style="color: #0ea5e9;">+${(projectedAverageWeight - currentAverageWeight).toFixed(1)} kg</span>
-            </div>
-          </div>
-
-          <!-- Parâmetros -->
-          <div class="params">
-            <strong>Parâmetros de Simulação</strong>
-            <div class="params-grid">
-              <div><span class="metric-label">Custo Diário:</span> R$ ${dailyCost.toFixed(2)}/animal</div>
-              <div><span class="metric-label">GMD:</span> ${gmdEstimated} kg/dia</div>
-              <div><span class="metric-label">Preço Hoje:</span> R$ ${salePriceToday.toFixed(2)}/@</div>
-              <div><span class="metric-label">Preço Projeção:</span> R$ ${salePriceProjected.toFixed(2)}/@</div>
-            </div>
-          </div>
-
-          <!-- Análise Comparativa -->
-          <h2>Análise Comparativa</h2>
-          <div class="grid">
-            <div class="box box-lime">
-              <h3>Se Vendido Hoje</h3>
-              <div class="metric"><span>Dias Confinamento:</span><span>${daysInConfinement} dias</span></div>
-              <div class="metric"><span>Composição de Custos:</span><span>R$ ${currentTotalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-              <div class="metric"><span>Custo Alimentação:</span><span>R$ ${currentFeedingCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-              <div class="metric"><span>Custo/@:</span><span>R$ ${currentCostPerArrobaCalculated.toFixed(2)}</span></div>
-              <hr>
-              <div class="metric"><span><strong>Receita:</strong></span><span><strong>R$ ${currentRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span></div>
-              <div class="metric"><span><strong>Lucro:</strong></span><span class="${currentProfit >= 0 ? 'success' : 'error'}"><strong>R$ ${currentProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span></div>
-              <div class="metric"><span>Margem:</span><span>${currentMargin.toFixed(1)}% (${(currentMargin / daysInConfinement * 30).toFixed(1)}% a.m.)</span></div>
-              <div class="metric"><span>Lucro/Animal:</span><span>R$ ${(currentProfit / currentAnimals).toFixed(2)}</span></div>
-            </div>
-            
-            <div class="box box-info">
-              <h3>Projeção (+${projectedDays} dias)</h3>
-              <div class="metric"><span>Dias Confinamento:</span><span>${daysInConfinement + projectedDays} dias</span></div>
-              <div class="metric"><span>Composição de Custos:</span><span>R$ ${projectedTotalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-              <div class="metric"><span>Custo Alimentação:</span><span>R$ ${projectedFeedingCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-              <div class="metric"><span>Custo/@:</span><span>R$ ${projectedCostPerArrobaCalculated.toFixed(2)}</span></div>
-              <hr>
-              <div class="metric"><span><strong>Receita:</strong></span><span><strong>R$ ${projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span></div>
-              <div class="metric"><span><strong>Lucro:</strong></span><span class="${projectedProfit >= 0 ? 'success' : 'error'}"><strong>R$ ${projectedProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span></div>
-              <div class="metric"><span>Margem:</span><span>${projectedMargin.toFixed(1)}% (${(projectedMargin / (daysInConfinement + projectedDays) * 30).toFixed(1)}% a.m.)</span></div>
-              <div class="metric"><span>Lucro/Animal:</span><span>R$ ${(projectedProfit / currentAnimals).toFixed(2)}</span></div>
-            </div>
-          </div>
-
-          <!-- Composição de Custos e Recomendação -->
-          <div class="grid">
-            <div class="box">
-              <h3>Composição de Custos Detalhada</h3>
-              <div class="costs-grid">
-                <div class="metric"><span>Aquisição:</span><span>R$ ${saleSimulation.costBreakdown.acquisition.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-                <div class="metric"><span>Alimentação:</span><span>R$ ${saleSimulation.costBreakdown.feed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-                <div class="metric"><span>Sanidade:</span><span>R$ ${saleSimulation.costBreakdown.health.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-                <div class="metric"><span>Frete:</span><span>R$ ${saleSimulation.costBreakdown.freight.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-                <div class="metric"><span>Outros:</span><span>R$ ${saleSimulation.costBreakdown.other.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span></div>
-                <div class="metric"><span><strong>Total:</strong></span><span><strong>R$ ${currentTotalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span></div>
+              <div class="timeline-icon" style="background-color: #e5e7eb;">📅</div>
+              <div class="timeline-title">Chegada</div>
+              <div class="timeline-info">
+                ${format(new Date(currentLot.entryDate), 'dd/MM/yyyy')}<br>
+                ${currentLot.entryQuantity} animais<br>
+                ${entryAverageWeight.toFixed(1)} kg/animal
               </div>
             </div>
-            
-            <div class="recommendation ${projectedDays === 0 ? '' : projectedProfit - currentProfit > 0 ? 'success' : 'warning'}">
-              <h3>Recomendação</h3>
-              ${projectedDays === 0 ? `
-                <p><strong>Venda imediata</strong></p>
-                <p>Lucro: <span class="${currentProfit >= 0 ? 'success' : 'error'}">R$ ${currentProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span> • Margem: ${currentMargin.toFixed(1)}%</p>
-              ` : `
-                <p class="${projectedProfit - currentProfit > 0 ? 'success' : 'warning'}">
-                  <strong>${projectedProfit - currentProfit > 0 ? '✓ Aguardar ' + projectedDays + ' dias' : '⚠ Vender imediatamente'}</strong>
-                </p>
-                <div style="display: flex; gap: 15px; margin-top: 4px;">
-                  <span>Total: <strong class="${projectedProfit - currentProfit >= 0 ? 'success' : 'error'}">${projectedProfit - currentProfit >= 0 ? '+' : ''}R$ ${(projectedProfit - currentProfit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span>
-                  <span>Por Animal: <strong class="${projectedProfit - currentProfit >= 0 ? 'success' : 'error'}">${projectedProfit - currentProfit >= 0 ? '+' : ''}R$ ${((projectedProfit - currentProfit) / currentAnimals).toFixed(2)}</strong></span>
-                </div>
-              `}
+            <div class="timeline-item">
+              <div class="timeline-icon" style="background-color: #bef264;">⏰</div>
+              <div class="timeline-title">Atual</div>
+              <div class="timeline-info">
+                ${daysInConfinement} dias<br>
+                ${currentAverageWeight.toFixed(1)} kg/animal<br>
+                <span class="success">+${(currentAverageWeight - entryAverageWeight).toFixed(1)} kg</span><br>
+                GMD Real: ${(weightGain / currentAnimals / daysInConfinement).toFixed(2)} kg/dia
+              </div>
             </div>
+            <div class="timeline-item">
+              <div class="timeline-icon" style="background-color: #7dd3fc;">📈</div>
+              <div class="timeline-title">Projeção</div>
+              <div class="timeline-info">
+                +${projectedDays} dias<br>
+                ${projectedAverageWeight.toFixed(1)} kg/animal<br>
+                <span class="info">+${(projectedAverageWeight - currentAverageWeight).toFixed(1)} kg</span><br>
+                Total: ${daysInConfinement + projectedDays} dias
+              </div>
+            </div>
+          </div>
+
+          <h2>Parâmetros de Simulação</h2>
+          <div class="grid grid-4">
+            <div class="card card-neutral">
+              <div class="card-title">Custo Diário/Animal</div>
+              <div class="card-value">R$ ${dailyCost.toFixed(2)}</div>
+            </div>
+            <div class="card card-neutral">
+              <div class="card-title">GMD Estimado</div>
+              <div class="card-value">${gmdEstimated} kg/dia</div>
+            </div>
+            <div class="card card-neutral">
+              <div class="card-title">R.C.% Compra</div>
+              <div class="card-value">${rcPercentageCompra}%</div>
+            </div>
+            <div class="card card-neutral">
+              <div class="card-title">Preço Base</div>
+              <div class="card-value">R$ ${salePriceToday.toFixed(2)}/@</div>
+            </div>
+          </div>
+
+          <h2>Análise Comparativa</h2>
+          <table class="comparison-table">
+            <thead>
+              <tr>
+                <th style="width: 40%;">Métrica</th>
+                <th style="width: 30%; text-align: center; background-color: #f7fee7;">Se Vendido Hoje</th>
+                <th style="width: 30%; text-align: center; background-color: #e0f2fe;">Projeção (+${projectedDays} dias)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="metric-name">Dias de Confinamento</td>
+                <td class="value">${daysInConfinement} dias</td>
+                <td class="value">${daysInConfinement + projectedDays} dias</td>
+              </tr>
+              <tr>
+                <td class="metric-name">Peso Total</td>
+                <td class="value">${currentWeight.toLocaleString('pt-BR')} kg</td>
+                <td class="value">${projectedWeight.toLocaleString('pt-BR')} kg</td>
+              </tr>
+              <tr>
+                <td class="metric-name">Arrobas (R.C. ${rcPercentageVendaToday}%/${rcPercentageVendaProjected}%)</td>
+                <td class="value">${currentArrobas.toFixed(2)} @</td>
+                <td class="value">${projectedArrobas.toFixed(2)} @</td>
+              </tr>
+              <tr style="background-color: #f5f5f5;">
+                <td class="metric-name"><strong>CUSTOS</strong></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td class="metric-name">Composição de Custos</td>
+                <td class="value">R$ ${currentTotalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                <td class="value">R$ ${projectedTotalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td class="metric-name">Custo Alimentação</td>
+                <td class="value">R$ ${currentFeedingCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                <td class="value">R$ ${projectedFeedingCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td class="metric-name">Custo/@</td>
+                <td class="value">R$ ${currentCostPerArrobaCalculated.toFixed(2)}</td>
+                <td class="value">R$ ${projectedCostPerArrobaCalculated.toFixed(2)}</td>
+              </tr>
+              <tr style="background-color: #f5f5f5;">
+                <td class="metric-name"><strong>RECEITA E RESULTADO</strong></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <tr>
+                <td class="metric-name">Preço de Venda</td>
+                <td class="value">R$ ${salePriceToday.toFixed(2)}/@</td>
+                <td class="value">R$ ${salePriceProjected.toFixed(2)}/@</td>
+              </tr>
+              <tr>
+                <td class="metric-name">Receita Total</td>
+                <td class="value">R$ ${currentRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                <td class="value">R$ ${projectedRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td class="metric-name"><strong>Lucro</strong></td>
+                <td class="value ${currentProfit >= 0 ? 'success' : 'error'}">
+                  <strong>R$ ${currentProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                </td>
+                <td class="value ${projectedProfit >= 0 ? 'success' : 'error'}">
+                  <strong>R$ ${projectedProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                </td>
+              </tr>
+              <tr>
+                <td class="metric-name">Margem</td>
+                <td class="value">${currentMargin.toFixed(1)}% (${(currentMargin / daysInConfinement * 30).toFixed(1)}% a.m.)</td>
+                <td class="value">${projectedMargin.toFixed(1)}% (${(projectedMargin / (daysInConfinement + projectedDays) * 30).toFixed(1)}% a.m.)</td>
+              </tr>
+              <tr>
+                <td class="metric-name">Lucro/Animal</td>
+                <td class="value">R$ ${(currentProfit / currentAnimals).toFixed(2)}</td>
+                <td class="value">R$ ${(projectedProfit / currentAnimals).toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h2>Composição de Custos Detalhada</h2>
+          <div class="cost-composition">
+            <div class="cost-bar">
+              <span class="cost-label">Aquisição</span>
+              <div class="cost-progress">
+                <div class="cost-fill" style="width: ${currentTotalCost > 0 ? (saleSimulation.costBreakdown.acquisition / currentTotalCost) * 100 : 0}%; background: #8BC34A;"></div>
+              </div>
+              <span class="cost-value">R$ ${saleSimulation.costBreakdown.acquisition.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${currentTotalCost > 0 ? ((saleSimulation.costBreakdown.acquisition / currentTotalCost) * 100).toFixed(0) : 0}%)</span>
+            </div>
+            <div class="cost-bar">
+              <span class="cost-label">Alimentação</span>
+              <div class="cost-progress">
+                <div class="cost-fill" style="width: ${currentTotalCost > 0 ? (saleSimulation.costBreakdown.feed / currentTotalCost) * 100 : 0}%; background: #4CAF50;"></div>
+              </div>
+              <span class="cost-value">R$ ${saleSimulation.costBreakdown.feed.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${currentTotalCost > 0 ? ((saleSimulation.costBreakdown.feed / currentTotalCost) * 100).toFixed(0) : 0}%)</span>
+            </div>
+            <div class="cost-bar">
+              <span class="cost-label">Sanidade</span>
+              <div class="cost-progress">
+                <div class="cost-fill" style="width: ${currentTotalCost > 0 ? (saleSimulation.costBreakdown.health / currentTotalCost) * 100 : 0}%; background: #2196F3;"></div>
+              </div>
+              <span class="cost-value">R$ ${saleSimulation.costBreakdown.health.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${currentTotalCost > 0 ? ((saleSimulation.costBreakdown.health / currentTotalCost) * 100).toFixed(0) : 0}%)</span>
+            </div>
+            <div class="cost-bar">
+              <span class="cost-label">Frete</span>
+              <div class="cost-progress">
+                <div class="cost-fill" style="width: ${currentTotalCost > 0 ? (saleSimulation.costBreakdown.freight / currentTotalCost) * 100 : 0}%; background: #FF9800;"></div>
+              </div>
+              <span class="cost-value">R$ ${saleSimulation.costBreakdown.freight.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${currentTotalCost > 0 ? ((saleSimulation.costBreakdown.freight / currentTotalCost) * 100).toFixed(0) : 0}%)</span>
+            </div>
+            <div class="cost-bar">
+              <span class="cost-label">Outros</span>
+              <div class="cost-progress">
+                <div class="cost-fill" style="width: ${currentTotalCost > 0 ? (saleSimulation.costBreakdown.other / currentTotalCost) * 100 : 0}%; background: #9E9E9E;"></div>
+              </div>
+              <span class="cost-value">R$ ${saleSimulation.costBreakdown.other.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${currentTotalCost > 0 ? ((saleSimulation.costBreakdown.other / currentTotalCost) * 100).toFixed(0) : 0}%)</span>
+            </div>
+          </div>
+
+          <div class="recommendation ${projectedDays === 0 ? '' : projectedProfit - currentProfit > 0 ? 'success' : 'warning'}">
+            <h3 style="margin-top: 0;">Recomendação</h3>
+            ${projectedDays === 0 ? `
+              <p style="margin: 10px 0;"><strong>Análise para venda imediata</strong></p>
+              <div class="grid">
+                <div>
+                  <div class="info-row">
+                    <span class="info-label">Lucro estimado:</span>
+                    <span class="info-value ${currentProfit >= 0 ? 'success' : 'error'}">R$ ${currentProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Margem de lucro:</span>
+                    <span class="info-value">${currentMargin.toFixed(1)}%</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="info-row">
+                    <span class="info-label">Lucro por animal:</span>
+                    <span class="info-value">R$ ${(currentProfit / currentAnimals).toFixed(2)}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Custo/@ atual:</span>
+                    <span class="info-value">R$ ${currentCostPerArrobaCalculated.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            ` : `
+              <p style="margin: 10px 0;">
+                <strong>
+                  ${projectedProfit - currentProfit > 0 
+                    ? `✓ Recomenda-se aguardar ${projectedDays} dias para maximizar o lucro`
+                    : `⚠ Recomenda-se a venda imediata`
+                  }
+                </strong>
+              </p>
+              <div class="grid">
+                <div>
+                  <h4 style="font-size: 12px; margin-bottom: 8px;">Análise do período adicional:</h4>
+                  <div class="info-row">
+                    <span class="info-label">Custo adicional:</span>
+                    <span class="info-value error">R$ ${projectedAdditionalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Receita adicional:</span>
+                    <span class="info-value success">R$ ${(projectedRevenue - currentRevenue).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div class="info-row" style="border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px;">
+                    <span class="info-label"><strong>Diferença Total:</strong></span>
+                    <span class="info-value ${projectedProfit - currentProfit >= 0 ? 'success' : 'error'}">
+                      <strong>${projectedProfit - currentProfit >= 0 ? '+' : ''}R$ ${(projectedProfit - currentProfit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <h4 style="font-size: 12px; margin-bottom: 8px;">Impacto por animal:</h4>
+                  <div class="info-row">
+                    <span class="info-label">Lucro adicional/animal:</span>
+                    <span class="info-value ${projectedProfit - currentProfit >= 0 ? 'success' : 'error'}">
+                      ${projectedProfit - currentProfit >= 0 ? '+' : ''}R$ ${((projectedProfit - currentProfit) / currentAnimals).toFixed(2)}
+                    </span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Peso adicional/animal:</span>
+                    <span class="info-value">+${(projectedAverageWeight - currentAverageWeight).toFixed(1)} kg</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Arrobas adicionais:</span>
+                    <span class="info-value">+${(projectedArrobas - currentArrobas).toFixed(2)} @</span>
+                  </div>
+                </div>
+              </div>
+              ${projectedProfit - currentProfit < 0 ? `
+                <p style="margin-top: 10px; font-size: 11px; color: #ff9800; font-style: italic;">
+                  * O custo adicional de ${projectedDays} dias supera o ganho de peso esperado
+                </p>
+              ` : ''}
+            `}
           </div>
 
           <div class="footer">
-            Relatório gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })} • CEAC Agropecuária
+            <p>Relatório gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })} - Sistema de Gestão CEAC Agropecuária</p>
           </div>
         </div>
       </body>
