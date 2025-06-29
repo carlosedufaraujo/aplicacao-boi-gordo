@@ -11,6 +11,7 @@ import { FinancialReconciliation } from './components/Financial/FinancialReconci
 import { FinancialCenterManagement } from './components/Financial/FinancialCenterManagement';
 import { CashFlow } from './components/CashFlow';
 import { DREStatementComponent } from './components/DRE';
+import { IndirectCostAllocationComponent } from './components/CostAllocation';
 import { useAppStore } from './stores/useAppStore';
 import { NotificationCenter } from './components/Notifications/NotificationCenter';
 import { CreateTestOrders } from './components/Pipeline/CreateTestOrders';
@@ -38,6 +39,8 @@ function App() {
         return <CashFlow />;
       case 'dre':
         return <DREStatementComponent />;
+      case 'cost-allocation':
+        return <IndirectCostAllocationComponent />;
       case 'registrations':
         return <Registrations />;
       default:

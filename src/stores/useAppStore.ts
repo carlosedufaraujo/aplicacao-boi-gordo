@@ -14,7 +14,10 @@ import {
   // 🆕 TIPOS DE LANÇAMENTOS NÃO-CAIXA
   NonCashExpense,
   // 🆕 TIPOS DO DRE
-  DREStatement, DREGenerationParams, DREComparison
+  DREStatement, DREGenerationParams, DREComparison,
+  // 🆕 TIPOS DE RATEIO DE CUSTOS INDIRETOS
+  IndirectCostAllocation, AllocationTemplate, IndirectCostCenter,
+  AllocationGenerationParams, IndirectCostSummary
 } from '../types';
 import { addDays, subDays, format } from 'date-fns';
 
@@ -66,6 +69,11 @@ interface AppState {
   // 🆕 ESTADOS DO DRE
   dreStatements: DREStatement[];
   dreComparisons: DREComparison[];
+  
+  // 🆕 ESTADOS DE RATEIO DE CUSTOS INDIRETOS
+  indirectCostAllocations: IndirectCostAllocation[];
+  allocationTemplates: AllocationTemplate[];
+  indirectCostCenters: IndirectCostCenter[];
   
   // Ações - Navegação
   setCurrentPage: (page: string) => void;
@@ -251,6 +259,22 @@ interface AppState {
   deleteDREStatement: (id: string) => void;
   compareDREs: (entityIds: string[], entityType: 'lot' | 'pen', periodStart: Date, periodEnd: Date) => DREComparison | null;
   getDREByEntity: (entityType: 'lot' | 'pen', entityId: string) => DREStatement[];
+  
+  // 🆕 AÇÕES DE RATEIO DE CUSTOS INDIRETOS
+  generateIndirectCostAllocation: (params: AllocationGenerationParams) => IndirectCostAllocation | null;
+  saveIndirectCostAllocation: (allocation: IndirectCostAllocation) => void;
+  approveIndirectCostAllocation: (id: string, approvedBy: string) => void;
+  applyIndirectCostAllocation: (id: string) => void;
+  deleteIndirectCostAllocation: (id: string) => void;
+  getIndirectCostSummary: (entityType: 'lot' | 'pen' | 'global', entityId: string, periodStart: Date, periodEnd: Date) => IndirectCostSummary | null;
+  // Templates
+  createAllocationTemplate: (template: Omit<AllocationTemplate, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateAllocationTemplate: (id: string, data: Partial<AllocationTemplate>) => void;
+  deleteAllocationTemplate: (id: string) => void;
+  // Centros de Custo
+  createIndirectCostCenter: (center: Omit<IndirectCostCenter, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateIndirectCostCenter: (id: string, data: Partial<IndirectCostCenter>) => void;
+  deleteIndirectCostCenter: (id: string) => void;
 }
 
 // Helper function to generate 50 pens
@@ -413,6 +437,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   // 🆕 ESTADOS DO DRE
   dreStatements: [],
   dreComparisons: [],
+  
+  // 🆕 ESTADOS DE RATEIO DE CUSTOS INDIRETOS
+  indirectCostAllocations: [],
+  allocationTemplates: [],
+  indirectCostCenters: [],
   
   // Ações - Navegação
   setCurrentPage: (page) => set({ currentPage: page }),
@@ -2610,5 +2639,268 @@ export const useAppStore = create<AppState>((set, get) => ({
     return state.dreStatements.filter(dre => 
       dre.entityType === entityType && dre.entityId === entityId
     );
-  }
+  },
+  
+  // 🆕 IMPLEMENTAÇÃO DE RATEIO DE CUSTOS INDIRETOS
+  generateIndirectCostAllocation: (params) => {
+    const state = get();
+    const { costType, period, totalAmount, allocationMethod, includeInactiveLots = false } = params;
+    
+    // Buscar entidades ativas
+    const activeLots = state.cattleLots.filter(lot => 
+      includeInactiveLots ? true : lot.status === 'active'
+    );
+    
+    if (activeLots.length === 0) return null;
+    
+    // Calcular base total para rateio
+    let totalBase = 0;
+    const entityBases: Map<string, number> = new Map();
+    
+    activeLots.forEach(lot => {
+      let base = 0;
+      
+      switch (allocationMethod) {
+        case 'by_heads':
+          base = lot.entryQuantity - (lot.deaths || 0);
+          break;
+          
+        case 'by_value':
+          base = state.calculateLotCostsByCategory(lot.id).total;
+          break;
+          
+        case 'by_days':
+          const entryDate = lot.entryDate;
+          const currentDate = new Date();
+          const days = Math.floor((currentDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+          base = days * (lot.entryQuantity - (lot.deaths || 0));
+          break;
+          
+        case 'by_weight':
+          base = lot.entryWeight;
+          break;
+      }
+      
+      entityBases.set(lot.id, base);
+      totalBase += base;
+    });
+    
+    if (totalBase === 0) return null;
+    
+    // Criar alocações
+    const allocations = activeLots.map(lot => {
+      const base = entityBases.get(lot.id) || 0;
+      const percentage = (base / totalBase) * 100;
+      const allocatedAmount = (totalAmount * percentage) / 100;
+      
+      return {
+        entityType: 'lot' as const,
+        entityId: lot.id,
+        entityName: lot.lotNumber,
+        heads: lot.entryQuantity - (lot.deaths || 0),
+        value: state.calculateLotCostsByCategory(lot.id).total,
+        days: Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24)),
+        weight: lot.entryWeight,
+        percentage,
+        allocatedAmount
+      };
+    });
+    
+    // Criar objeto de alocação
+    const allocation: IndirectCostAllocation = {
+      id: uuidv4(),
+      name: `Rateio de Custos ${costType === 'administrative' ? 'Administrativos' : 
+                              costType === 'financial' ? 'Financeiros' : 
+                              costType === 'operational' ? 'Operacionais' : 
+                              costType === 'marketing' ? 'de Marketing' : 'Outros'}`,
+      description: `Rateio automático pelo método ${allocationMethod}`,
+      period,
+      totalAmount,
+      costType,
+      allocationMethod,
+      allocationBasis: {
+        totalHeads: allocationMethod === 'by_heads' ? totalBase : undefined,
+        totalValue: allocationMethod === 'by_value' ? totalBase : undefined,
+        totalDays: allocationMethod === 'by_days' ? totalBase : undefined,
+        totalWeight: allocationMethod === 'by_weight' ? totalBase : undefined
+      },
+      allocations,
+      status: 'draft',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    return allocation;
+  },
+  
+  saveIndirectCostAllocation: (allocation) => set((state) => ({
+    indirectCostAllocations: [...state.indirectCostAllocations, allocation]
+  })),
+  
+  approveIndirectCostAllocation: (id, approvedBy) => set((state) => ({
+    indirectCostAllocations: state.indirectCostAllocations.map(alloc =>
+      alloc.id === id
+        ? {
+            ...alloc,
+            status: 'approved' as const,
+            approvedBy,
+            approvedAt: new Date(),
+            updatedAt: new Date()
+          }
+        : alloc
+    )
+  })),
+  
+  applyIndirectCostAllocation: (id) => set((state) => {
+    const allocation = state.indirectCostAllocations.find(a => a.id === id);
+    if (!allocation || allocation.status !== 'approved') return state;
+    
+    // Criar despesas para cada alocação
+    const newExpenses: Expense[] = allocation.allocations.map(alloc => ({
+      id: uuidv4(),
+      date: allocation.period.endDate,
+      description: `${allocation.name} - ${alloc.entityName}`,
+      category: allocation.costType === 'administrative' ? 'general_admin' :
+                allocation.costType === 'financial' ? 'financial_management' :
+                allocation.costType === 'marketing' ? 'marketing' : 
+                'admin_other',
+      totalAmount: alloc.allocatedAmount,
+      paymentStatus: 'paid',
+      allocations: [{
+        id: uuidv4(),
+        targetType: 'lot',
+        targetId: alloc.entityId,
+        costCenterId: '',
+        expenseId: '',
+        amount: alloc.allocatedAmount,
+        percentage: 100,
+        allocationMethod: 'manual_value',
+        createdAt: new Date()
+      }],
+      impactsCashFlow: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }));
+    
+    return {
+      ...state,
+      expenses: [...state.expenses, ...newExpenses],
+      indirectCostAllocations: state.indirectCostAllocations.map(alloc =>
+        alloc.id === id
+          ? { ...alloc, status: 'applied' as const, appliedAt: new Date(), updatedAt: new Date() }
+          : alloc
+      )
+    };
+  }),
+  
+  deleteIndirectCostAllocation: (id) => set((state) => ({
+    indirectCostAllocations: state.indirectCostAllocations.filter(a => a.id !== id)
+  })),
+  
+  getIndirectCostSummary: (entityType, entityId, periodStart, periodEnd) => {
+    const state = get();
+    
+    // Filtrar alocações aplicadas no período
+    const relevantAllocations = state.indirectCostAllocations.filter(alloc =>
+      alloc.status === 'applied' &&
+      alloc.period.startDate >= periodStart &&
+      alloc.period.endDate <= periodEnd &&
+      (entityType === 'global' || alloc.allocations.some(a => 
+        a.entityType === entityType && a.entityId === entityId
+      ))
+    );
+    
+    if (relevantAllocations.length === 0) return null;
+    
+    // Calcular totais por tipo
+    const costs = {
+      administrative: 0,
+      financial: 0,
+      operational: 0,
+      marketing: 0,
+      other: 0,
+      total: 0
+    };
+    
+    relevantAllocations.forEach(alloc => {
+      const entityAllocation = entityType === 'global'
+        ? alloc.allocations.reduce((sum, a) => sum + a.allocatedAmount, 0)
+        : alloc.allocations.find(a => a.entityId === entityId)?.allocatedAmount || 0;
+      
+      costs[alloc.costType] += entityAllocation;
+      costs.total += entityAllocation;
+    });
+    
+    // Buscar informações da entidade
+    let entityName = 'Global';
+    let heads = 0;
+    
+    if (entityType === 'lot') {
+      const lot = state.cattleLots.find(l => l.id === entityId);
+      if (lot) {
+        entityName = lot.lotNumber;
+        heads = lot.entryQuantity - (lot.deaths || 0);
+      }
+    }
+    
+    const days = Math.floor((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
+    
+    const summary: IndirectCostSummary = {
+      entityType,
+      entityId: entityId || 'global',
+      entityName,
+      period: { startDate: periodStart, endDate: periodEnd },
+      costs,
+      percentageOfTotal: 100, // Será calculado se necessário
+      costPerHead: heads > 0 ? costs.total / heads : undefined,
+      costPerDay: days > 0 ? costs.total / days : undefined,
+      allocations: relevantAllocations
+    };
+    
+    return summary;
+  },
+  
+  // Templates
+  createAllocationTemplate: (template) => set((state) => ({
+    allocationTemplates: [...state.allocationTemplates, {
+      ...template,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }]
+  })),
+  
+  updateAllocationTemplate: (id, data) => set((state) => ({
+    allocationTemplates: state.allocationTemplates.map(template =>
+      template.id === id
+        ? { ...template, ...data, updatedAt: new Date() }
+        : template
+    )
+  })),
+  
+  deleteAllocationTemplate: (id) => set((state) => ({
+    allocationTemplates: state.allocationTemplates.filter(t => t.id !== id)
+  })),
+  
+  // Centros de Custo Indiretos
+  createIndirectCostCenter: (center) => set((state) => ({
+    indirectCostCenters: [...state.indirectCostCenters, {
+      ...center,
+      id: uuidv4(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }]
+  })),
+  
+  updateIndirectCostCenter: (id, data) => set((state) => ({
+    indirectCostCenters: state.indirectCostCenters.map(center =>
+      center.id === id
+        ? { ...center, ...data, updatedAt: new Date() }
+        : center
+    )
+  })),
+  
+  deleteIndirectCostCenter: (id) => set((state) => ({
+    indirectCostCenters: state.indirectCostCenters.filter(c => c.id !== id)
+  }))
 }));

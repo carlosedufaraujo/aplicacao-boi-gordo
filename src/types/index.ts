@@ -1098,3 +1098,128 @@ export interface DREComparison {
   insights: string[]; // Insights automáticos
   generatedAt: Date;
 }
+
+// 🆕 NOVA INTERFACE: Rateio de Custos Indiretos
+export interface IndirectCostAllocation {
+  id: string;
+  name: string;
+  description: string;
+  period: {
+    startDate: Date;
+    endDate: Date;
+  };
+  totalAmount: number;
+  costType: 'administrative' | 'financial' | 'operational' | 'marketing' | 'other';
+  
+  // Método de rateio
+  allocationMethod: 'by_heads' | 'by_value' | 'by_days' | 'by_weight' | 'custom';
+  
+  // Base de cálculo para o rateio
+  allocationBasis?: {
+    totalHeads?: number;
+    totalValue?: number;
+    totalDays?: number;
+    totalWeight?: number;
+  };
+  
+  // Alocações por entidade
+  allocations: {
+    entityType: 'lot' | 'pen';
+    entityId: string;
+    entityName: string;
+    // Valores base para cálculo
+    heads?: number;
+    value?: number;
+    days?: number;
+    weight?: number;
+    // Resultado do rateio
+    percentage: number;
+    allocatedAmount: number;
+  }[];
+  
+  // Status
+  status: 'draft' | 'approved' | 'applied';
+  approvedBy?: string;
+  approvedAt?: Date;
+  appliedAt?: Date;
+  
+  // Metadados
+  notes?: string;
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 🆕 NOVA INTERFACE: Template de Rateio
+export interface AllocationTemplate {
+  id: string;
+  name: string;
+  description: string;
+  costType: 'administrative' | 'financial' | 'operational' | 'marketing' | 'other';
+  allocationMethod: 'by_heads' | 'by_value' | 'by_days' | 'by_weight' | 'custom';
+  isActive: boolean;
+  // Regras customizadas
+  customRules?: {
+    field: string;
+    operator: 'equals' | 'contains' | 'greaterThan' | 'lessThan';
+    value: string | number;
+    weight: number; // Peso na alocação
+  }[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 🆕 NOVA INTERFACE: Centro de Custo Indireto
+export interface IndirectCostCenter {
+  id: string;
+  name: string;
+  code: string;
+  type: 'administrative' | 'financial' | 'operational' | 'marketing' | 'other';
+  description?: string;
+  budget?: {
+    monthly: number;
+    quarterly: number;
+    annual: number;
+  };
+  responsible?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// 🆕 NOVA INTERFACE: Parâmetros para geração de rateio
+export interface AllocationGenerationParams {
+  costCenterId?: string;
+  costType: 'administrative' | 'financial' | 'operational' | 'marketing' | 'other';
+  period: {
+    startDate: Date;
+    endDate: Date;
+  };
+  totalAmount: number;
+  allocationMethod: 'by_heads' | 'by_value' | 'by_days' | 'by_weight' | 'custom';
+  includeInactiveLots?: boolean;
+  templateId?: string;
+}
+
+// 🆕 NOVA INTERFACE: Resumo de custos indiretos
+export interface IndirectCostSummary {
+  entityType: 'lot' | 'pen' | 'global';
+  entityId: string;
+  entityName: string;
+  period: {
+    startDate: Date;
+    endDate: Date;
+  };
+  costs: {
+    administrative: number;
+    financial: number;
+    operational: number;
+    marketing: number;
+    other: number;
+    total: number;
+  };
+  percentageOfTotal: number;
+  costPerHead?: number;
+  costPerDay?: number;
+  allocations: IndirectCostAllocation[];
+}
