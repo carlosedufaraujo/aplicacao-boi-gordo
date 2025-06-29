@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, TrendingDown, DollarSign, PieChart, 
   Calendar, Filter, Download, Plus, BarChart3,
-  FileText, AlertCircle
+  FileText, AlertCircle, ChevronRight, Eye
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { DREStatement, DREGenerationParams } from '../../types';
@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { DREViewer } from './DREViewer';
 import { DREComparison } from './DREComparison';
 import { DREFilters } from './DREFilters';
+import { clsx } from 'clsx';
 
 export const DREStatementComponent: React.FC = () => {
   const { 
@@ -126,50 +127,57 @@ export const DREStatementComponent: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <div className="p-3 lg:p-4 h-full flex flex-col">
+      {/* Header - Compacto e moderno */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4 flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-b3x-navy-900">
+          <h2 className="text-lg lg:text-xl font-bold text-b3x-navy-900 mb-1">
             Demonstrativo de Resultados (DRE)
-          </h1>
-          <p className="text-neutral-600 mt-1">
-            Análise de rentabilidade por lote, curral ou global
+          </h2>
+          <p className="text-xs lg:text-sm text-neutral-600">
+            Análise detalhada de rentabilidade e performance financeira
           </p>
         </div>
         
-        <div className="flex space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setShowComparison(!showComparison)}
-            className="px-4 py-2 text-b3x-navy-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 flex items-center"
+            className={clsx(
+              "flex items-center justify-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+              showComparison 
+                ? "bg-b3x-navy-900 text-white hover:bg-b3x-navy-800"
+                : "bg-white text-b3x-navy-700 border border-neutral-200 hover:bg-neutral-50 shadow-soft hover:shadow-soft-lg"
+            )}
           >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            {showComparison ? 'Visualização Única' : 'Comparar DREs'}
+            <BarChart3 className="w-4 h-4" />
+            <span className="hidden sm:inline">
+              {showComparison ? 'Visualização Única' : 'Comparar DREs'}
+            </span>
           </button>
           
           {currentDRE && (
             <>
               <button
                 onClick={handleSaveDRE}
-                className="px-4 py-2 text-b3x-navy-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 flex items-center"
+                className="flex items-center justify-center space-x-2 px-3 py-2 bg-white text-b3x-navy-700 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-all duration-200 shadow-soft hover:shadow-soft-lg text-sm font-medium"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Salvar DRE
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Salvar</span>
               </button>
               
               <button
                 onClick={handleExportDRE}
-                className="px-4 py-2 bg-b3x-lime-500 text-b3x-navy-900 rounded-lg hover:bg-b3x-lime-600 flex items-center"
+                className="flex items-center justify-center space-x-2 px-3 py-2 bg-gradient-to-r from-b3x-lime-500 to-b3x-lime-600 text-b3x-navy-900 font-medium rounded-lg hover:from-b3x-lime-600 hover:to-b3x-lime-700 transition-all duration-200 shadow-soft hover:shadow-soft-lg text-sm"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Exportar
+                <Download className="w-4 h-4" />
+                <span>Exportar</span>
               </button>
             </>
           )}
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros - Redesenhado */}
       <DREFilters
         selectedEntityType={selectedEntityType}
         setSelectedEntityType={setSelectedEntityType}
@@ -186,24 +194,32 @@ export const DREStatementComponent: React.FC = () => {
       />
 
       {/* Conteúdo Principal */}
-      {showComparison ? (
-        <DREComparison
-          entityType={selectedEntityType === 'global' ? 'lot' : selectedEntityType}
-          periodStart={periodStart}
-          periodEnd={periodEnd}
-        />
-      ) : (
-        currentDRE ? (
-          <DREViewer dre={currentDRE} />
+      <div className="flex-1 min-h-0 mt-4">
+        {showComparison ? (
+          <DREComparison
+            entityType={selectedEntityType === 'global' ? 'lot' : selectedEntityType}
+            periodStart={periodStart}
+            periodEnd={periodEnd}
+          />
         ) : (
-          <div className="bg-white rounded-xl p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-warning-500 mx-auto mb-4" />
-            <p className="text-neutral-600">
-              Nenhum dado disponível para o período selecionado.
-            </p>
-          </div>
-        )
-      )}
+          currentDRE ? (
+            <DREViewer dre={currentDRE} />
+          ) : (
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-8 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-warning-100 to-warning-200 rounded-xl mx-auto mb-4 flex items-center justify-center">
+                <AlertCircle className="w-8 h-8 text-warning-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-b3x-navy-900 mb-2">
+                Nenhum dado disponível
+              </h3>
+              <p className="text-sm text-neutral-600 max-w-md mx-auto">
+                Não há informações para gerar o demonstrativo no período selecionado. 
+                Verifique os filtros ou selecione outro período.
+              </p>
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 }; 
