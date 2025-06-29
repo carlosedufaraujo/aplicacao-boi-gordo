@@ -29,15 +29,8 @@ export const PurchaseByStateChart: React.FC = () => {
       .sort((a, b) => b.quantity - a.quantity);
   }, [purchaseOrders]);
 
-  // Se não houver dados reais, usar dados simulados
-  const chartData = data.length > 0 ? data : [
-    { state: 'SP', quantity: 450, value: 1350000 },
-    { state: 'MS', quantity: 320, value: 960000 },
-    { state: 'MT', quantity: 280, value: 840000 },
-    { state: 'GO', quantity: 210, value: 630000 },
-    { state: 'MG', quantity: 180, value: 540000 },
-    { state: 'PR', quantity: 120, value: 360000 }
-  ];
+  // Usar dados reais ou array vazio
+  const chartData = data;
 
   const COLORS = ['#a6e60d', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -64,30 +57,39 @@ export const PurchaseByStateChart: React.FC = () => {
         Compra de Animais por Estado
       </h3>
       
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={chartData} layout="vertical">
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" horizontal={false} />
-          <XAxis type="number" stroke="#737373" fontSize={12} />
-          <YAxis 
-            dataKey="state" 
-            type="category" 
-            stroke="#737373" 
-            fontSize={12} 
-            tickLine={false}
-            axisLine={false}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar 
-            dataKey="quantity" 
-            name="Quantidade" 
-            radius={[0, 4, 4, 0]}
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      {chartData.length > 0 ? (
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={chartData} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" horizontal={false} />
+            <XAxis type="number" stroke="#737373" fontSize={12} />
+            <YAxis 
+              dataKey="state" 
+              type="category" 
+              stroke="#737373" 
+              fontSize={12} 
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar 
+              dataKey="quantity" 
+              name="Quantidade" 
+              radius={[0, 4, 4, 0]}
+            >
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="flex items-center justify-center h-[250px] text-neutral-400">
+          <div className="text-center">
+            <p className="text-sm">Sem dados para exibir</p>
+            <p className="text-xs mt-1">Registre ordens de compra para visualizar por estado</p>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 text-center">
         <div className="text-lg font-bold text-b3x-navy-900">

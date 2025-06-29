@@ -39,15 +39,8 @@ export const PurchaseByBrokerChart: React.FC = () => {
       .slice(0, 6); // Limitar aos 6 maiores
   }, [purchaseOrders, partners]);
 
-  // Se não houver dados reais, usar dados simulados
-  const chartData = data.length > 0 ? data : [
-    { id: 'broker-1', name: 'Carlos', fullName: 'Carlos Mendes', quantity: 350, value: 1050000 },
-    { id: 'broker-2', name: 'Ana', fullName: 'Ana Paula', quantity: 280, value: 840000 },
-    { id: 'broker-3', name: 'João', fullName: 'João Silva', quantity: 220, value: 660000 },
-    { id: 'broker-4', name: 'Maria', fullName: 'Maria Santos', quantity: 180, value: 540000 },
-    { id: 'broker-5', name: 'Roberto', fullName: 'Roberto Lima', quantity: 150, value: 450000 },
-    { id: 'direct', name: 'N/A', fullName: 'Sem Corretor', quantity: 120, value: 360000 }
-  ];
+  // Usar dados reais ou array vazio
+  const chartData = data;
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#ef4444', '#a6e60d'];
 
@@ -74,30 +67,39 @@ export const PurchaseByBrokerChart: React.FC = () => {
         Compra por Corretor
       </h3>
       
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-          <XAxis 
-            dataKey="name" 
-            stroke="#737373" 
-            fontSize={12}
-          />
-          <YAxis 
-            stroke="#737373" 
-            fontSize={12}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Bar 
-            dataKey="quantity" 
-            name="Quantidade" 
-            radius={[4, 4, 0, 0]}
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+      {chartData.length > 0 ? (
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+            <XAxis 
+              dataKey="name" 
+              stroke="#737373" 
+              fontSize={12}
+            />
+            <YAxis 
+              stroke="#737373" 
+              fontSize={12}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar 
+              dataKey="quantity" 
+              name="Quantidade" 
+              radius={[4, 4, 0, 0]}
+            >
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="flex items-center justify-center h-[250px] text-neutral-400">
+          <div className="text-center">
+            <p className="text-sm">Sem dados para exibir</p>
+            <p className="text-xs mt-1">Registre ordens de compra para visualizar por corretor</p>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 text-center">
         <div className="text-lg font-bold text-b3x-navy-900">

@@ -9,14 +9,9 @@ export const CostAllocationPieChart: React.FC = () => {
 
   // Preparar dados para o gráfico de pizza
   const data = React.useMemo(() => {
-    // Se não houver centros de custo, retornar dados simulados
+    // Se não houver centros de custo, retornar array vazio
     if (costCenters.length === 0) {
-      return [
-        { name: 'Aquisição', value: 600000, color: COLORS[0] },
-        { name: 'Engorda', value: 250000, color: COLORS[1] },
-        { name: 'Administrativo', value: 100000, color: COLORS[2] },
-        { name: 'Financeiro', value: 50000, color: COLORS[3] }
-      ];
+      return [];
     }
 
     // Agrupar por tipo de centro de custo
@@ -49,13 +44,8 @@ export const CostAllocationPieChart: React.FC = () => {
     });
   }, [costCenters, costAllocations, expenses]);
 
-  // Se não houver dados reais, usar dados simulados
-  const chartData = data.length > 0 ? data : [
-    { name: 'Aquisição', value: 600000, color: COLORS[0] },
-    { name: 'Engorda', value: 250000, color: COLORS[1] },
-    { name: 'Administrativo', value: 100000, color: COLORS[2] },
-    { name: 'Financeiro', value: 50000, color: COLORS[3] }
-  ];
+  // Usar dados reais ou array vazio
+  const chartData = data;
 
   const total = chartData.reduce((sum, item) => sum + item.value, 0);
 
@@ -100,25 +90,34 @@ export const CostAllocationPieChart: React.FC = () => {
         Valor Alocado por Centro de Custo
       </h3>
       
-      <ResponsiveContainer width="100%" height={220}>
-        <PieChart>
-          <Pie
-            data={chartData}
-            cx="50%"
-            cy="50%"
-            innerRadius={60}
-            outerRadius={90}
-            paddingAngle={2}
-            dataKey="value"
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend content={<CustomLegend />} />
-        </PieChart>
-      </ResponsiveContainer>
+      {chartData.length > 0 ? (
+        <ResponsiveContainer width="100%" height={220}>
+          <PieChart>
+            <Pie
+              data={chartData}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={90}
+              paddingAngle={2}
+              dataKey="value"
+            >
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+            <Legend content={<CustomLegend />} />
+          </PieChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="flex items-center justify-center h-[220px] text-neutral-400">
+          <div className="text-center">
+            <p className="text-sm">Sem dados para exibir</p>
+            <p className="text-xs mt-1">Registre despesas para visualizar a alocação</p>
+          </div>
+        </div>
+      )}
 
       <div className="mt-4 text-center">
         <div className="text-lg font-bold text-b3x-navy-900">

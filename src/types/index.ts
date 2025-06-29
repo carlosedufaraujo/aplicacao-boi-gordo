@@ -632,7 +632,6 @@ export interface PayerAccountFormData {
 // NOVA INTERFACE: Form para Cadastro de Curral
 export interface PenRegistrationFormData {
   penNumber: string;
-  capacity: number;
   location?: string;
   description?: string;
 }
@@ -945,7 +944,7 @@ export interface FinancialContribution {
   paybackPeriod?: number; // Prazo em meses
   participationPercentage?: number; // Percentual de participação (se aplicável)
   // Status
-  status: 'pendente' | 'confirmado' | 'devolvido' | 'convertido';
+  status: 'projetado' | 'realizado' | 'pendente' | 'confirmado' | 'devolvido' | 'convertido';
   returnDate?: Date;
   returnAmount?: number;
   // Documentação
@@ -978,6 +977,7 @@ export interface FinancialContributionFormData {
   date: Date;
   amount: number;
   returnType: 'capital' | 'emprestimo' | 'participacao';
+  status?: 'projetado' | 'realizado' | 'pendente' | 'confirmado' | 'devolvido' | 'convertido';
   interestRate?: number;
   paybackPeriod?: number;
   participationPercentage?: number;

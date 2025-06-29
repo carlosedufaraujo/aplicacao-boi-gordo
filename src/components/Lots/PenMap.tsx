@@ -189,87 +189,93 @@ export const PenMap: React.FC = () => {
           </div>
         </div>
 
-        {/* Grid de Currais por Setor */}
-        {Object.entries(pensBySector).map(([sector, pens]) => (
-          <div key={sector} className="mb-6">
-            <h4 className="text-sm font-semibold text-b3x-navy-900 mb-2 border-b pb-1">{sector}</h4>
-            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-2">
-              {pens.map((pen) => {
-                const isSelected = selectedPen === pen.penNumber;
-                
-                return (
-                  <div
-                    key={pen.penNumber}
-                    className={clsx(
-                      'aspect-square border-2 rounded-lg p-2 transition-all duration-200 cursor-pointer relative group',
-                      getPenStatusColor(pen),
-                      isSelected && 'ring-2 ring-b3x-lime-500 ring-offset-2'
-                    )}
-                    onClick={() => handlePenClick(pen.penNumber)}
-                    title={
-                      pen.status === 'occupied' 
-                        ? `Curral ${pen.penNumber} - ${pen.currentAnimals}/${pen.capacity} animais`
-                        : `Curral ${pen.penNumber} - Disponível (${pen.capacity} animais)`
-                    }
-                  >
-                    <div className="h-full flex flex-col justify-between text-center">
-                      <div className="text-xs font-bold">{pen.penNumber}</div>
-                      
-                      {pen.status === 'occupied' && (
-                        <div className="text-xs">
-                          <div className="font-medium">{pen.currentAnimals}</div>
-                          <div className="text-[10px] opacity-75">/{pen.capacity}</div>
-                        </div>
+        {/* Grid de Currais por Linha */}
+        <div className="space-y-6">
+          {Object.entries(pensBySector).map(([sector, pens]) => (
+            <div key={sector} className="bg-neutral-50/50 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-b3x-navy-900 mb-3 flex items-center">
+                <Home className="w-4 h-4 mr-2 text-neutral-600" />
+                {sector}
+                <span className="ml-2 text-xs font-normal text-neutral-500">({pens.length} currais)</span>
+              </h4>
+              <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-15 gap-3">
+                {pens.map((pen) => {
+                  const isSelected = selectedPen === pen.penNumber;
+                  
+                  return (
+                    <div
+                      key={pen.penNumber}
+                      className={clsx(
+                        'aspect-square border-2 rounded-lg p-1 sm:p-2 transition-all duration-200 cursor-pointer relative group',
+                        getPenStatusColor(pen),
+                        isSelected && 'ring-2 ring-b3x-lime-500 ring-offset-2 scale-105'
                       )}
-                      
-                      {pen.status === 'occupied' && (
-                        <div className="absolute bottom-1 right-1 w-1.5 h-1.5 bg-success-500 rounded-full"></div>
-                      )}
-                    </div>
+                      onClick={() => handlePenClick(pen.penNumber)}
+                      title={
+                        pen.status === 'occupied' 
+                          ? `Curral ${pen.penNumber} - ${pen.currentAnimals} animais`
+                          : `Curral ${pen.penNumber} - Disponível`
+                      }
+                    >
+                      <div className="h-full flex flex-col items-center justify-center text-center">
+                        <div className="text-xs sm:text-sm font-bold text-current">{pen.penNumber}</div>
+                        
+                        {pen.status === 'occupied' && (
+                          <div className="mt-1">
+                            <div className="text-xs font-medium">{pen.currentAnimals}</div>
+                          </div>
+                        )}
+                      </div>
 
-                    {/* Botões de ação (aparecem no hover) */}
-                    <div className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col space-y-0.5">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditPen(pen.penNumber);
-                        }}
-                        className="p-0.5 bg-white/90 rounded shadow-sm hover:bg-white transition-colors"
-                        title="Editar curral"
-                      >
-                        <Edit className="w-2 h-2 text-neutral-600" />
-                      </button>
-                      
+                      {/* Indicador de status */}
                       {pen.status === 'occupied' && (
+                        <div className="absolute bottom-1 right-1 w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
+                      )}
+
+                      {/* Botões de ação (aparecem no hover) */}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center space-x-1">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleMovePen(pen.penNumber);
+                            handleEditPen(pen.penNumber);
                           }}
-                          className="p-0.5 bg-white/90 rounded shadow-sm hover:bg-white transition-colors"
-                          title="Movimentar animais"
+                          className="p-1 bg-white/90 rounded hover:bg-white transition-colors"
+                          title="Editar curral"
                         >
-                          <ArrowRightLeft className="w-2 h-2 text-warning-600" />
+                          <Edit className="w-3 h-3 text-neutral-700" />
                         </button>
-                      )}
-                      
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeletePen(pen.penNumber);
-                        }}
-                        className="p-0.5 bg-white/90 rounded shadow-sm hover:bg-white transition-colors"
-                        title="Excluir curral"
-                      >
-                        <Trash2 className="w-2 h-2 text-error-600" />
-                      </button>
+                        
+                        {pen.status === 'occupied' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMovePen(pen.penNumber);
+                            }}
+                            className="p-1 bg-white/90 rounded hover:bg-white transition-colors"
+                            title="Movimentar animais"
+                          >
+                            <ArrowRightLeft className="w-3 h-3 text-warning-600" />
+                          </button>
+                        )}
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePen(pen.penNumber);
+                          }}
+                          className="p-1 bg-white/90 rounded hover:bg-white transition-colors"
+                          title="Excluir curral"
+                        >
+                          <Trash2 className="w-3 h-3 text-error-600" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
 
         {/* Detalhes do Curral Selecionado - Mais compacto */}
         {selectedPen && (
@@ -289,18 +295,8 @@ export const PenMap: React.FC = () => {
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                     <div>
-                      <span className="text-neutral-600">Capacidade:</span>
-                      <div className="font-medium text-b3x-navy-900">{pen.capacity} animais</div>
-                    </div>
-                    <div>
                       <span className="text-neutral-600">Ocupação Atual:</span>
                       <div className="font-medium text-b3x-navy-900">{pen.currentAnimals} animais</div>
-                    </div>
-                    <div>
-                      <span className="text-neutral-600">Taxa de Ocupação:</span>
-                      <div className="font-medium text-b3x-navy-900">
-                        {((pen.currentAnimals / pen.capacity) * 100).toFixed(1)}%
-                      </div>
                     </div>
                     <div>
                       <span className="text-neutral-600">Status:</span>

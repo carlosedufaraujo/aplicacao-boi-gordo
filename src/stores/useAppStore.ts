@@ -275,6 +275,9 @@ interface AppState {
   createIndirectCostCenter: (center: Omit<IndirectCostCenter, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateIndirectCostCenter: (id: string, data: Partial<IndirectCostCenter>) => void;
   deleteIndirectCostCenter: (id: string) => void;
+  
+  // 🆕 FUNÇÃO PARA LIMPAR DADOS DE TESTE
+  clearAllTestData: () => void;
 }
 
 // Helper function to generate 50 pens
@@ -282,15 +285,21 @@ const generateInitialPens = () => {
   const penRegistrations: PenRegistration[] = [];
   const penStatuses: PenStatus[] = [];
   
-  for (let i = 1; i <= 50; i++) {
+  // Criar 15 currais por linha, total de 60 currais (4 linhas)
+  const pensPerLine = 15;
+  const totalLines = 4;
+  const totalPens = pensPerLine * totalLines;
+  
+  for (let i = 1; i <= totalPens; i++) {
     const penNumber = i.toString();
+    const lineNumber = Math.ceil(i / pensPerLine);
     
     // Create pen registration
     penRegistrations.push({
       id: `pen-${i}`,
       penNumber,
-      capacity: 130,
-      location: `Setor ${Math.ceil(i / 10)}`,
+      capacity: 130, // Mantido temporariamente para compatibilidade
+      location: `Linha ${lineNumber}`,
       description: `Curral ${penNumber}`,
       isActive: true,
       createdAt: new Date(),
@@ -300,7 +309,7 @@ const generateInitialPens = () => {
     // Create pen status
     penStatuses.push({
       penNumber,
-      capacity: 130,
+      capacity: 130, // Mantido temporariamente para compatibilidade
       currentAnimals: 0,
       status: 'available'
     });
@@ -319,52 +328,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   sidebarCollapsed: false,
   
   // Dados iniciais
-  cycles: [
-    {
-      id: '1',
-      name: 'Ciclo 2023-1',
-      startDate: new Date(2023, 0, 1),
-      status: 'active',
-      description: 'Primeiro ciclo de 2023',
-      budget: 5000000,
-      targetAnimals: 1000
-    }
-  ],
-  partners: [
-    {
-      id: '1',
-      name: 'Fazenda São João',
-      type: 'vendor',
-      city: 'Ribeirão Preto',
-      state: 'SP',
-      phone: '(16) 99999-9999',
-      email: 'contato@fazendajoao.com.br',
-      cpfCnpj: '12.345.678/0001-90',
-      isActive: true,
-      createdAt: new Date()
-    },
-    {
-      id: '2',
-      name: 'Carlos Mendes',
-      type: 'broker',
-      city: 'Ribeirão Preto',
-      state: 'SP',
-      phone: '(16) 98888-8888',
-      isActive: true,
-      createdAt: new Date()
-    },
-    {
-      id: '3',
-      name: 'Frigorífico Boi Gordo',
-      type: 'slaughterhouse',
-      city: 'São Carlos',
-      state: 'SP',
-      phone: '(16) 97777-7777',
-      email: 'compras@boigordo.com.br',
-      isActive: true,
-      createdAt: new Date()
-    }
-  ],
+  cycles: [],
+  partners: [],
   purchaseOrders: [],
   cattleLots: [],
   weightReadings: [],
@@ -405,19 +370,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   expenses: [],
   budgetPlans: [],
   financialReports: [],
-  payerAccounts: [
-    {
-      id: '1',
-      name: 'Conta Principal',
-      bankName: 'Banco do Brasil',
-      bankAgency: '1234-5',
-      bankAccount: '12345-6',
-      bankAccountType: 'checking',
-      isActive: true,
-      isDefault: true,
-      createdAt: new Date()
-    }
-  ],
+  payerAccounts: [],
   saleRecords: [],
   notifications: [],
   loteCurralLinks: [],
@@ -2043,7 +1996,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const newContribution: FinancialContribution = {
       ...contribution,
       id: uuidv4(),
-      status: 'pendente',
+      status: contribution.status || 'projetado',
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -2057,7 +2010,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       subcategory: contribution.type,
       description: `${contribution.contributorName} - ${contribution.type}`,
       plannedAmount: contribution.amount,
-      status: 'projetado',
+      actualAmount: contribution.status === 'realizado' ? contribution.amount : undefined,
+      status: contribution.status === 'realizado' ? 'realizado' : 'projetado',
       relatedEntityType: 'loan',
       relatedEntityId: newContribution.id,
       createdAt: new Date(),
@@ -2902,5 +2856,103 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   deleteIndirectCostCenter: (id) => set((state) => ({
     indirectCostCenters: state.indirectCostCenters.filter(c => c.id !== id)
-  }))
+  })),
+  
+  // 🆕 IMPLEMENTAÇÃO DA FUNÇÃO PARA LIMPAR DADOS DE TESTE
+  clearAllTestData: () => set((state) => {
+    // Manter apenas os dados essenciais do sistema
+    const cleanState = {
+      // Manter estado de navegação
+      currentPage: state.currentPage,
+      darkMode: state.darkMode,
+      sidebarCollapsed: state.sidebarCollapsed,
+      
+      // Limpar todos os dados transacionais
+      cycles: [],
+      partners: [],
+      purchaseOrders: [],
+      cattleLots: [],
+      weightReadings: [],
+      healthRecords: [],
+      feedCosts: [],
+      lotMovements: [],
+      financialAccounts: [],
+      
+      // Resetar KPIs
+      kpis: [
+        {
+          label: 'Animais Confinados',
+          value: '0',
+          icon: 'Beef'
+        },
+        {
+          label: 'Média Dia/Confinado',
+          value: '0',
+          icon: 'Clock'
+        },
+        {
+          label: 'Média Quebra de Peso',
+          value: '0%',
+          icon: 'TrendingDown'
+        },
+        {
+          label: 'Mortalidade Acumulada',
+          value: '0%',
+          icon: 'AlertTriangle'
+        }
+      ],
+      
+      // Manter estrutura de currais mas limpar alocações
+      penRegistrations: state.penRegistrations,
+      penAllocations: [],
+      penStatuses: state.penStatuses.map(pen => ({
+        ...pen,
+        currentAnimals: 0,
+        status: 'available' as const
+      })),
+      
+      // Limpar dados financeiros
+      debts: [],
+      bankStatements: [],
+      financialReconciliations: [],
+      costCenters: [],
+      costAllocations: [],
+      expenses: [],
+      budgetPlans: [],
+      financialReports: [],
+      
+      // Limpar contas pagadoras
+      payerAccounts: [],
+      
+      // Limpar vendas e notificações
+      saleRecords: [],
+      notifications: [],
+      
+      // Limpar modelo operacional
+      loteCurralLinks: [],
+      costProportionalAllocations: [],
+      saleDesignations: [],
+      
+      // Limpar dados do DRC
+      cashFlowEntries: [],
+      financialContributions: [],
+      cashFlowPeriods: [],
+      cashFlowProjections: [],
+      workingCapitalHistory: [],
+      
+      // Limpar lançamentos não-caixa
+      nonCashExpenses: [],
+      
+      // Limpar DRE
+      dreStatements: [],
+      dreComparisons: [],
+      
+      // Limpar rateio de custos indiretos
+      indirectCostAllocations: [],
+      allocationTemplates: [],
+      indirectCostCenters: []
+    };
+    
+    return cleanState;
+  })
 }));

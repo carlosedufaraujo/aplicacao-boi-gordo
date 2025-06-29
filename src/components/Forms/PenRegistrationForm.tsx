@@ -8,7 +8,6 @@ import { PenRegistrationFormData } from '../../types';
 
 const penRegistrationSchema = z.object({
   penNumber: z.string().min(1, 'Número do curral é obrigatório'),
-  capacity: z.number().min(1, 'Capacidade deve ser maior que 0'),
   location: z.string().optional(),
   description: z.string().optional(),
 });
@@ -38,7 +37,6 @@ export const PenRegistrationForm: React.FC<PenRegistrationFormProps> = ({
     resolver: zodResolver(penRegistrationSchema),
     defaultValues: {
       penNumber: existingPen?.penNumber || penNumber || '',
-      capacity: existingPen?.capacity || 130,
       location: existingPen?.location || '',
       description: existingPen?.description || ''
     }
@@ -72,7 +70,9 @@ export const PenRegistrationForm: React.FC<PenRegistrationFormProps> = ({
 
       addPenRegistration({
         ...data,
-        isActive: true
+        capacity: 130, // Valor padrão para compatibilidade
+        isActive: true,
+        updatedAt: new Date()
       });
     }
     
@@ -111,37 +111,20 @@ export const PenRegistrationForm: React.FC<PenRegistrationFormProps> = ({
               Informações do Curral
             </h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-success-700 mb-1">
-                  Número do Curral *
-                </label>
-                <input
-                  type="text"
-                  {...register('penNumber')}
-                  disabled={!!existingPen} // Não permitir editar número se já existe
-                  className="w-full px-3 py-2 text-sm border border-success-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 bg-white/90 transition-all duration-200 disabled:bg-neutral-100 disabled:cursor-not-allowed"
-                  placeholder="Ex: 25, A1, B2"
-                />
-                {errors.penNumber && (
-                  <p className="text-error-500 text-xs mt-1">{errors.penNumber.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-success-700 mb-1">
-                  Capacidade (animais) *
-                </label>
-                <input
-                  type="number"
-                  {...register('capacity', { valueAsNumber: true })}
-                  className="w-full px-3 py-2 text-sm border border-success-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 bg-white/90 transition-all duration-200"
-                  placeholder="Ex: 130"
-                />
-                {errors.capacity && (
-                  <p className="text-error-500 text-xs mt-1">{errors.capacity.message}</p>
-                )}
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-success-700 mb-1">
+                Número do Curral *
+              </label>
+              <input
+                type="text"
+                {...register('penNumber')}
+                disabled={!!existingPen} // Não permitir editar número se já existe
+                className="w-full px-3 py-2 text-sm border border-success-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 bg-white/90 transition-all duration-200 disabled:bg-neutral-100 disabled:cursor-not-allowed"
+                placeholder="Ex: 25, A1, B2"
+              />
+              {errors.penNumber && (
+                <p className="text-error-500 text-xs mt-1">{errors.penNumber.message}</p>
+              )}
             </div>
           </div>
 
@@ -155,7 +138,7 @@ export const PenRegistrationForm: React.FC<PenRegistrationFormProps> = ({
                 type="text"
                 {...register('location')}
                 className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-transparent"
-                placeholder="Ex: Setor A, Área Norte, Bloco 1"
+                placeholder="Ex: Linha 1, Linha 2, Linha 3"
               />
             </div>
 
@@ -182,7 +165,7 @@ export const PenRegistrationForm: React.FC<PenRegistrationFormProps> = ({
                     Curral {penNumber || 'Número'}
                   </div>
                   <div className="text-xs text-neutral-600">
-                    Capacidade: 130 animais
+                    {existingPen?.location || 'Localização'}
                   </div>
                 </div>
                 <div className="px-2 py-1 bg-success-100 text-success-700 rounded-full text-xs">

@@ -341,28 +341,41 @@ export const Registrations: React.FC = () => {
           key: 'penNumber',
           label: 'Número',
           sortable: true,
+          width: '15%',
           render: (value: string) => (
             <div className="font-medium text-b3x-navy-900 text-sm">Curral {value}</div>
           )
         },
         {
-          key: 'capacity',
-          label: 'Capacidade',
-          sortable: true,
-          render: (value: number) => `${value} animais`
-        },
-        {
           key: 'location',
           label: 'Localização',
           sortable: true,
-          render: (value: string) => value || 'Não especificada'
+          width: '25%',
+          render: (value: string) => (
+            <div className="text-sm text-neutral-700">
+              {value || 'Não especificada'}
+            </div>
+          )
+        },
+        {
+          key: 'description',
+          label: 'Descrição',
+          sortable: false,
+          width: '35%',
+          render: (value: string) => (
+            <div className="text-sm text-neutral-600 truncate">
+              {value || '-'}
+            </div>
+          )
         },
         {
           key: 'isActive',
           label: 'Status',
           sortable: true,
+          width: '15%',
           render: (value: boolean) => (
             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
+              <CheckCircle className="w-3 h-3 mr-1" />
               Ativo
             </span>
           )
@@ -370,21 +383,26 @@ export const Registrations: React.FC = () => {
         {
           key: 'actions',
           label: 'Ações',
+          width: '10%',
+          align: 'right',
           render: (value: any, row: any) => (
-            <div className="flex items-center justify-end space-x-2">
+            <div className="flex items-center justify-end space-x-1">
               <button
-                onClick={() => handleEditPen(row.id)}
-                className="p-1.5 text-info-600 hover:bg-info-50 rounded"
-                title="Editar"
+                onClick={() => {
+                  const pen = penRegistrations.find(p => p.penNumber === row.penNumber);
+                  if (pen) handleEditPen(pen.penNumber);
+                }}
+                className="p-1.5 text-info-600 hover:bg-info-50 rounded-lg transition-colors"
+                title="Editar curral"
               >
-                <Edit className="w-3.5 h-3.5" />
+                <Edit className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleDeletePen(row.id)}
-                className="p-1.5 text-error-600 hover:bg-error-50 rounded"
-                title="Excluir"
+                className="p-1.5 text-error-600 hover:bg-error-50 rounded-lg transition-colors"
+                title="Excluir curral"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           )
@@ -563,6 +581,7 @@ export const Registrations: React.FC = () => {
           <PenRegistrationForm
             isOpen={showPenForm}
             onClose={() => setShowPenForm(false)}
+            penNumber={editPen || undefined}
           />
         </Portal>
       )}

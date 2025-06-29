@@ -19,7 +19,9 @@ import {
   ChevronDown,
   X,
   BarChart3,
-  Activity
+  Activity,
+  Receipt,
+  Info
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { ExpenseAllocationForm } from '../Forms/ExpenseAllocationForm';
@@ -137,9 +139,29 @@ export const FinancialCenterManagement: React.FC = () => {
         return sum + totalCost;
       }, 0);
     
-    totals.acquisition += cattlePurchases;
+    // NÃO adicionar compras de gado aqui pois já estão sendo contabilizadas via expenses
+    // totals.acquisition += cattlePurchases;
     
-    // Adicionar despesas categorizadas
+    // Adicionar despesas diretas por categoria (não duplicar com centros de custo)
+    filteredExpenses.forEach(expense => {
+      // Verificar se a despesa já foi alocada a um centro de custo
+      const hasAllocation = expense.allocations && expense.allocations.length > 0;
+      
+      if (!hasAllocation) {
+        // Só adicionar se não tiver alocação para evitar duplicação
+        if (expense.category === 'animal_purchase' || expense.category === 'commission' || expense.category === 'freight') {
+          totals.acquisition += expense.totalAmount;
+        } else if (expense.category === 'feed' || expense.category === 'health_costs' || expense.category === 'operational_costs') {
+          totals.fattening += expense.totalAmount;
+        } else if (expense.category === 'general_admin' || expense.category === 'personnel' || expense.category === 'office') {
+          totals.administrative += expense.totalAmount;
+        } else if (expense.category === 'taxes' || expense.category === 'interest' || expense.category === 'fees') {
+          totals.financial += expense.totalAmount;
+        }
+      }
+    });
+    
+    // Adicionar despesas alocadas aos centros de custo
     costCenters.forEach(center => {
       const centerExpenses = filteredExpenses
         .filter(expense => 
@@ -151,19 +173,6 @@ export const FinancialCenterManagement: React.FC = () => {
         .reduce((sum, expense) => sum + expense.totalAmount, 0);
       
       totals[center.type] += centerExpenses;
-    });
-    
-    // Adicionar despesas diretas por categoria
-    filteredExpenses.forEach(expense => {
-      if (expense.category === 'animal_purchase' || expense.category === 'commission' || expense.category === 'freight') {
-        totals.acquisition += expense.totalAmount;
-      } else if (expense.category === 'feed' || expense.category === 'health_costs' || expense.category === 'operational_costs') {
-        totals.fattening += expense.totalAmount;
-      } else if (expense.category === 'general_admin' || expense.category === 'personnel' || expense.category === 'office') {
-        totals.administrative += expense.totalAmount;
-      } else if (expense.category === 'taxes' || expense.category === 'interest' || expense.category === 'fees') {
-        totals.financial += expense.totalAmount;
-      }
     });
     
     return totals;
@@ -197,7 +206,7 @@ export const FinancialCenterManagement: React.FC = () => {
     
     // Aportes
     totals.contributions = filteredContributions
-      .filter(contrib => contrib.status === 'confirmado' && contrib.type === 'aporte_socio')
+      .filter(contrib => (contrib.status === 'confirmado' || contrib.status === 'realizado') && contrib.type === 'aporte_socio')
       .reduce((sum, contrib) => sum + contrib.amount, 0);
     
     // Financiamentos
@@ -205,7 +214,7 @@ export const FinancialCenterManagement: React.FC = () => {
       .filter(entry => entry.type === 'financiamento')
       .reduce((sum, entry) => sum + (entry.actualAmount || entry.plannedAmount), 0) +
       filteredContributions
-      .filter(contrib => contrib.type === 'financiamento_bancario' && contrib.status === 'confirmado')
+      .filter(contrib => contrib.type === 'financiamento_bancario' && (contrib.status === 'confirmado' || contrib.status === 'realizado'))
       .reduce((sum, contrib) => sum + contrib.amount, 0);
     
     // Outras receitas
@@ -221,17 +230,15 @@ export const FinancialCenterManagement: React.FC = () => {
   const totalRevenues = Object.values(revenuesByType).reduce((a, b) => a + b, 0);
   const netResult = totalRevenues - totalExpenses;
   
-  // Calcular dívidas totais
+  // Calcular dívidas totais (empréstimos e financiamentos)
   const totalDebts = useMemo(() => {
-    const loans = financialContributions
-      .filter(contrib => contrib.returnType === 'emprestimo' && contrib.status === 'confirmado')
+    return financialContributions
+      .filter(contrib => 
+        (contrib.status === 'confirmado' || contrib.status === 'realizado') && 
+        (contrib.type === 'financiamento_bancario' || 
+         (contrib.type === 'emprestimo_socio' && contrib.returnType === 'emprestimo'))
+      )
       .reduce((sum, contrib) => sum + contrib.amount, 0);
-    
-    const financing = financialContributions
-      .filter(contrib => contrib.type === 'financiamento_bancario' && contrib.status === 'confirmado')
-      .reduce((sum, contrib) => sum + contrib.amount, 0);
-    
-    return loans + financing;
   }, [financialContributions]);
 
   // 🆕 NOVO: Função para obter subcategorias com dados reais
@@ -298,7 +305,16 @@ export const FinancialCenterManagement: React.FC = () => {
           { 
             key: 'animal_purchase', 
             label: 'Compra de Animais', 
-            expenses: expenses.filter(e => e.category === 'animal_purchase')
+            expenses: expenses.filter(e => {
+              if (e.category === 'animal_purchase') {
+                const orderCode = e.description?.match(/X\d{4}/)?.[0];
+                if (orderCode) {
+                  return purchaseOrders.some(order => order.code === orderCode);
+                }
+                return false;
+              }
+              return false;
+            })
           },
           { 
             key: 'commission', 
@@ -1826,22 +1842,27 @@ export const FinancialCenterManagement: React.FC = () => {
                         </p>
                       </div>
                       <div className="bg-neutral-50 rounded-lg p-3">
-                        <p className="text-xs text-neutral-600 mb-1">Próximo Pagamento</p>
+                        <p className="text-xs text-neutral-600 mb-1">Número de Financiamentos</p>
                         <p className="text-lg font-bold text-warning-600">
-                          R$ 15.000,00
+                          {financialContributions.filter(c => (c.type === 'financiamento_bancario' || c.returnType === 'emprestimo') && c.status === 'confirmado').length}
                         </p>
-                        <p className="text-xs text-neutral-500">em 5 dias</p>
+                        <p className="text-xs text-neutral-500">ativos</p>
                       </div>
                       <div className="bg-neutral-50 rounded-lg p-3">
-                        <p className="text-xs text-neutral-600 mb-1">Total Pago</p>
+                        <p className="text-xs text-neutral-600 mb-1">Taxa Média</p>
                         <p className="text-lg font-bold text-success-600">
-                          R$ 45.000,00
+                          {financialContributions
+                            .filter(c => (c.type === 'financiamento_bancario' || c.returnType === 'emprestimo') && c.status === 'confirmado' && c.interestRate)
+                            .reduce((sum, c, _, arr) => sum + (c.interestRate || 0) / arr.length, 0)
+                            .toFixed(2)}% a.m.
                         </p>
                       </div>
                       <div className="bg-neutral-50 rounded-lg p-3">
-                        <p className="text-xs text-neutral-600 mb-1">Juros Pagos</p>
+                        <p className="text-xs text-neutral-600 mb-1">Prazo Médio</p>
                         <p className="text-lg font-bold text-error-600">
-                          R$ 8.500,00
+                          {Math.round(financialContributions
+                            .filter(c => (c.type === 'financiamento_bancario' || c.returnType === 'emprestimo') && c.status === 'confirmado' && c.paybackPeriod)
+                            .reduce((sum, c, _, arr) => sum + (c.paybackPeriod || 0) / arr.length, 0))} meses
                         </p>
                       </div>
                     </div>
@@ -1856,7 +1877,7 @@ export const FinancialCenterManagement: React.FC = () => {
                     
                     <div className="space-y-3">
                       {financialContributions
-                        .filter(contrib => contrib.returnType === 'emprestimo' && contrib.status === 'confirmado')
+                        .filter(contrib => (contrib.type === 'financiamento_bancario' || contrib.returnType === 'emprestimo') && contrib.status === 'confirmado')
                         .map(contrib => (
                           <div key={contrib.id} className="p-3 bg-neutral-50 rounded-lg border border-neutral-200">
                             <div className="flex justify-between items-start mb-2">
@@ -1893,38 +1914,452 @@ export const FinancialCenterManagement: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Cronograma de Pagamentos */}
+                  {financialContributions.filter(c => (c.type === 'financiamento_bancario' || c.returnType === 'emprestimo') && (c.status === 'confirmado' || c.status === 'realizado')).length === 0 && (
+                    <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-soft">
+                      <div className="text-center py-8 text-neutral-500">
+                        <Building2 className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
+                        <p className="text-sm">Nenhum financiamento ativo no momento</p>
+                        <p className="text-xs mt-2">Clique no botão "Novo Aporte" para adicionar um financiamento</p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {showCardDetailModal === 'entradas' && (
+                <>
+                  {/* Resumo de Entradas */}
                   <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-soft">
                     <div className="flex items-center space-x-2 mb-3">
-                      <Calendar className="w-4 h-4 text-b3x-navy-600" />
-                      <h3 className="text-base font-semibold text-b3x-navy-900">Próximos Pagamentos</h3>
+                      <TrendingUp className="w-4 h-4 text-b3x-navy-600" />
+                      <h3 className="text-base font-semibold text-b3x-navy-900">Resumo de Receitas</h3>
                     </div>
                     
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center p-2 hover:bg-neutral-50 rounded">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-warning-100 rounded-lg flex items-center justify-center">
-                            <span className="text-xs font-bold text-warning-700">15</span>
-                          </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="bg-success-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Vendas</p>
+                        <p className="text-lg font-bold text-success-700">
+                          R$ {revenuesByType.sales.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="bg-info-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Aportes</p>
+                        <p className="text-lg font-bold text-info-700">
+                          R$ {revenuesByType.contributions.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="bg-warning-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Financiamentos</p>
+                        <p className="text-lg font-bold text-warning-700">
+                          R$ {revenuesByType.financing.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="bg-neutral-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Outras</p>
+                        <p className="text-lg font-bold text-neutral-700">
+                          R$ {revenuesByType.other.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lista de Receitas */}
+                  <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-soft">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Receipt className="w-4 h-4 text-b3x-navy-600" />
+                      <h3 className="text-base font-semibold text-b3x-navy-900">Receitas do Período</h3>
+                    </div>
+                    
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {/* Vendas */}
+                      {(dateRange 
+                        ? saleRecords.filter(sale => {
+                            const saleDate = new Date(sale.saleDate);
+                            return isWithinInterval(saleDate, dateRange);
+                          })
+                        : saleRecords
+                      ).map(sale => (
+                        <div key={sale.id} className="flex justify-between items-center p-2 hover:bg-neutral-50 rounded">
                           <div>
-                            <p className="font-medium text-sm">Banco XYZ - Juros</p>
-                            <p className="text-xs text-neutral-600">Vence em 5 dias</p>
+                            <p className="font-medium text-sm text-b3x-navy-900">
+                              Venda Lote {cattleLots.find(l => l.id === sale.lotId)?.lotNumber || sale.lotId}
+                            </p>
+                            <p className="text-xs text-neutral-600">
+                              {format(new Date(sale.saleDate), 'dd/MM/yyyy')} • Vendas
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-success-600">
+                              +R$ {sale.grossRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                            <p className="text-xs text-neutral-500">
+                              {sale.paymentType === 'cash' ? 'À Vista' : 'A Prazo'}
+                            </p>
                           </div>
                         </div>
-                        <p className="font-bold text-warning-600">R$ 3.500,00</p>
+                      ))}
+                      
+                      {/* Aportes e Financiamentos */}
+                      {filterByPeriod(financialContributions.filter(c => c.status === 'confirmado' || c.status === 'realizado'))
+                        .map(contrib => (
+                          <div key={contrib.id} className="flex justify-between items-center p-2 hover:bg-neutral-50 rounded">
+                            <div>
+                              <p className="font-medium text-sm text-b3x-navy-900">
+                                {contrib.type === 'aporte_socio' ? 'Aporte' : 'Financiamento'} - {contrib.contributorName}
+                              </p>
+                              <p className="text-xs text-neutral-600">
+                                {format(new Date(contrib.date), 'dd/MM/yyyy')} • {contrib.type === 'aporte_socio' ? 'Aportes' : 'Financiamentos'}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-success-600">
+                                +R$ {contrib.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-xs text-neutral-500">Confirmado</p>
+                            </div>
+                          </div>
+                        ))}
+                      
+                      {/* Outras Receitas */}
+                      {filterByPeriod(cashFlowEntries.filter(e => e.type === 'receita'))
+                        .map(entry => (
+                          <div key={entry.id} className="flex justify-between items-center p-2 hover:bg-neutral-50 rounded">
+                            <div>
+                              <p className="font-medium text-sm text-b3x-navy-900">{entry.description}</p>
+                              <p className="text-xs text-neutral-600">
+                                {format(new Date(entry.date), 'dd/MM/yyyy')} • Receitas
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-success-600">
+                                +R$ {(entry.actualAmount || entry.plannedAmount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-xs text-neutral-500">
+                                {entry.status === 'realizado' ? 'Realizado' : 'Projetado'}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              {showCardDetailModal === 'resultado' && (
+                <>
+                  {/* Resumo do Resultado */}
+                  <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-soft">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <DollarSign className="w-4 h-4 text-b3x-navy-600" />
+                      <h3 className="text-base font-semibold text-b3x-navy-900">Análise do Resultado</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-success-50 rounded-lg p-4">
+                        <p className="text-xs text-neutral-600 mb-1">Total de Entradas</p>
+                        <p className="text-xl font-bold text-success-700">
+                          +R$ {totalRevenues.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="bg-error-50 rounded-lg p-4">
+                        <p className="text-xs text-neutral-600 mb-1">Total de Saídas</p>
+                        <p className="text-xl font-bold text-error-700">
+                          -R$ {totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className={`${netResult >= 0 ? 'bg-success-50' : 'bg-error-50'} rounded-lg p-4`}>
+                        <p className="text-xs text-neutral-600 mb-1">Resultado Líquido</p>
+                        <p className={`text-xl font-bold ${netResult >= 0 ? 'text-success-700' : 'text-error-700'}`}>
+                          {netResult >= 0 ? '+' : ''}R$ {netResult.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gráfico de Composição */}
+                  <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-soft">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <PieChart className="w-4 h-4 text-b3x-navy-600" />
+                      <h3 className="text-base font-semibold text-b3x-navy-900">Composição do Resultado</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-6">
+                      {/* Entradas */}
+                      <div>
+                        <h4 className="text-sm font-medium text-b3x-navy-900 mb-3">Entradas por Categoria</h4>
+                        <div className="space-y-2">
+                          {Object.entries(revenuesByType).map(([type, value]) => {
+                            const percentage = totalRevenues > 0 ? (value / totalRevenues) * 100 : 0;
+                            return (
+                              <div key={type}>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="text-neutral-600">
+                                    {type === 'sales' ? 'Vendas' :
+                                     type === 'contributions' ? 'Aportes' :
+                                     type === 'financing' ? 'Financiamentos' : 'Outras'}
+                                  </span>
+                                  <span className="font-medium">
+                                    R$ {(value / 1000).toFixed(0)}k ({percentage.toFixed(1)}%)
+                                  </span>
+                                </div>
+                                <div className="w-full bg-neutral-200 rounded-full h-1.5">
+                                  <div 
+                                    className="h-1.5 rounded-full bg-success-500"
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                       
-                      <div className="flex justify-between items-center p-2 hover:bg-neutral-50 rounded">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-info-100 rounded-lg flex items-center justify-center">
-                            <span className="text-xs font-bold text-info-700">20</span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">Sócio João - Principal</p>
-                            <p className="text-xs text-neutral-600">Vence em 10 dias</p>
-                          </div>
+                      {/* Saídas */}
+                      <div>
+                        <h4 className="text-sm font-medium text-b3x-navy-900 mb-3">Saídas por Categoria</h4>
+                        <div className="space-y-2">
+                          {Object.entries(expensesByType).map(([type, value]) => {
+                            const percentage = totalExpenses > 0 ? (value / totalExpenses) * 100 : 0;
+                            return (
+                              <div key={type}>
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="text-neutral-600">
+                                    {type === 'acquisition' ? 'Aquisição' :
+                                     type === 'fattening' ? 'Engorda' :
+                                     type === 'administrative' ? 'Administrativo' : 'Financeiro'}
+                                  </span>
+                                  <span className="font-medium">
+                                    R$ {(value / 1000).toFixed(0)}k ({percentage.toFixed(1)}%)
+                                  </span>
+                                </div>
+                                <div className="w-full bg-neutral-200 rounded-full h-1.5">
+                                  <div 
+                                    className="h-1.5 rounded-full bg-error-500"
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <p className="font-bold text-info-600">R$ 25.000,00</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Indicadores */}
+                  <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-soft">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <BarChart3 className="w-4 h-4 text-b3x-navy-600" />
+                      <h3 className="text-base font-semibold text-b3x-navy-900">Indicadores Financeiros</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <p className="text-xs text-neutral-600 mb-1">Margem Líquida</p>
+                        <p className={`text-lg font-bold ${netResult >= 0 ? 'text-success-600' : 'text-error-600'}`}>
+                          {totalRevenues > 0 ? ((netResult / totalRevenues) * 100).toFixed(1) : '0.0'}%
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-neutral-600 mb-1">Custo/Receita</p>
+                        <p className="text-lg font-bold text-warning-600">
+                          {totalRevenues > 0 ? ((totalExpenses / totalRevenues) * 100).toFixed(1) : '0.0'}%
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-neutral-600 mb-1">Média Diária</p>
+                        <p className="text-lg font-bold text-info-600">
+                          R$ {(netResult / 30).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-neutral-600 mb-1">Projeção Mensal</p>
+                        <p className="text-lg font-bold text-b3x-navy-600">
+                          R$ {netResult.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              {showCardDetailModal === 'aportes' && (
+                <>
+                  {/* Resumo de Aportes */}
+                  <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-soft">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Users className="w-4 h-4 text-b3x-navy-600" />
+                      <h3 className="text-base font-semibold text-b3x-navy-900">Resumo de Aportes</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="bg-info-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Total do Período</p>
+                        <p className="text-lg font-bold text-info-700">
+                          R$ {revenuesByType.contributions.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="bg-success-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Número de Aportes</p>
+                        <p className="text-lg font-bold text-success-700">
+                          {financialContributions.filter(c => c.type === 'aporte_socio' && (c.status === 'confirmado' || c.status === 'realizado')).length}
+                        </p>
+                      </div>
+                      <div className="bg-warning-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Aporte Médio</p>
+                        <p className="text-lg font-bold text-warning-700">
+                          R$ {financialContributions.filter(c => c.type === 'aporte_socio' && (c.status === 'confirmado' || c.status === 'realizado')).length > 0
+                            ? (revenuesByType.contributions / financialContributions.filter(c => c.type === 'aporte_socio' && (c.status === 'confirmado' || c.status === 'realizado')).length).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+                            : '0,00'}
+                        </p>
+                      </div>
+                      <div className="bg-neutral-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Sócios Ativos</p>
+                        <p className="text-lg font-bold text-neutral-700">
+                          {[...new Set(financialContributions.filter(c => c.type === 'aporte_socio').map(c => c.contributorName))].length}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lista de Aportes */}
+                  <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-soft">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <DollarSign className="w-4 h-4 text-b3x-navy-600" />
+                      <h3 className="text-base font-semibold text-b3x-navy-900">Aportes Realizados</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {filterByPeriod(financialContributions.filter(c => c.type === 'aporte_socio' && (c.status === 'confirmado' || c.status === 'realizado')))
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map(contrib => (
+                          <div key={contrib.id} className="p-3 bg-neutral-50 rounded-lg border border-neutral-200">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h4 className="font-medium text-b3x-navy-900">{contrib.contributorName}</h4>
+                                <p className="text-xs text-neutral-600">Aporte de Sócio</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-info-700">
+                                  R$ {contrib.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-xs text-neutral-600">
+                                  {format(new Date(contrib.date), 'dd/MM/yyyy')}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {contrib.notes && (
+                              <p className="text-xs text-neutral-600 mt-2 p-2 bg-white rounded">
+                                {contrib.notes}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                        
+                      {filterByPeriod(financialContributions.filter(c => c.type === 'aporte_socio' && (c.status === 'confirmado' || c.status === 'realizado'))).length === 0 && (
+                        <div className="text-center py-8 text-neutral-500">
+                          <Users className="w-12 h-12 mx-auto mb-3 text-neutral-300" />
+                          <p className="text-sm">Nenhum aporte realizado no período</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              {showCardDetailModal === 'saidas' && (
+                <>
+                  {/* Resumo de Saídas */}
+                  <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-soft">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <TrendingDown className="w-4 h-4 text-b3x-navy-600" />
+                      <h3 className="text-base font-semibold text-b3x-navy-900">Resumo de Despesas</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="bg-b3x-lime-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Aquisição</p>
+                        <p className="text-lg font-bold text-b3x-lime-700">
+                          R$ {expensesByType.acquisition.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="bg-success-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Engorda</p>
+                        <p className="text-lg font-bold text-success-700">
+                          R$ {expensesByType.fattening.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="bg-info-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Administrativo</p>
+                        <p className="text-lg font-bold text-info-700">
+                          R$ {expensesByType.administrative.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <div className="bg-warning-50 rounded-lg p-3">
+                        <p className="text-xs text-neutral-600 mb-1">Financeiro</p>
+                        <p className="text-lg font-bold text-warning-700">
+                          R$ {expensesByType.financial.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lista de Despesas Válidas */}
+                  <div className="bg-white rounded-lg p-4 border border-neutral-200 shadow-soft">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Receipt className="w-4 h-4 text-b3x-navy-600" />
+                      <h3 className="text-base font-semibold text-b3x-navy-900">Despesas do Período</h3>
+                    </div>
+                    
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {filterByPeriod(expenses)
+                        .filter(expense => {
+                          // Aplicar o mesmo filtro usado na tabela
+                          if (expense.category === 'animal_purchase') {
+                            const orderCode = expense.description?.match(/X\d{4}/)?.[0];
+                            if (orderCode) {
+                              return purchaseOrders.some(order => order.code === orderCode);
+                            }
+                            return false;
+                          }
+                          return true;
+                        })
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .slice(0, 20)
+                        .map(expense => (
+                          <div key={expense.id} className="flex justify-between items-center p-2 hover:bg-neutral-50 rounded">
+                            <div>
+                              <p className="font-medium text-sm text-b3x-navy-900">{expense.description}</p>
+                              <p className="text-xs text-neutral-600">
+                                {format(new Date(expense.date), 'dd/MM/yyyy')} • {
+                                  expense.category === 'feed' ? 'Alimentação' :
+                                  expense.category === 'health_costs' ? 'Custos Sanitários' :
+                                  expense.category === 'animal_purchase' ? 'Compra de Animais' :
+                                  expense.category
+                                }
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-error-600">
+                                -R$ {expense.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </p>
+                              <p className="text-xs text-neutral-500">
+                                {expense.paymentStatus === 'paid' ? 'Pago' : 'Pendente'}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                    
+                    {/* Nota sobre compras de gado */}
+                    <div className="mt-4 p-3 bg-info-50 rounded-lg border border-info-200">
+                      <div className="flex items-start space-x-2">
+                        <Info className="w-4 h-4 text-info-600 mt-0.5" />
+                        <div className="text-xs text-info-700">
+                          <p className="font-medium mb-1">Nota sobre Compras de Gado:</p>
+                          <p>As compras de gado são exibidas diretamente do Pipeline de Compras. Apenas compras com ordens válidas (código X0001, X0002, etc.) são consideradas nas despesas.</p>
+                        </div>
                       </div>
                     </div>
                   </div>

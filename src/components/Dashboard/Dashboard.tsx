@@ -18,7 +18,7 @@ import { PurchaseByStateChart } from './PurchaseByStateChart';
 import { PurchaseByBrokerChart } from './PurchaseByBrokerChart';
 
 export const Dashboard: React.FC = () => {
-  const { kpis, cattleLots, setCurrentPage, updateKPIs, purchaseOrders } = useAppStore();
+  const { kpis, cattleLots, setCurrentPage, updateKPIs, purchaseOrders, clearAllTestData } = useAppStore();
   
   // Estados para controlar a exibição dos formulários
   const [showPurchaseOrderForm, setShowPurchaseOrderForm] = useState(false);
@@ -123,8 +123,23 @@ export const Dashboard: React.FC = () => {
             <h1 className="text-xl font-bold mb-1">Bem-vindo ao B3X CEAC</h1>
             <p className="text-b3x-navy-200 text-sm">Gestão completa do ciclo de produção e engorda de bovinos</p>
           </div>
-          <div className="w-12 h-12 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-xl flex items-center justify-center shadow-soft">
-            <span className="text-lg font-bold text-b3x-navy-900">B3X</span>
+          <div className="flex items-center space-x-3">
+            {/* Botão temporário para limpar dados de teste */}
+            <button
+              onClick={() => {
+                if (window.confirm('Tem certeza que deseja limpar TODOS os dados de teste do sistema? Esta ação não pode ser desfeita.')) {
+                  clearAllTestData();
+                  alert('Todos os dados de teste foram removidos!');
+                  window.location.reload();
+                }
+              }}
+              className="px-4 py-2 bg-error-600 hover:bg-error-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              Limpar Dados de Teste
+            </button>
+            <div className="w-12 h-12 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-xl flex items-center justify-center shadow-soft">
+              <span className="text-lg font-bold text-b3x-navy-900">B3X</span>
+            </div>
           </div>
         </div>
       </div>

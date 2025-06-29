@@ -22,6 +22,7 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ isOpen, onCl
     participationPercentage: 0,
     contractNumber: '',
     notes: '',
+    status: 'projetado' as 'projetado' | 'realizado',
     // Novos campos para detalhamento de pagamento
     capitalPaymentType: 'mensal' as 'mensal' | 'bullet',
     interestPaymentType: 'mensal' as 'mensal' | 'bullet',
@@ -43,6 +44,7 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ isOpen, onCl
       date: new Date(formData.date),
       amount: formData.amount,
       returnType: formData.returnType,
+      status: formData.status,
       interestRate: formData.returnType === 'emprestimo' ? formData.interestRate : undefined,
       paybackPeriod: formData.returnType === 'emprestimo' ? formData.paybackPeriod : undefined,
       participationPercentage: formData.returnType === 'participacao' ? formData.participationPercentage : undefined,
@@ -63,6 +65,7 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ isOpen, onCl
       participationPercentage: 0,
       contractNumber: '',
       notes: '',
+      status: 'projetado',
       capitalPaymentType: 'mensal',
       interestPaymentType: 'mensal',
       capitalInstallments: 1,
@@ -151,6 +154,24 @@ export const ContributionForm: React.FC<ContributionFormProps> = ({ isOpen, onCl
                   required
                 />
               </div>
+            </div>
+
+            <div className="mt-3">
+              <label className="block text-xs font-medium text-neutral-700 mb-1">
+                Status da Operação *
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'projetado' | 'realizado' })}
+                className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-navy-500 focus:border-transparent"
+                required
+              >
+                <option value="projetado">Projetado</option>
+                <option value="realizado">Realizado</option>
+              </select>
+              <p className="text-xs text-neutral-500 mt-1">
+                Use "Projetado" para planejamento e "Realizado" quando o valor já foi recebido
+              </p>
             </div>
           </div>
 
