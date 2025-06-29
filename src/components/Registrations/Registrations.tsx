@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Users, Building, Truck, FileText, Plus, CreditCard, Home, Search, Filter, ArrowUpDown, Edit, Trash2, CheckCircle, X } from 'lucide-react';
+import { Users, Building, Truck, FileText, Plus, CreditCard, Home, Search, Filter, ArrowUpDown, Edit, Trash2, CheckCircle, X, Calendar } from 'lucide-react';
 import { PartnerForm } from '../Forms/PartnerForm';
 import { PayerAccountForm } from '../Forms/PayerAccountForm';
 import { PenRegistrationForm } from '../Forms/PenRegistrationForm';
+import { CycleForm } from '../Forms/CycleForm';
 import { useAppStore } from '../../stores/useAppStore';
 import { ConfirmDialog } from '../Common/ConfirmDialog';
 import { Portal } from '../Common/Portal';
@@ -10,11 +11,19 @@ import { TableWithPagination } from '../Common/TableWithPagination';
 
 const registrationTypes = [
   {
+    id: 'cycles',
+    title: 'Ciclos',
+    description: 'Ciclos de engorda e operação',
+    icon: Calendar,
+    color: 'primary',
+    type: undefined
+  },
+  {
     id: 'vendors',
     title: 'Vendedores',
     description: 'Gerencie fornecedores de gado',
     icon: Users,
-    color: 'primary',
+    color: 'secondary',
     type: 'vendor' as const
   },
   {
@@ -78,22 +87,26 @@ const colorMap = {
 };
 
 export const Registrations: React.FC = () => {
-  const { partners, debts, payerAccounts, penRegistrations, deletePartner, deletePayerAccount, deletePenRegistration } = useAppStore();
+  const { partners, debts, payerAccounts, penRegistrations, cycles, deletePartner, deletePayerAccount, deletePenRegistration, deleteCycle } = useAppStore();
   const [showPartnerForm, setShowPartnerForm] = useState(false);
   const [showPayerAccountForm, setShowPayerAccountForm] = useState(false);
   const [showPenForm, setShowPenForm] = useState(false);
+  const [showCycleForm, setShowCycleForm] = useState(false);
   const [selectedPartnerType, setSelectedPartnerType] = useState<'vendor' | 'broker' | 'slaughterhouse' | 'financial'>('vendor');
   const [editPartner, setEditPartner] = useState<string | null>(null);
   const [editPayerAccount, setEditPayerAccount] = useState<string | null>(null);
   const [editPen, setEditPen] = useState<string | null>(null);
+  const [editCycle, setEditCycle] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<string>('');
-  const [deleteItemType, setDeleteItemType] = useState<'partner' | 'account' | 'pen'>('partner');
-  const [activeTab, setActiveTab] = useState<string>('vendors');
+  const [deleteItemType, setDeleteItemType] = useState<'partner' | 'account' | 'pen' | 'cycle'>('partner');
+  const [activeTab, setActiveTab] = useState<string>('cycles');
   const [searchTerm, setSearchTerm] = useState('');
 
   const getItemCount = (type: string) => {
     switch (type) {
+      case 'cycles':
+        return cycles.length;
       case 'vendors':
         return partners.filter(p => p.type === 'vendor' && p.isActive && !p.isTransporter).length;
       case 'transporters':
@@ -163,6 +176,22 @@ export const Registrations: React.FC = () => {
     setShowDeleteConfirm(true);
   };
 
+  const handleNewCycle = () => {
+    setEditCycle(null);
+    setShowCycleForm(true);
+  };
+
+  const handleEditCycle = (id: string) => {
+    setEditCycle(id);
+    setShowCycleForm(true);
+  };
+
+  const handleDeleteCycle = (id: string) => {
+    setDeleteItemId(id);
+    setDeleteItemType('cycle');
+    setShowDeleteConfirm(true);
+  };
+
   const confirmDelete = () => {
     if (deleteItemType === 'partner') {
       deletePartner(deleteItemId);
@@ -170,6 +199,8 @@ export const Registrations: React.FC = () => {
       deletePayerAccount(deleteItemId);
     } else if (deleteItemType === 'pen') {
       deletePenRegistration(deleteItemId);
+    } else if (deleteItemType === 'cycle') {
+      deleteCycle(deleteItemId);
     }
     setShowDeleteConfirm(false);
   };
@@ -178,7 +209,9 @@ export const Registrations: React.FC = () => {
   const getFilteredData = () => {
     let data: any[] = [];
     
-    if (activeTab === 'vendors') {
+    if (activeTab === 'cycles') {
+      data = cycles;
+    } else if (activeTab === 'vendors') {
       data = partners.filter(p => p.type === 'vendor' && p.isActive && !p.isTransporter);
     } else if (activeTab === 'transporters') {
       data = partners.filter(p => p.type === 'vendor' && p.isActive && p.isTransporter);
@@ -218,7 +251,98 @@ export const Registrations: React.FC = () => {
 
   // Definir colunas para cada tipo de tabela
   const getColumns = () => {
-    if (activeTab === 'vendors' || activeTab === 'brokers' || activeTab === 'slaughterhouses' || activeTab === 'transporters' || activeTab === 'financial-institutions') {
+    if (activeTab === 'cycles') {
+      return [
+        {
+          key: 'name',
+          label: 'Nome do Ciclo',
+          sortable: true,
+          render: (value: string, row: any) => (
+            <div>
+              <div className="font-medium text-b3x-navy-900 text-sm">{value}</div>
+              {row.description && (
+                <div className="text-xs text-neutral-500 mt-0.5">{row.description}</div>
+              )}
+            </div>
+          )
+        },
+        {
+          key: 'startDate',
+          label: 'Período',
+          sortable: true,
+          render: (value: Date, row: any) => (
+            <div className="text-sm">
+              <div>{new Date(value).toLocaleDateString('pt-BR')}</div>
+              {row.endDate && (
+                <div className="text-xs text-neutral-500">
+                  até {new Date(row.endDate).toLocaleDateString('pt-BR')}
+                </div>
+              )}
+            </div>
+          )
+        },
+        {
+          key: 'status',
+          label: 'Status',
+          sortable: true,
+          render: (value: string) => {
+            const statusMap = {
+              planned: { label: 'Planejado', color: 'bg-info-100 text-info-800' },
+              active: { label: 'Ativo', color: 'bg-success-100 text-success-800' },
+              completed: { label: 'Concluído', color: 'bg-neutral-100 text-neutral-800' }
+            };
+            const status = statusMap[value as keyof typeof statusMap];
+            return (
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
+                {status.label}
+              </span>
+            );
+          }
+        },
+        {
+          key: 'budget',
+          label: 'Orçamento',
+          sortable: true,
+          render: (value: number) => (
+            <div className="text-sm font-medium">
+              {value ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+            </div>
+          )
+        },
+        {
+          key: 'targetAnimals',
+          label: 'Meta de Animais',
+          sortable: true,
+          render: (value: number) => (
+            <div className="text-sm">
+              {value ? `${value.toLocaleString('pt-BR')} animais` : '-'}
+            </div>
+          )
+        },
+        {
+          key: 'actions',
+          label: 'Ações',
+          render: (value: any, row: any) => (
+            <div className="flex items-center justify-end space-x-2">
+              <button
+                onClick={() => handleEditCycle(row.id)}
+                className="p-1.5 text-info-600 hover:bg-info-50 rounded"
+                title="Editar"
+              >
+                <Edit className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleDeleteCycle(row.id)}
+                className="p-1.5 text-error-600 hover:bg-error-50 rounded"
+                title="Excluir"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )
+        }
+      ];
+    } else if (activeTab === 'vendors' || activeTab === 'brokers' || activeTab === 'slaughterhouses' || activeTab === 'transporters' || activeTab === 'financial-institutions') {
       return [
         {
           key: 'name',
@@ -411,7 +535,7 @@ export const Registrations: React.FC = () => {
     <div className="p-4">
       <div className="mb-4">
         <h2 className="text-xl font-bold text-b3x-navy-900 mb-1">Cadastros</h2>
-        <p className="text-sm text-neutral-600">Gerencie vendedores, corretores, frigoríficos, transportadoras, contas pagadoras, currais e instituições financeiras</p>
+        <p className="text-sm text-neutral-600">Gerencie ciclos, vendedores, corretores, frigoríficos, transportadoras, contas pagadoras, currais e instituições financeiras</p>
       </div>
 
       {/* Cards de Resumo - Mais compactos */}
@@ -452,6 +576,7 @@ export const Registrations: React.FC = () => {
               <input
                 type="text"
                 placeholder={`Buscar ${
+                  activeTab === 'cycles' ? 'ciclos' :
                   activeTab === 'vendors' ? 'vendedores' : 
                   activeTab === 'transporters' ? 'transportadoras' :
                   activeTab === 'brokers' ? 'corretores' : 
@@ -474,7 +599,8 @@ export const Registrations: React.FC = () => {
           <div>
             <button 
               onClick={() => {
-                if (activeTab === 'vendors') handleNewPartner('vendor');
+                if (activeTab === 'cycles') handleNewCycle();
+                else if (activeTab === 'vendors') handleNewPartner('vendor');
                 else if (activeTab === 'transporters') {
                   setSelectedPartnerType('vendor');
                   setEditPartner(null);
@@ -490,6 +616,7 @@ export const Registrations: React.FC = () => {
             >
               <Plus className="w-4 h-4" />
               <span>Novo {
+                activeTab === 'cycles' ? 'Ciclo' :
                 activeTab === 'vendors' ? 'Vendedor' : 
                 activeTab === 'transporters' ? 'Transportadora' :
                 activeTab === 'brokers' ? 'Corretor' : 
@@ -513,7 +640,9 @@ export const Registrations: React.FC = () => {
           ) : (
             <div className="text-center py-8">
               <div className="w-12 h-12 bg-neutral-100 rounded-full mx-auto mb-3 flex items-center justify-center">
-                {activeTab === 'vendors' || activeTab === 'brokers' || activeTab === 'transporters' ? (
+                {activeTab === 'cycles' ? (
+                  <Calendar className="w-6 h-6 text-neutral-400" />
+                ) : activeTab === 'vendors' || activeTab === 'brokers' || activeTab === 'transporters' ? (
                   <Users className="w-6 h-6 text-neutral-400" />
                 ) : activeTab === 'slaughterhouses' ? (
                   <Building className="w-6 h-6 text-neutral-400" />
@@ -528,7 +657,8 @@ export const Registrations: React.FC = () => {
               <p className="text-neutral-500 text-sm">Nenhum registro encontrado</p>
               <button
                 onClick={() => {
-                  if (activeTab === 'vendors') handleNewPartner('vendor');
+                  if (activeTab === 'cycles') handleNewCycle();
+                  else if (activeTab === 'vendors') handleNewPartner('vendor');
                   else if (activeTab === 'transporters') {
                     setSelectedPartnerType('vendor');
                     setEditPartner(null);
@@ -580,6 +710,16 @@ export const Registrations: React.FC = () => {
         </Portal>
       )}
 
+      {showCycleForm && (
+        <Portal>
+          <CycleForm
+            isOpen={showCycleForm}
+            onClose={() => setShowCycleForm(false)}
+            initialData={editCycle ? cycles.find(c => c.id === editCycle) : undefined}
+          />
+        </Portal>
+      )}
+
       {/* Confirmação de exclusão */}
       {showDeleteConfirm && (
         <Portal>
@@ -589,11 +729,15 @@ export const Registrations: React.FC = () => {
             onConfirm={confirmDelete}
             title={`Excluir ${
               deleteItemType === 'partner' ? 'Parceiro' : 
-              deleteItemType === 'account' ? 'Conta Pagadora' : 'Curral'
+              deleteItemType === 'account' ? 'Conta Pagadora' : 
+              deleteItemType === 'pen' ? 'Curral' :
+              deleteItemType === 'cycle' ? 'Ciclo' : ''
             }`}
             message={`Tem certeza que deseja excluir este ${
               deleteItemType === 'partner' ? 'parceiro' : 
-              deleteItemType === 'account' ? 'conta pagadora' : 'curral'
+              deleteItemType === 'account' ? 'conta pagadora' : 
+              deleteItemType === 'pen' ? 'curral' :
+              deleteItemType === 'cycle' ? 'ciclo' : ''
             }? Esta ação não pode ser desfeita.`}
             confirmText="Excluir"
             type="danger"

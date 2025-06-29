@@ -1055,6 +1055,7 @@ export interface DREStatement {
   id: string;
   entityType: 'lot' | 'pen' | 'global';
   entityId: string;
+  entityName: string; // Nome da entidade (lote ou curral)
   periodStart: Date;
   periodEnd: Date;
   

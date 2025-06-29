@@ -1,28 +1,44 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Header } from './components/Layout/Header';
-import { Dashboard } from './components/Dashboard/Dashboard';
-import { Pipeline } from './components/Pipeline/Pipeline';
-import { SalesPipeline } from './components/SalesPipeline/SalesPipeline';
-import { Lots } from './components/Lots/Lots';
-import { Calendar } from './components/Calendar/Calendar';
-import { Registrations } from './components/Registrations/Registrations';
-import { FinancialReconciliation } from './components/Financial/FinancialReconciliation';
-import { FinancialCenterManagement } from './components/Financial/FinancialCenterManagement';
-import { DREPage } from './components/DRE';
 import { useAppStore } from './stores/useAppStore';
-import { NotificationCenter } from './components/Notifications/NotificationCenter';
-import { TestDataManager } from './components/TestData/TestDataManager';
-import { NotificationSettings } from './components/Notifications/NotificationSettings';
-import { ProfileSettings } from './components/Profile/ProfileSettings';
-import { OrganizationSettings } from './components/Profile/OrganizationSettings';
-import { UserManagement } from './components/Profile/UserManagement';
-import { GeneralSettings } from './components/Profile/GeneralSettings';
-import { ChangePassword } from './components/Profile/ChangePassword';
-import { SystemUpdates } from './components/System/SystemUpdates';
 import { NotificationProvider } from './components/Notifications/NotificationProvider';
 import { registerExistingUpdates } from './utils/systemUpdates';
+
+// Lazy load dos componentes principais
+const Dashboard = lazy(() => import('./components/Dashboard/Dashboard').then(module => ({ default: module.Dashboard })));
+const Pipeline = lazy(() => import('./components/Pipeline/Pipeline').then(module => ({ default: module.Pipeline })));
+const SalesPipeline = lazy(() => import('./components/SalesPipeline/SalesPipeline').then(module => ({ default: module.SalesPipeline })));
+const Lots = lazy(() => import('./components/Lots/Lots').then(module => ({ default: module.Lots })));
+const Calendar = lazy(() => import('./components/Calendar/Calendar').then(module => ({ default: module.Calendar })));
+const Registrations = lazy(() => import('./components/Registrations/Registrations').then(module => ({ default: module.Registrations })));
+const FinancialReconciliation = lazy(() => import('./components/Financial/FinancialReconciliation').then(module => ({ default: module.FinancialReconciliation })));
+const FinancialCenterManagement = lazy(() => import('./components/Financial/FinancialCenterManagement').then(module => ({ default: module.FinancialCenterManagement })));
+const DREPage = lazy(() => import('./components/DRE').then(module => ({ default: module.DREPage })));
+
+// Lazy load dos componentes de configurações
+const NotificationSettings = lazy(() => import('./components/Notifications/NotificationSettings').then(module => ({ default: module.NotificationSettings })));
+const ProfileSettings = lazy(() => import('./components/Profile/ProfileSettings').then(module => ({ default: module.ProfileSettings })));
+const OrganizationSettings = lazy(() => import('./components/Profile/OrganizationSettings').then(module => ({ default: module.OrganizationSettings })));
+const UserManagement = lazy(() => import('./components/Profile/UserManagement').then(module => ({ default: module.UserManagement })));
+const GeneralSettings = lazy(() => import('./components/Profile/GeneralSettings').then(module => ({ default: module.GeneralSettings })));
+const ChangePassword = lazy(() => import('./components/Profile/ChangePassword').then(module => ({ default: module.ChangePassword })));
+const SystemUpdates = lazy(() => import('./components/System/SystemUpdates').then(module => ({ default: module.SystemUpdates })));
+
+// Lazy load dos componentes auxiliares
+const NotificationCenter = lazy(() => import('./components/Notifications/NotificationCenter').then(module => ({ default: module.NotificationCenter })));
+const TestDataManager = lazy(() => import('./components/TestData/TestDataManager').then(module => ({ default: module.TestDataManager })));
+
+// Componente de loading
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-full">
+    <div className="flex flex-col items-center space-y-4">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-b3x-lime-500"></div>
+      <p className="text-sm text-neutral-600">Carregando...</p>
+    </div>
+  </div>
+);
 
 function App() {
   const { currentPage, sidebarCollapsed, darkMode } = useAppStore();
@@ -42,42 +58,50 @@ function App() {
   }, []);
 
   const renderCurrentPage = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'pipeline':
-        return <Pipeline />;
-      case 'sales-pipeline':
-        return <SalesPipeline />;
-      case 'lots':
-        return <Lots />;
-      case 'financial':
-        return <FinancialCenterManagement />;
-      case 'financial-reconciliation':
-        return <FinancialReconciliation />;
-      case 'calendar':
-        return <Calendar />;
-      case 'registrations':
-        return <Registrations />;
-      case 'dre':
-        return <DREPage />;
-      case 'notifications':
-        return <NotificationSettings />;
-      case 'profile':
-        return <ProfileSettings />;
-      case 'organization':
-        return <OrganizationSettings />;
-      case 'users':
-        return <UserManagement />;
-      case 'settings':
-        return <GeneralSettings />;
-      case 'change-password':
-        return <ChangePassword />;
-      case 'system-updates':
-        return <SystemUpdates />;
-      default:
-        return <Dashboard />;
-    }
+    const Component = (() => {
+      switch (currentPage) {
+        case 'dashboard':
+          return Dashboard;
+        case 'pipeline':
+          return Pipeline;
+        case 'sales-pipeline':
+          return SalesPipeline;
+        case 'lots':
+          return Lots;
+        case 'financial':
+          return FinancialCenterManagement;
+        case 'financial-reconciliation':
+          return FinancialReconciliation;
+        case 'calendar':
+          return Calendar;
+        case 'registrations':
+          return Registrations;
+        case 'dre':
+          return DREPage;
+        case 'notifications':
+          return NotificationSettings;
+        case 'profile':
+          return ProfileSettings;
+        case 'organization':
+          return OrganizationSettings;
+        case 'users':
+          return UserManagement;
+        case 'settings':
+          return GeneralSettings;
+        case 'change-password':
+          return ChangePassword;
+        case 'system-updates':
+          return SystemUpdates;
+        default:
+          return Dashboard;
+      }
+    })();
+
+    return (
+      <Suspense fallback={<PageLoader />}>
+        <Component />
+      </Suspense>
+    );
   };
 
   return (
@@ -93,10 +117,14 @@ function App() {
       </div>
       
       {/* Sistema de Notificações */}
-      <NotificationCenter />
+      <Suspense fallback={null}>
+        <NotificationCenter />
+      </Suspense>
       
       {/* Gerenciador de Dados de Teste */}
-      <TestDataManager />
+      <Suspense fallback={null}>
+        <TestDataManager />
+      </Suspense>
     </div>
   );
 }

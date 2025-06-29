@@ -5,33 +5,33 @@ import { format } from 'date-fns';
 import { clsx } from 'clsx';
 
 interface DREFiltersProps {
-  selectedEntityType: 'lot' | 'pen' | 'global';
-  setSelectedEntityType: (type: 'lot' | 'pen' | 'global') => void;
-  selectedEntityId: string;
-  setSelectedEntityId: (id: string) => void;
+  entityType: 'lot' | 'pen' | 'global';
+  entityId: string;
   periodStart: Date;
-  setPeriodStart: (date: Date) => void;
   periodEnd: Date;
-  setPeriodEnd: (date: Date) => void;
   includeProjections: boolean;
-  setIncludeProjections: (include: boolean) => void;
   pricePerArroba: number;
-  setPricePerArroba: (price: number) => void;
+  onEntityTypeChange: (type: 'lot' | 'pen' | 'global') => void;
+  onEntityIdChange: (id: string) => void;
+  onPeriodStartChange: (date: Date) => void;
+  onPeriodEndChange: (date: Date) => void;
+  onIncludeProjectionsChange: (include: boolean) => void;
+  onPricePerArrobaChange: (price: number) => void;
 }
 
 export const DREFilters: React.FC<DREFiltersProps> = ({
-  selectedEntityType,
-  setSelectedEntityType,
-  selectedEntityId,
-  setSelectedEntityId,
+  entityType,
+  entityId,
   periodStart,
-  setPeriodStart,
   periodEnd,
-  setPeriodEnd,
   includeProjections,
-  setIncludeProjections,
   pricePerArroba,
-  setPricePerArroba
+  onEntityTypeChange,
+  onEntityIdChange,
+  onPeriodStartChange,
+  onPeriodEndChange,
+  onIncludeProjectionsChange,
+  onPricePerArrobaChange
 }) => {
   const { cattleLots, penRegistrations } = useAppStore();
 
@@ -52,10 +52,10 @@ export const DREFilters: React.FC<DREFiltersProps> = ({
           </label>
           <div className="relative">
             <select
-              value={selectedEntityType}
+              value={entityType}
               onChange={(e) => {
-                setSelectedEntityType(e.target.value as 'lot' | 'pen' | 'global');
-                setSelectedEntityId('');
+                onEntityTypeChange(e.target.value as 'lot' | 'pen' | 'global');
+                onEntityIdChange('');
               }}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent bg-white/50 appearance-none pr-8"
             >
@@ -68,19 +68,19 @@ export const DREFilters: React.FC<DREFiltersProps> = ({
         </div>
 
         {/* Seleção de Entidade */}
-        {selectedEntityType !== 'global' && (
+        {entityType !== 'global' && (
           <div>
             <label className="block text-xs font-medium text-neutral-700 mb-1.5">
-              {selectedEntityType === 'lot' ? 'Lote' : 'Curral'}
+              {entityType === 'lot' ? 'Lote' : 'Curral'}
             </label>
             <div className="relative">
               <select
-                value={selectedEntityId}
-                onChange={(e) => setSelectedEntityId(e.target.value)}
+                value={entityId}
+                onChange={(e) => onEntityIdChange(e.target.value)}
                 className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent bg-white/50 appearance-none pr-8"
               >
                 <option value="">Selecione...</option>
-                {selectedEntityType === 'lot' ? (
+                {entityType === 'lot' ? (
                   cattleLots
                     .filter(lot => lot.status === 'active' || lot.status === 'sold')
                     .map(lot => (
@@ -112,7 +112,7 @@ export const DREFilters: React.FC<DREFiltersProps> = ({
             <input
               type="date"
               value={format(periodStart, 'yyyy-MM-dd')}
-              onChange={(e) => setPeriodStart(new Date(e.target.value))}
+              onChange={(e) => onPeriodStartChange(new Date(e.target.value))}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent bg-white/50"
             />
             <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
@@ -128,7 +128,7 @@ export const DREFilters: React.FC<DREFiltersProps> = ({
             <input
               type="date"
               value={format(periodEnd, 'yyyy-MM-dd')}
-              onChange={(e) => setPeriodEnd(new Date(e.target.value))}
+              onChange={(e) => onPeriodEndChange(new Date(e.target.value))}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent bg-white/50"
             />
             <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
@@ -144,7 +144,7 @@ export const DREFilters: React.FC<DREFiltersProps> = ({
               type="checkbox"
               id="includeProjections"
               checked={includeProjections}
-              onChange={(e) => setIncludeProjections(e.target.checked)}
+              onChange={(e) => onIncludeProjectionsChange(e.target.checked)}
               className="h-4 w-4 text-b3x-lime-500 focus:ring-b3x-lime-500 border-neutral-300 rounded cursor-pointer"
             />
             <span className="ml-2 text-sm text-neutral-700 group-hover:text-b3x-navy-900 transition-colors">
@@ -161,7 +161,7 @@ export const DREFilters: React.FC<DREFiltersProps> = ({
               <input
                 type="number"
                 value={pricePerArroba}
-                onChange={(e) => setPricePerArroba(Number(e.target.value))}
+                onChange={(e) => onPricePerArrobaChange(Number(e.target.value))}
                 className="w-20 px-2 py-1 text-sm border border-b3x-lime-200 rounded bg-white/80 focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
                 min="0"
                 step="10"

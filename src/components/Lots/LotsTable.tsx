@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 import { clsx } from 'clsx';
 
 export const LotsTable: React.FC = () => {
-  const { cattleLots, purchaseOrders, partners, loteCurralLinks, calculateLotCostsByCategory, deleteCattleLot } = useAppStore();
+  const { cattleLots, purchaseOrders, partners, loteCurralLinks, calculateLotCostsByCategory, deleteCattleLot, cycles } = useAppStore();
   const [selectedLot, setSelectedLot] = useState<CattleLot | null>(null);
   const [editLot, setEditLot] = useState<CattleLot | null>(null);
   const [simulationLot, setSimulationLot] = useState<CattleLot | null>(null);
@@ -282,6 +282,14 @@ export const LotsTable: React.FC = () => {
                       <div className="text-xs text-success-600 font-medium">
                         {lot.entryQuantity} animais
                       </div>
+                      {(() => {
+                        const cycle = order && cycles.find(c => c.id === order.cycleId);
+                        return cycle ? (
+                          <div className="text-xs text-neutral-500 mt-0.5">
+                            {cycle.name}
+                          </div>
+                        ) : null;
+                      })()}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {penNumbers.length > 0 ? (

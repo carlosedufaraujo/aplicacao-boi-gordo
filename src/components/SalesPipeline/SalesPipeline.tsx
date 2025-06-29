@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Filter, Search, Calendar, DollarSign, Truck, Clipboard, CheckCircle } from 'lucide-react';
+import { Plus, Filter, Search, Calendar, DollarSign, Truck, Clipboard, CheckCircle, ChevronDown } from 'lucide-react';
 import { SalesKanbanColumn } from './SalesKanbanColumn';
 import { useAppStore } from '../../stores/useAppStore';
 import { SaleDesignationForm } from './SaleDesignationForm';
@@ -189,9 +189,11 @@ export const SalesPipeline: React.FC = () => {
         {/* Filtros */}
         <div className="mt-4 bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center space-x-2 text-sm text-neutral-600">
-              <Filter className="w-4 h-4" />
-              <span className="font-medium">Filtros:</span>
+            <div className="flex items-center gap-2 text-sm text-neutral-600">
+              <div className="p-1.5 bg-gradient-to-br from-b3x-navy-100 to-b3x-navy-50 rounded-lg">
+                <Filter className="w-4 h-4 text-b3x-navy-600" />
+              </div>
+              <span className="font-semibold text-b3x-navy-900">Filtros:</span>
             </div>
             
             {/* Search */}
@@ -207,17 +209,20 @@ export const SalesPipeline: React.FC = () => {
             </div>
             
             {/* Status Filter */}
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent bg-white/50"
-            >
-              <option value="all">Todas as Etapas</option>
-              <option value="next_slaughter">Próximo Abate</option>
-              <option value="shipped">Embarcado</option>
-              <option value="slaughtered">Abatido</option>
-              <option value="reconciled">Conciliado</option>
-            </select>
+            <div className="relative min-w-[200px]">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent bg-white/50 appearance-none pr-8"
+              >
+                <option value="all">Todas as Etapas</option>
+                <option value="next_slaughter">Próximo Abate</option>
+                <option value="shipped">Embarcado</option>
+                <option value="slaughtered">Abatido</option>
+                <option value="reconciled">Conciliado</option>
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+            </div>
           </div>
         </div>
       </div>

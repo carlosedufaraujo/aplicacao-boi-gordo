@@ -4,15 +4,17 @@ import {
   ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
-import { DREComparison as DREComparisonType } from '../../types';
+import { DREComparison as DREComparisonType, DREStatement } from '../../types';
 
 interface DREComparisonProps {
-  entityType: 'lot' | 'pen';
+  currentDRE: DREStatement;
+  entityType: 'lot' | 'pen' | 'global';
   periodStart: Date;
   periodEnd: Date;
 }
 
 export const DREComparison: React.FC<DREComparisonProps> = ({
+  currentDRE,
   entityType,
   periodStart,
   periodEnd
@@ -69,7 +71,7 @@ export const DREComparison: React.FC<DREComparisonProps> = ({
       {/* Seleção de Entidades */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-neutral-200">
         <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">
-          Selecione {entityType === 'lot' ? 'Lotes' : 'Currais'} para Comparar
+          Selecione {entityType === 'lot' ? 'Lotes' : entityType === 'pen' ? 'Currais' : 'Global'} para Comparar
         </h3>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -77,7 +79,7 @@ export const DREComparison: React.FC<DREComparisonProps> = ({
             const id = entityType === 'lot' ? entity.id : (entity as any).penNumber;
             const label = entityType === 'lot' 
               ? `${(entity as any).lotNumber} - ${(entity as any).entryQuantity} animais`
-              : `Curral ${(entity as any).penNumber}`;
+              : entityType === 'pen' ? `Curral ${(entity as any).penNumber}` : 'Global';
             
             return (
               <label key={id} className="flex items-center space-x-2 cursor-pointer">
@@ -96,7 +98,7 @@ export const DREComparison: React.FC<DREComparisonProps> = ({
         {selectedEntities.length < 2 && (
           <p className="text-sm text-warning-600 mt-3">
             <AlertCircle className="w-4 h-4 inline mr-1" />
-            Selecione pelo menos 2 {entityType === 'lot' ? 'lotes' : 'currais'} para comparar
+            Selecione pelo menos 2 {entityType === 'lot' ? 'lotes' : entityType === 'pen' ? 'currais' : 'entidades'} para comparar
           </p>
         )}
       </div>
@@ -162,7 +164,7 @@ export const DREComparison: React.FC<DREComparisonProps> = ({
                 <thead className="bg-neutral-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-neutral-700 uppercase tracking-wider">
-                      {entityType === 'lot' ? 'Lote' : 'Curral'}
+                      {entityType === 'lot' ? 'Lote' : entityType === 'pen' ? 'Curral' : 'Entidade'}
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-neutral-700 uppercase tracking-wider">
                       Receita Líquida
