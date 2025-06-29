@@ -984,3 +984,117 @@ export interface FinancialContributionFormData {
   contractNumber?: string;
   notes?: string;
 }
+
+// 🆕 NOVA INTERFACE: DRE (Demonstrativo de Resultados)
+export interface DREStatement {
+  id: string;
+  entityType: 'lot' | 'pen' | 'global';
+  entityId: string;
+  periodStart: Date;
+  periodEnd: Date;
+  
+  // Receitas
+  revenue: {
+    grossSales: number; // Vendas brutas
+    salesDeductions: number; // Deduções (impostos, devoluções)
+    netSales: number; // Receita líquida
+  };
+  
+  // Custos dos Produtos Vendidos (CPV)
+  costOfGoodsSold: {
+    animalPurchase: number; // Custo de aquisição
+    feed: number; // Alimentação
+    health: number; // Sanidade
+    freight: number; // Frete
+    mortality: number; // Perdas por mortalidade (não-caixa)
+    weightLoss: number; // Perdas por quebra de peso (não-caixa)
+    total: number;
+  };
+  
+  // Lucro Bruto
+  grossProfit: number;
+  grossMargin: number; // Percentual
+  
+  // Despesas Operacionais
+  operatingExpenses: {
+    administrative: number; // Despesas administrativas rateadas
+    sales: number; // Despesas de vendas
+    financial: number; // Despesas financeiras (juros)
+    depreciation: number; // Depreciação (não-caixa)
+    other: number; // Outras despesas operacionais
+    total: number;
+  };
+  
+  // Resultado Operacional
+  operatingIncome: number; // EBIT
+  operatingMargin: number; // Percentual
+  
+  // Resultado Financeiro
+  financialResult: {
+    financialRevenue: number; // Receitas financeiras
+    financialExpenses: number; // Despesas financeiras
+    total: number;
+  };
+  
+  // Resultado antes dos impostos
+  incomeBeforeTaxes: number;
+  
+  // Impostos
+  taxes: {
+    incomeTax: number; // Imposto de renda
+    socialContribution: number; // Contribuição social
+    total: number;
+  };
+  
+  // Resultado Líquido
+  netIncome: number;
+  netMargin: number; // Percentual
+  
+  // Métricas adicionais
+  metrics: {
+    revenuePerHead: number; // Receita por cabeça
+    costPerHead: number; // Custo por cabeça
+    profitPerHead: number; // Lucro por cabeça
+    revenuePerArroba: number; // Receita por arroba
+    costPerArroba: number; // Custo por arroba
+    profitPerArroba: number; // Lucro por arroba
+    daysInConfinement: number; // Dias em confinamento
+    roi: number; // Retorno sobre investimento (%)
+    dailyProfit: number; // Lucro diário médio
+  };
+  
+  // Metadados
+  generatedAt: Date;
+  generatedBy?: string;
+  notes?: string;
+}
+
+// Interface para parâmetros de geração do DRE
+export interface DREGenerationParams {
+  entityType: 'lot' | 'pen' | 'global';
+  entityId?: string; // ID do lote ou curral (não necessário para global)
+  periodStart: Date;
+  periodEnd: Date;
+  includeProjections?: boolean; // Incluir vendas projetadas
+  pricePerArroba?: number; // Preço por arroba para projeções
+}
+
+// Interface para análise comparativa de DRE
+export interface DREComparison {
+  id: string;
+  entities: Array<{
+    type: 'lot' | 'pen';
+    id: string;
+    name: string;
+    dre: DREStatement;
+  }>;
+  comparisonMetrics: {
+    bestPerformer: string; // ID da entidade com melhor desempenho
+    worstPerformer: string; // ID da entidade com pior desempenho
+    averageNetMargin: number;
+    averageROI: number;
+    totalNetIncome: number;
+  };
+  insights: string[]; // Insights automáticos
+  generatedAt: Date;
+}

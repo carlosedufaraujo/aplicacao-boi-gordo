@@ -10,6 +10,7 @@ import { Registrations } from './components/Registrations/Registrations';
 import { FinancialReconciliation } from './components/Financial/FinancialReconciliation';
 import { FinancialCenterManagement } from './components/Financial/FinancialCenterManagement';
 import { CashFlow } from './components/CashFlow';
+import { DREStatementComponent } from './components/DRE';
 import { useAppStore } from './stores/useAppStore';
 import { NotificationCenter } from './components/Notifications/NotificationCenter';
 import { CreateTestOrders } from './components/Pipeline/CreateTestOrders';
@@ -35,6 +36,8 @@ function App() {
         return <FinancialCenterManagement />;
       case 'cash-flow':
         return <CashFlow />;
+      case 'dre':
+        return <DREStatementComponent />;
       case 'registrations':
         return <Registrations />;
       default:

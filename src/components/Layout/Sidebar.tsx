@@ -14,7 +14,8 @@ import {
   Truck,
   TrendingUp,
   Layers,
-  Wallet
+  Wallet,
+  FileText
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { clsx } from 'clsx';
@@ -26,6 +27,7 @@ const navigation = [
   { id: 'lots', name: 'Lotes e Mapa', icon: MapPin },
   { id: 'financial-center', name: 'Centro Financeiro', icon: Layers },
   { id: 'cash-flow', name: 'Fluxo de Caixa', icon: Wallet },
+  { id: 'dre', name: 'DRE', icon: FileText },
   { id: 'calendar', name: 'Calendário Financeiro', icon: Calendar },
   { id: 'financial-reconciliation', name: 'Conciliação Financeira', icon: DollarSign },
   { id: 'registrations', name: 'Cadastros', icon: Users },

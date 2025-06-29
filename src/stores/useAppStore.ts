@@ -12,7 +12,9 @@ import {
   CashFlowEntry, CashFlowPeriod, CashFlowProjection, WorkingCapital,
   FinancialContribution, CashFlowEntryFormData, FinancialContributionFormData,
   // 🆕 TIPOS DE LANÇAMENTOS NÃO-CAIXA
-  NonCashExpense
+  NonCashExpense,
+  // 🆕 TIPOS DO DRE
+  DREStatement, DREGenerationParams, DREComparison
 } from '../types';
 import { addDays, subDays, format } from 'date-fns';
 
@@ -60,6 +62,10 @@ interface AppState {
   
   // 🆕 ESTADOS DE LANÇAMENTOS NÃO-CAIXA
   nonCashExpenses: NonCashExpense[];
+  
+  // 🆕 ESTADOS DO DRE
+  dreStatements: DREStatement[];
+  dreComparisons: DREComparison[];
   
   // Ações - Navegação
   setCurrentPage: (page: string) => void;
@@ -238,6 +244,13 @@ interface AppState {
   deleteNonCashExpense: (id: string) => void;
   recordMortality: (lotId: string, quantity: number, cause: 'disease' | 'accident' | 'stress' | 'unknown', notes?: string) => void;
   recordWeightLoss: (lotId: string, expectedWeight: number, actualWeight: number, notes?: string) => void;
+  
+  // 🆕 AÇÕES DO DRE
+  generateDREStatement: (params: DREGenerationParams) => DREStatement | null;
+  saveDREStatement: (dre: DREStatement) => void;
+  deleteDREStatement: (id: string) => void;
+  compareDREs: (entityIds: string[], entityType: 'lot' | 'pen', periodStart: Date, periodEnd: Date) => DREComparison | null;
+  getDREByEntity: (entityType: 'lot' | 'pen', entityId: string) => DREStatement[];
 }
 
 // Helper function to generate 50 pens
@@ -396,6 +409,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   // 🆕 ESTADOS DE LANÇAMENTOS NÃO-CAIXA
   nonCashExpenses: [],
+  
+  // 🆕 ESTADOS DO DRE
+  dreStatements: [],
+  dreComparisons: [],
   
   // Ações - Navegação
   setCurrentPage: (page) => set({ currentPage: page }),
@@ -2280,5 +2297,318 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
     
     get().addNonCashExpense(weightLossExpense);
+  },
+  
+  // 🆕 IMPLEMENTAÇÃO DO DRE
+  generateDREStatement: (params) => {
+    const state = get();
+    const { entityType, entityId, periodStart, periodEnd, includeProjections, pricePerArroba } = params;
+    
+    let entities: { lot?: CattleLot; pen?: string }[] = [];
+    
+    // Determinar entidades para o DRE
+    if (entityType === 'lot' && entityId) {
+      const lot = state.cattleLots.find(l => l.id === entityId);
+      if (!lot) return null;
+      entities = [{ lot }];
+    } else if (entityType === 'pen' && entityId) {
+      // Buscar todos os lotes no curral
+      const lotsInPen = state.loteCurralLinks
+        .filter(link => link.curralId === entityId && link.status === 'active')
+        .map(link => state.cattleLots.find(l => l.id === link.loteId))
+        .filter(Boolean) as CattleLot[];
+      entities = lotsInPen.map(lot => ({ lot, pen: entityId }));
+    } else if (entityType === 'global') {
+      // Todos os lotes ativos
+      entities = state.cattleLots
+        .filter(lot => lot.status === 'active' || lot.status === 'sold')
+        .map(lot => ({ lot }));
+    }
+    
+    if (entities.length === 0) return null;
+    
+    // Inicializar estrutura do DRE
+    const dre: DREStatement = {
+      id: uuidv4(),
+      entityType,
+      entityId: entityId || 'global',
+      periodStart,
+      periodEnd,
+      revenue: { grossSales: 0, salesDeductions: 0, netSales: 0 },
+      costOfGoodsSold: {
+        animalPurchase: 0,
+        feed: 0,
+        health: 0,
+        freight: 0,
+        mortality: 0,
+        weightLoss: 0,
+        total: 0
+      },
+      grossProfit: 0,
+      grossMargin: 0,
+      operatingExpenses: {
+        administrative: 0,
+        sales: 0,
+        financial: 0,
+        depreciation: 0,
+        other: 0,
+        total: 0
+      },
+      operatingIncome: 0,
+      operatingMargin: 0,
+      financialResult: {
+        financialRevenue: 0,
+        financialExpenses: 0,
+        total: 0
+      },
+      incomeBeforeTaxes: 0,
+      taxes: {
+        incomeTax: 0,
+        socialContribution: 0,
+        total: 0
+      },
+      netIncome: 0,
+      netMargin: 0,
+      metrics: {
+        revenuePerHead: 0,
+        costPerHead: 0,
+        profitPerHead: 0,
+        revenuePerArroba: 0,
+        costPerArroba: 0,
+        profitPerArroba: 0,
+        daysInConfinement: 0,
+        roi: 0,
+        dailyProfit: 0
+      },
+      generatedAt: new Date()
+    };
+    
+    let totalHeads = 0;
+    let totalArrobas = 0;
+    let totalDaysInConfinement = 0;
+    
+    // Calcular valores para cada entidade
+    entities.forEach(({ lot, pen }) => {
+      if (!lot) return;
+      
+      // Verificar se o lote está no período
+      const lotStartDate = lot.entryDate;
+      const lotEndDate = lot.status === 'sold' ? 
+        state.saleRecords.find(s => s.lotId === lot.id)?.saleDate || new Date() : 
+        new Date();
+      
+      // Se o lote não intersecta com o período, pular
+      if (lotEndDate < periodStart || lotStartDate > periodEnd) return;
+      
+      // Calcular receitas (vendas realizadas ou projetadas)
+      if (lot.status === 'sold') {
+        const saleRecord = state.saleRecords.find(s => s.lotId === lot.id);
+        if (saleRecord && saleRecord.saleDate >= periodStart && saleRecord.saleDate <= periodEnd) {
+          dre.revenue.grossSales += saleRecord.grossRevenue;
+          // Calcular arrobas baseado no peso total e RC%
+          const rcPercentage = state.purchaseOrders.find(o => o.id === lot.purchaseOrderId)?.rcPercentage || 50;
+          const carcassWeight = saleRecord.totalWeight * (rcPercentage / 100);
+          const arrobas = carcassWeight / 15;
+          totalArrobas += arrobas;
+        }
+      } else if (includeProjections && pricePerArroba) {
+        // Projetar vendas
+        const daysInConfinement = Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24));
+        const currentWeight = lot.entryWeight + (lot.estimatedGmd * lot.entryQuantity * daysInConfinement);
+        const rcPercentage = state.purchaseOrders.find(o => o.id === lot.purchaseOrderId)?.rcPercentage || 50;
+        const carcassWeight = currentWeight * (rcPercentage / 100);
+        const arrobas = carcassWeight / 15;
+        
+        dre.revenue.grossSales += arrobas * pricePerArroba;
+        totalArrobas += arrobas;
+      }
+      
+      // Calcular custos dos produtos vendidos
+      const costs = state.calculateLotCostsByCategory(lot.id);
+      dre.costOfGoodsSold.animalPurchase += costs.aquisicao;
+      dre.costOfGoodsSold.feed += costs.alimentacao;
+      dre.costOfGoodsSold.health += costs.sanidade;
+      dre.costOfGoodsSold.freight += costs.frete;
+      
+      // Adicionar custos não-caixa
+      const nonCashExpenses = state.nonCashExpenses.filter(exp => 
+        exp.relatedEntityId === lot.id &&
+        exp.date >= periodStart &&
+        exp.date <= periodEnd
+      );
+      
+      nonCashExpenses.forEach(expense => {
+        if (expense.type === 'mortality') {
+          dre.costOfGoodsSold.mortality += expense.monetaryValue;
+        } else if (expense.type === 'weight_loss') {
+          dre.costOfGoodsSold.weightLoss += expense.monetaryValue;
+        }
+      });
+      
+      // Calcular despesas operacionais (simplificado - 5% do custo total)
+      const operationalCost = costs.total * 0.05;
+      dre.operatingExpenses.administrative += operationalCost * 0.4;
+      dre.operatingExpenses.sales += operationalCost * 0.2;
+      dre.operatingExpenses.financial += operationalCost * 0.2;
+      dre.operatingExpenses.other += operationalCost * 0.2;
+      
+      // Métricas
+      totalHeads += lot.entryQuantity;
+      const days = Math.floor((lotEndDate.getTime() - lotStartDate.getTime()) / (1000 * 60 * 60 * 24));
+      totalDaysInConfinement += days * lot.entryQuantity;
+    });
+    
+    // Calcular totais e margens
+    dre.revenue.netSales = dre.revenue.grossSales - dre.revenue.salesDeductions;
+    dre.costOfGoodsSold.total = 
+      dre.costOfGoodsSold.animalPurchase +
+      dre.costOfGoodsSold.feed +
+      dre.costOfGoodsSold.health +
+      dre.costOfGoodsSold.freight +
+      dre.costOfGoodsSold.mortality +
+      dre.costOfGoodsSold.weightLoss;
+    
+    dre.grossProfit = dre.revenue.netSales - dre.costOfGoodsSold.total;
+    dre.grossMargin = dre.revenue.netSales > 0 ? (dre.grossProfit / dre.revenue.netSales) * 100 : 0;
+    
+    dre.operatingExpenses.total = 
+      dre.operatingExpenses.administrative +
+      dre.operatingExpenses.sales +
+      dre.operatingExpenses.financial +
+      dre.operatingExpenses.depreciation +
+      dre.operatingExpenses.other;
+    
+    dre.operatingIncome = dre.grossProfit - dre.operatingExpenses.total;
+    dre.operatingMargin = dre.revenue.netSales > 0 ? (dre.operatingIncome / dre.revenue.netSales) * 100 : 0;
+    
+    // Resultado financeiro (simplificado)
+    dre.financialResult.financialExpenses = dre.operatingExpenses.financial;
+    dre.financialResult.total = dre.financialResult.financialRevenue - dre.financialResult.financialExpenses;
+    
+    dre.incomeBeforeTaxes = dre.operatingIncome + dre.financialResult.total;
+    
+    // Impostos (simplificado - 15% IR + 9% CSLL sobre lucro)
+    if (dre.incomeBeforeTaxes > 0) {
+      dre.taxes.incomeTax = dre.incomeBeforeTaxes * 0.15;
+      dre.taxes.socialContribution = dre.incomeBeforeTaxes * 0.09;
+      dre.taxes.total = dre.taxes.incomeTax + dre.taxes.socialContribution;
+    }
+    
+    dre.netIncome = dre.incomeBeforeTaxes - dre.taxes.total;
+    dre.netMargin = dre.revenue.netSales > 0 ? (dre.netIncome / dre.revenue.netSales) * 100 : 0;
+    
+    // Calcular métricas
+    if (totalHeads > 0) {
+      dre.metrics.revenuePerHead = dre.revenue.netSales / totalHeads;
+      dre.metrics.costPerHead = dre.costOfGoodsSold.total / totalHeads;
+      dre.metrics.profitPerHead = dre.netIncome / totalHeads;
+      dre.metrics.daysInConfinement = totalDaysInConfinement / totalHeads;
+    }
+    
+    if (totalArrobas > 0) {
+      dre.metrics.revenuePerArroba = dre.revenue.netSales / totalArrobas;
+      dre.metrics.costPerArroba = dre.costOfGoodsSold.total / totalArrobas;
+      dre.metrics.profitPerArroba = dre.netIncome / totalArrobas;
+    }
+    
+    // ROI
+    if (dre.costOfGoodsSold.total > 0) {
+      dre.metrics.roi = (dre.netIncome / dre.costOfGoodsSold.total) * 100;
+    }
+    
+    // Lucro diário
+    const periodDays = Math.floor((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24));
+    if (periodDays > 0) {
+      dre.metrics.dailyProfit = dre.netIncome / periodDays;
+    }
+    
+    return dre;
+  },
+  
+  saveDREStatement: (dre) => set((state) => ({
+    dreStatements: [...state.dreStatements, dre]
+  })),
+  
+  deleteDREStatement: (id) => set((state) => ({
+    dreStatements: state.dreStatements.filter(dre => dre.id !== id)
+  })),
+  
+  compareDREs: (entityIds, entityType, periodStart, periodEnd) => {
+    const state = get();
+    const dres: DREStatement[] = [];
+    const entities: Array<{ type: 'lot' | 'pen'; id: string; name: string; dre: DREStatement }> = [];
+    
+    // Gerar DRE para cada entidade
+    entityIds.forEach(entityId => {
+      const params: DREGenerationParams = {
+        entityType,
+        entityId,
+        periodStart,
+        periodEnd,
+        includeProjections: true,
+        pricePerArroba: 320 // Valor padrão
+      };
+      
+      const dre = get().generateDREStatement(params);
+      if (dre) {
+        let name = '';
+        if (entityType === 'lot') {
+          const lot = state.cattleLots.find(l => l.id === entityId);
+          name = lot?.lotNumber || entityId;
+        } else {
+          name = `Curral ${entityId}`;
+        }
+        
+        entities.push({ type: entityType, id: entityId, name, dre });
+        dres.push(dre);
+      }
+    });
+    
+    if (entities.length === 0) return null;
+    
+    // Calcular métricas de comparação
+    const netMargins = entities.map(e => e.dre.netMargin);
+    const rois = entities.map(e => e.dre.metrics.roi);
+    const netIncomes = entities.map(e => e.dre.netIncome);
+    
+    const bestPerformerIndex = netIncomes.indexOf(Math.max(...netIncomes));
+    const worstPerformerIndex = netIncomes.indexOf(Math.min(...netIncomes));
+    
+    const comparison: DREComparison = {
+      id: uuidv4(),
+      entities,
+      comparisonMetrics: {
+        bestPerformer: entities[bestPerformerIndex].id,
+        worstPerformer: entities[worstPerformerIndex].id,
+        averageNetMargin: netMargins.reduce((a, b) => a + b, 0) / netMargins.length,
+        averageROI: rois.reduce((a, b) => a + b, 0) / rois.length,
+        totalNetIncome: netIncomes.reduce((a, b) => a + b, 0)
+      },
+      insights: [],
+      generatedAt: new Date()
+    };
+    
+    // Gerar insights
+    if (comparison.comparisonMetrics.averageNetMargin < 10) {
+      comparison.insights.push('Margem líquida média abaixo de 10% - revisar estrutura de custos');
+    }
+    
+    if (comparison.comparisonMetrics.averageROI < 15) {
+      comparison.insights.push('ROI médio abaixo de 15% - avaliar eficiência operacional');
+    }
+    
+    const marginVariation = Math.max(...netMargins) - Math.min(...netMargins);
+    if (marginVariation > 10) {
+      comparison.insights.push(`Grande variação de margem entre entidades (${marginVariation.toFixed(1)}%) - investigar diferenças operacionais`);
+    }
+    
+    return comparison;
+  },
+  
+  getDREByEntity: (entityType, entityId) => {
+    const state = get();
+    return state.dreStatements.filter(dre => 
+      dre.entityType === entityType && dre.entityId === entityId
+    );
   }
 }));
