@@ -11,9 +11,19 @@ export const Lots: React.FC = () => {
 
   // Calcular métricas
   const activeLots = cattleLots.filter(lot => lot.status === 'active');
+  const pendingLots = cattleLots.filter(lot => {
+    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    return order && (order.status === 'order' || order.status === 'payment_validation');
+  });
   
   // Quantidade de Animais Atual
   const totalAnimalsActive = activeLots.reduce((sum, lot) => sum + lot.entryQuantity - lot.deaths, 0);
+  
+  // Quantidade de Animais Pendentes
+  const totalAnimalsPending = pendingLots.reduce((sum, lot) => {
+    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    return sum + (order?.quantity || 0);
+  }, 0);
   
   // Quantidade de Lotes de Compra
   const totalActiveLots = activeLots.length;
@@ -28,7 +38,7 @@ export const Lots: React.FC = () => {
     const carcassWeight = order.totalWeight * (rcPercentage / 100);
     const arrobas = carcassWeight / 15;
     const animalValue = arrobas * order.pricePerArroba;
-    const totalCost = animalValue + order.commission + (order.taxes || 0) + order.otherCosts;
+    const totalCost = animalValue + order.commission + order.otherCosts;
     const costPerArroba = arrobas > 0 ? totalCost / arrobas : 0;
     
     // Quebra de peso
@@ -122,6 +132,11 @@ export const Lots: React.FC = () => {
                 </div>
                 <p className="text-2xl font-bold text-b3x-navy-900">{totalAnimalsActive.toLocaleString('pt-BR')}</p>
                 <p className="text-xs text-neutral-600 mt-1">Animais Ativos</p>
+                {totalAnimalsPending > 0 && (
+                  <p className="text-xs text-yellow-600 font-medium mt-1">
+                    +{totalAnimalsPending.toLocaleString('pt-BR')} pendentes
+                  </p>
+                )}
               </div>
 
               {/* Quantidade de Lotes */}
@@ -132,6 +147,11 @@ export const Lots: React.FC = () => {
                 </div>
                 <p className="text-2xl font-bold text-b3x-navy-900">{totalActiveLots}</p>
                 <p className="text-xs text-neutral-600 mt-1">Lotes Ativos</p>
+                {pendingLots.length > 0 && (
+                  <p className="text-xs text-yellow-600 font-medium mt-1">
+                    +{pendingLots.length} pendentes
+                  </p>
+                )}
               </div>
 
               {/* Preço Médio (R$/@) */}
@@ -196,7 +216,9 @@ export const Lots: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {activeLots.slice(0, 5).map((lot) => {
+                  {cattleLots.slice(0, 5).map((lot) => {
+                    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+                    const isPending = order && (order.status === 'order' || order.status === 'payment_validation');
                     const daysConfined = Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24));
                     const avgWeight = lot.entryQuantity > 0 ? lot.entryWeight / lot.entryQuantity : 0;
                     const currais = loteCurralLinks.filter(link => link.loteId === lot.id).map(link => link.curralId).join(', ');
@@ -204,13 +226,20 @@ export const Lots: React.FC = () => {
                     return (
                       <tr key={lot.id} className="border-b border-neutral-100 hover:bg-neutral-50">
                         <td className="py-2 px-3 text-sm font-medium text-b3x-navy-900">{lot.lotNumber}</td>
-                        <td className="py-2 px-3 text-sm text-neutral-700">{lot.entryQuantity - lot.deaths}</td>
-                        <td className="py-2 px-3 text-sm text-neutral-700">{daysConfined}</td>
+                        <td className="py-2 px-3 text-sm text-neutral-700">
+                          {isPending ? order?.quantity || 0 : lot.entryQuantity - lot.deaths}
+                        </td>
+                        <td className="py-2 px-3 text-sm text-neutral-700">{isPending ? '-' : daysConfined}</td>
                         <td className="py-2 px-3 text-sm text-neutral-700">{currais || '-'}</td>
-                        <td className="py-2 px-3 text-sm text-neutral-700">{avgWeight.toFixed(0)} kg</td>
+                        <td className="py-2 px-3 text-sm text-neutral-700">
+                          {isPending ? '-' : `${avgWeight.toFixed(0)} kg`}
+                        </td>
                         <td className="py-2 px-3">
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
-                            Ativo
+                          <span className={clsx(
+                            'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
+                            isPending ? 'bg-yellow-100 text-yellow-800' : 'bg-success-100 text-success-800'
+                          )}>
+                            {isPending ? 'Pendente' : 'Ativo'}
                           </span>
                         </td>
                       </tr>
@@ -218,13 +247,13 @@ export const Lots: React.FC = () => {
                   })}
                 </tbody>
               </table>
-              {activeLots.length > 5 && (
+              {cattleLots.length > 5 && (
                 <div className="mt-3 text-center">
                   <button
                     onClick={() => setActiveTab('lots')}
                     className="text-sm text-b3x-lime-600 hover:text-b3x-lime-700 font-medium"
                   >
-                    Ver todos os {activeLots.length} lotes →
+                    Ver todos os {cattleLots.length} lotes →
                   </button>
                 </div>
               )}

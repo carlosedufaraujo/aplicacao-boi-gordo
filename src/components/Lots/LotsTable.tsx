@@ -26,15 +26,14 @@ export const LotsTable: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'sold'>('all');
   const [penFilter, setPenFilter] = useState<string>('');
 
-  // FILTRO CORRETO: Apenas lotes que têm ordens de compra válidas no status "confined"
-  const confinedLots = cattleLots.filter(lot => {
+  // FILTRO ATUALIZADO: Mostrar todos os lotes (pendentes e ativos)
+  const allLots = cattleLots.filter(lot => {
     const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
-    // CORREÇÃO: Mostrar lotes em qualquer status após payment_validation
-    return order && (order.status === 'payment_validation' || order.status === 'reception' || order.status === 'confined') && lot.status === 'active';
+    return order !== undefined;
   });
   
   // Aplicar filtros
-  const filteredLots = confinedLots.filter(lot => {
+  const filteredLots = allLots.filter(lot => {
     // Filtro de pesquisa
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
@@ -51,8 +50,12 @@ export const LotsTable: React.FC = () => {
     }
     
     // Filtro de status
-    if (statusFilter !== 'all' && lot.status !== statusFilter) {
-      return false;
+    if (statusFilter !== 'all') {
+      const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+      const isPending = order && (order.status === 'order' || order.status === 'payment_validation');
+      
+      if (statusFilter === 'active' && isPending) return false;
+      if (statusFilter === 'sold' && lot.status !== 'sold') return false;
     }
     
     // Filtro de curral
@@ -140,10 +143,10 @@ export const LotsTable: React.FC = () => {
   
   // Obter lista de currais únicos para o filtro
   const uniquePens = Array.from(new Set(
-    confinedLots.flatMap(lot => getPenNumbers(lot.id))
+    allLots.flatMap(lot => getPenNumbers(lot.id))
   )).filter(pen => pen !== '');
 
-  if (confinedLots.length === 0) {
+  if (allLots.length === 0) {
     return (
       <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-8 text-center">
         <div className="w-16 h-16 bg-neutral-100 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -151,25 +154,8 @@ export const LotsTable: React.FC = () => {
         </div>
         <h3 className="text-lg font-medium text-b3x-navy-900 mb-2">Nenhum lote encontrado</h3>
         <p className="text-neutral-600 text-sm mb-4">
-          Os lotes aparecem aqui após a validação do pagamento no Pipeline de Compras.
+          Os lotes aparecem aqui após a criação de uma ordem de compra.
         </p>
-        
-        <div className="text-xs text-neutral-500 bg-neutral-50 rounded-lg p-4 max-w-md mx-auto">
-          <p className="font-medium mb-2">Status do Sistema:</p>
-          <div className="space-y-1 text-left">
-            <p>• Total de lotes: {cattleLots.length}</p>
-            <p>• Ordens de compra: {purchaseOrders.length}</p>
-            <p>• Ordens aguardando validação: {purchaseOrders.filter(o => o.status === 'order').length}</p>
-            <p>• Ordens em validação/recepção: {purchaseOrders.filter(o => o.status === 'payment_validation' || o.status === 'reception').length}</p>
-            <p>• Ordens confinadas: {purchaseOrders.filter(o => o.status === 'confined').length}</p>
-          </div>
-          
-          <div className="mt-3 p-2 bg-info-50 rounded border border-info-200">
-            <p className="text-info-700 font-medium text-xs">
-              💡 Fluxo: Pipeline de Compras → Validar Pagamento → Lote criado automaticamente
-            </p>
-          </div>
-        </div>
       </div>
     );
   }
@@ -258,6 +244,9 @@ export const LotsTable: React.FC = () => {
                   Dias Conf.
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider">
                   Ações
                 </th>
               </tr>
@@ -265,11 +254,12 @@ export const LotsTable: React.FC = () => {
             <tbody className="bg-white/50 divide-y divide-neutral-200/50">
               {filteredLots.map((lot) => {
                 const { order, vendor } = getOrderData(lot.purchaseOrderId);
+                const isPending = order && (order.status === 'order' || order.status === 'payment_validation');
                 const weightLoss = calculateWeightLoss(lot);
                 const costPerArroba = calculateCostPerArroba(lot);
                 const penNumbers = getPenNumbers(lot.id);
-                const daysInConfinement = getDaysInConfinement(lot);
-                const averageWeight = getAverageWeight(lot);
+                const daysInConfinement = isPending ? 0 : getDaysInConfinement(lot);
+                const averageWeight = isPending ? (order.totalWeight / order.quantity) : getAverageWeight(lot);
                 
                 return (
                   <tr key={lot.id} className="hover:bg-neutral-50/50 transition-colors">
@@ -282,7 +272,7 @@ export const LotsTable: React.FC = () => {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="font-semibold text-b3x-navy-900 text-sm">{lot.lotNumber}</div>
                       <div className="text-xs text-success-600 font-medium">
-                        {lot.entryQuantity} animais
+                        {isPending ? order.quantity : lot.entryQuantity} animais
                       </div>
                       {(() => {
                         const cycle = order && cycles.find(c => c.id === order.cycleId);
@@ -294,7 +284,7 @@ export const LotsTable: React.FC = () => {
                       })()}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      {penNumbers.length > 0 ? (
+                      {!isPending && penNumbers.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {penNumbers.map(pen => (
                             <span key={pen} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-info-100 text-info-800">
@@ -303,14 +293,16 @@ export const LotsTable: React.FC = () => {
                           ))}
                         </div>
                       ) : (
-                        <span className="text-neutral-500 text-xs">Não alocado</span>
+                        <span className="text-neutral-500 text-xs">
+                          {isPending ? 'Aguardando' : 'Não alocado'}
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm font-medium text-b3x-navy-900">
-                        {averageWeight.toFixed(1)} kg/animal
+                        {isPending ? '-' : `${averageWeight.toFixed(1)} kg/animal`}
                       </div>
-                      {weightLoss.kg !== 0 && (
+                      {!isPending && weightLoss.kg !== 0 && (
                         <div className="flex items-center text-xs text-error-600">
                           <TrendingDown className="w-3 h-3 mr-1" />
                           {weightLoss.percentage.toFixed(1)}%
@@ -318,58 +310,73 @@ export const LotsTable: React.FC = () => {
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-b3x-navy-900">
-                      R$ {costPerArroba.toFixed(2)}
+                      {isPending ? '-' : `R$ ${costPerArroba.toFixed(2)}`}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="text-sm font-medium text-error-600">
-                        {lot.deaths} animais
+                        {isPending ? '-' : `${lot.deaths} animais`}
                       </div>
-                      {lot.deaths > 0 && (
+                      {!isPending && lot.deaths > 0 && (
                         <div className="text-xs text-neutral-600">
                           {((lot.deaths / lot.entryQuantity) * 100).toFixed(1)}%
                         </div>
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-b3x-navy-900">
-                      {daysInConfinement} dias
+                      {isPending ? '-' : `${daysInConfinement} dias`}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={clsx(
+                        'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium',
+                        isPending ? 'bg-yellow-100 text-yellow-800' : 
+                        lot.status === 'sold' ? 'bg-purple-100 text-purple-800' :
+                        'bg-success-100 text-success-800'
+                      )}>
+                        {isPending ? 'Pendente' : 
+                         lot.status === 'sold' ? 'Vendido' : 'Ativo'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-1">
-                        <button
-                          onClick={() => handleViewLot(lot)}
-                          className="text-info-600 hover:text-info-800 transition-colors p-1.5 rounded hover:bg-info-50"
-                          title="Ver Ficha Completa"
-                        >
-                          <Eye className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleEditLot(lot)}
-                          className="text-neutral-600 hover:text-neutral-800 transition-colors p-1.5 rounded hover:bg-neutral-50"
-                          title="Editar"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleCalculateLot(lot)}
-                          className="text-b3x-lime-600 hover:text-b3x-lime-800 transition-colors p-1.5 rounded hover:bg-b3x-lime-50"
-                          title="Simular Venda"
-                        >
-                          <Calculator className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleSaleLot(lot.id)}
-                          className="text-success-600 hover:text-success-800 transition-colors p-1.5 rounded hover:bg-success-50"
-                          title="Registrar Venda/Abate"
-                        >
-                          <DollarSign className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteLot(lot.id)}
-                          className="text-error-600 hover:text-error-800 transition-colors p-1.5 rounded hover:bg-error-50"
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
+                        {!isPending && (
+                          <>
+                            <button
+                              onClick={() => handleViewLot(lot)}
+                              className="text-info-600 hover:text-info-800 transition-colors p-1.5 rounded hover:bg-info-50"
+                              title="Ver Ficha Completa"
+                            >
+                              <Eye className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleEditLot(lot)}
+                              className="text-neutral-600 hover:text-neutral-800 transition-colors p-1.5 rounded hover:bg-neutral-50"
+                              title="Editar"
+                            >
+                              <Edit className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleCalculateLot(lot)}
+                              className="text-b3x-lime-600 hover:text-b3x-lime-800 transition-colors p-1.5 rounded hover:bg-b3x-lime-50"
+                              title="Simular Venda"
+                            >
+                              <Calculator className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleSaleLot(lot.id)}
+                              className="text-success-600 hover:text-success-800 transition-colors p-1.5 rounded hover:bg-success-50"
+                              title="Registrar Venda/Abate"
+                            >
+                              <DollarSign className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteLot(lot.id)}
+                              className="text-error-600 hover:text-error-800 transition-colors p-1.5 rounded hover:bg-error-50"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
