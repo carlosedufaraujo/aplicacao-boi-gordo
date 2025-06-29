@@ -28,7 +28,8 @@ import { ContributionForm } from '../Forms/ContributionForm';
 import { CostCenterForm } from '../Forms/CostCenterForm';
 import { CostAllocationChart } from './CostAllocationChart';
 import { TableWithPagination } from '../Common/TableWithPagination';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subDays, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export const FinancialCenterManagement: React.FC = () => {
   const { 
@@ -40,6 +41,8 @@ export const FinancialCenterManagement: React.FC = () => {
     cashFlowEntries,
     financialContributions,
     saleRecords,
+    purchaseOrders,
+    partners,
     addCostCenter,
     addExpense,
     addCashFlowEntry,
@@ -47,7 +50,7 @@ export const FinancialCenterManagement: React.FC = () => {
   } = useAppStore();
   
   const [activeTab, setActiveTab] = useState<'overview' | 'expenses' | 'revenues' | 'cashflow'>('overview');
-  const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'quarter' | 'year'>('month');
+  const [selectedPeriod, setSelectedPeriod] = useState<'all' | 'week' | 'month' | 'quarter' | 'year'>('month');
   const [showCostCenterForm, setShowCostCenterForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showCashFlowForm, setShowCashFlowForm] = useState(false);
@@ -69,6 +72,34 @@ export const FinancialCenterManagement: React.FC = () => {
   const [showRevenueForm, setShowRevenueForm] = useState(false);
   const [showCardDetailModal, setShowCardDetailModal] = useState<string | null>(null);
 
+  // Calcular período baseado na seleção
+  const dateRange = useMemo(() => {
+    const today = new Date();
+    switch (selectedPeriod) {
+      case 'week':
+        return { start: subDays(today, 7), end: today };
+      case 'month':
+        return { start: startOfMonth(today), end: endOfMonth(today) };
+      case 'quarter':
+        return { start: subDays(today, 90), end: today };
+      case 'year':
+        return { start: startOfYear(today), end: endOfYear(today) };
+      case 'all':
+      default:
+        return null;
+    }
+  }, [selectedPeriod]);
+
+  // Função para filtrar por período
+  const filterByPeriod = <T extends { date: Date | string }>(items: T[]): T[] => {
+    if (!dateRange) return items;
+    
+    return items.filter(item => {
+      const itemDate = new Date(item.date);
+      return isWithinInterval(itemDate, dateRange);
+    });
+  };
+
   // Calcular totais por tipo - DESPESAS
   const expensesByType = useMemo(() => {
     const totals = {
@@ -78,8 +109,39 @@ export const FinancialCenterManagement: React.FC = () => {
       financial: 0
     };
     
+    const filteredExpenses = filterByPeriod(expenses).filter(expense => {
+      // Se for compra de animais, verificar se existe ordem correspondente
+      if (expense.category === 'animal_purchase') {
+        const orderCode = expense.description?.match(/X\d{4}/)?.[0];
+        if (orderCode) {
+          return purchaseOrders.some(order => order.code === orderCode);
+        }
+        return false; // Não incluir compras sem código de ordem
+      }
+      return true; // Incluir todas as outras despesas
+    });
+    
+    // Filtrar ordens de compra manualmente pois usa date ao invés de outro campo
+    const filteredPurchaseOrders = dateRange 
+      ? purchaseOrders.filter(order => {
+          const orderDate = new Date(order.date);
+          return isWithinInterval(orderDate, dateRange);
+        })
+      : purchaseOrders;
+    
+    // Adicionar compras de gado ao total de aquisição
+    const cattlePurchases = filteredPurchaseOrders
+      .filter(order => order.status === 'payment_validation' || order.status === 'reception' || order.status === 'confined')
+      .reduce((sum, order) => {
+        const totalCost = (order.totalWeight / 15) * order.pricePerArroba + order.commission + order.taxes + order.otherCosts;
+        return sum + totalCost;
+      }, 0);
+    
+    totals.acquisition += cattlePurchases;
+    
+    // Adicionar despesas categorizadas
     costCenters.forEach(center => {
-      const centerExpenses = expenses
+      const centerExpenses = filteredExpenses
         .filter(expense => 
           expense.allocations.some(alloc => 
             (alloc.targetType === 'cost_center' && alloc.targetId === center.id) ||
@@ -91,8 +153,21 @@ export const FinancialCenterManagement: React.FC = () => {
       totals[center.type] += centerExpenses;
     });
     
+    // Adicionar despesas diretas por categoria
+    filteredExpenses.forEach(expense => {
+      if (expense.category === 'animal_purchase' || expense.category === 'commission' || expense.category === 'freight') {
+        totals.acquisition += expense.totalAmount;
+      } else if (expense.category === 'feed' || expense.category === 'health_costs' || expense.category === 'operational_costs') {
+        totals.fattening += expense.totalAmount;
+      } else if (expense.category === 'general_admin' || expense.category === 'personnel' || expense.category === 'office') {
+        totals.administrative += expense.totalAmount;
+      } else if (expense.category === 'taxes' || expense.category === 'interest' || expense.category === 'fees') {
+        totals.financial += expense.totalAmount;
+      }
+    });
+    
     return totals;
-  }, [expenses, costCenters]);
+  }, [expenses, costCenters, purchaseOrders, selectedPeriod]);
 
   // Calcular totais por tipo - RECEITAS
   const revenuesByType = useMemo(() => {
@@ -103,28 +178,43 @@ export const FinancialCenterManagement: React.FC = () => {
       other: 0
     };
     
-    // Vendas
-    totals.sales = cashFlowEntries
+    const filteredCashFlow = filterByPeriod(cashFlowEntries);
+    const filteredContributions = filterByPeriod(financialContributions);
+    
+    // Filtrar vendas manualmente pois usa saleDate ao invés de date
+    const filteredSales = dateRange 
+      ? saleRecords.filter(sale => {
+          const saleDate = new Date(sale.saleDate);
+          return isWithinInterval(saleDate, dateRange);
+        })
+      : saleRecords;
+    
+    // Vendas - incluir tanto cashFlowEntries quanto saleRecords
+    totals.sales = filteredCashFlow
       .filter(entry => entry.type === 'receita' && entry.category === 'vendas')
-      .reduce((sum, entry) => sum + (entry.actualAmount || entry.plannedAmount), 0);
+      .reduce((sum, entry) => sum + (entry.actualAmount || entry.plannedAmount), 0) +
+      filteredSales.reduce((sum, sale) => sum + sale.grossRevenue, 0);
     
     // Aportes
-    totals.contributions = financialContributions
+    totals.contributions = filteredContributions
       .filter(contrib => contrib.status === 'confirmado' && contrib.type === 'aporte_socio')
       .reduce((sum, contrib) => sum + contrib.amount, 0);
     
     // Financiamentos
-    totals.financing = cashFlowEntries
+    totals.financing = filteredCashFlow
       .filter(entry => entry.type === 'financiamento')
-      .reduce((sum, entry) => sum + (entry.actualAmount || entry.plannedAmount), 0);
+      .reduce((sum, entry) => sum + (entry.actualAmount || entry.plannedAmount), 0) +
+      filteredContributions
+      .filter(contrib => contrib.type === 'financiamento_bancario' && contrib.status === 'confirmado')
+      .reduce((sum, contrib) => sum + contrib.amount, 0);
     
     // Outras receitas
-    totals.other = cashFlowEntries
+    totals.other = filteredCashFlow
       .filter(entry => entry.type === 'receita' && entry.category !== 'vendas')
       .reduce((sum, entry) => sum + (entry.actualAmount || entry.plannedAmount), 0);
     
     return totals;
-  }, [cashFlowEntries, financialContributions]);
+  }, [cashFlowEntries, financialContributions, saleRecords, selectedPeriod]);
 
   // Totais gerais
   const totalExpenses = Object.values(expensesByType).reduce((a, b) => a + b, 0);
@@ -689,6 +779,78 @@ export const FinancialCenterManagement: React.FC = () => {
       {/* Conteúdo baseado na tab ativa */}
       {activeTab === 'overview' && (
         <>
+          {/* Filtro de Período Global */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-4 h-4 text-neutral-500" />
+              <span className="text-sm font-medium text-neutral-700">Período:</span>
+              
+              <div className="flex items-center space-x-1 bg-neutral-100 rounded-lg p-1">
+                <button
+                  onClick={() => setSelectedPeriod('all')}
+                  className={`px-3 py-1.5 text-xs rounded ${
+                    selectedPeriod === 'all' 
+                      ? 'bg-white text-b3x-navy-900 shadow-sm font-medium' 
+                      : 'text-neutral-600 hover:text-b3x-navy-900'
+                  }`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setSelectedPeriod('week')}
+                  className={`px-3 py-1.5 text-xs rounded ${
+                    selectedPeriod === 'week' 
+                      ? 'bg-white text-b3x-navy-900 shadow-sm font-medium' 
+                      : 'text-neutral-600 hover:text-b3x-navy-900'
+                  }`}
+                >
+                  7 dias
+                </button>
+                <button
+                  onClick={() => setSelectedPeriod('month')}
+                  className={`px-3 py-1.5 text-xs rounded ${
+                    selectedPeriod === 'month' 
+                      ? 'bg-white text-b3x-navy-900 shadow-sm font-medium' 
+                      : 'text-neutral-600 hover:text-b3x-navy-900'
+                  }`}
+                >
+                  Mês
+                </button>
+                <button
+                  onClick={() => setSelectedPeriod('quarter')}
+                  className={`px-3 py-1.5 text-xs rounded ${
+                    selectedPeriod === 'quarter' 
+                      ? 'bg-white text-b3x-navy-900 shadow-sm font-medium' 
+                      : 'text-neutral-600 hover:text-b3x-navy-900'
+                  }`}
+                >
+                  Trimestre
+                </button>
+                <button
+                  onClick={() => setSelectedPeriod('year')}
+                  className={`px-3 py-1.5 text-xs rounded ${
+                    selectedPeriod === 'year' 
+                      ? 'bg-white text-b3x-navy-900 shadow-sm font-medium' 
+                      : 'text-neutral-600 hover:text-b3x-navy-900'
+                  }`}
+                >
+                  Ano
+                </button>
+              </div>
+            </div>
+            
+            {selectedPeriod !== 'all' && (
+              <div className="text-sm text-neutral-600">
+                Exibindo dados de {
+                  selectedPeriod === 'week' ? 'últimos 7 dias' :
+                  selectedPeriod === 'month' ? format(startOfMonth(new Date()), 'MMMM yyyy', { locale: ptBR }) :
+                  selectedPeriod === 'quarter' ? 'últimos 90 dias' :
+                  'este ano'
+                }
+              </div>
+            )}
+          </div>
+
           {/* KPIs principais */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <KPICard
@@ -896,9 +1058,52 @@ export const FinancialCenterManagement: React.FC = () => {
             </div>
             
             <TableWithPagination
-              data={[...expenses.map(e => ({ ...e, movType: 'saida', movValue: -e.totalAmount })),
-                     ...cashFlowEntries.filter(e => ['receita', 'aporte', 'financiamento'].includes(e.type))
-                        .map(e => ({ ...e, movType: 'entrada', movValue: e.actualAmount || e.plannedAmount }))]
+              data={[
+                     // Despesas - filtrar apenas as que têm ordem de compra correspondente ou não são de compra de animais
+                     ...filterByPeriod(expenses)
+                       .filter(expense => {
+                         // Se for compra de animais, verificar se existe ordem correspondente
+                         if (expense.category === 'animal_purchase') {
+                           const orderCode = expense.description?.match(/X\d{4}/)?.[0];
+                           if (orderCode) {
+                             return purchaseOrders.some(order => order.code === orderCode);
+                           }
+                           return false; // Não mostrar compras sem código de ordem
+                         }
+                         return true; // Mostrar todas as outras despesas
+                       })
+                       .map(e => ({ ...e, movType: 'saida', movValue: -e.totalAmount })),
+                     // Entradas do fluxo de caixa
+                     ...filterByPeriod(cashFlowEntries.filter(e => ['receita', 'aporte', 'financiamento'].includes(e.type)))
+                        .map(e => ({ ...e, movType: 'entrada', movValue: e.actualAmount || e.plannedAmount })),
+                     // Vendas reais
+                     ...(dateRange 
+                       ? saleRecords.filter(sale => {
+                           const saleDate = new Date(sale.saleDate);
+                           return isWithinInterval(saleDate, dateRange);
+                         })
+                       : saleRecords
+                     ).map(sale => ({
+                       ...sale,
+                       date: sale.saleDate,
+                       description: `Venda Lote ${cattleLots.find(l => l.id === sale.lotId)?.lotNumber || sale.lotId}`,
+                       movType: 'entrada',
+                       movValue: sale.grossRevenue,
+                       category: 'vendas',
+                       paymentStatus: sale.paymentType === 'cash' ? 'paid' : 'pending'
+                     })),
+                     // Compras de gado - removido para evitar duplicação com expenses
+                     // Aportes e financiamentos
+                     ...filterByPeriod(financialContributions.filter(c => c.status === 'confirmado'))
+                       .map(contrib => ({
+                         ...contrib,
+                         description: `${contrib.type === 'aporte_socio' ? 'Aporte' : 'Financiamento'} - ${contrib.contributorName}`,
+                         movType: 'entrada',
+                         movValue: contrib.amount,
+                         category: contrib.type === 'aporte_socio' ? 'aportes' : 'financiamento',
+                         paymentStatus: 'paid'
+                       }))
+                   ]
                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                      .slice(0, 100)}
               columns={[
@@ -1139,7 +1344,17 @@ export const FinancialCenterManagement: React.FC = () => {
             </div>
             
             <TableWithPagination
-              data={expenses}
+              data={filterByPeriod(expenses).filter(expense => {
+                // Se for compra de animais, verificar se existe ordem correspondente
+                if (expense.category === 'animal_purchase') {
+                  const orderCode = expense.description?.match(/X\d{4}/)?.[0];
+                  if (orderCode) {
+                    return purchaseOrders.some(order => order.code === orderCode);
+                  }
+                  return false; // Não mostrar compras sem código de ordem
+                }
+                return true; // Mostrar todas as outras despesas
+              })}
               columns={[
                 {
                   key: 'date',
@@ -1373,7 +1588,7 @@ export const FinancialCenterManagement: React.FC = () => {
             </div>
             
             <TableWithPagination
-              data={cashFlowEntries.filter(e => ['receita', 'aporte', 'financiamento'].includes(e.type))}
+              data={filterByPeriod(cashFlowEntries.filter(e => ['receita', 'aporte', 'financiamento'].includes(e.type)))}
               columns={[
                 {
                   key: 'date',
@@ -1503,8 +1718,8 @@ export const FinancialCenterManagement: React.FC = () => {
             </div>
             
             <TableWithPagination
-              data={[...expenses.map(e => ({ ...e, type: 'saida', amount: -e.totalAmount })),
-                     ...cashFlowEntries.filter(e => ['receita', 'aporte', 'financiamento'].includes(e.type))
+              data={[...filterByPeriod(expenses).map(e => ({ ...e, type: 'saida', amount: -e.totalAmount })),
+                     ...filterByPeriod(cashFlowEntries.filter(e => ['receita', 'aporte', 'financiamento'].includes(e.type)))
                         .map(e => ({ ...e, type: 'entrada', amount: e.actualAmount || e.plannedAmount }))]
                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())}
               columns={[
