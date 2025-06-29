@@ -290,17 +290,21 @@ const generateInitialPens = () => {
   const totalLines = 4;
   const totalPens = pensPerLine * totalLines;
   
+  // Letras para as linhas
+  const lineLetters = ['A', 'B', 'C', 'D'];
+  
   for (let i = 1; i <= totalPens; i++) {
     const penNumber = i.toString();
-    const lineNumber = Math.ceil(i / pensPerLine);
+    const lineIndex = Math.floor((i - 1) / pensPerLine);
+    const lineLetter = lineLetters[lineIndex];
     
     // Create pen registration
     penRegistrations.push({
       id: `pen-${i}`,
       penNumber,
       capacity: 130, // Mantido temporariamente para compatibilidade
-      location: `Linha ${lineNumber}`,
-      description: `Curral ${penNumber}`,
+      location: `Linha ${lineLetter}`,
+      description: '-',
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date()

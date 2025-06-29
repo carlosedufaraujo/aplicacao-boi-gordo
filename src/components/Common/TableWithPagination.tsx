@@ -5,6 +5,8 @@ interface Column {
   key: string;
   label: string;
   sortable?: boolean;
+  width?: string;
+  align?: 'left' | 'center' | 'right';
   render?: (value: any, row: any) => React.ReactNode;
 }
 
@@ -96,12 +98,13 @@ export const TableWithPagination: React.FC<TableWithPaginationProps> = ({
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className={`px-4 py-3 text-left text-xs font-semibold text-neutral-600 uppercase tracking-wider ${
+                  className={`px-4 py-3 text-${column.align || 'left'} text-xs font-semibold text-neutral-600 uppercase tracking-wider ${
                     column.sortable ? 'cursor-pointer hover:bg-neutral-100 transition-colors' : ''
                   }`}
+                  style={{ width: column.width }}
                   onClick={() => column.sortable && handleSort(column.key)}
                 >
-                  <div className="flex items-center">
+                  <div className={`flex items-center ${column.align === 'right' ? 'justify-end' : column.align === 'center' ? 'justify-center' : ''}`}>
                     {column.label}
                     {column.sortable && getSortIcon(column.key)}
                   </div>
@@ -113,7 +116,11 @@ export const TableWithPagination: React.FC<TableWithPaginationProps> = ({
             {currentData.map((row, index) => (
               <tr key={index} className="hover:bg-neutral-50/50 transition-colors">
                 {columns.map((column) => (
-                  <td key={column.key} className="px-4 py-3 text-sm">
+                  <td 
+                    key={column.key} 
+                    className={`px-4 py-3 text-sm text-${column.align || 'left'}`}
+                    style={{ width: column.width }}
+                  >
                     {column.render 
                       ? column.render(row[column.key], row)
                       : row[column.key]
