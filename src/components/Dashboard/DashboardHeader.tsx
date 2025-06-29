@@ -29,8 +29,10 @@ export const DashboardHeader: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
   
   const unreadCount = getUnreadNotificationsCount();
 
@@ -44,6 +46,11 @@ export const DashboardHeader: React.FC = () => {
     setShowSearchResults(false);
   });
 
+  // Fechar o dropdown de perfil quando clicar fora
+  useClickOutside(profileRef, () => {
+    setShowProfileMenu(false);
+  });
+
   // Função para busca global
   const handleGlobalSearch = (query: string) => {
     setGlobalSearchQuery(query);
@@ -53,19 +60,29 @@ export const DashboardHeader: React.FC = () => {
   // Obter resultados da busca global
   const getSearchResults = () => {
     const query = globalSearchQuery.toLowerCase();
-    const results = [];
+    const results: Array<{
+      type: string;
+      title: string;
+      subtitle: string;
+      page: string;
+      id: string;
+    }> = [];
 
     // Buscar em lotes
-    const matchingLots = cattleLots.filter(lot => 
-      lot.lotNumber.toLowerCase().includes(query) ||
-      lot.vendor.toLowerCase().includes(query)
-    );
+    const matchingLots = cattleLots.filter(lot => {
+      const purchaseOrder = purchaseOrders.find(po => po.id === lot.purchaseOrderId);
+      const vendor = purchaseOrder ? partners.find(p => p.id === purchaseOrder.vendorId) : null;
+      return lot.lotNumber.toLowerCase().includes(query) ||
+        (vendor && vendor.name.toLowerCase().includes(query));
+    });
     
     matchingLots.forEach(lot => {
+      const purchaseOrder = purchaseOrders.find(po => po.id === lot.purchaseOrderId);
+      const vendor = purchaseOrder ? partners.find(p => p.id === purchaseOrder.vendorId) : null;
       results.push({
         type: 'lot',
         title: `Lote ${lot.lotNumber}`,
-        subtitle: `${lot.entryQuantity} animais - ${lot.vendor}`,
+        subtitle: `${lot.entryQuantity} animais - ${vendor?.name || 'Vendedor não encontrado'}`,
         page: 'lots',
         id: lot.id
       });
@@ -171,7 +188,7 @@ export const DashboardHeader: React.FC = () => {
     : notifications;
 
   return (
-    <div className="bg-gradient-to-r from-b3x-navy-900 to-b3x-navy-800 text-white shadow-soft-lg">
+    <div className="bg-gradient-to-r from-b3x-navy-900 to-b3x-navy-800 text-white shadow-soft-lg rounded-xl overflow-hidden">
       {/* Header integrado no banner */}
       <div className="px-4 py-3 border-b border-b3x-navy-700/50">
         <div className="flex items-center justify-between">
@@ -184,10 +201,10 @@ export const DashboardHeader: React.FC = () => {
               <Menu className="w-4 h-4" />
             </button>
 
-            {/* B3X Logo */}
-            <div className="flex items-center space-x-2 min-w-0">
-              <div className="w-7 h-7 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-b3x-navy-900 font-bold text-xs">B3X</span>
+            {/* Logo CEAC */}
+            <div className="flex items-center space-x-3 min-w-0">
+              <div className="w-10 h-10 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-xl flex items-center justify-center shadow-soft flex-shrink-0">
+                <span className="text-b3x-navy-900 font-black text-xs">CEAC</span>
               </div>
               <div className="hidden sm:block min-w-0">
                 <h2 className="text-lg font-semibold text-white truncate">
@@ -355,15 +372,81 @@ export const DashboardHeader: React.FC = () => {
               )}
             </div>
 
-            {/* Profile */}
-            <div className="flex items-center space-x-2 pl-3 border-l border-white/20">
-              <div className="w-7 h-7 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-full flex items-center justify-center shadow-soft flex-shrink-0">
-                <User className="w-3 h-3 text-b3x-navy-900" />
-              </div>
-              <div className="text-sm hidden xl:block min-w-0">
-                <p className="font-medium text-white truncate">João Silva</p>
-                <p className="text-b3x-navy-200 text-xs truncate">Administrador</p>
-              </div>
+            {/* Profile com menu dropdown */}
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center space-x-2 pl-3 border-l border-white/20 hover:bg-white/10 rounded-lg transition-colors p-2"
+              >
+                <div className="w-7 h-7 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-full flex items-center justify-center shadow-soft flex-shrink-0">
+                  <User className="w-3 h-3 text-b3x-navy-900" />
+                </div>
+                <div className="text-sm hidden xl:block min-w-0 text-left">
+                  <p className="font-medium text-white truncate">João Silva</p>
+                  <p className="text-b3x-navy-200 text-xs truncate">Administrador</p>
+                </div>
+              </button>
+
+              {/* Dropdown do Perfil */}
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-neutral-200 z-[1000]">
+                  <div className="p-2">
+                    {/* Informações do Usuário */}
+                    <div className="p-3 border-b border-neutral-100">
+                      <p className="font-semibold text-b3x-navy-900">João Silva</p>
+                      <p className="text-sm text-neutral-600">joao.silva@ceac.com.br</p>
+                      <p className="text-xs text-neutral-500 mt-1">Administrador</p>
+                    </div>
+
+                    {/* Opções do Menu */}
+                    <div className="py-2">
+                      <button className="w-full text-left px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors flex items-center space-x-2">
+                        <User className="w-4 h-4" />
+                        <span>Meu Perfil</span>
+                      </button>
+                      
+                      <button className="w-full text-left px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors flex items-center space-x-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span>Dados da Organização</span>
+                      </button>
+
+                      <button className="w-full text-left px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors flex items-center space-x-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <span>Gerenciar Usuários</span>
+                      </button>
+
+                      <button className="w-full text-left px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors flex items-center space-x-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Configurações</span>
+                      </button>
+
+                      <button className="w-full text-left px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 rounded-lg transition-colors flex items-center space-x-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        <span>Alterar Senha</span>
+                      </button>
+                    </div>
+
+                    {/* Botão de Logout */}
+                    <div className="pt-2 mt-2 border-t border-neutral-100">
+                      <button className="w-full text-left px-3 py-2 text-sm text-error-600 hover:bg-error-50 rounded-lg transition-colors flex items-center space-x-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Sair</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -390,9 +473,6 @@ export const DashboardHeader: React.FC = () => {
             >
               Limpar Dados de Teste
             </button>
-            <div className="w-12 h-12 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-xl flex items-center justify-center shadow-soft">
-              <span className="text-lg font-bold text-b3x-navy-900">B3X</span>
-            </div>
           </div>
         </div>
       </div>

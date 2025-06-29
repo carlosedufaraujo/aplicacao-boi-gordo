@@ -72,33 +72,46 @@ export const Sidebar: React.FC = () => {
         sidebarCollapsed ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'
       )}>
         {/* Logo/Header */}
-        <div className="p-4 border-b border-b3x-navy-700/50 flex-shrink-0">
+        <div className="p-4 flex-shrink-0">
           <div className="flex items-center justify-center">
             <div className={clsx(
               "transition-all duration-300",
-              sidebarCollapsed ? "scale-100" : "scale-110"
+              sidebarCollapsed ? "scale-90" : "scale-100"
             )}>
-              <div className="w-10 h-10 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-xl flex items-center justify-center shadow-soft">
-                <span className="text-b3x-navy-900 font-bold text-lg">B3X</span>
+              <div className={clsx(
+                "flex items-center justify-center",
+                sidebarCollapsed ? "flex-col" : "flex-row space-x-3"
+              )}>
+                <div className="relative">
+                  <div className="w-12 h-12 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-xl flex items-center justify-center shadow-soft">
+                    <span className="text-b3x-navy-900 font-black text-sm">CEAC</span>
+                  </div>
+                </div>
+                {!sidebarCollapsed && (
+                  <div className="ml-3">
+                    <h1 className="text-lg font-bold text-white leading-tight">CEAC Agropecuária</h1>
+                    <p className="text-xs text-b3x-lime-400 leading-tight">e Mercantil Ltda</p>
+                  </div>
+                )}
               </div>
             </div>
-            {!sidebarCollapsed && (
-              <div className="ml-3 transition-opacity duration-200">
-                <h1 className="text-lg font-bold text-white">CEAC</h1>
-                <p className="text-xs text-b3x-navy-300">Sistema de Gestão</p>
-              </div>
-            )}
           </div>
         </div>
+        
+        {/* Linha gradiente abaixo do header */}
+        <div className="mx-3 mb-4 h-0.5 bg-gradient-to-r from-transparent via-b3x-lime-400/50 to-transparent"></div>
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
           {navigation.map((section, sectionIndex) => (
             <div key={sectionIndex}>
               {!sidebarCollapsed && (
-                <h3 className="px-3 mb-2 text-xs font-semibold text-b3x-navy-400 uppercase tracking-wider">
-                  {section.section}
-                </h3>
+                <>
+                  <h3 className="px-3 mb-2 text-xs font-semibold text-b3x-navy-400 uppercase tracking-wider">
+                    {section.section}
+                  </h3>
+                  <div className="mx-3 mb-3 h-px bg-gradient-to-r from-transparent via-b3x-lime-400/30 to-transparent"></div>
+                </>
               )}
               <div className="space-y-1">
                 {section.items.map((item) => {
@@ -114,14 +127,14 @@ export const Sidebar: React.FC = () => {
                         'hover:bg-b3x-navy-800/50 hover:backdrop-blur-sm',
                         isActive
                           ? 'bg-gradient-to-r from-b3x-lime-500/20 to-b3x-lime-400/10 text-b3x-lime-400 border border-b3x-lime-500/30 shadow-soft'
-                          : 'text-b3x-navy-300 hover:text-white',
+                          : 'text-b3x-navy-200 hover:text-white',
                         sidebarCollapsed && 'justify-center'
                       )}
                       title={sidebarCollapsed ? item.name : undefined}
                     >
                       <Icon className={clsx(
                         'w-4 h-4 transition-colors duration-200 flex-shrink-0',
-                        isActive ? 'text-b3x-lime-400' : 'text-b3x-navy-400'
+                        isActive ? 'text-b3x-lime-400' : 'text-b3x-navy-300'
                       )} />
                       {!sidebarCollapsed && (
                         <span className="ml-3 font-medium transition-opacity duration-200 text-sm truncate">{item.name}</span>
@@ -135,11 +148,14 @@ export const Sidebar: React.FC = () => {
         </nav>
 
         {/* Bottom Section */}
-        <div className="border-t border-b3x-navy-700/50 flex-shrink-0">
+        <div className="flex-shrink-0">
+          {/* Linha gradiente acima das configurações */}
+          <div className="mx-3 mb-3 h-0.5 bg-gradient-to-r from-transparent via-b3x-lime-400/50 to-transparent"></div>
+          
           {/* Settings */}
           {!sidebarCollapsed && (
             <div className="p-3">
-              <button className="w-full flex items-center px-3 py-2.5 rounded-lg text-b3x-navy-300 hover:bg-b3x-navy-800/50 hover:text-white transition-all duration-200">
+              <button className="w-full flex items-center px-3 py-2.5 rounded-lg text-b3x-navy-200 hover:bg-b3x-navy-800/50 hover:text-white transition-all duration-200">
                 <Settings className="w-4 h-4 flex-shrink-0" />
                 <span className="ml-3 font-medium text-sm truncate">Configurações</span>
               </button>
@@ -150,7 +166,7 @@ export const Sidebar: React.FC = () => {
           <div className="p-3">
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="w-full flex items-center justify-center p-2 rounded-lg text-b3x-navy-300 hover:text-white hover:bg-b3x-navy-800/50 transition-all duration-200"
+              className="w-full flex items-center justify-center p-2 rounded-lg text-b3x-navy-200 hover:text-white hover:bg-b3x-navy-800/50 transition-all duration-200"
               title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
             >
               {sidebarCollapsed ? (
