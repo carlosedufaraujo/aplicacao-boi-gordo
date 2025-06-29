@@ -10,7 +10,7 @@ import { Calendar } from './components/Calendar/Calendar';
 import { Registrations } from './components/Registrations/Registrations';
 import { FinancialReconciliation } from './components/Financial/FinancialReconciliation';
 import { FinancialCenterManagement } from './components/Financial/FinancialCenterManagement';
-import { DREViewer } from './components/DRE';
+import { DREPage } from './components/DRE';
 import { useAppStore } from './stores/useAppStore';
 import { NotificationCenter } from './components/Notifications/NotificationCenter';
 import { TestDataManager } from './components/TestData/TestDataManager';
@@ -53,12 +53,14 @@ function App() {
         return <Lots />;
       case 'financial':
         return <FinancialCenterManagement />;
+      case 'financial-reconciliation':
+        return <FinancialReconciliation />;
       case 'calendar':
         return <Calendar />;
       case 'registrations':
         return <Registrations />;
       case 'dre':
-        return <DREViewer />;
+        return <DREPage />;
       case 'notifications':
         return <NotificationSettings />;
       case 'profile':
