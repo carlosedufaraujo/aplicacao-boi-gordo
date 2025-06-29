@@ -55,7 +55,8 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
     addNotification, 
     updateCattleLot, 
     cattleLots,
-    addExpense
+    addExpense,
+    movePurchaseOrderToNextStage
   } = useAppStore();
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [showTransportCompanyForm, setShowTransportCompanyForm] = useState(false);
@@ -170,7 +171,8 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
         paymentStatus: 'pending',
         paymentDate: data.freightPaymentType === 'installment' ? data.freightPaymentDate : new Date(),
         allocations: [], // Será preenchido após criar a despesa
-        attachments: []
+        attachments: [],
+        impactsCashFlow: true
       };
       
       addExpense(freightExpense);
@@ -206,7 +208,8 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
         paymentStatus: 'pending',
         paymentDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)), // Data futura
         allocations: [],
-        attachments: []
+        attachments: [],
+        impactsCashFlow: true
       };
       
       addExpense(ownFreightExpense);
@@ -236,6 +239,18 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
 
     // ALTERAÇÃO: NÃO mover para próxima etapa automaticamente
     // Manter na etapa 'reception' para aguardar protocolo sanitário
+    
+    // Mover para a próxima etapa (confined)
+    movePurchaseOrderToNextStage(order.id);
+    
+    // Criar notificação de sucesso
+    addNotification({
+      title: 'Recepção Confirmada',
+      message: `Ordem ${order.code} recebida com sucesso. ${data.entryQuantity} animais confinados.`,
+      type: 'success',
+      relatedEntityType: 'purchase_order',
+      relatedEntityId: order.id
+    });
     
     reset();
     onClose();
