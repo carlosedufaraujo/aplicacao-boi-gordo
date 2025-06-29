@@ -13,7 +13,8 @@ import {
   Building2,
   Truck,
   TrendingUp,
-  Layers
+  Layers,
+  Wallet
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { clsx } from 'clsx';
@@ -24,6 +25,7 @@ const navigation = [
   { id: 'sales-pipeline', name: 'Pipeline de Abate', icon: Truck },
   { id: 'lots', name: 'Lotes e Mapa', icon: MapPin },
   { id: 'financial-center', name: 'Centro Financeiro', icon: Layers },
+  { id: 'cash-flow', name: 'Fluxo de Caixa', icon: Wallet },
   { id: 'calendar', name: 'Calendário Financeiro', icon: Calendar },
   { id: 'financial-reconciliation', name: 'Conciliação Financeira', icon: DollarSign },
   { id: 'registrations', name: 'Cadastros', icon: Users },

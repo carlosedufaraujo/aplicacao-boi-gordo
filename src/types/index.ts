@@ -434,6 +434,42 @@ export interface CostAllocation {
   createdAt: Date;
 }
 
+// 🆕 NOVA INTERFACE: Lançamento Não-Caixa
+export interface NonCashExpense {
+  id: string;
+  date: Date;
+  type: 'mortality' | 'weight_loss' | 'inventory_adjustment' | 'depreciation' | 'provision';
+  description: string;
+  relatedEntityType: 'cattle_lot' | 'pen' | 'equipment' | 'other';
+  relatedEntityId: string;
+  // Valores
+  quantity?: number; // Para mortalidade
+  weightLoss?: number; // Para quebra de peso
+  monetaryValue: number; // Valor monetário do prejuízo/ajuste
+  // Detalhes específicos
+  mortalityDetails?: {
+    cause: 'disease' | 'accident' | 'stress' | 'unknown';
+    veterinarianReport?: string;
+    insuranceClaim?: boolean;
+  };
+  weightLossDetails?: {
+    expectedWeight: number;
+    actualWeight: number;
+    lossPercentage: number;
+  };
+  // Impacto contábil
+  accountingImpact: 'cost_of_goods_sold' | 'operational_loss' | 'extraordinary_loss';
+  affectsDRE: boolean; // Se afeta o DRE
+  affectsCashFlow: boolean; // Sempre false para non-cash
+  // Metadados
+  notes?: string;
+  attachments?: string[];
+  createdBy?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ATUALIZAR: Interface Expense para incluir flag de impacto no caixa
 export interface Expense {
   id: string;
   date: Date;
@@ -455,6 +491,9 @@ export interface Expense {
   paymentDate?: Date;
   allocations: CostAllocation[];
   attachments?: string[];
+  // 🆕 NOVO: Flag para indicar se impacta o caixa
+  impactsCashFlow: boolean;
+  nonCashExpenseId?: string; // Referência para lançamento não-caixa relacionado
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { X, Calendar, MapPin, User, DollarSign, Home, Truck, Users, TrendingUp, Package, Percent, TrendingDown, Printer } from 'lucide-react';
+import { X, Calendar, MapPin, User, DollarSign, Home, Truck, Users, TrendingUp, Package, Percent, TrendingDown, Printer, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { CattleLot } from '../../types';
 import { format } from 'date-fns';
 import { ConfirmDialog } from '../Common/ConfirmDialog';
 import { Portal } from '../Common/Portal';
+import { NonCashExpenseModal } from './NonCashExpenseModal';
 
 interface LotDetailModalProps {
   lot: CattleLot;
@@ -24,6 +25,7 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
   } = useAppStore();
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showNonCashExpenseModal, setShowNonCashExpenseModal] = useState(false);
   
   if (!isOpen) return null;
 
@@ -796,6 +798,13 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
             
             <div className="flex space-x-2">
               <button
+                onClick={() => setShowNonCashExpenseModal(true)}
+                className="px-3 py-1.5 text-sm text-warning-600 border border-warning-300 rounded-lg hover:bg-warning-50 transition-colors flex items-center"
+              >
+                <AlertTriangle className="w-4 h-4 mr-1" />
+                Lançamento Não-Caixa
+              </button>
+              <button
                 onClick={handleExportPrint}
                 className="px-3 py-1.5 text-sm text-neutral-600 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors flex items-center"
               >
@@ -826,6 +835,15 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
             type="danger"
           />
         </Portal>
+      )}
+      
+      {/* Modal de Lançamentos Não-Caixa */}
+      {showNonCashExpenseModal && (
+        <NonCashExpenseModal
+          isOpen={showNonCashExpenseModal}
+          onClose={() => setShowNonCashExpenseModal(false)}
+          lot={lot}
+        />
       )}
     </div>
   );

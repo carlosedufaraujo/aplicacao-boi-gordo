@@ -10,7 +10,9 @@ import {
   CostProportionalAllocation, SaleDesignation,
   // 🆕 TIPOS DO DRC
   CashFlowEntry, CashFlowPeriod, CashFlowProjection, WorkingCapital,
-  FinancialContribution, CashFlowEntryFormData, FinancialContributionFormData
+  FinancialContribution, CashFlowEntryFormData, FinancialContributionFormData,
+  // 🆕 TIPOS DE LANÇAMENTOS NÃO-CAIXA
+  NonCashExpense
 } from '../types';
 import { addDays, subDays, format } from 'date-fns';
 
@@ -55,6 +57,9 @@ interface AppState {
   cashFlowPeriods: CashFlowPeriod[];
   cashFlowProjections: CashFlowProjection[];
   workingCapitalHistory: WorkingCapital[];
+  
+  // 🆕 ESTADOS DE LANÇAMENTOS NÃO-CAIXA
+  nonCashExpenses: NonCashExpense[];
   
   // Ações - Navegação
   setCurrentPage: (page: string) => void;
@@ -226,6 +231,13 @@ interface AppState {
   // Ações - Análises e Projeções
   generateCashFlowProjection: (horizonDays: number) => void;
   calculateWorkingCapital: () => void;
+  
+  // 🆕 AÇÕES DE LANÇAMENTOS NÃO-CAIXA
+  addNonCashExpense: (expense: Omit<NonCashExpense, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateNonCashExpense: (id: string, data: Partial<NonCashExpense>) => void;
+  deleteNonCashExpense: (id: string) => void;
+  recordMortality: (lotId: string, quantity: number, cause: 'disease' | 'accident' | 'stress' | 'unknown', notes?: string) => void;
+  recordWeightLoss: (lotId: string, expectedWeight: number, actualWeight: number, notes?: string) => void;
 }
 
 // Helper function to generate 50 pens
@@ -382,6 +394,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   cashFlowProjections: [],
   workingCapitalHistory: [],
   
+  // 🆕 ESTADOS DE LANÇAMENTOS NÃO-CAIXA
+  nonCashExpenses: [],
+  
   // Ações - Navegação
   setCurrentPage: (page) => set({ currentPage: page }),
   setDarkMode: (darkMode) => set({ darkMode }),
@@ -524,6 +539,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           paymentStatus: 'pending',
           paymentDate: order.paymentDate,
           allocations: [],
+          impactsCashFlow: true, // Aquisição impacta o caixa
           createdAt: new Date(),
           updatedAt: new Date()
         };
@@ -709,6 +725,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       supplierId: record.supplier,
       paymentStatus: 'pending',
       allocations: [],
+      impactsCashFlow: true, // Sanidade impacta o caixa
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -822,6 +839,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       supplierId: cost.supplier,
       paymentStatus: 'pending',
       allocations: [],
+      impactsCashFlow: true, // Alimentação impacta o caixa
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -2129,5 +2147,138 @@ export const useAppStore = create<AppState>((set, get) => ({
     return {
       workingCapitalHistory: [...state.workingCapitalHistory, workingCapital]
     };
-  })
+  }),
+  
+  // 🆕 IMPLEMENTAÇÃO DE LANÇAMENTOS NÃO-CAIXA
+  addNonCashExpense: (expense) => set((state) => {
+    const newExpense: NonCashExpense = {
+      ...expense,
+      id: uuidv4(),
+      affectsCashFlow: false, // Sempre false para non-cash
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // Criar despesa correspondente com flag impactsCashFlow = false
+    const correspondingExpense: Expense = {
+      id: uuidv4(),
+      date: expense.date,
+      description: expense.description,
+      category: expense.type === 'mortality' ? 'deaths' : 'financial_other',
+      totalAmount: expense.monetaryValue,
+      paymentStatus: 'paid', // Não há pagamento real
+      allocations: [],
+      impactsCashFlow: false,
+      nonCashExpenseId: newExpense.id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // Se for mortalidade, atualizar o lote
+    if (expense.type === 'mortality' && expense.quantity !== undefined) {
+      const updatedLots = state.cattleLots.map(lot => 
+        lot.id === expense.relatedEntityId
+          ? { 
+              ...lot, 
+              deaths: (lot.deaths || 0) + expense.quantity!,
+              updatedAt: new Date()
+            }
+          : lot
+      );
+      
+      return {
+        nonCashExpenses: [...state.nonCashExpenses, newExpense],
+        expenses: [...state.expenses, correspondingExpense],
+        cattleLots: updatedLots
+      };
+    }
+    
+    return {
+      nonCashExpenses: [...state.nonCashExpenses, newExpense],
+      expenses: [...state.expenses, correspondingExpense]
+    };
+  }),
+  
+  updateNonCashExpense: (id, data) => set((state) => ({
+    nonCashExpenses: state.nonCashExpenses.map(expense => 
+      expense.id === id 
+        ? { ...expense, ...data, updatedAt: new Date() }
+        : expense
+    )
+  })),
+  
+  deleteNonCashExpense: (id) => set((state) => ({
+    nonCashExpenses: state.nonCashExpenses.filter(expense => expense.id !== id),
+    expenses: state.expenses.filter(expense => expense.nonCashExpenseId !== id)
+  })),
+  
+  recordMortality: (lotId, quantity, cause, notes) => {
+    const state = get();
+    const lot = state.cattleLots.find(l => l.id === lotId);
+    if (!lot) return;
+    
+    const order = state.purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    if (!order) return;
+    
+    // Calcular valor monetário da perda (baseado no custo médio por animal)
+    const costPerAnimal = lot.custoAcumulado.total / lot.entryQuantity;
+    const monetaryValue = costPerAnimal * quantity;
+    
+    const mortalityExpense: Omit<NonCashExpense, 'id' | 'createdAt' | 'updatedAt'> = {
+      date: new Date(),
+      type: 'mortality',
+      description: `Mortalidade de ${quantity} animais - Lote ${lot.lotNumber}`,
+      relatedEntityType: 'cattle_lot',
+      relatedEntityId: lotId,
+      quantity,
+      monetaryValue,
+      mortalityDetails: {
+        cause,
+        veterinarianReport: notes
+      },
+      accountingImpact: 'operational_loss',
+      affectsDRE: true,
+      affectsCashFlow: false,
+      notes
+    };
+    
+    get().addNonCashExpense(mortalityExpense);
+  },
+  
+  recordWeightLoss: (lotId, expectedWeight, actualWeight, notes) => {
+    const state = get();
+    const lot = state.cattleLots.find(l => l.id === lotId);
+    if (!lot) return;
+    
+    const weightLoss = expectedWeight - actualWeight;
+    const lossPercentage = (weightLoss / expectedWeight) * 100;
+    
+    // Calcular valor monetário da perda (baseado no preço médio de compra)
+    const order = state.purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    if (!order) return;
+    
+    const pricePerKg = (order.pricePerArroba / 15) * (order.rcPercentage || 50) / 100;
+    const monetaryValue = weightLoss * pricePerKg;
+    
+    const weightLossExpense: Omit<NonCashExpense, 'id' | 'createdAt' | 'updatedAt'> = {
+      date: new Date(),
+      type: 'weight_loss',
+      description: `Quebra de peso - Lote ${lot.lotNumber}`,
+      relatedEntityType: 'cattle_lot',
+      relatedEntityId: lotId,
+      weightLoss,
+      monetaryValue,
+      weightLossDetails: {
+        expectedWeight,
+        actualWeight,
+        lossPercentage
+      },
+      accountingImpact: 'cost_of_goods_sold',
+      affectsDRE: true,
+      affectsCashFlow: false,
+      notes
+    };
+    
+    get().addNonCashExpense(weightLossExpense);
+  }
 }));

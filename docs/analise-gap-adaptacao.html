@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise de GAP e Adaptação - Sistema CEAC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #3498db;
+        }
+        
+        .section-icon {
+            width: 50px;
+            height: 50px;
+            background: #3498db;
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            font-size: 1.8em;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .status-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        
+        .status-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .status-card.implemented {
+            border-color: #27ae60;
+            background: #e8f8f5;
+        }
+        
+        .status-card.partial {
+            border-color: #f39c12;
+            background: #fef5e7;
+        }
+        
+        .status-card.missing {
+            border-color: #e74c3c;
+            background: #fadbd8;
+        }
+        
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .status-title {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .badge-implemented {
+            background: #27ae60;
+        }
+        
+        .badge-partial {
+            background: #f39c12;
+        }
+        
+        .badge-missing {
+            background: #e74c3c;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .comparison-table th {
+            background: #34495e;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .action-item {
+            background: #ecf0f1;
+            border-left: 5px solid #3498db;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .action-item.high {
+            border-left-color: #e74c3c;
+            background: #fadbd8;
+        }
+        
+        .action-item.medium {
+            border-left-color: #f39c12;
+            background: #fef5e7;
+        }
+        
+        .action-item.low {
+            border-left-color: #27ae60;
+            background: #e8f8f5;
+        }
+        
+        .action-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .priority-label {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .priority-high {
+            background: #e74c3c;
+        }
+        
+        .priority-medium {
+            background: #f39c12;
+        }
+        
+        .priority-low {
+            background: #27ae60;
+        }
+        
+        .implementation-guide {
+            background: #e8f4fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .step-list {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+        
+        .step-list li {
+            counter-increment: step-counter;
+            position: relative;
+            padding-left: 50px;
+            margin: 20px 0;
+        }
+        
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #3498db;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .code-example {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        
+        .summary-box {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .summary-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .comparison-table {
+                font-size: 0.9em;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Análise de GAP e Plano de Adaptação</h1>
+        <p>Sistema CEAC - Comparativo com Arquitetura Ideal</p>
+    </div>
+    
+    <div class="container">
+        <!-- Resumo Executivo -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">📊</div>
+                <h2>Resumo Executivo</h2>
+            </div>
+            
+            <div class="summary-box">
+                <h3>Status Geral do Sistema CEAC</h3>
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <span class="stat-value">85%</span>
+                        <span class="stat-label">Funcionalidades Implementadas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">95%</span>
+                        <span class="stat-label">Interface Completa</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">15%</span>
+                        <span class="stat-label">Adaptações Necessárias</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">5</span>
+                        <span class="stat-label">Ações Prioritárias</span>
+                    </div>
+                </div>
+            </div>
+            
+            <p style="margin-top: 20px; font-size: 1.1em; text-align: center;">
+                <strong>Conclusão:</strong> O sistema está muito bem estruturado e necessita apenas de ajustes pontuais 
+                para atingir a arquitetura ideal proposta. A principal necessidade é a implementação do backend.
+            </p>
+        </div>
+        
+        <!-- Análise Comparativa -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">⚖️</div>
+                <h2>Análise Comparativa Detalhada</h2>
+            </div>
+            
+            <h3 style="margin-bottom: 20px;">1. Estrutura de Custos e Classificações</h3>
+            
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Funcionalidade</th>
+                        <th>Arquitetura Ideal</th>
+                        <th>Sistema CEAC</th>
+                        <th>Status</th>
+                        <th>Ação Necessária</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Categorização de Custos</strong></td>
+                        <td>Com/Sem impacto no caixa</td>
+                        <td>Categorias existentes, mas sem distinção clara</td>
+                        <td><span class="status-badge badge-partial">Parcial</span></td>
+                        <td>Adicionar flag "impactaCaixa" nas categorias</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tratamento de Mortalidade</strong></td>
+                        <td>Lançamento apenas no DRE</td>
+                        <td>Taxa calculada, mas não integrada ao DRE</td>
+                        <td><span class="status-badge badge-partial">Parcial</span></td>
+                        <td>Criar lançamento automático no DRE</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Quebra de Peso</strong></td>
+                        <td>Prejuízo no DRE sem afetar caixa</td>
+                        <td>Calculada e exibida em métricas</td>
+                        <td><span class="status-badge badge-partial">Parcial</span></td>
+                        <td>Integrar ao DRE como custo não-caixa</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sistema de Rateio</strong></td>
+                        <td>5 métodos de rateio automático</td>
+                        <td>Alocação proporcional implementada</td>
+                        <td><span class="status-badge badge-implemented">OK</span></td>
+                        <td>Estender para custos gerais (juros)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>DRE por Lote/Curral</strong></td>
+                        <td>Resultado detalhado por unidade</td>
+                        <td>DRE global apenas</td>
+                        <td><span class="status-badge badge-missing">Faltando</span></td>
+                        <td>Implementar DRE multinível</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h3 style="margin: 30px 0 20px 0;">2. Módulos e Integrações</h3>
+            
+            <div class="status-grid">
+                <div class="status-card implemented">
+                    <div class="status-header">
+                        <span class="status-title">✅ Já Implementados</span>
+                        <span class="status-badge badge-implemented">100%</span>
+                    </div>
+                    <ul>
+                        <li>Pipeline Compra → Abate completo</li>
+                        <li>Centro Financeiro com DRC</li>
+                        <li>Fluxo de Caixa detalhado</li>
+                        <li>Calendário Financeiro</li>
+                        <li>Modelo Lote-Curral flexível</li>
+                        <li>Conciliação Bancária</li>
+                        <li>Simulação de Vendas com PDF</li>
+                    </ul>
+                </div>
+                
+                <div class="status-card partial">
+                    <div class="status-header">
+                        <span class="status-title">⚠️ Precisam Adaptação</span>
+                        <span class="status-badge badge-partial">Ajustes</span>
+                    </div>
+                    <ul>
+                        <li>DRE sem detalhamento por lote</li>
+                        <li>Custos sem classificação caixa/não-caixa</li>
+                        <li>Rateio manual de custos gerais</li>
+                        <li>Mortalidade não integrada ao DRE</li>
+                        <li>Quebra de peso sem lançamento contábil</li>
+                    </ul>
+                </div>
+                
+                <div class="status-card missing">
+                    <div class="status-header">
+                        <span class="status-title">❌ Não Implementados</span>
+                        <span class="status-badge badge-missing">Novo</span>
+                    </div>
+                    <ul>
+                        <li>Backend e API REST</li>
+                        <li>Banco de Dados</li>
+                        <li>Tela unificada de custos gerais</li>
+                        <li>DRE multinível (geral/lote/curral)</li>
+                        <li>Relatórios de rentabilidade por unidade</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Plano de Adaptação -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">🎯</div>
+                <h2>Plano de Adaptação Priorizado</h2>
+            </div>
+            
+            <div class="action-item high">
+                <div class="action-header">
+                    <h3>1. Implementar Classificação de Custos (Com/Sem Caixa)</h3>
+                    <span class="priority-label priority-high">Alta Prioridade</span>
+                </div>
+                <p><strong>O que fazer:</strong> Adicionar campo "impactaCaixa" em todas as categorias de custos</p>
+                <p><strong>Como fazer:</strong></p>
+                <ol>
+                    <li>Atualizar interface <code>ExpenseCategory</code> com flag booleana</li>
+                    <li>Modificar lógica de lançamento para verificar a flag</li>
+                    <li>Se <code>impactaCaixa = true</code> → Lança no Fluxo + DRE</li>
+                    <li>Se <code>impactaCaixa = false</code> → Lança apenas no DRE</li>
+                </ol>
+                <div class="code-example">
+interface ExpenseCategory {
+  id: string;
+  name: string;
+  impactaCaixa: boolean; // NOVO
+  costCenter: string;
+}
+
+// Categorias atualizadas
+const EXPENSE_CATEGORIES = {
+  mortalidade: { 
+    name: 'Mortalidade', 
+    impactaCaixa: false // Sem impacto no caixa
+  },
+  quebraPeso: { 
+    name: 'Quebra de Peso', 
+    impactaCaixa: false 
+  },
+  alimentacao: { 
+    name: 'Alimentação', 
+    impactaCaixa: true // Com impacto no caixa
+  }
+}
+                </div>
+            </div>
+            
+            <div class="action-item high">
+                <div class="action-header">
+                    <h3>2. Criar Tela de Lançamento de Custos Gerais</h3>
+                    <span class="priority-label priority-high">Alta Prioridade</span>
+                </div>
+                <p><strong>O que fazer:</strong> Interface unificada para lançar custos com rateio automático</p>
+                <p><strong>Componentes necessários:</strong></p>
+                <ul>
+                    <li>Formulário com tipo de custo, valor, método de rateio</li>
+                    <li>Seleção de lotes/currais afetados</li>
+                    <li>Preview do rateio antes de confirmar</li>
+                    <li>Integração com sistema de alocação proporcional existente</li>
+                </ul>
+                <p><strong>Aproveitar:</strong> Sistema <code>CostProportionalAllocation</code> já implementado</p>
+            </div>
+            
+            <div class="action-item medium">
+                <div class="action-header">
+                    <h3>3. Implementar DRE Multinível</h3>
+                    <span class="priority-label priority-medium">Média Prioridade</span>
+                </div>
+                <p><strong>O que fazer:</strong> Estender DRE atual para níveis: Geral → Lote → Curral</p>
+                <p><strong>Estrutura sugerida:</strong></p>
+                <div class="implementation-guide">
+                    <ul>
+                        <li>Criar interface <code>DRELevel</code> com tipo (geral/lote/curral)</li>
+                        <li>Agregar custos por nível usando estrutura existente</li>
+                        <li>Adicionar filtros no dashboard para visualização</li>
+                        <li>Usar <code>CattleLot.accumulatedCosts</code> como base</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="action-item medium">
+                <div class="action-header">
+                    <h3>4. Integrar Mortalidade e Quebra ao DRE</h3>
+                    <span class="priority-label priority-medium">Média Prioridade</span>
+                </div>
+                <p><strong>O que fazer:</strong> Criar lançamentos automáticos no DRE quando ocorrer:</p>
+                <ul>
+                    <li><strong>Mortalidade:</strong> Quantidade × Custo médio do animal</li>
+                    <li><strong>Quebra de peso:</strong> Kg perdidos × Valor do kg</li>
+                </ul>
+                <p><strong>Implementação:</strong></p>
+                <ol>
+                    <li>Hook no registro de recepção para calcular quebra</li>
+                    <li>Hook no registro de mortalidade</li>
+                    <li>Criar entrada automática no DRE (sem afetar caixa)</li>
+                </ol>
+            </div>
+            
+            <div class="action-item low">
+                <div class="action-header">
+                    <h3>5. Backend e Persistência</h3>
+                    <span class="priority-label priority-low">Já Identificado</span>
+                </div>
+                <p><strong>Status:</strong> Já está no roadmap como prioridade para produção</p>
+                <p><strong>Recomendação:</strong> Manter arquitetura sugerida no levantamento</p>
+            </div>
+        </div>
+        
+        <!-- Implementação Técnica -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">⚙️</div>
+                <h2>Guia de Implementação Técnica</h2>
+            </div>
+            
+            <h3>Passo a Passo para Adaptações</h3>
+            
+            <ol class="step-list">
+                <li>
+                    <strong>Atualizar Store Zustand</strong>
+                    <p>Adicionar novas funções no store para lidar com lançamentos sem caixa:</p>
+                    <div class="code-example">
+// No useFinanceStore
+addNonCashEntry: (entry: Omit&lt;DREEntry, 'id'&gt;) => {
+  // Lança apenas no DRE, não no fluxo de caixa
+  set((state) => ({
+    dreEntries: [...state.dreEntries, {
+      ...entry,
+      id: generateId(),
+      impactaCaixa: false
+    }]
+  }));
+}
+                    </div>
+                </li>
+                
+                <li>
+                    <strong>Criar Componente de Custos Gerais</strong>
+                    <p>Novo componente em <code>/components/costs/GeneralCostsForm.tsx</code></p>
+                    <ul>
+                        <li>Usar React Hook Form com validação Zod</li>
+                        <li>Integrar com sistema de alocação existente</li>
+                        <li>Preview antes de confirmar</li>
+                    </ul>
+                </li>
+                
+                <li>
+                    <strong>Estender Interface DRE</strong>
+                    <p>Adicionar níveis e filtros ao DRE existente:</p>
+                    <div class="code-example">
+interface DREReport {
+  level: 'general' | 'lot' | 'pen';
+  entityId?: string; // ID do lote ou curral
+  period: DateRange;
+  entries: DREEntry[];
+  totals: DRETotals;
+}
+                    </div>
+                </li>
+                
+                <li>
+                    <strong>Automatizar Lançamentos</strong>
+                    <p>Criar hooks para eventos específicos:</p>
+                    <ul>
+                        <li><code>onMortalityRegistered</code> → Lança prejuízo no DRE</li>
+                        <li><code>onWeightLossDetected</code> → Lança quebra no DRE</li>
+                        <li><code>onInterestPayment</code> → Rateia juros proporcionalmente</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+        
+        <!-- Aproveitamento do Existente -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">♻️</div>
+                <h2>Aproveitamento da Estrutura Existente</h2>
+            </div>
+            
+            <h3>✅ O que Manter Sem Alterações</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin: 10px 0;">✓ <strong>Modelo Lote-Curral:</strong> Já está perfeito com alocação flexível</li>
+                <li style="margin: 10px 0;">✓ <strong>Sistema de Alocação Proporcional:</strong> Base sólida para rateios</li>
+                <li style="margin: 10px 0;">✓ <strong>Pipeline Completo:</strong> Fluxo operacional está correto</li>
+                <li style="margin: 10px 0;">✓ <strong>Centro Financeiro:</strong> Estrutura de categorias é adequada</li>
+                <li style="margin: 10px 0;">✓ <strong>Conciliação Bancária:</strong> Funcionalidade completa</li>
+                <li style="margin: 10px 0;">✓ <strong>Interface e UX:</strong> Design profissional e responsivo</li>
+            </ul>
+            
+            <h3>🔄 O que Adaptar</h3>
+            <table class="comparison-table">
+                <tr>
+                    <th>Componente</th>
+                    <th>Adaptação Necessária</th>
+                    <th>Esforço</th>
+                </tr>
+                <tr>
+                    <td>ExpenseCategory</td>
+                    <td>Adicionar flag impactaCaixa</td>
+                    <td>Baixo</td>
+                </tr>
+                <tr>
+                    <td>DRE Module</td>
+                    <td>Adicionar níveis e filtros</td>
+                    <td>Médio</td>
+                </tr>
+                <tr>
+                    <td>Cost Allocation</td>
+                    <td>Estender para custos gerais</td>
+                    <td>Baixo</td>
+                </tr>
+                <tr>
+                    <td>Reception Form</td>
+                    <td>Trigger para lançamentos automáticos</td>
+                    <td>Baixo</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Cronograma Sugerido -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">📅</div>
+                <h2>Cronograma de Implementação</h2>
+            </div>
+            
+            <div class="implementation-guide">
+                <h3>Sprint 1 (1 semana) - Fundação</h3>
+                <ul>
+                    <li>Implementar classificação com/sem caixa nas categorias</li>
+                    <li>Atualizar lógica de lançamentos</li>
+                    <li>Testes unitários</li>
+                </ul>
+                
+                <h3>Sprint 2 (1 semana) - Interface</h3>
+                <ul>
+                    <li>Criar tela de lançamento de custos gerais</li>
+                    <li>Integrar com sistema de rateio</li>
+                    <li>Preview e confirmação</li>
+                </ul>
+                
+                <h3>Sprint 3 (2 semanas) - DRE Multinível</h3>
+                <ul>
+                    <li>Estender estrutura do DRE</li>
+                    <li>Implementar agregações por nível</li>
+                    <li>Criar filtros e visualizações</li>
+                </ul>
+                
+                <h3>Sprint 4 (1 semana) - Automações</h3>
+                <ul>
+                    <li>Hooks para mortalidade e quebra</li>
+                    <li>Lançamentos automáticos</li>
+                    <li>Testes integrados</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Conclusão -->
+        <div class="section">
+            <div class="section-header">
+                <div class="section-icon">✅</div>
+                <h2>Conclusão e Recomendações Finais</h2>
+            </div>
+            
+            <div class="summary-box" style="background: linear-gradient(135deg, #27ae60, #229954);">
+                <h3>Sistema CEAC - Próximos Passos</h3>
+                <p style="font-size: 1.1em; margin-top: 15px;">
+                    O sistema está <strong>85% alinhado</strong> com a arquitetura ideal. 
+                    As adaptações necessárias são <strong>incrementais</strong> e podem ser 
+                    implementadas sem grandes refatorações.
+                </p>
+            </div>
+            
+            <h3 style="margin: 30px 0 20px 0;">Recomendações Prioritárias:</h3>
+            
+            <ol style="font-size: 1.1em; line-height: 2;">
+                <li><strong>Não refatorar o que funciona:</strong> A estrutura base está excelente</li>
+                <li><strong>Foco nas lacunas identificadas:</strong> Principalmente classificação de custos e DRE multinível</li>
+                <li><strong>Implementação incremental:</strong> Seguir o cronograma de sprints sugerido</li>
+                <li><strong>Manter compatibilidade:</strong> Todas as adaptações devem preservar funcionalidades existentes</li>
+                <li><strong>Backend quando apropriado:</strong> Já está no roadmap, não é bloqueador para as melhorias</li>
+            </ol>
+            
+            <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin-top: 30px;">
+                <h4 style="color: #2980b9; margin-bottom: 10px;">💡 Insight Principal</h4>
+                <p>
+                    Vocês construíram uma base sólida com o modelo Lote-Curral e sistema de alocação proporcional. 
+                    As adaptações sugeridas são extensões naturais do que já existe, não sendo necessário 
+                    reimplementar funcionalidades. O esforço estimado total é de <strong>5 semanas</strong> 
+                    para ter o sistema 100% alinhado com a arquitetura ideal.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
