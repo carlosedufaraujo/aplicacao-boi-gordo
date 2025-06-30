@@ -9,9 +9,10 @@ import { env } from '@/config/env';
 import { errorHandler, notFoundHandler } from '@/middlewares/errorHandler';
 import { httpLogger } from '@/config/logger';
 
-// Importação das rotas (serão criadas depois)
-// import { authRoutes } from '@/routes/auth.routes';
-// import { userRoutes } from '@/routes/user.routes';
+// Importação das rotas
+import { authRoutes } from '@/routes/auth.routes';
+import { partnerRoutes } from '@/routes/partner.routes';
+// import { payerAccountRoutes } from '@/routes/payerAccount.routes';
 // import { purchaseOrderRoutes } from '@/routes/purchaseOrder.routes';
 // import { lotRoutes } from '@/routes/lot.routes';
 // import { penRoutes } from '@/routes/pen.routes';
@@ -69,9 +70,10 @@ export function createApp(): Application {
   // Rotas da API
   const apiRouter = express.Router();
   
-  // Registra as rotas (descomentar conforme forem criadas)
-  // apiRouter.use('/auth', authRoutes);
-  // apiRouter.use('/users', userRoutes);
+  // Registra as rotas
+  apiRouter.use('/auth', authRoutes);
+  apiRouter.use('/partners', partnerRoutes);
+  // apiRouter.use('/payer-accounts', payerAccountRoutes);
   // apiRouter.use('/purchase-orders', purchaseOrderRoutes);
   // apiRouter.use('/lots', lotRoutes);
   // apiRouter.use('/pens', penRoutes);
