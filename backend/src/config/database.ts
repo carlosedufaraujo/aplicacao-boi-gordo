@@ -5,9 +5,11 @@ import { logger } from './logger';
 // Configuração do Prisma baseada no ambiente
 const prismaClientOptions = {
   log: env.nodeEnv === 'development' 
-    ? ['query', 'info', 'warn', 'error'] 
-    : ['error'],
-  errorFormat: env.nodeEnv === 'development' ? 'pretty' : 'minimal',
+    ? ['query' as const, 'error' as const, 'warn' as const] 
+    : ['error' as const],
+  errorFormat: env.nodeEnv === 'development' 
+    ? 'pretty' as const 
+    : 'minimal' as const,
 } as const;
 
 // Cria instância do Prisma Client
@@ -52,4 +54,20 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
   await disconnectDatabase();
   process.exit(0);
+});
+
+// Tratamento de erros de conexão
+prisma.$connect()
+  .then(() => {
+    logger.info('✅ Conectado ao banco de dados');
+  })
+  .catch((error) => {
+    logger.error('❌ Erro ao conectar ao banco de dados:', error);
+    process.exit(1);
+  });
+
+// Desconectar ao encerrar a aplicação
+process.on('beforeExit', async () => {
+  await prisma.$disconnect();
+  logger.info('Desconectado do banco de dados');
 }); 

@@ -143,7 +143,7 @@ export class AuthService {
     };
 
     return jwt.sign(payload, env.jwtSecret, {
-      expiresIn: env.jwtExpiresIn,
+      expiresIn: env.jwtExpiresIn as string,
     });
   }
 
