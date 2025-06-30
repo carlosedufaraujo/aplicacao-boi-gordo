@@ -12,9 +12,9 @@ import { httpLogger } from '@/config/logger';
 // Importação das rotas
 import { authRoutes } from '@/routes/auth.routes';
 import { partnerRoutes } from '@/routes/partner.routes';
-// import { payerAccountRoutes } from '@/routes/payerAccount.routes';
-// import { purchaseOrderRoutes } from '@/routes/purchaseOrder.routes';
-// import { lotRoutes } from '@/routes/lot.routes';
+import { payerAccountRoutes } from '@/routes/payerAccount.routes';
+import { purchaseOrderRoutes } from '@/routes/purchaseOrder.routes';
+// import { cattleLotRoutes } from '@/routes/cattleLot.routes';
 // import { penRoutes } from '@/routes/pen.routes';
 // import { expenseRoutes } from '@/routes/expense.routes';
 // import { revenueRoutes } from '@/routes/revenue.routes';
@@ -73,9 +73,9 @@ export function createApp(): Application {
   // Registra as rotas
   apiRouter.use('/auth', authRoutes);
   apiRouter.use('/partners', partnerRoutes);
-  // apiRouter.use('/payer-accounts', payerAccountRoutes);
-  // apiRouter.use('/purchase-orders', purchaseOrderRoutes);
-  // apiRouter.use('/lots', lotRoutes);
+  apiRouter.use('/payer-accounts', payerAccountRoutes);
+  apiRouter.use('/purchase-orders', purchaseOrderRoutes);
+  // apiRouter.use('/lots', cattleLotRoutes);
   // apiRouter.use('/pens', penRoutes);
   // apiRouter.use('/expenses', expenseRoutes);
   // apiRouter.use('/revenues', revenueRoutes);
