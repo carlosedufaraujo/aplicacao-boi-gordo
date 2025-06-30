@@ -65,7 +65,7 @@ export const Dashboard: React.FC = () => {
         const carcassWeight = order.totalWeight * (rcPercentage / 100);
         const arrobas = carcassWeight / 15;
         const animalValue = arrobas * order.pricePerArroba;
-        const orderTotal = animalValue + order.commission + order.taxes + order.otherCosts;
+        const orderTotal = animalValue + order.commission + order.otherCosts;
         return total + orderTotal;
       }, 0);
     
@@ -79,7 +79,7 @@ export const Dashboard: React.FC = () => {
         const carcassWeight = order.totalWeight * (rcPercentage / 100);
         const arrobas = carcassWeight / 15;
         const animalValue = arrobas * order.pricePerArroba;
-        const orderTotal = animalValue + order.commission + order.taxes + order.otherCosts;
+        const orderTotal = animalValue + order.commission + order.otherCosts;
         return total + orderTotal;
       }, 0);
     

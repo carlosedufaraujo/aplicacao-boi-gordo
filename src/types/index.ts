@@ -510,16 +510,24 @@ export interface Expense {
     // Aquisição
     | 'animal_purchase' | 'commission' | 'freight' | 'acquisition_other'
     // Engorda
-    | 'feed' | 'health_costs' | 'operational_costs' | 'fattening_other'
+    | 'feed' | 'health_costs' | 'operational_costs' | 'fattening_other' | 'deaths' | 'weight_loss'
     // Administrativo
-    | 'general_admin' | 'marketing' | 'accounting' | 'personnel' | 'office' | 'services' | 'technology' | 'admin_other'
+    | 'general_admin' | 'marketing' | 'accounting' | 'personnel' | 'office' | 'services' | 'technology' | 'admin_other' | 'depreciation'
     // Financeiro
-    | 'taxes' | 'interest' | 'fees' | 'insurance' | 'capital_cost' | 'financial_management' | 'deaths' | 'default' | 'financial_other';
+    | 'taxes' | 'interest' | 'fees' | 'insurance' | 'capital_cost' | 'financial_management' | 'default' | 'tax_deductions' | 'slaughterhouse_advance' | 'financial_other'
+    // Vendas
+    | 'sales_commission' | 'sales_freight' | 'grading_costs' | 'sales_other'
+    // Receitas
+    | 'cattle_sales' | 'service_revenue' | 'byproduct_sales' | 'other_revenue'
+    // Aportes e Financiamentos
+    | 'partner_contribution' | 'partner_loan' | 'bank_financing' | 'external_investor';
   totalAmount: number;
   supplierId?: string;
   invoiceNumber?: string;
-  paymentStatus: 'pending' | 'paid' | 'overdue';
-  paymentDate?: Date;
+  // MODELO HÍBRIDO: Substituindo paymentStatus e paymentDate
+  dueDate: Date;          // Data de vencimento (sempre preenchida)
+  paymentDate?: Date;     // Data de pagamento (quando realizado)
+  isPaid: boolean;        // Flag simples: false = previsto, true = realizado
   allocations: CostAllocation[];
   attachments?: string[];
   // 🆕 NOVO: Flag para indicar se impacta o caixa
@@ -528,6 +536,73 @@ export interface Expense {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// 🆕 NOVA INTERFACE: Configuração de categorias de despesa
+export interface ExpenseCategoryConfig {
+  category: Expense['category'];
+  name: string;
+  costCenter: 'acquisition' | 'fattening' | 'administrative' | 'financial' | 'sales' | 'revenue' | 'contributions';
+  impactsCashFlow: boolean;
+  isRevenue?: boolean; // Para diferenciar receitas de despesas
+}
+
+// 🆕 CONFIGURAÇÃO DE CATEGORIAS (para uso no sistema)
+export const EXPENSE_CATEGORIES: ExpenseCategoryConfig[] = [
+  // Aquisição
+  { category: 'animal_purchase', name: 'Compra de Animais', costCenter: 'acquisition', impactsCashFlow: true },
+  { category: 'commission', name: 'Comissão', costCenter: 'acquisition', impactsCashFlow: true },
+  { category: 'freight', name: 'Frete', costCenter: 'acquisition', impactsCashFlow: true },
+  { category: 'acquisition_other', name: 'Documentação, Taxas, Etc.', costCenter: 'acquisition', impactsCashFlow: true },
+  
+  // Engorda
+  { category: 'feed', name: 'Alimentação', costCenter: 'fattening', impactsCashFlow: true },
+  { category: 'health_costs', name: 'Sanidade', costCenter: 'fattening', impactsCashFlow: true },
+  { category: 'operational_costs', name: 'Custos Operacionais', costCenter: 'fattening', impactsCashFlow: true },
+  { category: 'deaths', name: 'Mortalidade', costCenter: 'fattening', impactsCashFlow: false },
+  { category: 'weight_loss', name: 'Quebra de Peso', costCenter: 'fattening', impactsCashFlow: false },
+  { category: 'fattening_other', name: 'Outros Engorda', costCenter: 'fattening', impactsCashFlow: true },
+  
+  // Administrativo
+  { category: 'general_admin', name: 'Administração Geral', costCenter: 'administrative', impactsCashFlow: true },
+  { category: 'personnel', name: 'Pessoal', costCenter: 'administrative', impactsCashFlow: true },
+  { category: 'office', name: 'Escritório', costCenter: 'administrative', impactsCashFlow: true },
+  { category: 'marketing', name: 'Marketing', costCenter: 'administrative', impactsCashFlow: true },
+  { category: 'accounting', name: 'Contabilidade', costCenter: 'administrative', impactsCashFlow: true },
+  { category: 'services', name: 'Serviços', costCenter: 'administrative', impactsCashFlow: true },
+  { category: 'technology', name: 'Tecnologia', costCenter: 'administrative', impactsCashFlow: true },
+  { category: 'depreciation', name: 'Depreciação', costCenter: 'administrative', impactsCashFlow: false },
+  { category: 'admin_other', name: 'Outros Admin', costCenter: 'administrative', impactsCashFlow: true },
+  
+  // Financeiro
+  { category: 'taxes', name: 'Impostos', costCenter: 'financial', impactsCashFlow: true },
+  { category: 'interest', name: 'Juros', costCenter: 'financial', impactsCashFlow: true },
+  { category: 'fees', name: 'Taxas', costCenter: 'financial', impactsCashFlow: true },
+  { category: 'insurance', name: 'Seguro', costCenter: 'financial', impactsCashFlow: true },
+  { category: 'capital_cost', name: 'Custo de Capital', costCenter: 'financial', impactsCashFlow: false },
+  { category: 'financial_management', name: 'Gestão Financeira', costCenter: 'financial', impactsCashFlow: true },
+  { category: 'default', name: 'Inadimplência', costCenter: 'financial', impactsCashFlow: false },
+  { category: 'tax_deductions', name: 'Deduções Fiscais', costCenter: 'financial', impactsCashFlow: false },
+  { category: 'slaughterhouse_advance', name: 'Adiantamento Frigorífico', costCenter: 'financial', impactsCashFlow: false },
+  { category: 'financial_other', name: 'Outros Financeiro', costCenter: 'financial', impactsCashFlow: true },
+  
+  // Vendas
+  { category: 'sales_commission', name: 'Comissão de Venda', costCenter: 'sales', impactsCashFlow: true },
+  { category: 'sales_freight', name: 'Frete de Venda', costCenter: 'sales', impactsCashFlow: true },
+  { category: 'grading_costs', name: 'Classificação', costCenter: 'sales', impactsCashFlow: true },
+  { category: 'sales_other', name: 'Outros Vendas', costCenter: 'sales', impactsCashFlow: true },
+  
+  // Receitas
+  { category: 'cattle_sales', name: 'Venda de Gado', costCenter: 'revenue', impactsCashFlow: true, isRevenue: true },
+  { category: 'service_revenue', name: 'Prestação de Serviço', costCenter: 'revenue', impactsCashFlow: true, isRevenue: true },
+  { category: 'byproduct_sales', name: 'Venda de Subprodutos', costCenter: 'revenue', impactsCashFlow: true, isRevenue: true },
+  { category: 'other_revenue', name: 'Outras Receitas', costCenter: 'revenue', impactsCashFlow: true, isRevenue: true },
+  
+  // Aportes e Financiamentos
+  { category: 'partner_contribution', name: 'Aporte de Sócio', costCenter: 'contributions', impactsCashFlow: true, isRevenue: true },
+  { category: 'partner_loan', name: 'Empréstimo de Sócio', costCenter: 'contributions', impactsCashFlow: true, isRevenue: true },
+  { category: 'bank_financing', name: 'Financiamento Bancário', costCenter: 'contributions', impactsCashFlow: true, isRevenue: true },
+  { category: 'external_investor', name: 'Investidor Externo', costCenter: 'contributions', impactsCashFlow: true, isRevenue: true },
+];
 
 export interface BudgetPlan {
   id: string;
@@ -758,14 +833,23 @@ export interface ExpenseFormData {
     // Aquisição
     | 'animal_purchase' | 'commission' | 'freight' | 'acquisition_other'
     // Engorda
-    | 'feed' | 'health_costs' | 'operational_costs' | 'fattening_other'
+    | 'feed' | 'health_costs' | 'operational_costs' | 'fattening_other' | 'deaths' | 'weight_loss'
     // Administrativo
-    | 'general_admin' | 'marketing' | 'accounting' | 'personnel' | 'office' | 'services' | 'technology' | 'admin_other'
+    | 'general_admin' | 'marketing' | 'accounting' | 'personnel' | 'office' | 'services' | 'technology' | 'admin_other' | 'depreciation'
     // Financeiro
-    | 'taxes' | 'interest' | 'fees' | 'insurance' | 'capital_cost' | 'financial_management' | 'deaths' | 'default' | 'financial_other';
+    | 'taxes' | 'interest' | 'fees' | 'insurance' | 'capital_cost' | 'financial_management' | 'default' | 'tax_deductions' | 'slaughterhouse_advance' | 'financial_other'
+    // Vendas
+    | 'sales_commission' | 'sales_freight' | 'grading_costs' | 'sales_other'
+    // Receitas
+    | 'cattle_sales' | 'service_revenue' | 'byproduct_sales' | 'other_revenue'
+    // Aportes e Financiamentos
+    | 'partner_contribution' | 'partner_loan' | 'bank_financing' | 'external_investor';
   totalAmount: number;
   supplierId?: string;
   invoiceNumber?: string;
+  // MODELO HÍBRIDO
+  dueDate: Date;          // Data de vencimento
+  isPaid: boolean;        // Se já foi pago
   // NOVO: Tipo de alocação
   allocationType: 'direct' | 'indirect';
   // ATUALIZADO: Alocações com tipo de destino

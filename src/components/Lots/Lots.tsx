@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LotsTable } from './LotsTable';
 import { PenMap } from './PenMap';
-import { List, Map, Package, DollarSign, TrendingDown, AlertTriangle, ShoppingCart, Calculator, Layers, Activity } from 'lucide-react';
+import { List, Map, Package, DollarSign, TrendingDown, AlertTriangle, ShoppingCart, Layers, Activity } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useAppStore } from '../../stores/useAppStore';
 
@@ -123,7 +123,7 @@ export const Lots: React.FC = () => {
           {/* Cards de Informações - Mais compactos e organizados */}
           <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
             <h3 className="text-lg font-semibold text-b3x-navy-900 mb-3">Métricas do Confinamento</h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
               {/* Quantidade de Animais Atual */}
               <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
@@ -184,18 +184,6 @@ export const Lots: React.FC = () => {
                 </div>
                 <p className="text-2xl font-bold text-b3x-navy-900">{avgTransportDeathRate.toFixed(1)}%</p>
                 <p className="text-xs text-neutral-600 mt-1">Transporte</p>
-              </div>
-
-              {/* Custo Médio R$/@ */}
-              <div className="bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-lg p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <Calculator className="w-4 h-4 text-purple-600" />
-                  <span className="text-xs font-medium text-neutral-500">Total</span>
-                </div>
-                <p className="text-2xl font-bold text-b3x-navy-900">
-                  {avgCostPerArroba.toFixed(0)}
-                </p>
-                <p className="text-xs text-neutral-600 mt-1">R$/@ Custo</p>
               </div>
             </div>
           </div>

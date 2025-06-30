@@ -538,10 +538,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       category: 'animal_purchase',
       totalAmount: animalValue,
       supplierId: order.vendorId,
-      paymentStatus: 'pending',
-      paymentDate: order.paymentDate,
+      dueDate: order.paymentDate || order.date,
+      paymentDate: undefined,
+      isPaid: false, // Começa como previsto
       allocations: [],
-      impactsCashFlow: true,
+      impactsCashFlow: true, // Compra de animais impacta o caixa
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -570,10 +571,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         category: 'commission',
         totalAmount: order.commission,
         supplierId: order.brokerId,
-        paymentStatus: 'pending',
-        paymentDate: order.commissionPaymentDate,
+        dueDate: order.commissionPaymentDate || order.paymentDate || order.date,
+        paymentDate: undefined,
+        isPaid: false, // Começa como previsto
         allocations: [],
-        impactsCashFlow: true,
+        impactsCashFlow: true, // Comissão impacta o caixa
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -602,10 +604,11 @@ export const useAppStore = create<AppState>((set, get) => ({
         description: `${order.otherCostsDescription || 'Outros custos'} - ${order.code}`,
         category: 'acquisition_other',
         totalAmount: order.otherCosts,
-        paymentStatus: 'pending',
-        paymentDate: order.otherCostsPaymentDate,
+        dueDate: order.otherCostsPaymentDate || order.paymentDate || order.date,
+        paymentDate: undefined,
+        isPaid: false, // Começa como previsto
         allocations: [],
-        impactsCashFlow: true,
+        impactsCashFlow: true, // Outros custos impactam o caixa
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -637,9 +640,91 @@ export const useAppStore = create<AppState>((set, get) => ({
       order.id === id ? { ...order, ...data, updatedAt: new Date() } : order
     )
   })),
-  deletePurchaseOrder: (id) => set((state) => ({
-    purchaseOrders: state.purchaseOrders.filter(order => order.id !== id)
-  })),
+  deletePurchaseOrder: (id) => set((state) => {
+    // Encontrar o lote associado à ordem
+    const relatedLot = state.cattleLots.find(lot => lot.purchaseOrderId === id);
+    
+    // Remover lote e suas alocações
+    const updatedLoteCurralLinks = relatedLot 
+      ? state.loteCurralLinks.filter(link => link.loteId !== relatedLot.id)
+      : state.loteCurralLinks;
+    
+    // Remover contas financeiras relacionadas à ordem
+    const updatedFinancialAccounts = state.financialAccounts.filter(
+      account => account.relatedEntityId !== id
+    );
+    
+    // Remover despesas relacionadas à ordem
+    const order = state.purchaseOrders.find(o => o.id === id);
+    const updatedExpenses = order 
+      ? state.expenses.filter(expense => !expense.description?.includes(order.code))
+      : state.expenses;
+    
+    // Remover alocações de custo do lote
+    const updatedCostAllocations = relatedLot
+      ? state.costProportionalAllocations.filter(alloc => alloc.loteId !== relatedLot.id)
+      : state.costProportionalAllocations;
+    
+    // Remover registros de saúde do lote
+    const updatedHealthRecords = relatedLot
+      ? state.healthRecords.filter(record => record.lotId !== relatedLot.id)
+      : state.healthRecords;
+    
+    // Remover custos de alimentação do lote
+    const updatedFeedCosts = relatedLot
+      ? state.feedCosts.filter(cost => cost.lotId !== relatedLot.id)
+      : state.feedCosts;
+    
+    // Remover movimentações do lote
+    const updatedLotMovements = relatedLot
+      ? state.lotMovements.filter(movement => movement.lotId !== relatedLot.id)
+      : state.lotMovements;
+    
+    // Remover registros de venda do lote
+    const updatedSaleRecords = relatedLot
+      ? state.saleRecords.filter(record => record.lotId !== relatedLot.id)
+      : state.saleRecords;
+    
+    // Remover designações de venda que referenciam o lote
+    const updatedSaleDesignations = relatedLot
+      ? state.saleDesignations.filter(designation => {
+          // Verificar se a designação está relacionada ao lote através dos animais designados
+          const relatedAnimals = designation.animalIds.some(animalId => {
+            // Por enquanto, vamos manter todas as designações já que não temos
+            // uma relação direta com o lote
+            return false;
+          });
+          return !relatedAnimals;
+        })
+      : state.saleDesignations;
+    
+    // Adicionar notificação
+    const notification: Notification = {
+      id: uuidv4(),
+      title: 'Ordem de Compra Excluída',
+      message: `Ordem ${order?.code || id} e todos os dados relacionados foram removidos do sistema`,
+      type: 'warning',
+      isRead: false,
+      createdAt: new Date()
+    };
+    
+    return {
+      purchaseOrders: state.purchaseOrders.filter(order => order.id !== id),
+      cattleLots: relatedLot 
+        ? state.cattleLots.filter(lot => lot.id !== relatedLot.id)
+        : state.cattleLots,
+      loteCurralLinks: updatedLoteCurralLinks,
+      financialAccounts: updatedFinancialAccounts,
+      expenses: updatedExpenses,
+      costProportionalAllocations: updatedCostAllocations,
+      healthRecords: updatedHealthRecords,
+      feedCosts: updatedFeedCosts,
+      lotMovements: updatedLotMovements,
+      saleRecords: updatedSaleRecords,
+      saleDesignations: updatedSaleDesignations,
+      notifications: [...state.notifications, notification]
+    };
+  }),
   movePurchaseOrderToNextStage: (id) => set((state) => {
     const order = state.purchaseOrders.find(o => o.id === id);
     if (!order) return state;
@@ -665,8 +750,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           
           // Atualizar status das despesas
           updatedState.expenses = updatedState.expenses.map(expense => 
-            expense.description?.includes(order.code) && expense.paymentStatus === 'pending'
-              ? { ...expense, paymentStatus: 'paid', paymentDate: new Date() }
+            expense.description?.includes(order.code) && !expense.isPaid
+              ? { ...expense, isPaid: true, paymentDate: new Date() }
               : expense
           );
         }
@@ -700,10 +785,11 @@ export const useAppStore = create<AppState>((set, get) => ({
             category: 'freight',
             totalAmount: freightCost,
             supplierId: order.transportCompanyId,
-            paymentStatus: 'pending',
-            paymentDate: order.paymentDate,
+            dueDate: order.paymentDate || new Date(),
+            paymentDate: undefined,
+            isPaid: false, // Começa como previsto
             allocations: [],
-            impactsCashFlow: true,
+            impactsCashFlow: true, // Frete impacta o caixa
             createdAt: new Date(),
             updatedAt: new Date()
           };
@@ -883,7 +969,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       category: 'health_costs',
       totalAmount: record.cost,
       supplierId: record.supplier,
-      paymentStatus: 'pending',
+      dueDate: new Date(), // Pagamento imediato para protocolos
+      paymentDate: undefined,
+      isPaid: false, // Começa como previsto
       allocations: [],
       impactsCashFlow: true, // Sanidade impacta o caixa
       createdAt: new Date(),
@@ -997,7 +1085,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       category: 'feed',
       totalAmount: cost.totalCost,
       supplierId: cost.supplier,
-      paymentStatus: 'pending',
+      dueDate: new Date(), // Pagamento imediato para alimentação
+      paymentDate: undefined,
+      isPaid: false, // Começa como previsto
       allocations: [],
       impactsCashFlow: true, // Alimentação impacta o caixa
       createdAt: new Date(),
@@ -2592,12 +2682,37 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
       });
       
-      // Calcular despesas operacionais (simplificado - 5% do custo total)
-      const operationalCost = costs.total * 0.05;
-      dre.operatingExpenses.administrative += operationalCost * 0.4;
-      dre.operatingExpenses.sales += operationalCost * 0.2;
-      dre.operatingExpenses.financial += operationalCost * 0.2;
-      dre.operatingExpenses.other += operationalCost * 0.2;
+      // Despesas operacionais agora vêm do Centro Financeiro (lançamentos reais)
+      // Buscar despesas do período que afetam o DRE
+      const expenses = state.expenses.filter(exp => 
+        exp.date >= periodStart &&
+        exp.date <= periodEnd &&
+        exp.impactsCashFlow // Apenas despesas que impactam o caixa
+      );
+      
+      expenses.forEach(expense => {
+        // Mapear categorias de despesas para o DRE
+        switch (expense.category) {
+          case 'general_admin':
+          case 'personnel':
+          case 'office':
+          case 'admin_other':
+            dre.operatingExpenses.administrative += expense.totalAmount;
+            break;
+          case 'marketing':
+            dre.operatingExpenses.sales += expense.totalAmount;
+            break;
+          case 'interest':
+          case 'fees':
+          case 'financial_management':
+          case 'financial_other':
+            dre.operatingExpenses.financial += expense.totalAmount;
+            break;
+          default:
+            dre.operatingExpenses.other += expense.totalAmount;
+            break;
+        }
+      });
       
       // Métricas
       totalHeads += lot.entryQuantity;
