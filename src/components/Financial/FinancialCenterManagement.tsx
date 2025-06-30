@@ -24,7 +24,7 @@ import {
   Info
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
-import { ExpenseAllocationForm } from '../Forms/ExpenseAllocationForm';
+import { ExpenseForm } from './ExpenseForm';
 import { RevenueAllocationForm } from '../Forms/RevenueAllocationForm';
 import { ContributionForm } from '../Forms/ContributionForm';
 import { CostCenterForm } from '../Forms/CostCenterForm';
@@ -32,6 +32,7 @@ import { CostAllocationChart } from './CostAllocationChart';
 import { TableWithPagination } from '../Common/TableWithPagination';
 import { format, startOfMonth, endOfMonth, subDays, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { EXPENSE_CATEGORIES } from '../../types';
 
 export const FinancialCenterManagement: React.FC = () => {
   const { 
@@ -2388,7 +2389,7 @@ export const FinancialCenterManagement: React.FC = () => {
 
       {/* Formulários */}
       {showExpenseForm && (
-        <ExpenseAllocationForm
+        <ExpenseForm
           isOpen={showExpenseForm}
           onClose={() => setShowExpenseForm(false)}
         />
