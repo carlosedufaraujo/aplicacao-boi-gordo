@@ -18,9 +18,9 @@ import { cattleLotRoutes } from '@/routes/cattleLot.routes';
 import { penRoutes } from '@/routes/pen.routes';
 import expenseRoutes from '@/routes/expense.routes';
 import revenueRoutes from '@/routes/revenue.routes';
-// import { saleRoutes } from '@/routes/sale.routes';
-// import { reportRoutes } from '@/routes/report.routes';
-// import { dashboardRoutes } from '@/routes/dashboard.routes';
+import saleRoutes from '@/routes/sale.routes';
+import reportRoutes from '@/routes/report.routes';
+import dashboardRoutes from '@/routes/dashboard.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -79,9 +79,9 @@ export function createApp(): Application {
   apiRouter.use('/pens', penRoutes);
   apiRouter.use('/expenses', expenseRoutes);
   apiRouter.use('/revenues', revenueRoutes);
-  // apiRouter.use('/sales', saleRoutes);
-  // apiRouter.use('/reports', reportRoutes);
-  // apiRouter.use('/dashboard', dashboardRoutes);
+  apiRouter.use('/sales', saleRoutes);
+  apiRouter.use('/reports', reportRoutes);
+  apiRouter.use('/dashboard', dashboardRoutes);
 
   // Monta as rotas no prefixo da API
   app.use(env.apiPrefix, apiRouter);
