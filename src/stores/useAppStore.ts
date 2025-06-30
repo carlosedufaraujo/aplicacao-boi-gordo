@@ -688,13 +688,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Remover designações de venda que referenciam o lote
     const updatedSaleDesignations = relatedLot
       ? state.saleDesignations.filter(designation => {
-          // Verificar se a designação está relacionada ao lote através dos animais designados
-          const relatedAnimals = designation.animalIds.some(animalId => {
-            // Por enquanto, vamos manter todas as designações já que não temos
-            // uma relação direta com o lote
-            return false;
-          });
-          return !relatedAnimals;
+          // Verificar se a designação está relacionada ao lote através da composição
+          const relatedToLot = designation.lotesComposicao?.some(
+            comp => comp.loteId === relatedLot.id
+          ) || false;
+          return !relatedToLot;
         })
       : state.saleDesignations;
     
@@ -2417,7 +2415,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       description: expense.description,
       category: expense.type === 'mortality' ? 'deaths' : 'financial_other',
       totalAmount: expense.monetaryValue,
-      paymentStatus: 'paid', // Não há pagamento real
+      dueDate: expense.date, // Lançamento não-caixa, vencimento é a mesma data
+      paymentDate: expense.date, // Já "realizado" pois não impacta caixa
+      isPaid: true, // Sempre true para lançamentos não-caixa
       allocations: [],
       impactsCashFlow: false,
       nonCashExpenseId: newExpense.id,
@@ -2998,7 +2998,9 @@ export const useAppStore = create<AppState>((set, get) => ({
                 allocation.costType === 'marketing' ? 'marketing' : 
                 'admin_other',
       totalAmount: alloc.allocatedAmount,
-      paymentStatus: 'paid',
+      dueDate: allocation.period.endDate, // Vencimento é a data do período
+      paymentDate: allocation.period.endDate, // Já pago quando aplicado
+      isPaid: true, // Rateio aplicado já é considerado pago
       allocations: [{
         id: uuidv4(),
         targetType: 'lot',
