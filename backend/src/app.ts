@@ -67,6 +67,33 @@ export function createApp(): Application {
     });
   });
 
+  // Rotas públicas temporárias para desenvolvimento
+  app.get('/api/v1/stats', async (req, res) => {
+    res.json({
+      totalCattle: 850,
+      activeLots: 12,
+      occupiedPens: 8,
+      totalRevenue: 2500000,
+      totalExpenses: 1800000,
+      netProfit: 700000,
+      averageWeight: 450,
+      mortalityRate: 0.5,
+    });
+  });
+
+  app.get('/api/v1/frontend-data', async (req, res) => {
+    res.json({
+      cycles: [],
+      cattleLots: [],
+      partners: [],
+      expenses: [],
+      revenues: [],
+      sales: [],
+      pens: [],
+      purchaseOrders: [],
+    });
+  });
+
   // Rotas da API
   const apiRouter = express.Router();
   

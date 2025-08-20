@@ -17,6 +17,10 @@ import { HerdValueChart } from './HerdValueChart';
 import { PurchaseByStateChart } from './PurchaseByStateChart';
 import { PurchaseByBrokerChart } from './PurchaseByBrokerChart';
 import { createTestData } from '../../utils/testData';
+import { ConnectionStatus } from '../Common/ConnectionStatus';
+import { TestConnection } from '../Common/TestConnection';
+import { RealDataDisplay } from '../Common/RealDataDisplay';
+import { RealDataSync } from '../Common/RealDataSync';
 
 export const Dashboard: React.FC = () => {
   const { kpis, cattleLots, setCurrentPage, updateKPIs, purchaseOrders, clearAllTestData } = useAppStore();
@@ -150,6 +154,18 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Status de Conexão */}
+      <ConnectionStatus />
+      
+      {/* Teste de Conexão Detalhado */}
+      <TestConnection />
+      
+      {/* Dados Reais do Sistema */}
+      <RealDataDisplay />
+      
+      {/* Sincronização de Dados Reais */}
+      <RealDataSync />
+      
       {/* Botão temporário para criar dados de teste */}
       {cattleLots.length === 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">

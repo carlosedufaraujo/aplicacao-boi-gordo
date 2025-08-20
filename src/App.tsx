@@ -2,8 +2,9 @@ import React, { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Layout/Sidebar';
 import { Header } from './components/Layout/Header';
-import { useAppStore } from './stores/useAppStore';
+import { useAppStoreWithAPI } from './stores/useAppStoreWithAPI';
 import { NotificationProvider } from './components/Notifications/NotificationProvider';
+import { DataSyncProvider } from './components/Common/DataSyncProvider';
 import { registerExistingUpdates } from './utils/systemUpdates';
 
 // Lazy load dos componentes principais
@@ -41,7 +42,7 @@ const PageLoader = () => (
 );
 
 function App() {
-  const { currentPage, sidebarCollapsed, darkMode } = useAppStore();
+  const { currentPage, sidebarCollapsed, darkMode } = useAppStoreWithAPI();
 
   // Aplicar classe dark no elemento root quando darkMode estiver ativo
   useEffect(() => {
@@ -105,27 +106,29 @@ function App() {
   };
 
   return (
-    <div className={`h-screen w-screen overflow-hidden ${darkMode ? 'dark bg-neutral-900' : 'bg-gradient-to-br from-neutral-50 to-neutral-100'} flex`}>
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-h-0">
-        <Header />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6">
-            {renderCurrentPage()}
-          </div>
-        </main>
+    <DataSyncProvider autoSync={true} syncInterval={5 * 60 * 1000} showStatus={true}>
+      <div className={`h-screen w-screen overflow-hidden ${darkMode ? 'dark bg-neutral-900' : 'bg-gradient-to-br from-neutral-50 to-neutral-100'} flex`}>
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-h-0">
+          <Header />
+          <main className="flex-1 overflow-y-auto">
+            <div className="p-4 md:p-6">
+              {renderCurrentPage()}
+            </div>
+          </main>
+        </div>
+        
+        {/* Sistema de Notificações */}
+        <Suspense fallback={null}>
+          <NotificationCenter />
+        </Suspense>
+        
+        {/* Gerenciador de Dados de Teste */}
+        <Suspense fallback={null}>
+          <TestDataManager />
+        </Suspense>
       </div>
-      
-      {/* Sistema de Notificações */}
-      <Suspense fallback={null}>
-        <NotificationCenter />
-      </Suspense>
-      
-      {/* Gerenciador de Dados de Teste */}
-      <Suspense fallback={null}>
-        <TestDataManager />
-      </Suspense>
-    </div>
+    </DataSyncProvider>
   );
 }
 

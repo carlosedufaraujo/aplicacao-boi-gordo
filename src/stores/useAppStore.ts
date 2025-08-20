@@ -93,6 +93,14 @@ interface AppState {
   addCycle: (cycle: Omit<FatteningCycle, 'id' | 'createdAt'>) => void;
   updateCycle: (id: string, data: Partial<FatteningCycle>) => void;
   deleteCycle: (id: string) => void;
+  setCycles: (cycles: FatteningCycle[]) => void;
+  setCattleLots: (lots: CattleLot[]) => void;
+  setPartners: (partners: Partner[]) => void;
+  setExpenses: (expenses: Expense[]) => void;
+  setRevenues: (revenues: any[]) => void;
+  setPenRegistrations: (pens: PenRegistration[]) => void;
+  setHealthRecords: (records: HealthRecord[]) => void;
+  setWeightReadings: (readings: WeightReading[]) => void;
   
   // Ações - Parceiros
   addPartner: (partner: Omit<Partner, 'id' | 'createdAt'>) => void;
@@ -453,6 +461,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   deleteCycle: (id) => set((state) => ({
     cycles: state.cycles.filter(cycle => cycle.id !== id)
   })),
+  setCycles: (cycles) => set({ cycles }),
+  setCattleLots: (cattleLots) => set({ cattleLots }),
+  setPartners: (partners) => set({ partners }),
+  setExpenses: (expenses) => set({ expenses }),
+  setRevenues: (revenues) => set({ revenues }),
+  setPenRegistrations: (penRegistrations) => set({ penRegistrations }),
+  setHealthRecords: (healthRecords) => set({ healthRecords }),
+  setWeightReadings: (weightReadings) => set({ weightReadings }),
   
   // Ações - Parceiros
   addPartner: (partner) => set((state) => ({

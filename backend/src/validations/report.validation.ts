@@ -25,9 +25,8 @@ export const reportValidation = {
     }),
     endDate: Joi.date().iso()
       .min(Joi.ref('startDate'))
-      .max(Joi.date().iso().options({ convert: false }).raw()
-        .custom((value, helpers) => {
-          const start = new Date(helpers.state.ancestors[0].startDate);
+      .custom((value, helpers) => {
+        const start = new Date(helpers.state.ancestors[0].startDate);
           const end = new Date(value);
           const daysDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
           
@@ -36,7 +35,7 @@ export const reportValidation = {
           }
           
           return value;
-        }))
+        })
       .required()
       .messages({
         'any.required': 'Data final é obrigatória',
