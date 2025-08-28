@@ -174,7 +174,7 @@ export class CattleLotController {
    * GET /lots/stats
    * Retorna estatísticas dos lotes
    */
-  async stats(req: Request, res: Response): Promise<void> {
+  async stats(_req: Request, res: Response): Promise<void> {
     const stats = await cattleLotService.getStats();
 
     res.json({

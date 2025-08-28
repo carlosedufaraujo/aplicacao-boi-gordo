@@ -1,8 +1,6 @@
 // Componente para gerenciar sincronização automática de dados
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import { CheckCircle, AlertCircle, RefreshCw, WifiOff, Wifi } from 'lucide-react';
-import { useAppStoreWithAPI } from '../../stores/useAppStoreWithAPI';
-import api from '../../services/api';
 
 interface SyncStatus {
   isOnline: boolean;
@@ -41,9 +39,8 @@ export const DataSyncProvider: React.FC<DataSyncProviderProps> = ({
   syncInterval = 5 * 60 * 1000, // 5 minutos
   showStatus = true,
 }) => {
-  const store = useAppStoreWithAPI();
   const [status, setStatus] = useState<SyncStatus>({
-    isOnline: false,
+    isOnline: true, // Assumir online por padrão
     isSyncing: false,
     lastSync: null,
     error: null,
@@ -53,9 +50,10 @@ export const DataSyncProvider: React.FC<DataSyncProviderProps> = ({
   // Verificar conexão
   const checkConnection = async () => {
     try {
-      const isHealthy = await api.healthCheck();
-      setStatus(prev => ({ ...prev, isOnline: isHealthy }));
-      return isHealthy;
+      // Verificar se o navegador está online
+      const isOnline = navigator.onLine;
+      setStatus(prev => ({ ...prev, isOnline }));
+      return isOnline;
     } catch {
       setStatus(prev => ({ ...prev, isOnline: false }));
       return false;
@@ -72,10 +70,12 @@ export const DataSyncProvider: React.FC<DataSyncProviderProps> = ({
       const isOnline = await checkConnection();
       
       if (!isOnline) {
-        throw new Error('Sem conexão com o servidor');
+        throw new Error('Sem conexão com a internet');
       }
 
-      await store.syncWithBackend();
+      // Como estamos usando Supabase diretamente, não precisamos sincronizar
+      // Apenas simular um delay para mostrar o processo
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       setStatus(prev => ({
         ...prev,

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { DollarSign, CheckCircle, AlertTriangle, Upload, Download, Filter, Search, Calendar, FileText, X, Plus, Settings, RefreshCw, FileUp, Database, Zap, Clock, ChevronDown, ChevronRight, CreditCard, Wallet, BarChart4, Layers } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
+import { useBankStatementsApi } from '../../hooks/api/useBankStatementsApi';
+import { useFinancialReconciliationsApi } from '../../hooks/api/useFinancialReconciliationsApi';
+import { usePayerAccountsApi } from '../../hooks/api/usePayerAccountsApi';
 import { BankStatementForm } from '../Forms/BankStatementForm';
 import { ReconciliationModal } from './ReconciliationModal';
 import { TableWithPagination } from '../Common/TableWithPagination';
@@ -14,17 +16,18 @@ import { ReconciliationRules } from './ReconciliationRules';
 import { AutoReconciliationModal } from './AutoReconciliationModal';
 
 export const FinancialReconciliation: React.FC = () => {
-  const { 
-    bankStatements, 
-    financialAccounts, 
-    financialReconciliations,
-    payerAccounts,
-    addBankStatement,
-    addFinancialReconciliation,
-    updateBankStatement,
-    updateFinancialAccount,
-    addNotification
-  } = useAppStore();
+  const { bankStatements, createBankStatement: addBankStatement, updateBankStatement } = useBankStatementsApi();
+  const { financialReconciliations, createFinancialReconciliation: addFinancialReconciliation } = useFinancialReconciliationsApi();
+  const { payerAccounts } = usePayerAccountsApi();
+  
+  // TODO: Implementar financialAccounts e addNotification quando necessário
+  const financialAccounts: any[] = [];
+  const updateFinancialAccount = (id: string, data: any) => {
+    console.log('TODO: Implementar updateFinancialAccount via API', id, data);
+  };
+  const addNotification = (notification: any) => {
+    console.log('TODO: Implementar addNotification via API', notification);
+  };
   
   // Estados para controle de modais e formulários
   const [showStatementForm, setShowStatementForm] = useState(false);

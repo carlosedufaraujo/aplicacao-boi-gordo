@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
+import { usePens } from '../../hooks/useSupabaseData';
 import { DREComparison as DREComparisonType, DREStatement } from '../../types';
 
 interface DREComparisonProps {
@@ -19,7 +20,8 @@ export const DREComparison: React.FC<DREComparisonProps> = ({
   periodStart,
   periodEnd
 }) => {
-  const { cattleLots, penRegistrations, compareDREs } = useAppStore();
+  const { cattleLots, compareDREs } = useAppStore();
+  const { pens } = usePens();
   const [selectedEntities, setSelectedEntities] = useState<string[]>([]);
   const [comparison, setComparison] = useState<DREComparisonType | null>(null);
   const [expandedEntity, setExpandedEntity] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export const DREComparison: React.FC<DREComparisonProps> = ({
 
   const entities = entityType === 'lot' 
     ? cattleLots.filter(lot => lot.status === 'active' || lot.status === 'sold')
-    : penRegistrations.filter(pen => pen.isActive);
+    : pens.filter(pen => pen.isActive);
 
   return (
     <div className="space-y-6">

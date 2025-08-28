@@ -1,4 +1,4 @@
-import { Expense } from '@prisma/client';
+// Expense type is used in comments and interfaces
 import { ExpenseRepository } from '@/repositories/expense.repository';
 import { NotFoundError, ValidationError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';
@@ -146,6 +146,7 @@ export class ExpenseService {
       ...data,
       impactsCashFlow,
       isPaid: false,
+      userId,
       user: { connect: { id: userId } },
       costCenter: data.costCenterId ? { connect: { id: data.costCenterId } } : undefined,
       lot: data.lotId ? { connect: { id: data.lotId } } : undefined,

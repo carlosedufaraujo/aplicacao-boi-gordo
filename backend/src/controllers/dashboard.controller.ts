@@ -8,7 +8,7 @@ export class DashboardController {
    * GET /dashboard/metrics
    * Retorna métricas principais do dashboard
    */
-  async metrics(req: Request, res: Response): Promise<void> {
+  async metrics(_req: Request, res: Response): Promise<void> {
     const metrics = await dashboardService.getMetrics();
 
     res.json({
@@ -36,7 +36,7 @@ export class DashboardController {
    * GET /dashboard/alerts
    * Retorna alertas e notificações
    */
-  async alerts(req: Request, res: Response): Promise<void> {
+  async alerts(_req: Request, res: Response): Promise<void> {
     const alerts = await dashboardService.getAlerts();
 
     res.json({

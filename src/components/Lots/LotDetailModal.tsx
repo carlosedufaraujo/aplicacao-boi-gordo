@@ -35,7 +35,7 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
   const transportCompany = lot.transportCompany ? partners.find(p => p.isTransporter && p.name === lot.transportCompany) : null;
   
   // Obter alocações do lote usando loteCurralLinks
-  const lotLinks = loteCurralLinks.filter(link => link.loteId === lot.id && link.status === 'active');
+  const lotLinks = loteCurralLinks ? loteCurralLinks.filter(link => link.loteId === lot.id && link.status === 'active') : [];
   
   // Obter currais onde o lote está alocado
   const lotPens = lotLinks.map(link => {
@@ -49,7 +49,8 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
   const costs = calculateLotCostsByCategory(lot.id);
   const saleSimulation = calculateLotProfit(lot.id, 320); // Preço fixo para cálculos
   
-  const daysInConfinement = Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24));
+  const entryDate = lot.entryDate instanceof Date ? lot.entryDate : new Date(lot.entryDate);
+  const daysInConfinement = Math.floor((new Date().getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
   const currentWeight = lot.entryWeight + (lot.estimatedGmd * lot.entryQuantity * daysInConfinement);
 
   // Calcular quebra de peso e diferença de animais

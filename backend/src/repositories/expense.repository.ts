@@ -145,7 +145,7 @@ export class ExpenseRepository extends BaseRepository<Expense> {
     });
 
     // Agrupa por categoria
-    const byCategory = expenses.reduce((acc: Record<string, any>, expense) => {
+    const byCategory = expenses.reduce((acc: Record<string, any>, expense: any) => {
       if (!acc[expense.category]) {
         acc[expense.category] = {
           category: expense.category,
@@ -187,7 +187,7 @@ export class ExpenseRepository extends BaseRepository<Expense> {
     });
 
     // Agrupa por centro de custo
-    const byCostCenter = expenses.reduce((acc: Record<string, any>, expense) => {
+    const byCostCenter = expenses.reduce((acc: Record<string, any>, expense: any) => {
       const centerName = expense.costCenter?.name || 'Sem Centro de Custo';
       const centerId = expense.costCenterId || 'no-center';
 
@@ -232,7 +232,7 @@ export class ExpenseRepository extends BaseRepository<Expense> {
       // Cria as alocações se fornecidas
       if (allocations && allocations.length > 0) {
         await tx.expenseAllocation.createMany({
-          data: allocations.map(allocation => ({
+          data: allocations.map((allocation: any) => ({
             expenseId: expense.id,
             ...allocation,
           })),

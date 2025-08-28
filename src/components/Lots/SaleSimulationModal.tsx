@@ -59,7 +59,7 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
   }, [rcPercentageCompra]);
   
   // Obter currais atuais
-  const currentPens = loteCurralLinks
+  const currentPens = (loteCurralLinks || [])
     .filter(link => link.loteId === currentLot.id && link.status === 'active')
     .map(link => {
       const pen = penRegistrations.find(p => p.penNumber === link.curralId);

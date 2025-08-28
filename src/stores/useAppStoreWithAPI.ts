@@ -132,6 +132,13 @@ interface AppState {
   loadDashboardData: (period?: string) => Promise<void>;
   updateKPIs: () => Promise<void>;
   
+  // Notificações
+  markNotificationAsRead: (id: string) => void;
+  markAllNotificationsAsRead: () => void;
+  deleteNotification: (id: string) => void;
+  clearAllNotifications: () => void;
+  getUnreadNotificationsCount: () => number;
+  
   // Métodos auxiliares
   generatePurchaseOrderCode: () => Promise<string>;
   generateLotNumber: () => Promise<string>;
@@ -686,6 +693,30 @@ export const useAppStoreWithAPI = create<AppState>()(
           await loadDashboardData();
         },
         
+        // ===== NOTIFICAÇÕES =====
+        markNotificationAsRead: (id) => set((state) => ({
+          notifications: state.notifications.map(notification => 
+            notification.id === id ? { ...notification, isRead: true } : notification
+          )
+        })),
+
+        markAllNotificationsAsRead: () => set((state) => ({
+          notifications: state.notifications.map(notification => ({ ...notification, isRead: true }))
+        })),
+
+        deleteNotification: (id) => set((state) => ({
+          notifications: state.notifications.filter(notification => notification.id !== id)
+        })),
+
+        clearAllNotifications: () => set(() => ({
+          notifications: []
+        })),
+
+        getUnreadNotificationsCount: () => {
+          const { notifications } = get();
+          return notifications.filter(notification => !notification.isRead).length;
+        },
+        
         // ===== MÉTODOS AUXILIARES =====
         generatePurchaseOrderCode: async () => {
           try {
@@ -721,15 +752,15 @@ export const useAppStoreWithAPI = create<AppState>()(
 
 // Auto-sync ao inicializar
 if (typeof window !== 'undefined') {
-  // Sincronizar ao carregar a aplicação
+  // Sincronizar ao carregar a aplicação com delay maior
   setTimeout(() => {
     useAppStoreWithAPI.getState().syncWithBackend();
-  }, 1000);
+  }, 3000);
   
-  // Re-sincronizar a cada 5 minutos
+  // Re-sincronizar a cada 10 minutos (aumentado de 5 minutos)
   setInterval(() => {
     useAppStoreWithAPI.getState().syncWithBackend();
-  }, 5 * 60 * 1000);
+  }, 10 * 60 * 1000);
 }
 
 export default useAppStoreWithAPI;

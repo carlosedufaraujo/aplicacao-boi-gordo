@@ -97,6 +97,9 @@ export const LotsTable: React.FC = () => {
   };
 
   const getPenNumbers = (lotId: string) => {
+    if (!loteCurralLinks || !Array.isArray(loteCurralLinks)) {
+      return [];
+    }
     const links = loteCurralLinks.filter(link => 
       link.loteId === lotId && link.status === 'active'
     );
@@ -105,7 +108,8 @@ export const LotsTable: React.FC = () => {
   
   // Calcular dias em confinamento
   const getDaysInConfinement = (lot: CattleLot) => {
-    return Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24));
+    const entryDate = lot.entryDate instanceof Date ? lot.entryDate : new Date(lot.entryDate);
+    return Math.floor((new Date().getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
   };
   
   // Calcular peso médio por animal

@@ -10,6 +10,63 @@ const partnerController = new PartnerController();
 // Todas as rotas precisam de autenticação
 router.use(authenticate);
 
+/**
+ * @swagger
+ * /partners:
+ *   get:
+ *     summary: Lista todos os parceiros
+ *     tags: [Partners]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Número da página
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Itens por página
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [VENDOR, BROKER, BUYER, INVESTOR, SERVICE_PROVIDER, OTHER]
+ *         description: Filtrar por tipo de parceiro
+ *     responses:
+ *       200:
+ *         description: Lista de parceiros
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/PaginatedResponse'
+ */
+
+/**
+ * @swagger
+ * /partners:
+ *   post:
+ *     summary: Criar novo parceiro
+ *     tags: [Partners]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Partner'
+ *     responses:
+ *       201:
+ *         description: Parceiro criado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Partner'
+ */
+
 // Rotas
 router.get(
   '/',

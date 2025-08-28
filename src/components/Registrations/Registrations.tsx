@@ -4,7 +4,10 @@ import { PartnerForm } from '../Forms/PartnerForm';
 import { PayerAccountForm } from '../Forms/PayerAccountForm';
 import { PenRegistrationForm } from '../Forms/PenRegistrationForm';
 import { CycleForm } from '../Forms/CycleForm';
-import { useAppStore } from '../../stores/useAppStore';
+import { usePartnersApi } from '../../hooks/api/usePartnersApi';
+import { usePensApi } from '../../hooks/api/usePensApi';
+import { usePayerAccountsApi } from '../../hooks/api/usePayerAccountsApi';
+import { useCyclesApi } from '../../hooks/api/useCyclesApi';
 import { ConfirmDialog } from '../Common/ConfirmDialog';
 import { Portal } from '../Common/Portal';
 import { TableWithPagination } from '../Common/TableWithPagination';
@@ -87,7 +90,13 @@ const colorMap = {
 };
 
 export const Registrations: React.FC = () => {
-  const { partners, debts, payerAccounts, penRegistrations, cycles, deletePartner, deletePayerAccount, deletePenRegistration, deleteCycle } = useAppStore();
+  const { partners, deletePartner } = usePartnersApi();
+  const { payerAccounts, deletePayerAccount } = usePayerAccountsApi();
+  const { pens: penRegistrations, deletePen: deletePenRegistration } = usePensApi();
+  const { cycles, deleteCycle } = useCyclesApi();
+  
+  // TODO: Implementar debts quando necessário
+  const debts: any[] = [];
   const [showPartnerForm, setShowPartnerForm] = useState(false);
   const [showPayerAccountForm, setShowPayerAccountForm] = useState(false);
   const [showPenForm, setShowPenForm] = useState(false);

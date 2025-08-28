@@ -1,188 +1,356 @@
-import React from 'react';
-import { 
-  BarChart3, 
-  ShoppingCart, 
-  MapPin, 
-  Calendar, 
-  Users, 
-  Settings,
-  Home,
-  ChevronLeft,
-  ChevronRight,
-  DollarSign,
+import React, { useState } from 'react';
+import {
+  LayoutDashboard,
+  ShoppingBag,
   Truck,
-  Layers,
+  Map,
+  Wallet,
   FileText,
+  Calendar,
+  Calculator,
+  Users,
+  User,
+  Settings,
+  Shield,
+  ChevronRight,
+  MoreVertical,
+  TrendingUp,
+  Package,
+  Heart,
+  DollarSign,
   Building2,
-  RefreshCw,
-  LucideIcon
+  UserCog,
+  HelpCircle,
+  LogOut
 } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
+import { useSupabase } from '../../providers/SupabaseProvider';
 import { clsx } from 'clsx';
 
 type NavigationItem = {
   id: string;
   name: string;
-  icon: LucideIcon;
-  separator?: never;
-} | {
-  separator: true;
-  id?: never;
-  name?: never;
-  icon?: never;
+  icon: React.ElementType;
+  badge?: string | number;
+  description?: string;
 };
 
-const navigation: NavigationItem[] = [
-  { id: 'dashboard', name: 'Dashboard', icon: BarChart3 },
-  { separator: true },
-  { id: 'pipeline', name: 'Pipeline de Compras', icon: ShoppingCart },
-  { id: 'sales-pipeline', name: 'Pipeline de Abate', icon: Truck },
-  { id: 'lots', name: 'Lotes e Mapa', icon: MapPin },
-  { separator: true },
-  { id: 'financial', name: 'Centro Financeiro', icon: Layers },
-  { id: 'dre', name: 'DRE Integrado', icon: FileText },
-  { id: 'calendar', name: 'Calendário Financeiro', icon: Calendar },
-  { id: 'financial-reconciliation', name: 'Conciliação', icon: DollarSign },
-  { separator: true },
-  { id: 'registrations', name: 'Cadastros', icon: Users },
+type NavigationSection = {
+  label: string;
+  items: NavigationItem[];
+};
+
+const navigation: NavigationSection[] = [
+  {
+    label: 'Principal',
+    items: [
+      { 
+        id: 'dashboard', 
+        name: 'Dashboard', 
+        icon: LayoutDashboard,
+        description: 'Visão geral do sistema'
+      },
+    ]
+  },
+  {
+    label: 'Operações',
+    items: [
+      { 
+        id: 'pipeline', 
+        name: 'Compras', 
+        icon: ShoppingBag,
+        description: 'Pipeline de aquisições'
+      },
+      { 
+        id: 'sales-pipeline', 
+        name: 'Vendas', 
+        icon: TrendingUp,
+        description: 'Gestão de abates e vendas'
+      },
+      { 
+        id: 'lots', 
+        name: 'Lotes', 
+        icon: Package,
+        description: 'Mapa de currais e lotes'
+      },
+    ]
+  },
+  {
+    label: 'Financeiro',
+    items: [
+      { 
+        id: 'financial', 
+        name: 'Centro Financeiro', 
+        icon: Wallet,
+        description: 'Gestão financeira completa'
+      },
+      { 
+        id: 'dre', 
+        name: 'DRE', 
+        icon: FileText,
+        description: 'Demonstrativo de resultados'
+      },
+      { 
+        id: 'calendar', 
+        name: 'Calendário', 
+        icon: Calendar,
+        description: 'Calendário financeiro'
+      },
+      { 
+        id: 'financial-reconciliation', 
+        name: 'Conciliação', 
+        icon: Calculator,
+        description: 'Conciliação bancária'
+      },
+    ]
+  },
+  {
+    label: 'Gestão',
+    items: [
+      { 
+        id: 'registrations', 
+        name: 'Cadastros', 
+        icon: Users,
+        description: 'Parceiros e fornecedores'
+      },
+    ]
+  }
 ];
 
-export const Sidebar: React.FC = () => {
-  const { currentPage, setCurrentPage, sidebarCollapsed, setSidebarCollapsed } = useAppStore();
+const bottomNavigation: NavigationItem[] = [
+  { 
+    id: 'users', 
+    name: 'Usuários', 
+    icon: Shield,
+    description: 'Gestão de usuários'
+  },
+  { 
+    id: 'settings', 
+    name: 'Configurações', 
+    icon: Settings,
+    description: 'Configurações do sistema'
+  },
+];
+
+interface SidebarProps {
+  currentPage: string;
+  setCurrentPage: (page: string) => void;
+  sidebarCollapsed: boolean;
+  setSidebarCollapsed: (collapsed: boolean) => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  currentPage,
+  setCurrentPage,
+  sidebarCollapsed,
+  setSidebarCollapsed
+}) => {
+  const { isAdmin, isMaster, user, signOut } = useSupabase();
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  const handleNavigation = (itemId: string) => {
+    setCurrentPage(itemId);
+  };
+
+  const toggleSection = (label: string) => {
+    setExpandedSection(expandedSection === label ? null : label);
+  };
 
   return (
     <>
       {/* Mobile Overlay */}
       {!sidebarCollapsed && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+        <div
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarCollapsed(true)}
         />
       )}
-      
-      <div className={clsx(
-        'fixed lg:relative inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out',
-        'bg-gradient-to-b from-b3x-navy-900 to-b3x-navy-950 border-r border-b3x-navy-700/50',
-        'backdrop-blur-sm shadow-soft-lg',
-        sidebarCollapsed ? 'w-16' : 'w-64',
-        'lg:translate-x-0',
-        sidebarCollapsed ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'
+
+      {/* Sidebar */}
+      <aside className={clsx(
+        'fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-out',
+        'bg-white border-r border-gray-200',
+        sidebarCollapsed ? 'w-20' : 'w-64',
+        'shadow-sm'
       )}>
-        {/* Logo/Header */}
-        <div className="p-4 flex-shrink-0">
-          <div className="flex items-center justify-center">
-            <div className={clsx(
-              "transition-all duration-300",
-              sidebarCollapsed ? "scale-90" : "scale-100"
-            )}>
-              <div className={clsx(
-                "flex items-center justify-center",
-                sidebarCollapsed ? "flex-col" : "flex-row space-x-3"
-              )}>
-                <div className="relative">
-                  <div className="w-12 h-12 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-xl flex items-center justify-center shadow-soft">
-                    <span className="text-b3x-navy-900 font-black text-sm">CEAC</span>
-                  </div>
-                </div>
-                {!sidebarCollapsed && (
-                  <div className="ml-3">
-                    <h1 className="text-[17px] font-bold text-white leading-tight">CEAC Agropecuária</h1>
-                    <p className="text-[11px] text-b3x-lime-400 leading-tight">Gestão de Ciclo Pecuário</p>
-                  </div>
-                )}
+        
+        {/* Header / Logo */}
+        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200">
+          {sidebarCollapsed ? (
+            <div className="w-full flex justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center">
+                <span className="text-white font-bold text-sm">C</span>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-sm">C</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-gray-900 font-semibold text-sm">CEAC</span>
+                <span className="text-gray-500 text-xs">Gestão Pecuária</span>
+              </div>
+            </div>
+          )}
         </div>
-        
-        {/* Linha gradiente abaixo do header */}
-        <div className="mx-3 mb-4 h-1 bg-gradient-to-r from-transparent via-b3x-lime-400/70 to-transparent rounded-full"></div>
+
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navigation.map((item, index) => {
-            if (item.separator) {
-              return (
-                <div key={`separator-${index}`} className="my-3">
-                  <div className="mx-3 h-0.5 bg-gradient-to-r from-transparent via-b3x-lime-400/50 to-transparent rounded-full"></div>
+        <nav className="flex-1 overflow-y-auto py-4 px-3">
+          <div className="space-y-1">
+            {navigation.map((section, sectionIndex) => (
+              <React.Fragment key={section.label}>
+                {sectionIndex > 0 && <div className="h-px bg-gray-200 my-2" />}
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    // Skip admin items for non-admin users
+                    if (item.id === 'users' && !isAdmin && !isMaster) return null;
+                    
+                    const isActive = currentPage === item.id;
+                    const isHovered = hoveredItem === item.id;
+                    
+                    return (
+                      <div key={item.id} className="relative">
+                        <button
+                          onClick={() => handleNavigation(item.id)}
+                          onMouseEnter={() => setHoveredItem(item.id)}
+                          onMouseLeave={() => setHoveredItem(null)}
+                          className={clsx(
+                            'w-full flex items-center px-3 py-2 rounded-lg transition-all duration-200',
+                            'group relative',
+                            isActive ? [
+                              'bg-emerald-50 text-emerald-600',
+                              'shadow-sm'
+                            ] : [
+                              'text-gray-700 hover:bg-gray-50',
+                              'hover:text-gray-900'
+                            ]
+                          )}
+                        >
+                          {/* Active Indicator */}
+                          {isActive && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-emerald-600 rounded-r-full" />
+                          )}
+                          
+                          {/* Icon */}
+                          <item.icon className={clsx(
+                            'flex-shrink-0 transition-colors',
+                            sidebarCollapsed ? 'w-5 h-5' : 'w-5 h-5 mr-3',
+                            isActive ? 'text-emerald-600' : 'text-gray-400 group-hover:text-gray-600'
+                          )} />
+                          
+                          {/* Label & Badge */}
+                          {!sidebarCollapsed && (
+                            <>
+                              <span className="flex-1 text-left text-sm font-medium">
+                                {item.name}
+                              </span>
+                              {item.badge && (
+                                <span className="ml-auto bg-emerald-100 text-emerald-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </button>
+                        
+                        {/* Tooltip for collapsed state */}
+                        {sidebarCollapsed && isHovered && (
+                          <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50">
+                            <div className="bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                              <div className="font-medium">{item.name}</div>
+                              {item.description && (
+                                <div className="text-xs text-gray-300 mt-0.5">{item.description}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            }
-
-            const Icon = item.icon;
-            const isActive = currentPage === item.id;
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => setCurrentPage(item.id)}
-                className={clsx(
-                  'w-full flex items-center px-3 py-2.5 rounded-lg text-left transition-all duration-200',
-                  'hover:bg-b3x-navy-800/50 hover:backdrop-blur-sm',
-                  isActive
-                    ? 'bg-gradient-to-r from-b3x-lime-500/20 to-b3x-lime-400/10 text-b3x-lime-400 border border-b3x-lime-500/30 shadow-soft'
-                    : 'text-b3x-navy-200 hover:text-white',
-                  sidebarCollapsed && 'justify-center'
-                )}
-                title={sidebarCollapsed ? item.name : undefined}
-              >
-                <Icon className={clsx(
-                  'w-4 h-4 transition-colors duration-200 flex-shrink-0',
-                  isActive ? 'text-b3x-lime-400' : 'text-b3x-navy-300'
-                )} />
-                {!sidebarCollapsed && (
-                  <span className="ml-3 font-medium transition-opacity duration-200 text-sm truncate">{item.name}</span>
-                )}
-              </button>
-            );
-          })}
+              </React.Fragment>
+            ))}
+          </div>
         </nav>
 
         {/* Bottom Section */}
-        <div className="flex-shrink-0">
-          {/* Linha gradiente acima das atualizações */}
-          <div className="mx-3 mb-3 h-1 bg-gradient-to-r from-transparent via-b3x-lime-400/70 to-transparent rounded-full"></div>
-          
-          {/* System Updates */}
-          <div className="p-3">
-            <button 
-              onClick={() => setCurrentPage('system-updates')}
-              className={clsx(
-                'w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200',
-                'hover:bg-b3x-navy-800/50 hover:backdrop-blur-sm',
-                currentPage === 'system-updates'
-                  ? 'bg-gradient-to-r from-b3x-lime-500/20 to-b3x-lime-400/10 text-b3x-lime-400 border border-b3x-lime-500/30 shadow-soft'
-                  : 'text-b3x-navy-200 hover:text-white',
-                sidebarCollapsed && 'justify-center'
-              )}
-              title={sidebarCollapsed ? 'Atualizações do Sistema' : undefined}
+        <div className="border-t border-gray-200">
+          <div className="p-3 space-y-1">
+            {bottomNavigation.map((item) => {
+              // Skip admin items for non-admin users
+              if (item.id === 'users' && !isAdmin && !isMaster) return null;
+              
+              const isActive = currentPage === item.id;
+              const isHovered = hoveredItem === item.id;
+              
+              return (
+                <div key={item.id} className="relative">
+                  <button
+                    onClick={() => handleNavigation(item.id)}
+                    onMouseEnter={() => setHoveredItem(item.id)}
+                    onMouseLeave={() => setHoveredItem(null)}
+                    className={clsx(
+                      'w-full flex items-center px-3 py-2 rounded-lg transition-all duration-200',
+                      isActive ? [
+                        'bg-emerald-50 text-emerald-600'
+                      ] : [
+                        'text-gray-700 hover:bg-gray-50'
+                      ]
+                    )}
+                  >
+                    <item.icon className={clsx(
+                      'flex-shrink-0',
+                      sidebarCollapsed ? 'w-5 h-5' : 'w-5 h-5 mr-3',
+                      isActive ? 'text-emerald-600' : 'text-gray-400'
+                    )} />
+                    
+                    {!sidebarCollapsed && (
+                      <span className="text-sm font-medium">{item.name}</span>
+                    )}
+                  </button>
+                  
+                  {/* Tooltip for collapsed state */}
+                  {sidebarCollapsed && isHovered && (
+                    <div className="absolute left-full bottom-0 ml-2 z-50">
+                      <div className="bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                        {item.name}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            
+            {/* Logout Button */}
+            <button
+              onClick={signOut}
+              className="w-full flex items-center px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-all duration-200"
+              title="Sair"
             >
-              <RefreshCw className={clsx(
-                'w-4 h-4 flex-shrink-0',
-                currentPage === 'system-updates' ? 'text-b3x-lime-400' : 'text-b3x-navy-300'
+              <LogOut className={clsx(
+                'flex-shrink-0',
+                sidebarCollapsed ? 'w-5 h-5' : 'w-5 h-5 mr-3'
               )} />
               {!sidebarCollapsed && (
-                <span className="ml-3 font-medium text-sm truncate">Atualizações do Sistema</span>
+                <span className="text-sm font-medium">Sair</span>
               )}
             </button>
-          </div>
-          
-          {/* Collapse Toggle */}
-          <div className="p-3">
+            
+            {/* Collapse Toggle */}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="w-full flex items-center justify-center p-2 rounded-lg text-b3x-navy-200 hover:text-white hover:bg-b3x-navy-800/50 transition-all duration-200"
-              title={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'}
+              className="w-full flex items-center justify-center px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-all duration-200"
             >
-              {sidebarCollapsed ? (
-                <ChevronRight className="w-4 h-4" />
-              ) : (
-                <ChevronLeft className="w-4 h-4" />
-              )}
+              <ChevronRight className={clsx(
+                'w-5 h-5 transition-transform duration-200',
+                !sidebarCollapsed && 'rotate-180'
+              )} />
             </button>
           </div>
         </div>
-      </div>
+      </aside>
     </>
   );
 };

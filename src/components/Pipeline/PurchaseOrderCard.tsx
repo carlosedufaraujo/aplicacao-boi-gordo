@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Calendar, MapPin, User, DollarSign, ArrowRight, Truck, Upload, AlertTriangle, CreditCard, Users, Scale, ArrowLeft, Clock, TrendingDown, TrendingUp, UserCheck, Bell, Edit } from 'lucide-react';
 import { PurchaseOrder } from '../../types';
-import { useAppStore } from '../../stores/useAppStore';
+import { usePurchaseOrdersApi } from '../../hooks/api/usePurchaseOrdersApi';
+import { usePartnersApi } from '../../hooks/api/usePartnersApi';
+import { usePayerAccountsApi } from '../../hooks/api/usePayerAccountsApi';
+import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
 import { format, differenceInDays } from 'date-fns';
 import { ReceptionForm } from './ReceptionForm';
 import { LotAllocationForm } from '../Forms/LotAllocationForm';
@@ -14,15 +17,10 @@ interface PurchaseOrderCardProps {
 }
 
 export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) => {
-  const { 
-    partners, 
-    payerAccounts, 
-    cattleLots,
-    notifications,
-    movePurchaseOrderToNextStage, 
-    movePurchaseOrderToPreviousStage,
-    updatePurchaseOrder 
-  } = useAppStore();
+  const { updatePurchaseOrder } = usePurchaseOrdersApi();
+  const { partners } = usePartnersApi();
+  const { payerAccounts } = usePayerAccountsApi();
+  const { cattleLots } = useCattleLotsApi();
   
   const [showReceptionForm, setShowReceptionForm] = useState(false);
   const [showAllocationModal, setShowAllocationModal] = useState(false);
@@ -34,26 +32,44 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
   // Encontrar o lote relacionado a esta ordem (se existir)
   const relatedLot = cattleLots.find(lot => lot.purchaseOrderId === order.id);
   
-  // Contar notificações relacionadas a esta ordem
-  const orderNotifications = notifications.filter(
-    n => n.relatedEntityType === 'purchase_order' && n.relatedEntityId === order.id && !n.isRead
-  );
+  // TODO: Implementar notificações quando necessário
+  const orderNotifications: any[] = [];
 
-  const handleMoveToNextStage = () => {
-    if (order.status === 'reception' && !relatedLot) {
+  const handleMoveToNextStage = async () => {
+    if (order.status === 'RECEPTION' && !relatedLot) {
       // Primeira vez: registrar recepção
       setShowReceptionForm(true);
-    } else if (order.status === 'reception' && relatedLot) {
+    } else if (order.status === 'RECEPTION' && relatedLot) {
       // Segunda vez: alocar em curral (MODAL OBRIGATÓRIO)
       setShowAllocationModal(true);
     } else {
       // Outras etapas: avançar normalmente
-      movePurchaseOrderToNextStage(order.id);
+      const nextStage = getNextStage(order.status);
+      if (nextStage) {
+        await updatePurchaseOrder(order.id, { status: nextStage });
+      }
     }
   };
 
-  const handleMoveToPreviousStage = () => {
-    movePurchaseOrderToPreviousStage(order.id);
+  const handleMoveToPreviousStage = async () => {
+    const previousStage = getPreviousStage(order.status);
+    if (previousStage) {
+      await updatePurchaseOrder(order.id, { status: previousStage });
+    }
+  };
+
+  // Função auxiliar para obter próximo estágio
+  const getNextStage = (currentStatus: string) => {
+    const stageOrder = ['PENDING', 'PAYMENT_VALIDATING', 'RECEPTION', 'CONFINED'];
+    const currentIndex = stageOrder.indexOf(currentStatus);
+    return currentIndex < stageOrder.length - 1 ? stageOrder[currentIndex + 1] : null;
+  };
+
+  // Função auxiliar para obter estágio anterior
+  const getPreviousStage = (currentStatus: string) => {
+    const stageOrder = ['PENDING', 'PAYMENT_VALIDATING', 'RECEPTION', 'CONFINED'];
+    const currentIndex = stageOrder.indexOf(currentStatus);
+    return currentIndex > 0 ? stageOrder[currentIndex - 1] : null;
   };
 
   const handlePaymentValidation = (checked: boolean) => {
@@ -487,11 +503,14 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({ order }) =
         <Portal>
           <LotAllocationForm
             isOpen={showAllocationModal}
-            onClose={() => {
+            onClose={async () => {
               setShowAllocationModal(false);
               // Avançar para próxima etapa após fechar
               if (relatedLot) {
-                movePurchaseOrderToNextStage(order.id);
+                const nextStage = getNextStage(order.status);
+                if (nextStage) {
+                  await updatePurchaseOrder(order.id, { status: nextStage });
+                }
               }
             }}
             loteId={relatedLot.id}

@@ -1,86 +1,62 @@
 import React from 'react';
 import { ShoppingCart, DollarSign, Calendar, MapPin, User, TrendingUp, ArrowRight, Eye } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
+
+import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
+import { usePurchaseOrdersApi } from '../../hooks/api/usePurchaseOrdersApi';
+import { usePartnersApi } from '../../hooks/api/usePartnersApi';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const LatestMovements: React.FC = () => {
-  const { purchaseOrders, saleRecords, partners, cattleLots, setCurrentPage } = useAppStore();
+  // Hooks da Nova Arquitetura API
+  const { cattleLots } = useCattleLotsApi();
+  const { purchaseOrders } = usePurchaseOrdersApi();
+  const { partners } = usePartnersApi();
 
-  // Combinar ordens de compra e vendas em uma única lista de movimentações
-  const movements = [
-    // Ordens de Compra (últimas 10)
-    ...purchaseOrders
-      .slice(-10)
-      .map(order => {
-        const vendor = partners.find(p => p.id === order.vendorId);
-        const broker = order.brokerId ? partners.find(p => p.id === order.brokerId) : null;
-        const totalValue = (order.totalWeight / 15) * order.pricePerArroba + order.commission + order.taxes + order.otherCosts;
-        
-        return {
-          id: order.id,
-          type: 'purchase' as const,
-          date: order.date,
-          title: `Ordem de Compra ${order.code}`,
-          description: `${order.quantity} animais • ${order.city}/${order.state}`,
-          vendor: vendor?.name || 'Vendedor não encontrado',
-          broker: broker?.name,
-          value: totalValue,
-          status: order.status,
-          details: {
-            quantity: order.quantity,
-            weight: order.totalWeight,
-            pricePerArroba: order.pricePerArroba,
-            city: order.city,
-            state: order.state
-          }
-        };
-      }),
-    
-    // Registros de Venda (últimas 10)
-    ...saleRecords
-      .slice(-10)
-      .map(sale => {
-        const lot = cattleLots.find(l => l.id === sale.lotId);
-        const slaughterhouse = partners.find(p => p.id === sale.slaughterhouseId);
-        
-        return {
-          id: sale.id,
-          type: 'sale' as const,
-          date: sale.saleDate,
-          title: `Venda/Abate ${lot?.lotNumber || 'Lote'}`,
-          description: `${sale.quantity} animais • ${sale.totalWeight.toLocaleString('pt-BR')} kg`,
-          vendor: slaughterhouse?.name || 'Frigorífico não encontrado',
-          broker: undefined,
-          value: sale.grossRevenue,
-          status: 'completed',
-          details: {
-            quantity: sale.quantity,
-            weight: sale.totalWeight,
-            pricePerArroba: sale.pricePerArroba,
-            profit: sale.netProfit,
-            margin: sale.profitMargin
-          }
-        };
-      })
-  ]
-  // Ordenar por data (mais recentes primeiro)
-  .sort((a, b) => b.date.getTime() - a.date.getTime())
-  // Pegar apenas os 8 mais recentes
-  .slice(0, 8);
+  // Combinar ordens de compra em uma lista de movimentações
+  const movements = purchaseOrders
+    .slice(-10)
+    .map(order => {
+      const vendor = partners.find(p => p.id === order.vendorId);
+      const broker = order.brokerId ? partners.find(p => p.id === order.brokerId) : null;
+      const totalValue = (order.totalWeight / 15) * order.pricePerArroba + order.commission + order.otherCosts;
+      
+      return {
+        id: order.id,
+        type: 'purchase' as const,
+        date: new Date(order.purchaseDate),
+        title: `Ordem de Compra ${order.orderNumber}`,
+        description: `${order.animalCount} animais • ${order.location}`,
+        vendor: vendor?.name || 'Vendedor não encontrado',
+        broker: broker?.name,
+        value: totalValue,
+        status: order.status,
+        details: {
+          quantity: order.animalCount,
+          weight: order.totalWeight,
+          pricePerArroba: order.pricePerArroba,
+          city: order.location,
+          state: order.location
+        }
+      };
+    })
+    // Ordenar por data (mais recentes primeiro)
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    // Pegar apenas os 8 mais recentes
+    .slice(0, 8);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'order':
+      case 'PENDING':
         return 'bg-neutral-100 text-neutral-700';
-      case 'payment_validation':
+      case 'PAYMENT_VALIDATING':
         return 'bg-warning-100 text-warning-700';
-      case 'reception':
+      case 'RECEPTION':
         return 'bg-info-100 text-info-700';
-      case 'confined':
+      case 'CONFINED':
         return 'bg-success-100 text-success-700';
-      case 'completed':
-        return 'bg-b3x-lime-100 text-b3x-lime-700';
+      case 'CANCELLED':
+        return 'bg-error-100 text-error-700';
       default:
         return 'bg-neutral-100 text-neutral-700';
     }
@@ -88,16 +64,16 @@ export const LatestMovements: React.FC = () => {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'order':
-        return 'Ordem Criada';
-      case 'payment_validation':
+      case 'PENDING':
+        return 'Pendente';
+      case 'PAYMENT_VALIDATING':
         return 'Validando Pagamento';
-      case 'reception':
+      case 'RECEPTION':
         return 'Em Recepção';
-      case 'confined':
+      case 'CONFINED':
         return 'Confinado';
-      case 'completed':
-        return 'Vendido';
+      case 'CANCELLED':
+        return 'Cancelado';
       default:
         return status;
     }

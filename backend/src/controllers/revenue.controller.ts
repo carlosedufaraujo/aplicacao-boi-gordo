@@ -84,7 +84,7 @@ export class RevenueController {
    * GET /revenues/overdue
    * Lista receitas vencidas
    */
-  async overdue(req: Request, res: Response): Promise<void> {
+  async overdue(_req: Request, res: Response): Promise<void> {
     const revenues = await revenueService.findOverdue();
 
     res.json({
@@ -97,7 +97,7 @@ export class RevenueController {
    * GET /revenues/recurring
    * Lista receitas recorrentes identificadas
    */
-  async recurring(req: Request, res: Response): Promise<void> {
+  async recurring(_req: Request, res: Response): Promise<void> {
     const revenues = await revenueService.getMonthlyRecurring();
 
     res.json({

@@ -4,6 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Plus, Trash2, DollarSign, HandCoins, FileText, Target, Calendar, CreditCard, Tag, ShoppingCart, Users, MapPin, Package, Scale } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
+import { usePartners, useCycles } from '../../hooks/useSupabaseData';
+import { usePurchaseOrdersApi } from '../../hooks/api/usePurchaseOrdersApi';
+import { dataService } from '../../services/supabaseData';
 import { PurchaseOrderFormData, AdditionalCost, PurchaseOrder } from '../../types';
 import { PartnerForm } from './PartnerForm';
 import { Portal } from '../Common/Portal';
@@ -82,7 +85,13 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
   initialData,
   isEditing = false
 }) => {
-  const { cycles, partners, addPurchaseOrder, updatePurchaseOrder, deletePurchaseOrder, generatePurchaseOrderCode } = useAppStore();
+  const [generatedOrderCode, setGeneratedOrderCode] = useState<string>('');
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
+  
+  // Usar hooks do Supabase para dados atualizados
+  const { partners: supabasePartners, loading: partnersLoading } = usePartners();
+  const { cycles: supabaseCycles, loading: cyclesLoading } = useCycles();
+  const { createPurchaseOrder, updatePurchaseOrder: updateSupabasePurchaseOrder, deletePurchaseOrder } = usePurchaseOrdersApi();
   const [showNewVendorForm, setShowNewVendorForm] = useState(false);
   const [showNewBrokerForm, setShowNewBrokerForm] = useState(false);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
@@ -110,9 +119,13 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     }
   });
 
-  const vendors = partners.filter(p => p.type === 'vendor' && p.isActive);
-  const brokers = partners.filter(p => p.type === 'broker' && p.isActive);
-  const activeCycles = cycles.filter(c => c.status === 'active');
+  // Usar dados do Supabase com fallback para o store
+  const partners = supabasePartners && supabasePartners.length > 0 ? supabasePartners : [];
+  const cycles = supabaseCycles && supabaseCycles.length > 0 ? supabaseCycles : [];
+  
+  const vendors = partners.filter(p => p.type === 'VENDOR' && p.isActive);
+  const brokers = partners.filter(p => p.type === 'BROKER' && p.isActive);
+  const activeCycles = cycles.filter(c => c.isActive);
 
   // Carregar custos adicionais quando estiver editando
   useEffect(() => {
@@ -225,47 +238,72 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     setAdditionalCosts(costs => costs.filter(cost => cost.id !== id));
   };
 
-  const handleFormSubmit = (data: any) => {
-    // Verificar se há custos adicionais A Prazo sem data
-    const hasInvalidAdditionalCosts = additionalCosts.some(
-      cost => cost.paymentType === 'installment' && !cost.paymentDate
-    );
+  const handleFormSubmit = async (data: any) => {
+    try {
+      // Verificar se há custos adicionais A Prazo sem data
+      const hasInvalidAdditionalCosts = additionalCosts.some(
+        cost => cost.paymentType === 'installment' && !cost.paymentDate
+      );
 
-    if (hasInvalidAdditionalCosts) {
-      alert('Por favor, defina uma data de pagamento para todos os custos adicionais A Prazo.');
-      return;
-    }
+      if (hasInvalidAdditionalCosts) {
+        alert('Por favor, defina uma data de pagamento para todos os custos adicionais A Prazo.');
+        return;
+      }
 
-    // Preparar dados da ordem
-    const orderData = {
-      ...data,
-      otherCosts: totalAdditionalCosts,
-      otherCostsDescription: additionalCosts.map(cost => 
-        `${cost.type}: R$ ${cost.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${cost.paymentType === 'cash' ? 'À Vista' : 'A Prazo' + (cost.paymentDate ? ` - ${cost.paymentDate.toLocaleDateString('pt-BR')}` : '')})`
-      ).join('; ')
-    };
+      // Gerar código único consultando o banco de dados
+      setIsGeneratingCode(true);
+      const uniqueOrderNumber = await dataService.generateUniqueOrderNumber();
+      setGeneratedOrderCode(uniqueOrderNumber);
+      setIsGeneratingCode(false);
+      
+      // Mapear dados do formulário para o formato do Supabase
+      const orderData = {
+        orderNumber: uniqueOrderNumber,
+        vendorId: data.vendorId,
+        brokerId: data.brokerId || null,
+        userId: 'default_user', // Usuário padrão temporário
+        location: `${data.city}, ${data.state}`,
+        purchaseDate: new Date(data.date).toISOString(),
+        animalCount: parseInt(data.quantity),
+        animalType: data.animalType.toUpperCase() as 'MALE' | 'FEMALE',
+        averageAge: parseInt(data.estimatedAge) || null,
+        totalWeight: parseFloat(data.totalWeight),
+        averageWeight: parseFloat(data.totalWeight) / parseInt(data.quantity),
+        carcassYield: parseFloat(data.rcPercentage) || 50,
+        pricePerArroba: parseFloat(data.pricePerArroba),
+        totalValue: (parseFloat(data.totalWeight) * parseFloat(data.pricePerArroba)) / 15, // Conversão kg para arroba
+        commission: parseFloat(data.commission) || 0,
+        freightCost: 0, // Valor padrão
+        otherCosts: totalAdditionalCosts,
+        paymentType: data.paymentType.toUpperCase() as 'CASH' | 'INSTALLMENT',
+        payerAccountId: 'account-001', // Conta existente
+        principalDueDate: new Date(data.date).toISOString(),
+        commissionDueDate: data.commissionPaymentDate ? new Date(data.commissionPaymentDate).toISOString() : null,
+        otherCostsDueDate: null,
+        status: 'PENDING' as const,
+        currentStage: 'PENDING',
+        notes: data.observations || null
+      };
 
-    if (isEditing && initialData) {
-      // Atualizar ordem existente
-      updatePurchaseOrder(initialData.id, orderData);
-    } else {
-      // Criar nova ordem
-      const orderCode = generatePurchaseOrderCode();
-      addPurchaseOrder({
-        ...orderData,
-        code: orderCode,
-        status: 'order',
-        paymentValidated: false
-      });
+      if (isEditing && initialData) {
+        // Atualizar ordem existente
+        await updateSupabasePurchaseOrder(initialData.id, orderData);
+      } else {
+        // Criar nova ordem no Supabase
+        await createPurchaseOrder(orderData);
+      }
+      
+      if (onSubmit) {
+        onSubmit(data);
+      }
+      
+      reset();
+      setAdditionalCosts([]);
+      onClose();
+    } catch (error) {
+      console.error('Erro ao salvar ordem de compra:', error);
+      alert('Erro ao salvar ordem de compra. Verifique os dados e tente novamente.');
     }
-    
-    if (onSubmit) {
-      onSubmit(orderData);
-    }
-    
-    reset();
-    setAdditionalCosts([]);
-    onClose();
   };
 
   const handleNewVendor = () => {
@@ -301,7 +339,14 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
             <div>
               <h2 className="text-lg font-semibold">{isEditing ? 'Editar Ordem de Compra' : 'Nova Ordem de Compra'}</h2>
               <p className="text-b3x-navy-200 text-sm mt-1">
-                {isEditing ? `Código: ${initialData?.code}` : `Código: ${generatePurchaseOrderCode()}`}
+                {isEditing 
+                  ? `Código: ${initialData?.code}` 
+                  : isGeneratingCode 
+                    ? 'Gerando código único...' 
+                    : generatedOrderCode 
+                      ? `Código: ${generatedOrderCode}` 
+                      : 'Código será gerado automaticamente'
+                }
               </p>
             </div>
             <button

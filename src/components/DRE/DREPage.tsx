@@ -8,7 +8,7 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
+import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
 import { DREViewer } from './DREViewer';
 import { DREFilters } from './DREFilters';
 import { DREComparison } from './DREComparison';
@@ -17,12 +17,17 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const DREPage: React.FC = () => {
-  const { 
-    cattleLots, 
-    generateDREStatement, 
-    saveDREStatement,
-    dreStatements 
-  } = useAppStore();
+  const { cattleLots } = useCattleLotsApi();
+  
+  // TODO: Implementar generateDREStatement, saveDREStatement, dreStatements com API
+  const generateDREStatement = (params: any) => {
+    console.log('TODO: Implementar generateDREStatement via API', params);
+    return null;
+  };
+  const saveDREStatement = (dre: any) => {
+    console.log('TODO: Implementar saveDREStatement via API', dre);
+  };
+  const dreStatements: any[] = [];
 
   const [selectedEntityType, setSelectedEntityType] = useState<'lot' | 'pen' | 'global'>('global');
   const [selectedEntityId, setSelectedEntityId] = useState<string>('');
@@ -163,7 +168,7 @@ Lucro Diário,${currentDRE.metrics.dailyProfit}
             )}
             <button
               onClick={handleGenerateDRE}
-              disabled={!selectedEntityId || isLoading}
+              disabled={(selectedEntityType !== 'global' && !selectedEntityId) || isLoading}
               className="px-4 py-2 bg-b3x-lime-500 text-b3x-navy-900 font-medium rounded-lg hover:bg-b3x-lime-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
               {isLoading ? (

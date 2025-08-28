@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, Filter, TrendingUp, ChevronDown } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
+import { usePens } from '../../hooks/useSupabaseData';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
 
@@ -33,7 +34,8 @@ export const DREFilters: React.FC<DREFiltersProps> = ({
   onIncludeProjectionsChange,
   onPricePerArrobaChange
 }) => {
-  const { cattleLots, penRegistrations } = useAppStore();
+  const { cattleLots } = useAppStore();
+  const { pens } = usePens();
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
@@ -89,7 +91,7 @@ export const DREFilters: React.FC<DREFiltersProps> = ({
                       </option>
                     ))
                 ) : (
-                  penRegistrations
+                  pens
                     .filter(pen => pen.isActive)
                     .map(pen => (
                       <option key={pen.id} value={pen.penNumber}>

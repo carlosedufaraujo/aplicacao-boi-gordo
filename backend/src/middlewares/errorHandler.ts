@@ -16,7 +16,7 @@ export function errorHandler(
   error: Error,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void {
   let statusCode = 500;
   let message = 'Erro interno do servidor';
@@ -78,7 +78,7 @@ export function errorHandler(
 }
 
 // Middleware para capturar erros de rotas não encontradas
-export function notFoundHandler(req: Request, res: Response): void {
+export function notFoundHandler(_req: Request, res: Response): void {
   res.status(404).json({
     status: 'error',
     message: 'Rota não encontrada',

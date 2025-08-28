@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { Calendar as CalendarIcon, CreditCard, Receipt, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, TrendingUp, DollarSign, AlertTriangle, Search, Filter, Layers, CheckCircle, Clock } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
+import { useBankStatementsApi } from '../../hooks/api/useBankStatementsApi';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, addDays, isBefore, isAfter, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TableWithPagination } from '../Common/TableWithPagination';
 import { clsx } from 'clsx';
 
 export const Calendar: React.FC = () => {
-  const { financialAccounts, bankStatements } = useAppStore();
+  const { bankStatements } = useBankStatementsApi();
+  
+  // TODO: Implementar financialAccounts quando necessário
+  const financialAccounts: any[] = [];
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showDetailsExpanded, setShowDetailsExpanded] = useState(false);

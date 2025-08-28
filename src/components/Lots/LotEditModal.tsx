@@ -39,7 +39,7 @@ export const LotEditModal: React.FC<LotEditModalProps> = ({ lot, isOpen, onClose
   const purchaseOrder = purchaseOrders.find(po => po.id === lot.purchaseOrderId);
   
   // Obter currais atuais do lote
-  const currentPens = loteCurralLinks
+  const currentPens = (loteCurralLinks || [])
     .filter(link => link.loteId === lot.id && link.status === 'active')
     .map(link => {
       const pen = penRegistrations.find(p => p.penNumber === link.curralId);

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { KPICard } from './KPICard';
 import { LatestMovements } from './LatestMovements';
-import { useAppStore } from '../../stores/useAppStore';
+import { usePartnersApi } from '../../hooks/api/usePartnersApi';
+import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
+import { usePurchaseOrdersApi } from '../../hooks/api/usePurchaseOrdersApi';
+import { useExpensesApi } from '../../hooks/api/useExpensesApi';
+import { useRevenuesApi } from '../../hooks/api/useRevenuesApi';
 import { Plus, ShoppingCart, Users, Home, Heart, Scale, ArrowRight, DollarSign, CreditCard, Building2, Clock, TrendingDown, AlertTriangle, Truck } from 'lucide-react';
 import { PurchaseOrderForm } from '../Forms/PurchaseOrderForm';
 import { PartnerForm } from '../Forms/PartnerForm';
@@ -16,14 +20,16 @@ import { CostAllocationPieChart } from './CostAllocationPieChart';
 import { HerdValueChart } from './HerdValueChart';
 import { PurchaseByStateChart } from './PurchaseByStateChart';
 import { PurchaseByBrokerChart } from './PurchaseByBrokerChart';
-import { createTestData } from '../../utils/testData';
-import { ConnectionStatus } from '../Common/ConnectionStatus';
-import { TestConnection } from '../Common/TestConnection';
-import { RealDataDisplay } from '../Common/RealDataDisplay';
-import { RealDataSync } from '../Common/RealDataSync';
 
 export const Dashboard: React.FC = () => {
-  const { kpis, cattleLots, setCurrentPage, updateKPIs, purchaseOrders, clearAllTestData } = useAppStore();
+  // Removido useAppStoreWithAPI - agora gerenciado pelo App.tsx
+  
+  // Hooks da Nova Arquitetura API
+  const { cattleLots, loading: lotsLoading } = useCattleLotsApi();
+  const { purchaseOrders, loading: ordersLoading } = usePurchaseOrdersApi();
+  const { partners, loading: partnersLoading } = usePartnersApi();
+  const { expenses, loading: expensesLoading } = useExpensesApi();
+  const { revenues, loading: revenuesLoading } = useRevenuesApi();
   
   // Estados para controlar a exibição dos formulários
   const [showPurchaseOrderForm, setShowPurchaseOrderForm] = useState(false);
@@ -38,71 +44,110 @@ export const Dashboard: React.FC = () => {
   const [selectedLotId, setSelectedLotId] = useState<string>('');
   const [marketPrice, setMarketPrice] = useState<number>(320);
   
-  // Calcular custo total de aquisição
+  // Estados para dados calculados
   const [totalAcquisitionCost, setTotalAcquisitionCost] = useState<number>(0);
   const [averagePurchaseCostPerArroba, setAveragePurchaseCostPerArroba] = useState<number>(0);
   const [pendingOrdersValue, setPendingOrdersValue] = useState<number>(0);
   const [confirmedAnimals, setConfirmedAnimals] = useState<number>(0);
   const [pendingAnimals, setPendingAnimals] = useState<number>(0);
 
-  // Atualizar KPIs e calcular custo total de aquisição quando o componente montar
+  // Calcular dados quando os dados mudarem
   useEffect(() => {
-    updateKPIs();
-    
-    // Calcular animais confirmados vs pendentes
-    const animalsConfirmed = purchaseOrders
-      .filter(order => order.status !== 'order')
-      .reduce((total, order) => total + order.quantity, 0);
-    
-    const animalsPending = purchaseOrders
-      .filter(order => order.status === 'order')
-      .reduce((total, order) => total + order.quantity, 0);
-    
-    setConfirmedAnimals(animalsConfirmed);
-    setPendingAnimals(animalsPending);
-    
-    // Calcular custo total de aquisição - APENAS ORDENS COM PAGAMENTO VALIDADO
-    const acquisitionCost = purchaseOrders
-      .filter(order => order.status !== 'order') // Excluir ordens ainda não validadas
-      .reduce((total, order) => {
-        const rcPercentage = order.rcPercentage || 50; // Default 50% se não informado
-        const carcassWeight = order.totalWeight * (rcPercentage / 100);
-        const arrobas = carcassWeight / 15;
-        const animalValue = arrobas * order.pricePerArroba;
-        const orderTotal = animalValue + order.commission + order.otherCosts;
-        return total + orderTotal;
-      }, 0);
-    
-    setTotalAcquisitionCost(acquisitionCost);
-    
-    // Calcular valor das ordens pendentes (ainda não validadas)
-    const pendingValue = purchaseOrders
-      .filter(order => order.status === 'order')
-      .reduce((total, order) => {
-        const rcPercentage = order.rcPercentage || 50;
-        const carcassWeight = order.totalWeight * (rcPercentage / 100);
-        const arrobas = carcassWeight / 15;
-        const animalValue = arrobas * order.pricePerArroba;
-        const orderTotal = animalValue + order.commission + order.otherCosts;
-        return total + orderTotal;
-      }, 0);
-    
-    setPendingOrdersValue(pendingValue);
-    
-    // Calcular custo médio de compra por arroba - APENAS ORDENS COM PAGAMENTO VALIDADO
-    const totalArrobas = purchaseOrders
-      .filter(order => order.status !== 'order') // Excluir ordens ainda não validadas
-      .reduce((total, order) => {
-        const rcPercentage = order.rcPercentage || 50; // Default 50% se não informado
-        const carcassWeight = order.totalWeight * (rcPercentage / 100);
-        const arrobas = carcassWeight / 15;
-        return total + arrobas;
-      }, 0);
-    
-    if (totalArrobas > 0) {
-      setAveragePurchaseCostPerArroba(acquisitionCost / totalArrobas);
+    if (purchaseOrders.length > 0) {
+      // Calcular animais confirmados vs pendentes
+      const animalsConfirmed = purchaseOrders
+        .filter(order => order.status !== 'PENDING')
+        .reduce((total, order) => total + order.animalCount, 0);
+      
+      const animalsPending = purchaseOrders
+        .filter(order => order.status === 'PENDING')
+        .reduce((total, order) => total + order.animalCount, 0);
+      
+      setConfirmedAnimals(animalsConfirmed);
+      setPendingAnimals(animalsPending);
+      
+      // Calcular custo total de aquisição - APENAS ORDENS COM PAGAMENTO VALIDADO
+      const acquisitionCost = purchaseOrders
+        .filter(order => order.status !== 'PENDING') // Excluir ordens ainda não validadas
+        .reduce((total, order) => {
+          const carcassWeight = order.totalWeight * (order.carcassYield / 100);
+          const arrobas = carcassWeight / 15;
+          const animalValue = arrobas * order.pricePerArroba;
+          const orderTotal = animalValue + order.commission + order.otherCosts;
+          return total + orderTotal;
+        }, 0);
+      
+      setTotalAcquisitionCost(acquisitionCost);
+      
+      // Calcular valor das ordens pendentes (ainda não validadas)
+      const pendingValue = purchaseOrders
+        .filter(order => order.status === 'PENDING')
+        .reduce((total, order) => {
+          const carcassWeight = order.totalWeight * (order.carcassYield / 100);
+          const arrobas = carcassWeight / 15;
+          const animalValue = arrobas * order.pricePerArroba;
+          const orderTotal = animalValue + order.commission + order.otherCosts;
+          return total + orderTotal;
+        }, 0);
+      
+      setPendingOrdersValue(pendingValue);
+      
+      // Calcular custo médio de compra por arroba - APENAS ORDENS COM PAGAMENTO VALIDADO
+      const totalArrobas = purchaseOrders
+        .filter(order => order.status !== 'PENDING') // Excluir ordens ainda não validadas
+        .reduce((total, order) => {
+          const carcassWeight = order.totalWeight * (order.carcassYield / 100);
+          const arrobas = carcassWeight / 15;
+          return total + arrobas;
+        }, 0);
+      
+      if (totalArrobas > 0) {
+        setAveragePurchaseCostPerArroba(acquisitionCost / totalArrobas);
+      }
     }
-  }, [updateKPIs, purchaseOrders]);
+  }, [purchaseOrders]);
+
+  // Loading geral
+  const isLoading = dashboardLoading || lotsLoading || ordersLoading || partnersLoading || expensesLoading || revenuesLoading;
+
+  // Dados do dashboard
+  const summary = dashboardData?.summary || {
+    totalLots: 0,
+    activeLots: 0,
+    totalAnimals: 0,
+    totalCosts: 0,
+    totalExpenses: 0,
+    totalRevenues: 0,
+    profit: 0,
+    activeCycles: 0,
+    totalPartners: 0
+  };
+
+  // KPIs calculados
+  const kpis = {
+    totalLots: summary.totalLots,
+    activeLots: summary.activeLots,
+    totalAnimals: summary.totalAnimals,
+    totalCosts: summary.totalCosts,
+    totalExpenses: summary.totalExpenses,
+    totalRevenues: summary.totalRevenues,
+    profit: summary.profit,
+    activeCycles: summary.activeCycles,
+    totalPartners: summary.totalPartners,
+    confirmedAnimals,
+    pendingAnimals,
+    totalAcquisitionCost,
+    averagePurchaseCostPerArroba,
+    pendingOrdersValue
+  };
+
+  // Dados recentes
+  const recentData = dashboardData?.recentData || {
+    cattleLots: [],
+    purchaseOrders: [],
+    expenses: [],
+    revenues: []
+  };
 
   // Selecionar o primeiro lote ativo para formulários que precisam de um lote
   const firstLot = cattleLots.find(lot => lot.status === 'active');
@@ -154,34 +199,6 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Status de Conexão */}
-      <ConnectionStatus />
-      
-      {/* Teste de Conexão Detalhado */}
-      <TestConnection />
-      
-      {/* Dados Reais do Sistema */}
-      <RealDataDisplay />
-      
-      {/* Sincronização de Dados Reais */}
-      <RealDataSync />
-      
-      {/* Botão temporário para criar dados de teste */}
-      {cattleLots.length === 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-blue-800">Nenhum dado encontrado. Deseja criar dados de teste?</p>
-            <p className="text-xs text-blue-600 mt-1">Isso criará parceiros, ordens de compra, lotes e notificações de exemplo.</p>
-          </div>
-          <button
-            onClick={createTestData}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-          >
-            Criar Dados de Teste
-          </button>
-        </div>
-      )}
-
       {/* KPIs - Grid mais compacto */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
         {/* KPI 1: Animais Confinados */}
@@ -292,73 +309,6 @@ export const Dashboard: React.FC = () => {
             <div className="ml-2 p-2 bg-gradient-to-br from-neutral-50 to-neutral-100 rounded-lg shadow-soft flex-shrink-0">
               <DollarSign className="w-4 h-4 text-neutral-600" />
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Status do Pipeline - Novo Card */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4 hover:shadow-soft-lg transition-all duration-200">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-b3x-navy-900 flex items-center">
-            <ShoppingCart className="w-4 h-4 mr-2 text-b3x-lime-600" />
-            Status do Pipeline de Compras
-          </h3>
-          <button
-            onClick={() => navigateTo('pipeline')}
-            className="text-xs text-b3x-lime-600 hover:text-b3x-lime-700 font-medium flex items-center"
-          >
-            Ver Pipeline
-            <ArrowRight className="w-3 h-3 ml-1" />
-          </button>
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {/* Ordens Pendentes */}
-          <div className="bg-warning-50 border border-warning-200 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-warning-700">Aguardando Validação</span>
-              <Clock className="w-3 h-3 text-warning-600" />
-            </div>
-            <p className="text-lg font-bold text-warning-900">{purchaseOrders.filter(o => o.status === 'order').length}</p>
-            <p className="text-xs text-warning-600 mt-1">
-              {pendingAnimals} animais • R$ {(pendingOrdersValue/1000).toFixed(0)}k
-            </p>
-          </div>
-          
-          {/* Em Validação */}
-          <div className="bg-info-50 border border-info-200 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-info-700">Em Validação</span>
-              <CreditCard className="w-3 h-3 text-info-600" />
-            </div>
-            <p className="text-lg font-bold text-info-900">{purchaseOrders.filter(o => o.status === 'payment_validation').length}</p>
-            <p className="text-xs text-info-600 mt-1">
-              {purchaseOrders.filter(o => o.status === 'payment_validation').reduce((sum, o) => sum + o.quantity, 0)} animais
-            </p>
-          </div>
-          
-          {/* Em Recepção */}
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-purple-700">Em Recepção</span>
-              <Truck className="w-3 h-3 text-purple-600" />
-            </div>
-            <p className="text-lg font-bold text-purple-900">{purchaseOrders.filter(o => o.status === 'reception').length}</p>
-            <p className="text-xs text-purple-600 mt-1">
-              {purchaseOrders.filter(o => o.status === 'reception').reduce((sum, o) => sum + o.quantity, 0)} animais
-            </p>
-          </div>
-          
-          {/* Confinados */}
-          <div className="bg-success-50 border border-success-200 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-success-700">Confinados</span>
-              <Home className="w-3 h-3 text-success-600" />
-            </div>
-            <p className="text-lg font-bold text-success-900">{purchaseOrders.filter(o => o.status === 'confined').length}</p>
-            <p className="text-xs text-success-600 mt-1">
-              {purchaseOrders.filter(o => o.status === 'confined').reduce((sum, o) => sum + o.quantity, 0)} animais
-            </p>
           </div>
         </div>
       </div>

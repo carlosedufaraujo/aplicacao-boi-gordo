@@ -22,7 +22,8 @@ export class AuthController {
    * Realiza login do usuário
    */
   async login(req: Request, res: Response): Promise<void> {
-    const result = await authService.login(req.body);
+    const { email, password } = req.body;
+    const result = await authService.login(email, password);
     
     res.json({
       status: 'success',
@@ -69,7 +70,7 @@ export class AuthController {
   async validateToken(req: Request, res: Response): Promise<void> {
     const { token } = req.body;
     
-    const user = await authService.validateToken(token);
+    const user = await authService.verifyToken(token);
     
     res.json({
       status: 'success',

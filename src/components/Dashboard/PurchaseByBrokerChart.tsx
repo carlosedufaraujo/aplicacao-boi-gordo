@@ -1,6 +1,8 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from 'recharts';
 import { useAppStore } from '../../stores/useAppStore';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 export const PurchaseByBrokerChart: React.FC = () => {
   const { purchaseOrders, partners } = useAppStore();
@@ -42,56 +44,57 @@ export const PurchaseByBrokerChart: React.FC = () => {
   // Usar dados reais ou array vazio
   const chartData = data;
 
-  const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#ef4444', '#a6e60d'];
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
-          <p className="font-medium">{payload[0].payload.fullName}</p>
-          <p className="text-b3x-navy-900">
-            <span className="font-bold">{payload[0].value}</span> animais
-          </p>
-          <p className="text-b3x-lime-600 font-medium">
-            R$ {payload[0].payload.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  const chartConfig = {
+    quantity: {
+      label: "Quantidade",
+      color: "hsl(var(--chart-1))",
+    },
+  } satisfies ChartConfig;
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-6 hover:shadow-soft-lg transition-all duration-200">
-      <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">
-        Compra por Corretor
-      </h3>
-      
-      {chartData.length > 0 ? (
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-            <XAxis 
-              dataKey="name" 
-              stroke="#737373" 
-              fontSize={12}
-            />
-            <YAxis 
-              stroke="#737373" 
-              fontSize={12}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar 
-              dataKey="quantity" 
-              name="Quantidade" 
-              radius={[4, 4, 0, 0]}
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+    <Card>
+      <CardHeader>
+        <CardTitle>Compra por Corretor</CardTitle>
+        <CardDescription>
+          Quantidade de animais intermediados por cada corretor
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {chartData.length > 0 ? (
+          <ChartContainer config={chartConfig}>
+            <BarChart data={chartData}>
+              <CartesianGrid vertical={false} />
+              <XAxis 
+                dataKey="name" 
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <YAxis 
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <ChartTooltip 
+                cursor={false}
+                content={<ChartTooltipContent 
+                  formatter={(value: number, name, props) => [
+                    `${value} animais`,
+                    chartConfig[name as keyof typeof chartConfig]?.label || name
+                  ]}
+                  labelFormatter={(label, payload) => {
+                    const item = payload?.[0]?.payload;
+                    return item ? item.fullName : label;
+                  }}
+                />}
+              />
+              <Bar 
+                dataKey="quantity" 
+                fill="var(--color-quantity)"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ChartContainer>
       ) : (
         <div className="flex items-center justify-center h-[250px] text-neutral-400">
           <div className="text-center">
@@ -101,14 +104,15 @@ export const PurchaseByBrokerChart: React.FC = () => {
         </div>
       )}
 
-      <div className="mt-4 text-center">
-        <div className="text-lg font-bold text-b3x-navy-900">
-          {chartData.reduce((sum, item) => sum + item.quantity, 0)} animais
+        <div className="mt-4 text-center">
+          <div className="text-lg font-bold">
+            {chartData.reduce((sum, item) => sum + item.quantity, 0)} animais
+          </div>
+          <div className="text-sm text-muted-foreground">
+            Total de animais intermediados
+          </div>
         </div>
-        <div className="text-sm text-neutral-600">
-          Total de animais intermediados
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

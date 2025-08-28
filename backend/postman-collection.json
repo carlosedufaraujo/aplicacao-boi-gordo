@@ -1,0 +1,812 @@
+{
+  "info": {
+    "name": "Boi Gordo API",
+    "description": "Collection completa para testes da API do Sistema de Gestão de Confinamento Bovino",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3333",
+      "type": "string"
+    },
+    {
+      "key": "api_prefix",
+      "value": "/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('auth_token', response.token);",
+                  "    pm.environment.set('user_id', response.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"senha123\",\n    \"name\": \"Test User\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/auth/register",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('auth_token', response.token);",
+                  "    pm.environment.set('user_id', response.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"senha123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/auth/login",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/auth/profile",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["auth", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"oldPassword\": \"senha123\",\n    \"newPassword\": \"novaSenha123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/auth/change-password",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["auth", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Partners",
+      "item": [
+        {
+          "name": "List Partners",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/partners?page=1&limit=20&type=VENDOR",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["partners"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "type",
+                  "value": "VENDOR"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Partner",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Fazenda São João\",\n    \"type\": \"VENDOR\",\n    \"cpfCnpj\": \"12345678901234\",\n    \"phone\": \"(11) 98765-4321\",\n    \"email\": \"contato@fazendasaojoao.com.br\",\n    \"address\": \"Rodovia SP-330, km 150\",\n    \"notes\": \"Fornecedor preferencial\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/partners",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["partners"]
+            }
+          }
+        },
+        {
+          "name": "Get Partner by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/partners/:id",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["partners", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{partner_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Partner",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Fazenda São João - Atualizada\",\n    \"phone\": \"(11) 99999-9999\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/partners/:id",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["partners", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{partner_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Partner",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/partners/:id",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["partners", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{partner_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Purchase Orders",
+      "item": [
+        {
+          "name": "List Purchase Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/purchase-orders?page=1&limit=20&status=PENDING",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["purchase-orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Purchase Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"orderNumber\": \"PO-2025-001\",\n    \"vendorId\": \"{{vendor_id}}\",\n    \"brokerId\": \"{{broker_id}}\",\n    \"payerAccountId\": \"{{payer_account_id}}\",\n    \"location\": \"Ribeirão Preto - SP\",\n    \"purchaseDate\": \"2025-01-15T10:00:00Z\",\n    \"animalCount\": 150,\n    \"animalType\": \"MALE\",\n    \"averageAge\": 24,\n    \"totalWeight\": 67500,\n    \"averageWeight\": 450,\n    \"carcassYield\": 52.5,\n    \"pricePerArroba\": 285.00,\n    \"totalValue\": 425000.00,\n    \"commission\": 4250.00,\n    \"freightCost\": 5000.00,\n    \"otherCosts\": 1500.00,\n    \"paymentType\": \"INSTALLMENT\",\n    \"principalDueDate\": \"2025-02-15T10:00:00Z\",\n    \"commissionDueDate\": \"2025-01-20T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/purchase-orders",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["purchase-orders"]
+            }
+          }
+        },
+        {
+          "name": "Update Purchase Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"RECEPTION\",\n    \"currentStage\": \"reception\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/purchase-orders/:id/status",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["purchase-orders", ":id", "status"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{purchase_order_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Process Reception",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"receptionDate\": \"2025-01-16T14:00:00Z\",\n    \"actualWeight\": 67000,\n    \"actualCount\": 148,\n    \"weightBreakPercentage\": 0.74,\n    \"transportMortality\": 2,\n    \"notes\": \"2 animais perdidos no transporte\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/purchase-orders/:id/reception",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["purchase-orders", ":id", "reception"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{purchase_order_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cattle Lots",
+      "item": [
+        {
+          "name": "List Cattle Lots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/lots?status=ACTIVE",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["lots"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Lot Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/lots/:id",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["lots", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{lot_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Allocate to Pen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"penId\": \"{{pen_id}}\",\n    \"quantity\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/lots/:id/allocate",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["lots", ":id", "allocate"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{lot_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Record Mortality",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quantity\": 2,\n    \"cause\": \"Pneumonia\",\n    \"notes\": \"Animais apresentaram sintomas respiratórios\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/lots/:id/mortality",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["lots", ":id", "mortality"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{lot_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pens",
+      "item": [
+        {
+          "name": "List Pens",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/pens?status=AVAILABLE",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["pens"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "AVAILABLE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Pen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"penNumber\": \"P-001\",\n    \"capacity\": 100,\n    \"location\": \"Setor A\",\n    \"type\": \"FATTENING\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/pens",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["pens"]
+            }
+          }
+        },
+        {
+          "name": "Get Pen Occupancy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/pens/:id/occupancy",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["pens", ":id", "occupancy"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{pen_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Financial",
+      "item": [
+        {
+          "name": "List Expenses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/expenses?isPaid=false",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["expenses"],
+              "query": [
+                {
+                  "key": "isPaid",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Expense",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"category\": \"FEED\",\n    \"description\": \"Compra de ração - Janeiro/2025\",\n    \"totalAmount\": 45000.00,\n    \"dueDate\": \"2025-01-31T23:59:59Z\",\n    \"impactsCashFlow\": true,\n    \"payerAccountId\": \"{{payer_account_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/expenses",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["expenses"]
+            }
+          }
+        },
+        {
+          "name": "List Revenues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/revenues?isReceived=false",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["revenues"],
+              "query": [
+                {
+                  "key": "isReceived",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Revenue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"category\": \"SALE\",\n    \"description\": \"Venda Lote L-001 - JBS\",\n    \"totalAmount\": 650000.00,\n    \"dueDate\": \"2025-02-15T23:59:59Z\",\n    \"saleRecordId\": \"{{sale_id}}\",\n    \"payerAccountId\": \"{{payer_account_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/revenues",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["revenues"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "List Sales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/sales?status=NEXT_SLAUGHTER",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["sales"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "NEXT_SLAUGHTER"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Sale",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"saleNumber\": \"V-2025-001\",\n    \"lotId\": \"{{lot_id}}\",\n    \"buyerId\": \"{{buyer_id}}\",\n    \"designationDate\": \"2025-02-01T10:00:00Z\",\n    \"slaughterPlant\": \"JBS - Unidade Barretos\",\n    \"expectedDate\": \"2025-02-10T10:00:00Z\",\n    \"pricePerArroba\": 295.00\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/sales",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["sales"]
+            }
+          }
+        },
+        {
+          "name": "Update Sale Shipment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"shipmentDate\": \"2025-02-10T06:00:00Z\",\n    \"shipmentWeight\": 72000,\n    \"transportCompany\": \"Transportadora XYZ\",\n    \"status\": \"SHIPPED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/sales/:id/shipment",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["sales", ":id", "shipment"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{sale_id}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Get DRE Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/reports/dre?startDate=2025-01-01&endDate=2025-01-31",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["reports", "dre"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-01-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Performance Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/reports/performance?period=monthly",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["reports", "performance"],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "monthly"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Export Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reportType\": \"DRE\",\n    \"format\": \"PDF\",\n    \"startDate\": \"2025-01-01\",\n    \"endDate\": \"2025-01-31\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/reports/export",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["reports", "export"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/dashboard/stats",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["dashboard", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get KPIs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}{{api_prefix}}/dashboard/kpis",
+              "host": ["{{base_url}}{{api_prefix}}"],
+              "path": ["dashboard", "kpis"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "API Docs",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api-docs",
+              "host": ["{{base_url}}"],
+              "path": ["api-docs"]
+            },
+            "description": "Acessar documentação Swagger"
+          }
+        }
+      ]
+    }
+  ]
+}

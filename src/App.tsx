@@ -1,134 +1,164 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Sidebar } from './components/Layout/Sidebar';
-import { Header } from './components/Layout/Header';
-import { useAppStoreWithAPI } from './stores/useAppStoreWithAPI';
-import { NotificationProvider } from './components/Notifications/NotificationProvider';
-import { DataSyncProvider } from './components/Common/DataSyncProvider';
-import { registerExistingUpdates } from './utils/systemUpdates';
+import { AppLayout } from '@/components/Layout/AppLayout';
+import { NotificationProvider } from '@/components/Notifications/NotificationProvider';
+import { DataSyncProvider } from '@/components/Common/DataSyncProvider';
+import { SupabaseProvider, useSupabase } from '@/providers/SupabaseProvider';
+import { ThemeProvider } from '@/providers/ThemeProvider';
+import { SettingsProvider } from '@/providers/SettingsProvider';
+import { PenNavigationProvider } from '@/contexts/PenNavigationContext';
+import { registerExistingUpdates } from '@/utils/systemUpdates';
 
-// Lazy load dos componentes principais
-const Dashboard = lazy(() => import('./components/Dashboard/Dashboard').then(module => ({ default: module.Dashboard })));
-const Pipeline = lazy(() => import('./components/Pipeline/Pipeline').then(module => ({ default: module.Pipeline })));
-const SalesPipeline = lazy(() => import('./components/SalesPipeline/SalesPipeline').then(module => ({ default: module.SalesPipeline })));
-const Lots = lazy(() => import('./components/Lots/Lots').then(module => ({ default: module.Lots })));
-const Calendar = lazy(() => import('./components/Calendar/Calendar').then(module => ({ default: module.Calendar })));
-const Registrations = lazy(() => import('./components/Registrations/Registrations').then(module => ({ default: module.Registrations })));
-const FinancialReconciliation = lazy(() => import('./components/Financial/FinancialReconciliation').then(module => ({ default: module.FinancialReconciliation })));
-const FinancialCenterManagement = lazy(() => import('./components/Financial/FinancialCenterManagement').then(module => ({ default: module.FinancialCenterManagement })));
-const DREPage = lazy(() => import('./components/DRE').then(module => ({ default: module.DREPage })));
+// ============================================================================
+// COMPONENTES MODERNOS (shadcn/ui) - TODOS MIGRADOS
+// ============================================================================
+const ShadcnDashboard = lazy(() => import('@/components/Dashboard/ShadcnDashboard').then(module => ({ default: module.ShadcnDashboard })));
+const CompleteLots = lazy(() => import('@/components/Lots/CompleteLots').then(module => ({ default: module.CompleteLots })));
+const CompleteRegistrations = lazy(() => import('@/components/Registrations/CompleteRegistrations').then(module => ({ default: module.CompleteRegistrations })));
+const ModernDREWithSupabase = lazy(() => import('@/components/DRE/ModernDREWithSupabase').then(module => ({ default: module.ModernDREWithSupabase })));
+const CompleteFinancialCenter = lazy(() => import('@/components/Financial/CompleteFinancialCenter').then(module => ({ default: module.CompleteFinancialCenter })));
+const CompleteSales = lazy(() => import('@/components/SalesPipeline/CompleteSales').then(module => ({ default: module.CompleteSales })));
+const CompletePipeline = lazy(() => import('@/components/Pipeline/CompletePipeline').then(module => ({ default: module.CompletePipeline })));
+const CompleteCalendar = lazy(() => import('@/components/Calendar/CompleteCalendar').then(module => ({ default: module.CompleteCalendar })));
+const CompleteFinancialReconciliation = lazy(() => import('@/components/Financial/CompleteFinancialReconciliation').then(module => ({ default: module.CompleteFinancialReconciliation })));
+const CompleteUserManagement = lazy(() => import('@/components/System/CompleteUserManagement').then(module => ({ default: module.CompleteUserManagement })));
 
-// Lazy load dos componentes de configurações
-const NotificationSettings = lazy(() => import('./components/Notifications/NotificationSettings').then(module => ({ default: module.NotificationSettings })));
-const ProfileSettings = lazy(() => import('./components/Profile/ProfileSettings').then(module => ({ default: module.ProfileSettings })));
-const OrganizationSettings = lazy(() => import('./components/Profile/OrganizationSettings').then(module => ({ default: module.OrganizationSettings })));
-const UserManagement = lazy(() => import('./components/Profile/UserManagement').then(module => ({ default: module.UserManagement })));
-const GeneralSettings = lazy(() => import('./components/Profile/GeneralSettings').then(module => ({ default: module.GeneralSettings })));
-const ChangePassword = lazy(() => import('./components/Profile/ChangePassword').then(module => ({ default: module.ChangePassword })));
-const SystemUpdates = lazy(() => import('./components/System/SystemUpdates').then(module => ({ default: module.SystemUpdates })));
+// Componentes de configurações - TODOS MODERNOS
+const NotificationSettings = lazy(() => import('@/components/System/NotificationSettings').then(module => ({ default: module.NotificationSettings })));
+const ProfileSettings = lazy(() => import('@/components/Profile/ProfileSettings').then(module => ({ default: module.ProfileSettings })));
+const OrganizationSettings = lazy(() => import('@/components/System/OrganizationSettings').then(module => ({ default: module.OrganizationSettings })));
+const GeneralSettings = lazy(() => import('@/components/System/GeneralSettings').then(module => ({ default: module.GeneralSettings })));
+const ChangePassword = lazy(() => import('@/components/Profile/ChangePassword').then(module => ({ default: module.ChangePassword })));
+const SystemUpdates = lazy(() => import('@/components/System/SystemUpdates').then(module => ({ default: module.SystemUpdates })));
 
-// Lazy load dos componentes auxiliares
-const NotificationCenter = lazy(() => import('./components/Notifications/NotificationCenter').then(module => ({ default: module.NotificationCenter })));
-const TestDataManager = lazy(() => import('./components/TestData/TestDataManager').then(module => ({ default: module.TestDataManager })));
+// Página de Login
+const Login02 = lazy(() => import('@/pages/Login02').then(module => ({ default: module.Login02 })));
 
-// Componente de loading
+// Componente de teste da integração API
+const ApiIntegrationTest = lazy(() => import('@/components/Test/ApiIntegrationTest').then(module => ({ default: module.ApiIntegrationTest })));
+
+// ============================================================================
+// COMPONENTE DE LOADING
+// ============================================================================
 const PageLoader = () => (
-  <div className="flex items-center justify-center h-full">
+  <div className="flex items-center justify-center h-64">
     <div className="flex flex-col items-center space-y-4">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-b3x-lime-500"></div>
-      <p className="text-sm text-neutral-600">Carregando...</p>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <p className="text-sm text-muted-foreground">Carregando página...</p>
     </div>
   </div>
 );
 
-function App() {
-  const { currentPage, sidebarCollapsed, darkMode } = useAppStoreWithAPI();
+// ============================================================================
+// COMPONENTE PRINCIPAL DA APLICAÇÃO
+// ============================================================================
+const AppContent: React.FC = () => {
+  const [currentPage, setCurrentPage] = React.useState('dashboard');
+  const { isAuthenticated, loading, user } = useSupabase();
 
-  // Aplicar classe dark no elemento root quando darkMode estiver ativo
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
-
-  // Inicializar atualizações do sistema
   useEffect(() => {
     registerExistingUpdates();
   }, []);
 
-  const renderCurrentPage = () => {
-    const Component = (() => {
-      switch (currentPage) {
-        case 'dashboard':
-          return Dashboard;
-        case 'pipeline':
-          return Pipeline;
-        case 'sales-pipeline':
-          return SalesPipeline;
-        case 'lots':
-          return Lots;
-        case 'financial':
-          return FinancialCenterManagement;
-        case 'financial-reconciliation':
-          return FinancialReconciliation;
-        case 'calendar':
-          return Calendar;
-        case 'registrations':
-          return Registrations;
-        case 'dre':
-          return DREPage;
-        case 'notifications':
-          return NotificationSettings;
-        case 'profile':
-          return ProfileSettings;
-        case 'organization':
-          return OrganizationSettings;
-        case 'users':
-          return UserManagement;
-        case 'settings':
-          return GeneralSettings;
-        case 'change-password':
-          return ChangePassword;
-        case 'system-updates':
-          return SystemUpdates;
-        default:
-          return Dashboard;
-      }
-    })();
-
+  if (loading) {
     return (
-      <Suspense fallback={<PageLoader />}>
-        <Component />
-      </Suspense>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+          <p className="text-lg text-muted-foreground">Verificando autenticação...</p>
+        </div>
+      </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return <ShadcnDashboard />;
+      case 'lots':
+        return <CompleteLots />;
+      case 'registrations':
+        return <CompleteRegistrations />;
+      case 'dre':
+        return <ModernDREWithSupabase />;
+      case 'financial':
+        return <CompleteFinancialCenter />;
+      case 'sales-pipeline':
+        return <CompleteSales />;
+      case 'pipeline':
+        return <CompletePipeline />;
+      case 'calendar':
+        return <CompleteCalendar />;
+      case 'financial-reconciliation':
+        return <CompleteFinancialReconciliation />;
+      case 'users':
+        return <CompleteUserManagement />;
+      case 'settings':
+        return <GeneralSettings />;
+      case 'notifications':
+        return <NotificationSettings />;
+      case 'profile':
+        return <ProfileSettings />;
+      case 'organization':
+        return <OrganizationSettings />;
+      case 'change-password':
+        return <ChangePassword />;
+      case 'system-updates':
+        return <SystemUpdates />;
+      case 'api-test':
+        return <ApiIntegrationTest />;
+      default:
+        return (
+          <div className="flex items-center justify-center h-64">
+            <p className="text-muted-foreground">Página não encontrada</p>
+          </div>
+        );
+    }
   };
 
   return (
-    <DataSyncProvider autoSync={true} syncInterval={5 * 60 * 1000} showStatus={true}>
-      <div className={`h-screen w-screen overflow-hidden ${darkMode ? 'dark bg-neutral-900' : 'bg-gradient-to-br from-neutral-50 to-neutral-100'} flex`}>
-        <Sidebar />
-        <div className="flex-1 flex flex-col min-h-0">
-          <Header />
-          <main className="flex-1 overflow-y-auto">
-            <div className="p-4 md:p-6">
-              {renderCurrentPage()}
-            </div>
-          </main>
-        </div>
-        
-        {/* Sistema de Notificações */}
-        <Suspense fallback={null}>
-          <NotificationCenter />
-        </Suspense>
-        
-        {/* Gerenciador de Dados de Teste */}
-        <Suspense fallback={null}>
-          <TestDataManager />
-        </Suspense>
-      </div>
-    </DataSyncProvider>
+    <AppLayout 
+      currentPage={currentPage}
+      setCurrentPage={setCurrentPage}
+    >
+      <Suspense fallback={<PageLoader />}>
+        {renderCurrentPage()}
+      </Suspense>
+    </AppLayout>
+  );
+};
+
+// ============================================================================
+// COMPONENTE RAIZ DA APLICAÇÃO
+// ============================================================================
+function App() {
+  return (
+    <ThemeProvider defaultTheme="system" storageKey="bovicontrol-ui-theme">
+      <SupabaseProvider>
+        <SettingsProvider>
+          <NotificationProvider>
+            <DataSyncProvider>
+              <PenNavigationProvider>
+                <div className="min-h-screen bg-background font-sans antialiased">
+                  <Routes>
+                    <Route path="/login" element={
+                      <Suspense fallback={<PageLoader />}>
+                        <Login02 />
+                      </Suspense>
+                    } />
+                    <Route path="/*" element={<AppContent />} />
+                  </Routes>
+                </div>
+              </PenNavigationProvider>
+            </DataSyncProvider>
+          </NotificationProvider>
+        </SettingsProvider>
+      </SupabaseProvider>
+    </ThemeProvider>
   );
 }
 

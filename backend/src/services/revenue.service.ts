@@ -130,6 +130,7 @@ export class RevenueService {
     const revenueData = {
       ...data,
       isReceived: false,
+      userId,
       user: { connect: { id: userId } },
       costCenter: data.costCenterId ? { connect: { id: data.costCenterId } } : undefined,
       payerAccount: data.payerAccountId ? { connect: { id: data.payerAccountId } } : undefined,
@@ -245,7 +246,7 @@ export class RevenueService {
       };
       
       // Soma receitas confirmadas do mês
-      confirmed.forEach(revenue => {
+      confirmed.forEach((revenue: any) => {
         if (revenue.dueDate.toISOString().slice(0, 7) === monthProjection.month) {
           monthProjection.confirmed += revenue.totalAmount;
         }

@@ -25,8 +25,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!initRef.current) {
       // Adicionar uma notificação de boas-vindas
       addNotification({
-        title: 'Bem-vindo ao B3X CEAC',
-        message: 'Sistema de gestão do ciclo de produção e engorda de bovinos.',
+        title: 'Bem-vindo ao BoviControl',
+        message: 'Sistema de gestão pecuária completo.',
         type: 'info',
         actionUrl: '/dashboard'
       });

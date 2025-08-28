@@ -1,4 +1,4 @@
-import { PurchaseOrder, PurchaseOrderStatus, PaymentType, AnimalType } from '@prisma/client';
+import { PurchaseOrderStatus, PaymentType, AnimalType } from '@prisma/client';
 import { PurchaseOrderRepository } from '@/repositories/purchaseOrder.repository';
 import { NotFoundError, ValidationError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';
@@ -179,7 +179,7 @@ export class PurchaseOrderService {
         break;
     }
 
-    return this.purchaseOrderRepository.updateStatus(id, status, stage);
+    return this.purchaseOrderRepository.updateStatus(id, status);
   }
 
   async registerReception(id: string, data: ReceptionData) {
@@ -203,7 +203,7 @@ export class PurchaseOrderService {
     });
 
     // Cria o lote automaticamente
-    await this.purchaseOrderRepository.createLotFromOrder(id);
+    await this.purchaseOrderRepository.createLotFromOrder(id, {});
 
     return updatedOrder;
   }
@@ -218,7 +218,7 @@ export class PurchaseOrderService {
 
     // Cancela ao invés de deletar se tiver contas financeiras
     if (order.financialAccounts.length > 0) {
-      return this.purchaseOrderRepository.updateStatus(id, 'CANCELLED', 'cancelled');
+      return this.purchaseOrderRepository.updateStatus(id, 'CANCELLED');
     }
 
     return this.purchaseOrderRepository.delete(id);

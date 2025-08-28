@@ -3,14 +3,17 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import rateLimit from 'express-rate-limit';
+import swaggerUi from 'swagger-ui-express';
 import 'express-async-errors';
 
 import { env } from '@/config/env';
 import { errorHandler, notFoundHandler } from '@/middlewares/errorHandler';
 import { httpLogger } from '@/config/logger';
+import { swaggerSpecs } from '@/config/swagger';
 
 // Importação das rotas
 import { authRoutes } from '@/routes/auth.routes';
+import { userRoutes } from '@/routes/user.routes';
 import { partnerRoutes } from '@/routes/partner.routes';
 import { payerAccountRoutes } from '@/routes/payerAccount.routes';
 import { purchaseOrderRoutes } from '@/routes/purchaseOrder.routes';
@@ -18,9 +21,21 @@ import { cattleLotRoutes } from '@/routes/cattleLot.routes';
 import { penRoutes } from '@/routes/pen.routes';
 import expenseRoutes from '@/routes/expense.routes';
 import revenueRoutes from '@/routes/revenue.routes';
-import saleRoutes from '@/routes/sale.routes';
-import reportRoutes from '@/routes/report.routes';
-import dashboardRoutes from '@/routes/dashboard.routes';
+// import saleRoutes from '@/routes/sale.routes';
+// import reportRoutes from '@/routes/report.routes';
+// import dashboardRoutes from '@/routes/dashboard.routes';
+
+// Rotas Supabase (nova arquitetura)
+import purchaseOrderSupabaseRoutes from '@/routes/supabase/purchaseOrder.supabase.routes';
+import cattleLotSupabaseRoutes from '@/routes/supabase/cattleLot.supabase.routes';
+import expenseSupabaseRoutes from '@/routes/supabase/expense.supabase.routes';
+import revenueSupabaseRoutes from '@/routes/supabase/revenue.supabase.routes';
+import payerAccountSupabaseRoutes from '@/routes/supabase/payerAccount.supabase.routes';
+import partnerSupabaseRoutes from '@/routes/supabase/partner.supabase.routes';
+import penSupabaseRoutes from '@/routes/supabase/pen.supabase.routes';
+import cycleSupabaseRoutes from '@/routes/supabase/cycle.supabase.routes';
+import saleSupabaseRoutes from '@/routes/supabase/sale.supabase.routes';
+import saleRecordSupabaseRoutes from '@/routes/supabase/saleRecord.supabase.routes';
 
 export function createApp(): Application {
   const app = express();
@@ -34,13 +49,15 @@ export function createApp(): Application {
     credentials: true,
   }));
 
-  // Rate limiting
-  const limiter = rateLimit({
-    windowMs: env.rateLimitWindowMs,
-    max: env.rateLimitMaxRequests,
-    message: 'Muitas requisições deste IP, tente novamente mais tarde.',
-  });
-  app.use(limiter);
+  // Rate limiting (desabilitado em desenvolvimento)
+  if (env.nodeEnv !== 'development') {
+    const limiter = rateLimit({
+      windowMs: env.rateLimitWindowMs,
+      max: env.rateLimitMaxRequests,
+      message: 'Muitas requisições deste IP, tente novamente mais tarde.',
+    });
+    app.use(limiter);
+  }
 
   // Body parsing
   app.use(express.json({ limit: '10mb' }));
@@ -59,7 +76,7 @@ export function createApp(): Application {
   }
 
   // Health check
-  app.get('/health', (req, res) => {
+  app.get('/health', (_, res) => {
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
@@ -68,7 +85,7 @@ export function createApp(): Application {
   });
 
   // Rotas públicas temporárias para desenvolvimento
-  app.get('/api/v1/stats', async (req, res) => {
+  app.get('/api/v1/stats', async (_, res) => {
     res.json({
       totalCattle: 850,
       activeLots: 12,
@@ -81,7 +98,7 @@ export function createApp(): Application {
     });
   });
 
-  app.get('/api/v1/frontend-data', async (req, res) => {
+  app.get('/api/v1/frontend-data', async (_, res) => {
     res.json({
       cycles: [],
       cattleLots: [],
@@ -94,21 +111,42 @@ export function createApp(): Application {
     });
   });
 
+  // Documentação Swagger
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'BoviControl API Documentation',
+  }));
+
   // Rotas da API
   const apiRouter = express.Router();
   
   // Registra as rotas
   apiRouter.use('/auth', authRoutes);
-  apiRouter.use('/partners', partnerRoutes);
-  apiRouter.use('/payer-accounts', payerAccountRoutes);
-  apiRouter.use('/purchase-orders', purchaseOrderRoutes);
-  apiRouter.use('/lots', cattleLotRoutes);
-  apiRouter.use('/pens', penRoutes);
-  apiRouter.use('/expenses', expenseRoutes);
-  apiRouter.use('/revenues', revenueRoutes);
-  apiRouter.use('/sales', saleRoutes);
-  apiRouter.use('/reports', reportRoutes);
-  apiRouter.use('/dashboard', dashboardRoutes);
+  apiRouter.use('/users', userRoutes);
+  
+  // Rotas Supabase (nova arquitetura) - prioridade sobre as antigas
+  apiRouter.use('/purchase-orders', purchaseOrderSupabaseRoutes);
+  apiRouter.use('/cattle-lots', cattleLotSupabaseRoutes);
+  apiRouter.use('/expenses', expenseSupabaseRoutes);
+  apiRouter.use('/revenues', revenueSupabaseRoutes);
+  apiRouter.use('/payer-accounts', payerAccountSupabaseRoutes);
+  apiRouter.use('/partners', partnerSupabaseRoutes);
+  apiRouter.use('/pens', penSupabaseRoutes);
+  apiRouter.use('/cycles', cycleSupabaseRoutes);
+  apiRouter.use('/sales', saleSupabaseRoutes);
+  apiRouter.use('/sale-records', saleRecordSupabaseRoutes);
+  
+  // Rotas antigas (Prisma) - manter temporariamente
+  // apiRouter.use('/purchase-orders-old', purchaseOrderRoutes);
+  // apiRouter.use('/cattle-lots-old', cattleLotRoutes);
+  // apiRouter.use('/payer-accounts-old', payerAccountRoutes);
+  // apiRouter.use('/expenses-old', expenseRoutes);
+  // apiRouter.use('/revenues-old', revenueRoutes);
+  // apiRouter.use('/partners-old', partnerRoutes);
+  // apiRouter.use('/pens-old', penRoutes);
+  // apiRouter.use('/sales-old', saleRoutes);
+  // apiRouter.use('/reports', reportRoutes);
+  // apiRouter.use('/dashboard', dashboardRoutes);
 
   // Monta as rotas no prefixo da API
   app.use(env.apiPrefix, apiRouter);

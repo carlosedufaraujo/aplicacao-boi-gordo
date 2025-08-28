@@ -1,4 +1,4 @@
-import { Partner, PartnerType } from '@prisma/client';
+import { PartnerType } from '@prisma/client';
 import { PartnerRepository } from '@/repositories/partner.repository';
 import { NotFoundError, ConflictError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';

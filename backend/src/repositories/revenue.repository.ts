@@ -130,7 +130,7 @@ export class RevenueRepository extends BaseRepository<Revenue> {
     });
 
     // Agrupa por categoria
-    const byCategory = revenues.reduce((acc, revenue) => {
+    const byCategory = revenues.reduce((acc: any, revenue: any) => {
       if (!acc[revenue.category]) {
         acc[revenue.category] = {
           category: revenue.category,
@@ -171,7 +171,7 @@ export class RevenueRepository extends BaseRepository<Revenue> {
     });
 
     // Agrupa por centro de custo
-    const byCostCenter = revenues.reduce((acc, revenue) => {
+    const byCostCenter = revenues.reduce((acc: any, revenue: any) => {
       const centerName = revenue.costCenter?.name || 'Sem Centro de Custo';
       const centerId = revenue.costCenterId || 'no-center';
 
@@ -216,7 +216,7 @@ export class RevenueRepository extends BaseRepository<Revenue> {
       // Cria as alocações se fornecidas
       if (allocations && allocations.length > 0) {
         await tx.revenueAllocation.createMany({
-          data: allocations.map(allocation => ({
+          data: allocations.map((allocation: any) => ({
             revenueId: revenue.id,
             ...allocation,
           })),

@@ -3,26 +3,29 @@ import { LotsTable } from './LotsTable';
 import { PenMap } from './PenMap';
 import { List, Map, Package, DollarSign, TrendingDown, AlertTriangle, ShoppingCart, Layers, Activity } from 'lucide-react';
 import { clsx } from 'clsx';
-import { useAppStore } from '../../stores/useAppStore';
+
+import { useCattleLots, usePurchaseOrders } from '../../hooks/useSupabaseData';
 
 export const Lots: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'lots' | 'map'>('overview');
-  const { cattleLots, purchaseOrders, loteCurralLinks } = useAppStore();
+  // Removido useAppStoreWithAPI - agora gerenciado pelo App.tsx
+  const { cattleLots, loading: lotsLoading } = useCattleLots();
+  const { purchaseOrders, loading: ordersLoading } = usePurchaseOrders();
 
   // Calcular métricas
-  const activeLots = cattleLots.filter(lot => lot.status === 'active');
+  const activeLots = cattleLots.filter(lot => lot.status === 'ACTIVE');
   const pendingLots = cattleLots.filter(lot => {
     const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
-    return order && (order.status === 'order' || order.status === 'payment_validation');
+    return order && (order.status === 'PENDING' || order.status === 'PAYMENT_VALIDATING');
   });
   
   // Quantidade de Animais Atual
-  const totalAnimalsActive = activeLots.reduce((sum, lot) => sum + lot.entryQuantity - lot.deaths, 0);
+  const totalAnimalsActive = activeLots.reduce((sum, lot) => sum + lot.currentQuantity, 0);
   
   // Quantidade de Animais Pendentes
   const totalAnimalsPending = pendingLots.reduce((sum, lot) => {
     const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
-    return sum + (order?.quantity || 0);
+    return sum + (order?.animalCount || 0);
   }, 0);
   
   // Quantidade de Lotes de Compra
@@ -34,8 +37,7 @@ export const Lots: React.FC = () => {
     if (!order) return acc;
     
     // Calcular arrobas com R.C.%
-    const rcPercentage = order.rcPercentage || 50;
-    const carcassWeight = order.totalWeight * (rcPercentage / 100);
+    const carcassWeight = order.totalWeight * (order.carcassYield / 100);
     const arrobas = carcassWeight / 15;
     const animalValue = arrobas * order.pricePerArroba;
     const totalCost = animalValue + order.commission + order.otherCosts;
@@ -46,9 +48,8 @@ export const Lots: React.FC = () => {
       ((order.totalWeight - lot.entryWeight) / order.totalWeight) * 100 : 0;
     
     // Mortes em transporte
-    const transportDeaths = lot.quantityDifference && lot.quantityDifferenceReason === 'Morte Transporte' 
-      ? lot.quantityDifference : 0;
-    const transportDeathRate = order.quantity > 0 ? (transportDeaths / order.quantity) * 100 : 0;
+    const transportDeaths = lot.deathCount || 0;
+    const transportDeathRate = order.animalCount > 0 ? (transportDeaths / order.animalCount) * 100 : 0;
     
     return {
       totalCostPerArroba: acc.totalCostPerArroba + costPerArroba,
@@ -63,6 +64,9 @@ export const Lots: React.FC = () => {
   const avgWeightLoss = metrics.count > 0 ? metrics.totalWeightLoss / metrics.count : 0;
   const avgTransportDeathRate = metrics.count > 0 ? metrics.totalTransportDeathRate / metrics.count : 0;
   const avgPricePerArroba = metrics.count > 0 ? metrics.totalPricePerArroba / metrics.count : 0;
+
+  // Loading geral
+  const isLoading = lotsLoading || ordersLoading;
 
   return (
     <div className="p-4">
@@ -206,16 +210,17 @@ export const Lots: React.FC = () => {
                 <tbody>
                   {cattleLots.slice(0, 5).map((lot) => {
                     const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
-                    const isPending = order && (order.status === 'order' || order.status === 'payment_validation');
-                    const daysConfined = Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24));
+                    const isPending = order && (order.status === 'PENDING' || order.status === 'PAYMENT_VALIDATING');
+                    const entryDate = lot.entryDate instanceof Date ? lot.entryDate : new Date(lot.entryDate);
+                    const daysConfined = Math.floor((new Date().getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
                     const avgWeight = lot.entryQuantity > 0 ? lot.entryWeight / lot.entryQuantity : 0;
-                    const currais = loteCurralLinks.filter(link => link.loteId === lot.id).map(link => link.curralId).join(', ');
+                    const currais = lot.curralLinks ? lot.curralLinks.map(link => link.curralId).join(', ') : '-';
                     
                     return (
                       <tr key={lot.id} className="border-b border-neutral-100 hover:bg-neutral-50">
                         <td className="py-2 px-3 text-sm font-medium text-b3x-navy-900">{lot.lotNumber}</td>
                         <td className="py-2 px-3 text-sm text-neutral-700">
-                          {isPending ? order?.quantity || 0 : lot.entryQuantity - lot.deaths}
+                          {isPending ? order?.animalCount || 0 : lot.currentQuantity}
                         </td>
                         <td className="py-2 px-3 text-sm text-neutral-700">{isPending ? '-' : daysConfined}</td>
                         <td className="py-2 px-3 text-sm text-neutral-700">{currais || '-'}</td>

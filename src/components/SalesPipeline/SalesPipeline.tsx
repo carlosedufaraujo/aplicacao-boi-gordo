@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Plus, Filter, Search, Calendar, DollarSign, Truck, Clipboard, CheckCircle, ChevronDown } from 'lucide-react';
 import { SalesKanbanColumn } from './SalesKanbanColumn';
-import { useAppStore } from '../../stores/useAppStore';
+import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
+import { useSaleRecordsApi } from '../../hooks/api/useSaleRecordsApi';
 import { SaleDesignationForm } from './SaleDesignationForm';
 import { Portal } from '../Common/Portal';
 import { clsx } from 'clsx';
@@ -14,7 +15,8 @@ const stages = [
 ];
 
 export const SalesPipeline: React.FC = () => {
-  const { cattleLots, saleRecords, penStatuses, penAllocations } = useAppStore();
+  const { cattleLots } = useCattleLotsApi();
+  const { saleRecords } = useSaleRecordsApi();
   const [showDesignationForm, setShowDesignationForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');

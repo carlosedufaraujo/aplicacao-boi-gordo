@@ -1,181 +1,264 @@
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { supabase } from '@/config/supabase';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Iniciando seed do banco de dados...');
 
-  // Criar usuário admin
-  const adminPassword = await bcrypt.hash('admin123', 10);
-  
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@ceac.com.br' },
-    update: {},
-    create: {
-      email: 'admin@ceac.com.br',
-      password: adminPassword,
-      name: 'Administrador',
-      role: 'ADMIN',
+  try {
+    // 1. CRIAR USUÁRIO MASTER ADMIN
+    console.log('👑 Criando usuário master admin...');
+    
+    const masterUserData = {
+      email: 'carlosedufaraujo@outlook.com',
+      password: '368308450',
+      name: 'Carlos Eduardo (Master Admin)',
+      role: 'ADMIN' as const,
       isActive: true,
-    },
-  });
+      isMaster: true
+    };
 
-  console.log('✅ Usuário admin criado:', admin.email);
+    // Criar no Supabase Auth
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: masterUserData.email,
+      password: masterUserData.password,
+      email_confirm: true,
+      user_metadata: {
+        name: masterUserData.name,
+        role: masterUserData.role,
+        isMaster: true
+      }
+    });
 
-  // Criar contas pagadoras de exemplo
-  const accounts = await Promise.all([
-    prisma.payerAccount.upsert({
-      where: { id: 'default-cash' },
-      update: {},
-      create: {
-        id: 'default-cash',
-        bankName: 'Caixa',
-        accountName: 'Caixa Fazenda',
-        accountType: 'CASH',
-        balance: 50000,
-        isActive: true,
+    if (authError) {
+      console.error('❌ Erro ao criar usuário no Supabase Auth:', authError);
+      throw authError;
+    }
+
+    if (!authUser.user) {
+      throw new Error('Usuário não foi criado no Supabase Auth');
+    }
+
+    console.log('✅ Usuário criado no Supabase Auth:', authUser.user.id);
+
+    // Criar na tabela local
+    const masterUser = await prisma.user.upsert({
+      where: { email: masterUserData.email },
+      update: {
+        name: masterUserData.name,
+        role: masterUserData.role,
+        isActive: masterUserData.isActive,
+        isMaster: masterUserData.isMaster
       },
-    }),
-    prisma.payerAccount.upsert({
-      where: { id: 'default-bank' },
-      update: {},
       create: {
-        id: 'default-bank',
-        bankName: 'Banco do Brasil',
-        accountName: 'Conta Corrente Principal',
-        agency: '1234',
-        accountNumber: '12345-6',
-        accountType: 'CHECKING',
-        balance: 150000,
+        id: authUser.user.id,
+        email: masterUserData.email,
+        password: null, // Senha gerenciada pelo Supabase
+        name: masterUserData.name,
+        role: masterUserData.role,
+        isActive: masterUserData.isActive,
+        isMaster: masterUserData.isMaster
+      }
+    });
+
+    console.log('✅ Usuário master criado na tabela local:', masterUser.id);
+
+    // 2. CRIAR USUÁRIOS DE TESTE
+    console.log('👥 Criando usuários de teste...');
+
+    const testUsers = [
+      {
+        email: 'admin@ceac.com.br',
+        password: 'admin123',
+        name: 'Administrador CEAC',
+        role: 'ADMIN' as const,
         isActive: true,
+        isMaster: false
       },
-    }),
-  ]);
+      {
+        email: 'gerente@ceac.com.br',
+        password: 'gerente123',
+        name: 'Gerente de Produção',
+        role: 'USER' as const,
+        isActive: true,
+        isMaster: false
+      },
+      {
+        email: 'operador@ceac.com.br',
+        password: 'operador123',
+        name: 'Operador de Campo',
+        role: 'USER' as const,
+        isActive: true,
+        isMaster: false
+      }
+    ];
 
-  console.log('✅ Contas pagadoras criadas:', accounts.length);
+    for (const userData of testUsers) {
+      try {
+        // Criar no Supabase Auth
+        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+          email: userData.email,
+          password: userData.password,
+          email_confirm: true,
+          user_metadata: {
+            name: userData.name,
+            role: userData.role
+          }
+        });
 
-  // Criar currais de exemplo
-  const pens = await Promise.all(
-    Array.from({ length: 10 }, (_, i) =>
-      prisma.pen.upsert({
-        where: { penNumber: `${i + 1}` },
+        if (authError) {
+          console.warn(`⚠️ Erro ao criar usuário ${userData.email} no Supabase:`, authError.message);
+          continue;
+        }
+
+        if (authUser.user) {
+          // Criar na tabela local
+          await prisma.user.upsert({
+            where: { email: userData.email },
+            update: {
+              name: userData.name,
+              role: userData.role,
+              isActive: userData.isActive
+            },
+            create: {
+              id: authUser.user.id,
+              email: userData.email,
+              password: null,
+              name: userData.name,
+              role: userData.role,
+              isActive: userData.isActive,
+              isMaster: false
+            }
+          });
+
+          console.log(`✅ Usuário ${userData.email} criado com sucesso`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Erro ao criar usuário ${userData.email}:`, error);
+      }
+    }
+
+    // 3. CRIAR DADOS DE EXEMPLO PARA OUTRAS TABELAS
+    console.log('🏗️ Criando dados de exemplo...');
+
+    // Criar parceiros
+    const partners = await Promise.all([
+      prisma.partner.upsert({
+        where: { cpfCnpj: '12.345.678/0001-90' },
         update: {},
         create: {
-          penNumber: `${i + 1}`,
-          capacity: 100,
-          location: `Setor ${Math.ceil((i + 1) / 5)}`,
-          type: 'FATTENING',
-          status: 'AVAILABLE',
-          isActive: true,
-        },
+          name: 'Fazenda Modelo Ltda',
+          type: 'VENDOR',
+          cpfCnpj: '12.345.678/0001-90',
+          phone: '(11) 99999-9999',
+          email: 'contato@fazendamodelo.com.br',
+          address: 'Rodovia BR-050, Km 150, Zona Rural',
+          notes: 'Fornecedor principal de gado'
+        }
+      }),
+      prisma.partner.upsert({
+        where: { cpfCnpj: '98.765.432/0001-10' },
+        update: {},
+        create: {
+          name: 'Corretor Silva',
+          type: 'BROKER',
+          cpfCnpj: '98.765.432/0001-10',
+          phone: '(11) 88888-8888',
+          email: 'silva@corretor.com.br',
+          notes: 'Corretor de gado experiente'
+        }
       })
-    )
-  );
+    ]);
 
-  console.log('✅ Currais criados:', pens.length);
+    console.log(`✅ ${partners.length} parceiros criados`);
 
-  // Criar centros de custo
-  const costCenters = await Promise.all([
-    prisma.costCenter.upsert({
-      where: { code: 'AQUISICAO' },
-      update: {},
-      create: {
-        code: 'AQUISICAO',
-        name: 'Aquisição',
-        type: 'ACQUISITION',
-        isActive: true,
-      },
-    }),
-    prisma.costCenter.upsert({
-      where: { code: 'ENGORDA' },
-      update: {},
-      create: {
-        code: 'ENGORDA',
-        name: 'Engorda',
-        type: 'FATTENING',
-        isActive: true,
-      },
-    }),
-    prisma.costCenter.upsert({
-      where: { code: 'ADMINISTRATIVO' },
-      update: {},
-      create: {
-        code: 'ADMINISTRATIVO',
-        name: 'Administrativo',
-        type: 'ADMINISTRATIVE',
-        isActive: true,
-      },
-    }),
-    prisma.costCenter.upsert({
-      where: { code: 'FINANCEIRO' },
-      update: {},
-      create: {
-        code: 'FINANCEIRO',
-        name: 'Financeiro',
-        type: 'FINANCIAL',
-        isActive: true,
-      },
-    }),
-  ]);
+    // Criar contas pagadoras
+    const payerAccounts = await Promise.all([
+      prisma.payerAccount.upsert({
+        where: { accountNumber: '001-1' },
+        update: {},
+        create: {
+          bankName: 'Banco do Brasil',
+          accountName: 'CEAC Agropecuária Ltda',
+          agency: '1234',
+          accountNumber: '001-1',
+          accountType: 'CHECKING' as const,
+          balance: 50000.00
+        }
+      }),
+      prisma.payerAccount.upsert({
+        where: { accountNumber: '002-2' },
+        update: {},
+        create: {
+          bankName: 'Itaú',
+          accountName: 'CEAC Agropecuária Ltda',
+          agency: '5678',
+          accountNumber: '002-2',
+          accountType: 'CHECKING' as const,
+          balance: 75000.00
+        }
+      })
+    ]);
 
-  console.log('✅ Centros de custo criados:', costCenters.length);
+    console.log(`✅ ${payerAccounts.length} contas pagadoras criadas`);
 
-  // Criar alguns parceiros de exemplo
-  const partners = await Promise.all([
-    prisma.partner.upsert({
-      where: { id: 'vendor-1' },
-      update: {},
-      create: {
-        id: 'vendor-1',
-        name: 'Fazenda São José',
-        type: 'VENDOR',
-        cpfCnpj: '12345678901',
-        phone: '65999998888',
-        email: 'contato@fazendasaojose.com.br',
-        address: 'Rodovia MT-130, Km 45',
-        isActive: true,
-      },
-    }),
-    prisma.partner.upsert({
-      where: { id: 'broker-1' },
-      update: {},
-      create: {
-        id: 'broker-1',
-        name: 'João Silva Corretor',
-        type: 'BROKER',
-        cpfCnpj: '98765432101',
-        phone: '65988887777',
-        email: 'joao@corretores.com.br',
-        isActive: true,
-      },
-    }),
-    prisma.partner.upsert({
-      where: { id: 'buyer-1' },
-      update: {},
-      create: {
-        id: 'buyer-1',
-        name: 'JBS S/A',
-        type: 'BUYER',
-        cpfCnpj: '02916265000160',
-        phone: '1133241000',
-        email: 'compras@jbs.com.br',
-        address: 'Av. Marginal Direita do Tietê, 500',
-        isActive: true,
-      },
-    }),
-  ]);
+    // Criar ciclos
+    const cycles = await Promise.all([
+      prisma.cycles.upsert({
+        where: { id: 'cycle-2024-01' },
+        update: {},
+        create: {
+          id: 'cycle-2024-01',
+          name: 'Ciclo Janeiro 2024',
+          startDate: new Date('2024-01-01'),
+          endDate: new Date('2024-06-30'),
+          status: 'ACTIVE' as const,
+          notes: 'Ciclo de engorda para mercado interno'
+        }
+      }),
+      prisma.cycles.upsert({
+        where: { id: 'cycle-2024-02' },
+        update: {},
+        create: {
+          id: 'cycle-2024-02',
+          name: 'Ciclo Julho 2024',
+          startDate: new Date('2024-07-01'),
+          endDate: new Date('2024-12-31'),
+          status: 'PLANNED' as const,
+          targetWeight: 520.0,
+          notes: 'Ciclo de engorda para exportação'
+        }
+      })
+    ]);
 
-  console.log('✅ Parceiros criados:', partners.length);
+    console.log(`✅ ${cycles.length} ciclos criados`);
 
-  console.log('🎉 Seed concluído com sucesso!');
+    console.log('🎉 Seed concluído com sucesso!');
+    console.log('');
+    console.log('📋 RESUMO:');
+    console.log(`👑 Usuário Master: ${masterUser.email}`);
+    console.log(`👥 Usuários de Teste: ${testUsers.length}`);
+    console.log(`🤝 Parceiros: ${partners.length}`);
+    console.log(`🏦 Contas Pagadoras: ${payerAccounts.length}`);
+    console.log(`📅 Ciclos: ${cycles.length}`);
+    console.log('');
+    console.log('🔑 CREDENCIAIS DE ACESSO:');
+    console.log(`Master: ${masterUserData.email} / ${masterUserData.password}`);
+    console.log(`Admin: admin@ceac.com.br / admin123`);
+    console.log(`Gerente: gerente@ceac.com.br / gerente123`);
+    console.log(`Operador: operador@ceac.com.br / operador123`);
+
+  } catch (error) {
+    console.error('❌ Erro durante o seed:', error);
+    throw error;
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Erro no seed:', e);
+    console.error('❌ Erro fatal no seed:', e);
     process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
   }); 

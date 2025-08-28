@@ -1,4 +1,4 @@
-import { CattleLot, LotStatus, Prisma } from '@prisma/client';
+import { CattleLot, LotStatus } from '@prisma/client';
 import { BaseRepository } from './base.repository';
 import { prisma } from '@/config/database';
 

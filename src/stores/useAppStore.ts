@@ -23,6 +23,11 @@ import {
 } from '../types';
 import { addDays, subDays, format } from 'date-fns';
 
+// Helper function to ensure date is properly converted
+const ensureDate = (date: any): Date => {
+  return date instanceof Date ? date : new Date(date);
+};
+
 interface AppState {
   // Estado
   currentPage: string;
@@ -1251,7 +1256,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     if (activeLots.length > 0) {
       const totalDays = activeLots.reduce((sum, lot) => {
-        const daysInConfinement = Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24));
+        const daysInConfinement = Math.floor((new Date().getTime() - ensureDate(lot.entryDate).getTime()) / (1000 * 60 * 60 * 24));
         return sum + daysInConfinement;
       }, 0);
       avgDaysInConfinement = totalDays / activeLots.length;
@@ -2051,7 +2056,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     
     // Calcular dias em confinamento
-    const daysInConfinement = Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysInConfinement = Math.floor((new Date().getTime() - ensureDate(lot.entryDate).getTime()) / (1000 * 60 * 60 * 24));
     
     // Estimar peso atual
     const estimatedWeight = lot.entryWeight + (lot.estimatedGmd * lot.entryQuantity * daysInConfinement);
@@ -2140,7 +2145,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     
     // Calcular dias em confinamento
-    const daysInConfinement = Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24));
+    const daysInConfinement = Math.floor((new Date().getTime() - ensureDate(lot.entryDate).getTime()) / (1000 * 60 * 60 * 24));
     
     // Calcular GMD (ganho médio diário)
     const gmd = lot.estimatedGmd; // Usar o GMD estimado como fallback
@@ -2666,7 +2671,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         }
       } else if (includeProjections && pricePerArroba) {
         // Projetar vendas
-        const daysInConfinement = Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24));
+        const daysInConfinement = Math.floor((new Date().getTime() - ensureDate(lot.entryDate).getTime()) / (1000 * 60 * 60 * 24));
         const currentWeight = lot.entryWeight + (lot.estimatedGmd * lot.entryQuantity * daysInConfinement);
         const rcPercentage = state.purchaseOrders.find(o => o.id === lot.purchaseOrderId)?.rcPercentage || 50;
         const carcassWeight = currentWeight * (rcPercentage / 100);
@@ -2948,7 +2953,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         entityName: lot.lotNumber,
         heads: lot.entryQuantity - (lot.deaths || 0),
         value: state.calculateLotCostsByCategory(lot.id).total,
-        days: Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24)),
+        days: Math.floor((new Date().getTime() - ensureDate(lot.entryDate).getTime()) / (1000 * 60 * 60 * 24)),
         weight: lot.entryWeight,
         percentage,
         allocatedAmount

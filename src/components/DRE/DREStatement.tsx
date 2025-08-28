@@ -4,7 +4,7 @@ import {
   Calendar, Filter, Download, Plus, BarChart3,
   FileText, AlertCircle, ChevronRight, Eye
 } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
+import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
 import { DREStatement, DREGenerationParams } from '../../types';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -14,14 +14,22 @@ import { DREFilters } from './DREFilters';
 import { clsx } from 'clsx';
 
 export const DREStatementComponent: React.FC = () => {
-  const { 
-    cattleLots, 
-    penRegistrations,
-    generateDREStatement,
-    saveDREStatement,
-    dreStatements,
-    compareDREs
-  } = useAppStore();
+  const { cattleLots } = useCattleLotsApi();
+  
+  // TODO: Implementar funções DRE com API
+  const penRegistrations: any[] = [];
+  const generateDREStatement = (params: any) => {
+    console.log('TODO: Implementar generateDREStatement via API', params);
+    return null;
+  };
+  const saveDREStatement = (dre: any) => {
+    console.log('TODO: Implementar saveDREStatement via API', dre);
+  };
+  const dreStatements: any[] = [];
+  const compareDREs = (dres: any[]) => {
+    console.log('TODO: Implementar compareDREs via API', dres);
+    return null;
+  };
   
   const [selectedEntityType, setSelectedEntityType] = useState<'lot' | 'pen' | 'global'>('global');
   const [selectedEntityId, setSelectedEntityId] = useState<string>('');
@@ -179,24 +187,25 @@ export const DREStatementComponent: React.FC = () => {
 
       {/* Filtros - Redesenhado */}
       <DREFilters
-        selectedEntityType={selectedEntityType}
-        setSelectedEntityType={setSelectedEntityType}
-        selectedEntityId={selectedEntityId}
-        setSelectedEntityId={setSelectedEntityId}
+        entityType={selectedEntityType}
+        entityId={selectedEntityId}
         periodStart={periodStart}
-        setPeriodStart={setPeriodStart}
         periodEnd={periodEnd}
-        setPeriodEnd={setPeriodEnd}
         includeProjections={includeProjections}
-        setIncludeProjections={setIncludeProjections}
         pricePerArroba={pricePerArroba}
-        setPricePerArroba={setPricePerArroba}
+        onEntityTypeChange={setSelectedEntityType}
+        onEntityIdChange={setSelectedEntityId}
+        onPeriodStartChange={setPeriodStart}
+        onPeriodEndChange={setPeriodEnd}
+        onIncludeProjectionsChange={setIncludeProjections}
+        onPricePerArrobaChange={setPricePerArroba}
       />
 
       {/* Conteúdo Principal */}
       <div className="flex-1 min-h-0 mt-4">
-        {showComparison ? (
+        {showComparison && currentDRE ? (
           <DREComparison
+            currentDRE={currentDRE}
             entityType={selectedEntityType === 'global' ? 'lot' : selectedEntityType}
             periodStart={periodStart}
             periodEnd={periodEnd}

@@ -171,7 +171,7 @@ export class PurchaseOrderController {
    * GET /purchase-orders/stats
    * Retorna estatísticas das ordens
    */
-  async stats(req: Request, res: Response): Promise<void> {
+  async stats(_req: Request, res: Response): Promise<void> {
     const stats = await purchaseOrderService.getStats();
 
     res.json({

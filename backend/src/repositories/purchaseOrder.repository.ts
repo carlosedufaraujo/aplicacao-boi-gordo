@@ -52,29 +52,26 @@ export class PurchaseOrderRepository extends BaseRepository<PurchaseOrder> {
       });
 
       // Cria o lote automaticamente
-      const lot = await tx.cattleLot.create({
+      await tx.cattleLot.create({
         data: {
+          lotNumber: `LOT-${order.orderNumber}`,
           purchaseOrderId: order.id,
-          quantity: order.quantity,
-          remainingQuantity: order.quantity,
-          averageWeight: order.averageWeight,
-          totalWeight: order.quantity * order.averageWeight,
-          purchasePrice: order.pricePerKg,
-          purchaseCost: order.totalAmount,
+          entryDate: new Date(),
+          entryQuantity: order.animalCount,
+          currentQuantity: order.animalCount,
+          entryWeight: order.totalWeight,
+          acquisitionCost: order.totalValue,
           feedCost: 0,
           healthCost: 0,
           operationalCost: 0,
+          freightCost: 0,
           otherCosts: 0,
-          totalCost: order.totalAmount,
-          status: 'PENDING',
+          totalCost: order.totalValue,
+          status: 'ACTIVE' as const,
         },
       });
 
-      // Atualiza a ordem com o ID do lote
-      await tx.purchaseOrder.update({
-        where: { id: order.id },
-        data: { lotId: lot.id },
-      });
+      // Não precisa atualizar a ordem pois o lote já tem purchaseOrderId
 
       return tx.purchaseOrder.findUnique({
         where: { id: order.id },
@@ -98,13 +95,13 @@ export class PurchaseOrderRepository extends BaseRepository<PurchaseOrder> {
 
     const stats = {
       total: orders.length,
-      pending: orders.filter(o => o.status === 'PENDING').length,
-      confirmed: orders.filter(o => o.status === 'CONFIRMED').length,
-      shipped: orders.filter(o => o.status === 'SHIPPED').length,
-      completed: orders.filter(o => o.status === 'COMPLETED').length,
-      cancelled: orders.filter(o => o.status === 'CANCELLED').length,
-      totalValue: orders.reduce((sum, o) => sum + o.totalAmount, 0),
-      totalAnimals: orders.reduce((sum, o) => sum + o.quantity, 0),
+      pending: orders.filter((o: any) => o.status === 'PENDING').length,
+      confirmed: orders.filter((o: any) => o.status === 'CONFIRMED').length,
+      shipped: orders.filter((o: any) => o.status === 'SHIPPED').length,
+      completed: orders.filter((o: any) => o.status === 'COMPLETED').length,
+      cancelled: orders.filter((o: any) => o.status === 'CANCELLED').length,
+      totalValue: orders.reduce((sum: number, o: any) => sum + o.totalValue, 0),
+      totalAnimals: orders.reduce((sum: number, o: any) => sum + o.animalCount, 0),
       averagePrice: 0,
     };
 
@@ -113,5 +110,51 @@ export class PurchaseOrderRepository extends BaseRepository<PurchaseOrder> {
     }
 
     return stats;
+  }
+
+  async findByStage(stage: string) {
+    return this.model.findMany({
+      where: {
+        status: stage as any,
+      },
+      include: {
+        vendor: true,
+        lot: true,
+      },
+    });
+  }
+
+  async getNextOrderNumber(): Promise<string> {
+    const lastOrder = await this.model.findFirst({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+    
+    const nextNumber = lastOrder ? 
+      (parseInt(lastOrder.orderNumber.replace(/\D/g, '')) + 1) : 1;
+    
+    return `PO-${nextNumber.toString().padStart(6, '0')}`;
+  }
+
+  async createWithFinancialAccounts(data: any) {
+    return this.model.create({
+      data,
+      include: {
+        vendor: true,
+      },
+    });
+  }
+
+  async createLotFromOrder(orderId: string, lotData: any) {
+    return this.prisma.cattleLot.create({
+      data: {
+        ...lotData,
+        purchaseOrderId: orderId,
+      },
+      include: {
+        purchaseOrder: true,
+      },
+    });
   }
 } 

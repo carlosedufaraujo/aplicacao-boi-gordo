@@ -1,8 +1,8 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { useAppStore } from '../../stores/useAppStore';
-
-const COLORS = ['#a6e60d', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 
 export const CostAllocationPieChart: React.FC = () => {
   const { costCenters, costAllocations, expenses } = useAppStore();
@@ -39,7 +39,7 @@ export const CostAllocationPieChart: React.FC = () => {
       return {
         name: typeLabels[type] || type,
         value: amount,
-        color: COLORS[index % COLORS.length]
+        fill: `var(--color-${type})`
       };
     });
   }, [costCenters, costAllocations, expenses]);
@@ -49,67 +49,65 @@ export const CostAllocationPieChart: React.FC = () => {
 
   const total = chartData.reduce((sum, item) => sum + item.value, 0);
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0];
-      return (
-        <div className="bg-white p-3 border border-neutral-200 rounded-lg shadow-lg">
-          <p className="font-medium">{data.name}</p>
-          <p className="text-b3x-lime-600 font-bold">
-            R$ {data.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </p>
-          <p className="text-sm text-neutral-600">
-            {((data.value / total) * 100).toFixed(1)}% do total
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  const chartConfig = {
+    acquisition: {
+      label: "Aquisição",
+      color: "hsl(var(--chart-1))",
+    },
+    fattening: {
+      label: "Engorda", 
+      color: "hsl(var(--chart-2))",
+    },
+    administrative: {
+      label: "Administrativo",
+      color: "hsl(var(--chart-3))",
+    },
+    financial: {
+      label: "Financeiro",
+      color: "hsl(var(--chart-4))",
+    },
+  } satisfies ChartConfig;
 
-  // Componente de legenda personalizado para evitar sobreposição
-  const CustomLegend = ({ payload }: any) => {
-    return (
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2">
-        {payload.map((entry: any, index: number) => (
-          <div key={`legend-${index}`} className="flex items-center">
-            <div 
-              className="w-3 h-3 rounded-sm mr-1"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-xs text-neutral-700">{entry.value}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
+
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-6 hover:shadow-soft-lg transition-all duration-200">
-      <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">
-        Valor Alocado por Centro de Custo
-      </h3>
-      
-      {chartData.length > 0 ? (
-        <ResponsiveContainer width="100%" height={220}>
-          <PieChart>
-            <Pie
-              data={chartData}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={90}
-              paddingAngle={2}
-              dataKey="value"
-            >
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-            <Legend content={<CustomLegend />} />
-          </PieChart>
-        </ResponsiveContainer>
+    <Card>
+      <CardHeader>
+        <CardTitle>Alocação de Custos por Centro</CardTitle>
+        <CardDescription>
+          Distribuição dos custos entre os diferentes centros de custo
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {chartData.length > 0 ? (
+          <ChartContainer config={chartConfig}>
+            <PieChart>
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent 
+                  formatter={(value: number, name) => [
+                    `R$ ${value.toLocaleString('pt-BR')}`,
+                    chartConfig[name as keyof typeof chartConfig]?.label || name
+                  ]}
+                />}
+              />
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={60}
+                strokeWidth={5}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                ))}
+              </Pie>
+              <ChartLegend 
+                content={<ChartLegendContent nameKey="name" />}
+                className="flex-wrap gap-2 [&>*]:basis-1/4 [&>*]:justify-center"
+              />
+            </PieChart>
+          </ChartContainer>
       ) : (
         <div className="flex items-center justify-center h-[220px] text-neutral-400">
           <div className="text-center">
@@ -119,14 +117,15 @@ export const CostAllocationPieChart: React.FC = () => {
         </div>
       )}
 
-      <div className="mt-4 text-center">
-        <div className="text-lg font-bold text-b3x-navy-900">
-          Total: R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        <div className="mt-4 text-center">
+          <div className="text-lg font-bold">
+            Total: R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {chartData.length} centros de custo
+          </div>
         </div>
-        <div className="text-sm text-neutral-600">
-          {chartData.length} centros de custo
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

@@ -1,4 +1,4 @@
-import { PayerAccount, AccountType } from '@prisma/client';
+import { AccountType } from '@prisma/client';
 import { PayerAccountRepository } from '@/repositories/payerAccount.repository';
 import { NotFoundError, ValidationError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';
@@ -134,7 +134,7 @@ export class PayerAccountService {
 
     // Formata as transações em ordem cronológica
     const transactions = [
-      ...account.expenses.map(e => ({
+      ...account.expenses.map((e: any) => ({
         id: e.id,
         type: 'expense' as const,
         date: e.paymentDate || e.dueDate,
@@ -142,7 +142,7 @@ export class PayerAccountService {
         amount: -e.totalAmount,
         status: e.isPaid ? 'paid' : 'pending',
       })),
-      ...account.revenues.map(r => ({
+      ...account.revenues.map((r: any) => ({
         id: r.id,
         type: 'revenue' as const,
         date: r.receiptDate || r.dueDate,
@@ -150,7 +150,7 @@ export class PayerAccountService {
         amount: r.totalAmount,
         status: r.isReceived ? 'received' : 'pending',
       })),
-      ...account.contributions.map(c => ({
+      ...account.contributions.map((c: any) => ({
         id: c.id,
         type: 'contribution' as const,
         date: c.contributionDate,

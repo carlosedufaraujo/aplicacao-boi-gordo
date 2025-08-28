@@ -66,7 +66,7 @@ export class ReportController {
    * GET /reports/pen-occupancy
    * Gera relatório de ocupação de currais
    */
-  async penOccupancy(req: Request, res: Response): Promise<void> {
+  async penOccupancy(_req: Request, res: Response): Promise<void> {
     const report = await reportService.generatePenOccupancy();
 
     res.json({
@@ -119,6 +119,8 @@ export class ReportController {
   async export(req: Request, res: Response): Promise<void> {
     const { type } = req.params;
     const { format = 'csv' } = req.query;
+    // Suppress unused variable warning for now
+    void type;
 
     // Por enquanto, retorna mensagem de não implementado
     res.status(501).json({

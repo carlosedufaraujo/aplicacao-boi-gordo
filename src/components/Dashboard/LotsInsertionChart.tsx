@@ -1,8 +1,10 @@
 import React from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { useAppStore } from '../../stores/useAppStore';
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 export const LotsInsertionChart: React.FC = () => {
   const { cattleLots } = useAppStore();
@@ -49,70 +51,81 @@ export const LotsInsertionChart: React.FC = () => {
     });
   }, [cattleLots]);
 
-  return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-6 hover:shadow-soft-lg transition-all duration-200">
-      <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">
-        Inserção de Novos Lotes por Mês
-      </h3>
-      
-      <ResponsiveContainer width="100%" height={320}>
-        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
-          <XAxis 
-            dataKey="month" 
-            stroke="#737373"
-            fontSize={12}
-          />
-          <YAxis 
-            stroke="#737373"
-            fontSize={12}
-          />
-          <Tooltip 
-            formatter={(value: number, name: string) => [
-              name === 'lotes' ? `${value} lotes` : `${value} animais`,
-              name === 'lotes' ? 'Lotes' : 'Animais'
-            ]}
-            labelFormatter={(label, payload) => {
-              const data = payload?.[0]?.payload;
-              return data ? data.fullMonth : label;
-            }}
-            contentStyle={{
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(166, 230, 13, 0.2)',
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}
-          />
-          <Bar 
-            dataKey="lotes" 
-            fill="#a6e60d" 
-            name="lotes"
-            radius={[4, 4, 0, 0]}
-          />
-          <Bar 
-            dataKey="animais" 
-            fill="#22c55e" 
-            name="animais"
-            radius={[4, 4, 0, 0]}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+  const chartConfig = {
+    lotes: {
+      label: "Lotes",
+      color: "hsl(var(--chart-1))",
+    },
+    animais: {
+      label: "Animais", 
+      color: "hsl(var(--chart-2))",
+    },
+  } satisfies ChartConfig;
 
-      <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-b3x-lime-600">
-            {data.reduce((sum, month) => sum + month.lotes, 0)}
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Inserção de Novos Lotes por Mês</CardTitle>
+        <CardDescription>
+          Quantidade de lotes e animais inseridos mensalmente
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={chartConfig}>
+          <BarChart data={data}>
+            <CartesianGrid vertical={false} />
+            <XAxis 
+              dataKey="month" 
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+            />
+            <YAxis 
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+            />
+            <ChartTooltip 
+              cursor={false}
+              content={<ChartTooltipContent 
+                formatter={(value: number, name) => [
+                  name === 'lotes' ? `${value} lotes` : `${value} animais`,
+                  chartConfig[name as keyof typeof chartConfig]?.label || name
+                ]}
+                labelFormatter={(label, payload) => {
+                  const data = payload?.[0]?.payload;
+                  return data ? data.fullMonth : label;
+                }}
+              />}
+            />
+            <Bar 
+              dataKey="lotes" 
+              fill="var(--color-lotes)"
+              radius={[4, 4, 0, 0]}
+            />
+            <Bar 
+              dataKey="animais" 
+              fill="var(--color-animais)"
+              radius={[4, 4, 0, 0]}
+            />
+          </BarChart>
+        </ChartContainer>
+
+        <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+          <div className="text-center">
+            <div className="text-2xl font-bold" style={{ color: "var(--color-lotes)" }}>
+              {data.reduce((sum, month) => sum + month.lotes, 0)}
+            </div>
+            <div className="text-xs text-muted-foreground">Total de Lotes (6 meses)</div>
           </div>
-          <div className="text-xs text-neutral-600">Total de Lotes (6 meses)</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-success-600">
-            {data.reduce((sum, month) => sum + month.animais, 0)}
+          <div className="text-center">
+            <div className="text-2xl font-bold" style={{ color: "var(--color-animais)" }}>
+              {data.reduce((sum, month) => sum + month.animais, 0)}
+            </div>
+            <div className="text-xs text-muted-foreground">Total de Animais (6 meses)</div>
           </div>
-          <div className="text-xs text-neutral-600">Total de Animais (6 meses)</div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

@@ -1,397 +1,429 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Bell, 
-  Package, 
-  Bug, 
-  Shield, 
-  Zap, 
-  TrendingUp, 
-  Calendar,
-  Star,
-  MessageCircle,
-  ChevronRight,
-  Filter,
-  Search,
-  X,
-  Sparkles,
-  CheckCircle,
+  Download, 
+  RefreshCw, 
+  CheckCircle, 
+  AlertCircle, 
   Clock,
-  User
+  Package,
+  Zap,
+  Bug,
+  Shield,
+  Sparkles
 } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
-import { SystemUpdate } from '../../types';
-import { UpdateDetailModal } from './UpdateDetailModal';
-import { UpdateFeedbackModal } from './UpdateFeedbackModal';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+
+// Componentes shadcn/ui
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface SystemUpdate {
+  id: string;
+  version: string;
+  type: 'major' | 'minor' | 'patch' | 'security';
+  title: string;
+  description: string;
+  releaseDate: Date;
+  size: string;
+  status: 'available' | 'downloading' | 'installing' | 'installed' | 'failed';
+  progress?: number;
+  changelog: string[];
+  critical: boolean;
+}
+
+// Dados mockados para demonstração
+const mockUpdates: SystemUpdate[] = [
+  {
+    id: '1',
+    version: '2.1.0',
+    type: 'minor',
+    title: 'Nova Interface e Melhorias de Performance',
+    description: 'Atualização com nova interface shadcn/ui, melhorias de performance e correções de bugs.',
+    releaseDate: new Date('2025-01-27'),
+    size: '45.2 MB',
+    status: 'available',
+    changelog: [
+      'Nova interface moderna com shadcn/ui',
+      'Melhorias significativas de performance',
+      'Sistema híbrido de migração gradativa',
+      'Novos componentes de formulários',
+      'Correções de bugs críticos'
+    ],
+    critical: false
+  },
+  {
+    id: '2',
+    version: '2.0.3',
+    type: 'security',
+    title: 'Correção de Segurança Crítica',
+    description: 'Atualização de segurança que corrige vulnerabilidades importantes.',
+    releaseDate: new Date('2025-01-25'),
+    size: '12.8 MB',
+    status: 'installed',
+    changelog: [
+      'Correção de vulnerabilidade de autenticação',
+      'Melhorias na validação de dados',
+      'Atualização de dependências de segurança'
+    ],
+    critical: true
+  },
+  {
+    id: '3',
+    version: '2.0.2',
+    type: 'patch',
+    title: 'Correções de Bugs',
+    description: 'Correções menores e melhorias de estabilidade.',
+    releaseDate: new Date('2025-01-20'),
+    size: '8.5 MB',
+    status: 'installed',
+    changelog: [
+      'Correção no cálculo de DRE',
+      'Melhoria na sincronização de dados',
+      'Correção de erros de validação'
+    ],
+    critical: false
+  }
+];
 
 export const SystemUpdates: React.FC = () => {
-  const { 
-    systemUpdates, 
-    lastViewedUpdateDate,
-    setLastViewedUpdateDate,
-    addNotification 
-  } = useAppStore();
+  const [updates, setUpdates] = useState<SystemUpdate[]>(mockUpdates);
+  const [isChecking, setIsChecking] = useState(false);
+  const [lastCheck, setLastCheck] = useState<Date>(new Date());
 
-  const [selectedUpdate, setSelectedUpdate] = useState<SystemUpdate | null>(null);
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [feedbackUpdateId, setFeedbackUpdateId] = useState<string>('');
-  const [filterType, setFilterType] = useState<'all' | SystemUpdate['type']>('all');
-  const [filterCategory, setFilterCategory] = useState<'all' | SystemUpdate['category']>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // Marcar atualizações como visualizadas
-  useEffect(() => {
-    setLastViewedUpdateDate(new Date());
-  }, [setLastViewedUpdateDate]);
-
-  // Ícones por tipo
-  const typeIcons = {
-    feature: <Package className="w-4 h-4" />,
-    improvement: <TrendingUp className="w-4 h-4" />,
-    bugfix: <Bug className="w-4 h-4" />,
-    security: <Shield className="w-4 h-4" />,
-    performance: <Zap className="w-4 h-4" />
-  };
-
-  // Cores por tipo
-  const typeColors = {
-    feature: 'bg-success-100 text-success-700 border-success-200',
-    improvement: 'bg-info-100 text-info-700 border-info-200',
-    bugfix: 'bg-warning-100 text-warning-700 border-warning-200',
-    security: 'bg-error-100 text-error-700 border-error-200',
-    performance: 'bg-purple-100 text-purple-700 border-purple-200'
-  };
-
-  // Labels por tipo
-  const typeLabels = {
-    feature: 'Nova Funcionalidade',
-    improvement: 'Melhoria',
-    bugfix: 'Correção',
-    security: 'Segurança',
-    performance: 'Performance'
-  };
-
-  // Labels por categoria
-  const categoryLabels = {
-    pipeline: 'Pipeline',
-    financial: 'Financeiro',
-    reports: 'Relatórios',
-    ui: 'Interface',
-    api: 'API',
-    general: 'Geral'
-  };
-
-  // Filtrar atualizações
-  const filteredUpdates = systemUpdates.filter(update => {
-    // Filtro por tipo
-    if (filterType !== 'all' && update.type !== filterType) return false;
+  const checkForUpdates = async () => {
+    setIsChecking(true);
     
-    // Filtro por categoria
-    if (filterCategory !== 'all' && update.category !== filterCategory) return false;
+    // Simula verificação de atualizações
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Filtro por busca
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      return (
-        update.title.toLowerCase().includes(search) ||
-        update.description.toLowerCase().includes(search) ||
-        update.changes.some(change => 
-          change.description.toLowerCase().includes(search)
-        )
-      );
+    setLastCheck(new Date());
+    setIsChecking(false);
+  };
+
+  const installUpdate = async (updateId: string) => {
+    setUpdates(prev => prev.map(update => 
+      update.id === updateId 
+        ? { ...update, status: 'downloading', progress: 0 }
+        : update
+    ));
+
+    // Simula download
+    for (let i = 0; i <= 100; i += 10) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      setUpdates(prev => prev.map(update => 
+        update.id === updateId 
+          ? { ...update, progress: i }
+          : update
+      ));
+    }
+
+    // Simula instalação
+    setUpdates(prev => prev.map(update => 
+      update.id === updateId 
+        ? { ...update, status: 'installing', progress: undefined }
+        : update
+    ));
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    setUpdates(prev => prev.map(update => 
+      update.id === updateId 
+        ? { ...update, status: 'installed' }
+        : update
+    ));
+  };
+
+  const getUpdateIcon = (type: string) => {
+    switch (type) {
+      case 'major':
+        return <Sparkles className="h-4 w-4" />;
+      case 'minor':
+        return <Package className="h-4 w-4" />;
+      case 'patch':
+        return <Bug className="h-4 w-4" />;
+      case 'security':
+        return <Shield className="h-4 w-4" />;
+      default:
+        return <Package className="h-4 w-4" />;
+    }
+  };
+
+  const getUpdateBadge = (type: string, critical: boolean) => {
+    if (critical) {
+      return <Badge variant="destructive">Crítica</Badge>;
     }
     
-    return true;
-  });
-
-  // Agrupar por mês
-  const groupedUpdates = filteredUpdates.reduce((groups, update) => {
-    const month = format(update.releaseDate, 'MMMM yyyy', { locale: ptBR });
-    if (!groups[month]) {
-      groups[month] = [];
+    switch (type) {
+      case 'major':
+        return <Badge className="bg-purple-500">Major</Badge>;
+      case 'minor':
+        return <Badge className="bg-blue-500">Minor</Badge>;
+      case 'patch':
+        return <Badge variant="secondary">Patch</Badge>;
+      case 'security':
+        return <Badge className="bg-orange-500">Segurança</Badge>;
+      default:
+        return <Badge variant="outline">Atualização</Badge>;
     }
-    groups[month].push(update);
-    return groups;
-  }, {} as Record<string, SystemUpdate[]>);
-
-  // Verificar se há novas atualizações
-  const hasNewUpdates = systemUpdates.some(update => 
-    !lastViewedUpdateDate || update.releaseDate > lastViewedUpdateDate
-  );
-
-  const handleUpdateClick = (update: SystemUpdate) => {
-    setSelectedUpdate(update);
   };
 
-  const handleFeedback = (updateId: string) => {
-    setFeedbackUpdateId(updateId);
-    setShowFeedbackModal(true);
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'available':
+        return <Download className="h-4 w-4 text-blue-600" />;
+      case 'downloading':
+        return <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />;
+      case 'installing':
+        return <RefreshCw className="h-4 w-4 text-orange-600 animate-spin" />;
+      case 'installed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'failed':
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-600" />;
+    }
   };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'available':
+        return 'Disponível';
+      case 'downloading':
+        return 'Baixando...';
+      case 'installing':
+        return 'Instalando...';
+      case 'installed':
+        return 'Instalado';
+      case 'failed':
+        return 'Falhou';
+      default:
+        return 'Desconhecido';
+    }
+  };
+
+  const availableUpdates = updates.filter(u => u.status === 'available');
+  const criticalUpdates = availableUpdates.filter(u => u.critical);
 
   return (
-    <div className="p-4 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-b3x-navy-900 flex items-center">
-              <Bell className="w-6 h-6 mr-3 text-b3x-navy-600" />
-              Atualizações do Sistema
-              {hasNewUpdates && (
-                <span className="ml-3 px-2 py-1 bg-b3x-lime-500 text-b3x-navy-900 text-xs font-medium rounded-full">
-                  Novo
-                </span>
-              )}
-            </h1>
-            <p className="text-neutral-600 mt-1">
-              Acompanhe as novidades e melhorias do B3X CEAC
-            </p>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            {/* Estatísticas */}
-            <div className="bg-white rounded-lg px-4 py-2 border border-neutral-200 shadow-sm">
-              <div className="text-xs text-neutral-500">Total de Atualizações</div>
-              <div className="text-lg font-bold text-b3x-navy-900">{systemUpdates.length}</div>
-            </div>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="page-title">Atualizações do Sistema</h1>
+          <p className="page-subtitle">
+            Mantenha seu sistema atualizado com as últimas melhorias e correções
+          </p>
         </div>
+        
+        <Button onClick={checkForUpdates} disabled={isChecking}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${isChecking ? 'animate-spin' : ''}`} />
+          {isChecking ? 'Verificando...' : 'Verificar Atualizações'}
+        </Button>
+      </div>
 
-        {/* Filtros */}
-        <div className="bg-white rounded-xl p-4 border border-neutral-200 shadow-soft">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Busca */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Buscar atualizações..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-              />
+      {/* Alertas Críticos */}
+      {criticalUpdates.length > 0 && (
+        <Alert variant="destructive">
+          <Shield className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Atenção!</strong> Há {criticalUpdates.length} atualização(ões) crítica(s) de segurança disponível(is).
+            Recomendamos instalar imediatamente.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Status Geral */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Versão Atual</p>
+                <p className="text-2xl font-bold">2.0.3</p>
+              </div>
             </div>
-
-            {/* Filtro por Tipo */}
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as any)}
-              className="px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-            >
-              <option value="all">Todos os Tipos</option>
-              {Object.entries(typeLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-
-            {/* Filtro por Categoria */}
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value as any)}
-              className="px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-            >
-              <option value="all">Todas as Categorias</option>
-              {Object.entries(categoryLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-
-            {/* Limpar Filtros */}
-            {(filterType !== 'all' || filterCategory !== 'all' || searchTerm) && (
-              <button
-                onClick={() => {
-                  setFilterType('all');
-                  setFilterCategory('all');
-                  setSearchTerm('');
-                }}
-                className="px-3 py-2 text-sm text-neutral-600 hover:text-neutral-800 flex items-center space-x-1"
-              >
-                <X className="w-4 h-4" />
-                <span>Limpar</span>
-              </button>
-            )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <Download className="h-5 w-5 text-green-600" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Disponíveis</p>
+                <p className="text-2xl font-bold text-green-600">{availableUpdates.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-red-600" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Críticas</p>
+                <p className="text-2xl font-bold text-red-600">{criticalUpdates.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Última Verificação</p>
+                <p className="text-sm font-bold">
+                  {lastCheck.toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Lista de Atualizações */}
-      <div className="space-y-6">
-        {Object.entries(groupedUpdates).map(([month, updates]) => (
-          <div key={month}>
-            {/* Cabeçalho do Mês */}
-            <div className="flex items-center mb-4">
-              <Calendar className="w-4 h-4 mr-2 text-neutral-500" />
-              <h2 className="text-lg font-semibold text-b3x-navy-900 capitalize">
-                {month}
-              </h2>
-              <span className="ml-2 text-sm text-neutral-500">
-                ({updates.length} {updates.length === 1 ? 'atualização' : 'atualizações'})
-              </span>
-            </div>
-
-            {/* Atualizações do Mês */}
-            <div className="space-y-3">
-              {updates.map(update => (
-                <div
-                  key={update.id}
-                  className={`
-                    bg-white rounded-xl border shadow-soft overflow-hidden
-                    transition-all duration-200 hover:shadow-md cursor-pointer
-                    ${update.isHighlighted ? 'border-b3x-lime-500 ring-2 ring-b3x-lime-500/20' : 'border-neutral-200'}
-                  `}
-                  onClick={() => handleUpdateClick(update)}
-                >
-                  {/* Destaque para atualizações importantes */}
-                  {update.isHighlighted && (
-                    <div className="bg-gradient-to-r from-b3x-lime-500 to-b3x-lime-400 px-4 py-2 flex items-center justify-between">
-                      <span className="text-b3x-navy-900 font-medium text-sm flex items-center">
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Atualização em Destaque
-                      </span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Atualizações Disponíveis</CardTitle>
+          <CardDescription>
+            {availableUpdates.length > 0 
+              ? `${availableUpdates.length} atualização(ões) disponível(is)`
+              : 'Seu sistema está atualizado'
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-96">
+            <div className="space-y-4">
+              {updates.map((update, index) => (
+                <div key={update.id}>
+                  <div className="flex items-start gap-4">
+                    <div className="flex items-center gap-2 mt-1">
+                      {getUpdateIcon(update.type)}
+                      {getStatusIcon(update.status)}
                     </div>
-                  )}
-
-                  <div className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        {/* Cabeçalho */}
-                        <div className="flex items-center space-x-3 mb-2">
-                          {/* Tipo */}
-                          <span className={`
-                            inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium border
-                            ${typeColors[update.type]}
-                          `}>
-                            {typeIcons[update.type]}
-                            <span className="ml-1">{typeLabels[update.type]}</span>
-                          </span>
-
-                          {/* Categoria */}
-                          <span className="text-xs text-neutral-500">
-                            {categoryLabels[update.category]}
-                          </span>
-
-                          {/* Versão */}
-                          <span className="text-xs font-mono bg-neutral-100 px-2 py-1 rounded">
-                            v{update.version}
-                          </span>
-
-                          {/* Nova */}
-                          {(!lastViewedUpdateDate || update.releaseDate > lastViewedUpdateDate) && (
-                            <span className="px-2 py-1 bg-b3x-lime-500 text-b3x-navy-900 text-xs font-medium rounded-full">
-                              Nova
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Título e Descrição */}
-                        <h3 className="text-base font-semibold text-b3x-navy-900 mb-1">
-                          {update.title}
-                        </h3>
-                        <p className="text-sm text-neutral-600 line-clamp-2">
-                          {update.description}
-                        </p>
-
-                        {/* Preview das mudanças */}
-                        <div className="mt-3 space-y-1">
-                          {update.changes.slice(0, 2).map(change => (
-                            <div key={change.id} className="flex items-start text-xs text-neutral-500">
-                              <CheckCircle className="w-3 h-3 mr-2 mt-0.5 text-success-500 flex-shrink-0" />
-                              <span className="line-clamp-1">{change.description}</span>
-                            </div>
-                          ))}
-                          {update.changes.length > 2 && (
-                            <div className="text-xs text-b3x-lime-600 font-medium">
-                              +{update.changes.length - 2} outras mudanças
-                            </div>
-                          )}
-                        </div>
+                    
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium">{update.title}</h4>
+                        <Badge variant="outline">v{update.version}</Badge>
+                        {getUpdateBadge(update.type, update.critical)}
                       </div>
-
-                      {/* Imagem Preview */}
-                      {update.imageUrl && (
-                        <div className="ml-4 flex-shrink-0">
-                          <img
-                            src={update.imageUrl}
-                            alt={update.title}
-                            className="w-24 h-24 object-cover rounded-lg"
-                          />
+                      
+                      <p className="text-sm text-muted-foreground">
+                        {update.description}
+                      </p>
+                      
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>Tamanho: {update.size}</span>
+                        <span>•</span>
+                        <span>
+                          Lançado em: {update.releaseDate.toLocaleDateString('pt-BR')}
+                        </span>
+                        <span>•</span>
+                        <span>Status: {getStatusText(update.status)}</span>
+                      </div>
+                      
+                      {/* Progress Bar */}
+                      {update.status === 'downloading' && update.progress !== undefined && (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs">
+                            <span>Baixando...</span>
+                            <span>{update.progress}%</span>
+                          </div>
+                          <Progress value={update.progress} className="h-2" />
                         </div>
                       )}
+                      
+                      {update.status === 'installing' && (
+                        <div className="space-y-1">
+                          <div className="text-xs text-orange-600">Instalando...</div>
+                          <Progress value={undefined} className="h-2" />
+                        </div>
+                      )}
+                      
+                      {/* Changelog */}
+                      <div className="space-y-1">
+                        <h5 className="text-sm font-medium">Novidades:</h5>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          {update.changelog.map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-xs mt-1">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-
-                    {/* Footer */}
-                    <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
-                      <div className="flex items-center space-x-4 text-xs text-neutral-500">
-                        <span className="flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {format(update.releaseDate, "d 'de' MMMM", { locale: ptBR })}
-                        </span>
-                        {update.author && (
-                          <span className="flex items-center">
-                            <User className="w-3 h-3 mr-1" />
-                            {update.author}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFeedback(update.id);
-                          }}
-                          className="px-3 py-1.5 text-xs text-neutral-600 hover:text-b3x-navy-900 hover:bg-neutral-100 rounded-lg transition-colors flex items-center"
+                    
+                    <div className="flex flex-col gap-2">
+                      {update.status === 'available' && (
+                        <Button 
+                          size="sm"
+                          onClick={() => installUpdate(update.id)}
+                          variant={update.critical ? 'destructive' : 'default'}
                         >
-                          <MessageCircle className="w-3 h-3 mr-1" />
-                          Feedback
-                        </button>
-                        <ChevronRight className="w-4 h-4 text-neutral-400" />
-                      </div>
+                          <Download className="h-4 w-4 mr-2" />
+                          Instalar
+                        </Button>
+                      )}
+                      
+                      {update.status === 'installed' && (
+                        <Badge variant="outline" className="text-green-600">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Instalado
+                        </Badge>
+                      )}
                     </div>
                   </div>
+                  
+                  {index < updates.length - 1 && <Separator className="mt-4" />}
                 </div>
               ))}
             </div>
-          </div>
-        ))}
+          </ScrollArea>
+        </CardContent>
+      </Card>
 
-        {/* Empty State */}
-        {filteredUpdates.length === 0 && (
-          <div className="bg-white rounded-xl border border-neutral-200 p-12 text-center">
-            <div className="w-16 h-16 bg-neutral-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <Bell className="w-8 h-8 text-neutral-400" />
+      {/* Configurações de Atualização */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Configurações de Atualização</CardTitle>
+          <CardDescription>
+            Configure como as atualizações são gerenciadas
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Alert>
+              <Zap className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Atualizações Automáticas:</strong> Atualmente desabilitadas.
+                As atualizações devem ser instaladas manualmente para maior controle.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="text-sm text-muted-foreground">
+              <p>
+                <strong>Nota:</strong> Recomendamos sempre fazer backup dos dados antes de instalar 
+                atualizações importantes. Atualizações de segurança críticas devem ser instaladas 
+                imediatamente.
+              </p>
             </div>
-            <h3 className="text-lg font-semibold text-b3x-navy-900 mb-2">
-              Nenhuma atualização encontrada
-            </h3>
-            <p className="text-neutral-600 text-sm">
-              {searchTerm || filterType !== 'all' || filterCategory !== 'all'
-                ? 'Tente ajustar os filtros ou termos de busca'
-                : 'Ainda não há atualizações do sistema'}
-            </p>
           </div>
-        )}
-      </div>
-
-      {/* Modais */}
-      {selectedUpdate && (
-        <UpdateDetailModal
-          update={selectedUpdate}
-          isOpen={!!selectedUpdate}
-          onClose={() => setSelectedUpdate(null)}
-          onFeedback={() => handleFeedback(selectedUpdate.id)}
-        />
-      )}
-
-      <UpdateFeedbackModal
-        updateId={feedbackUpdateId}
-        isOpen={showFeedbackModal}
-        onClose={() => {
-          setShowFeedbackModal(false);
-          setFeedbackUpdateId('');
-        }}
-      />
+        </CardContent>
+      </Card>
     </div>
   );
-}; 
+};

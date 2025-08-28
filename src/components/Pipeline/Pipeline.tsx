@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Plus, FileText, CreditCard, Truck, CheckCircle, Search, Filter, ChevronDown } from 'lucide-react';
 import { KanbanColumn } from './KanbanColumn';
 import { PurchaseOrderForm } from '../Forms/PurchaseOrderForm';
-import { useAppStore } from '../../stores/useAppStore';
+import { usePurchaseOrdersApi } from '../../hooks/api/usePurchaseOrdersApi';
+import { usePartnersApi } from '../../hooks/api/usePartnersApi';
 import { Portal } from '../Common/Portal';
 
 const stages = [
@@ -13,7 +14,8 @@ const stages = [
 ];
 
 export const Pipeline: React.FC = () => {
-  const { purchaseOrders, partners } = useAppStore();
+  const { purchaseOrders, loading: ordersLoading } = usePurchaseOrdersApi();
+  const { partners, loading: partnersLoading } = usePartnersApi();
   const [showNewOrderForm, setShowNewOrderForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');

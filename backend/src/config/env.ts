@@ -41,6 +41,15 @@ interface EnvConfig {
     pass: string;
     from: string;
   };
+  
+  // Supabase
+  supabaseUrl: string;
+  supabaseAnonKey?: string;
+  supabaseServiceKey?: string;
+  
+  // Master Admin
+  masterAdminEmail: string;
+  masterIpWhitelist?: string;
 }
 
 function validateEnv(): EnvConfig {
@@ -93,6 +102,15 @@ function validateEnv(): EnvConfig {
       pass: process.env.SMTP_PASS || '',
       from: process.env.EMAIL_FROM || 'noreply@ceac.com.br',
     },
+    
+    // Supabase
+    supabaseUrl: process.env.SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.supabase.co',
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    
+    // Master Admin
+    masterAdminEmail: process.env.MASTER_ADMIN_EMAIL || 'carlosedufaraujo@outlook.com',
+    masterIpWhitelist: process.env.MASTER_IP_WHITELIST,
   };
 }
 

@@ -120,7 +120,7 @@ export class DashboardService {
     });
 
     const overcrowded = pens.filter(pen => {
-      const occupied = pen.lotAllocations.reduce((sum, a) => sum + a.quantity, 0);
+      const occupied = pen.lotAllocations ? pen.lotAllocations.reduce((sum: number, a: any) => sum + a.quantity, 0) : 0;
       return occupied > pen.capacity * 0.95;
     });
 
@@ -183,8 +183,8 @@ export class DashboardService {
     });
 
     const totalCapacity = pens.reduce((sum, p) => sum + p.capacity, 0);
-    const totalOccupied = pens.reduce((sum, p) => 
-      sum + p.lotAllocations.reduce((s, a) => s + a.quantity, 0), 0
+    const totalOccupied = pens.reduce((sum: number, p: any) => 
+      sum + (p.lotAllocations ? p.lotAllocations.reduce((s: number, a: any) => s + a.quantity, 0) : 0), 0
     );
 
     return totalCapacity > 0 ? (totalOccupied / totalCapacity) * 100 : 0;

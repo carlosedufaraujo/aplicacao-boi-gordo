@@ -185,7 +185,7 @@ export class PenController {
    * GET /pens/stats
    * Retorna estatísticas dos currais
    */
-  async stats(req: Request, res: Response): Promise<void> {
+  async stats(_req: Request, res: Response): Promise<void> {
     const stats = await penService.getStats();
 
     res.json({

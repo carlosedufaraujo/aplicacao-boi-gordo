@@ -1,4 +1,4 @@
-import { SaleRecord, SaleStatus } from '@prisma/client';
+import { SaleStatus } from '@prisma/client';
 import { SaleRepository } from '@/repositories/sale.repository';
 import { NotFoundError, ValidationError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';
@@ -100,32 +100,26 @@ export class SaleService {
 
   async create(data: CreateSaleData, userId: string) {
     // Valida se o lote existe e tem quantidade disponível
-    const lot = await this.validateLotAvailability(data.lotId, data.quantity);
+    await this.validateLotAvailability(data.lotId, data.quantity);
 
     // Gera número da venda
     const saleNumber = await this.generateSaleNumber();
 
-    // Calcula o valor total
-    const totalAmount = data.totalWeight * data.pricePerKg;
+    // Note: totalAmount calculation removed as not used in final data
 
     const saleData = {
       saleNumber,
-      lot: { connect: { id: data.lotId } },
-      buyer: { connect: { id: data.buyerId } },
-      quantity: data.quantity,
-      pricePerKg: data.pricePerKg,
-      totalWeight: data.totalWeight,
-      totalAmount,
-      saleDate: data.saleDate,
-      paymentType: data.paymentType,
-      paymentDueDate: data.paymentDueDate,
-      slaughterHouse: data.slaughterHouse,
-      status: 'NEGOTIATING' as SaleStatus,
+      lotId: data.lotId,
+      buyerId: data.buyerId,
+      designationDate: data.saleDate,
+      slaughterPlant: data.slaughterHouse || 'TBD',
+      expectedDate: data.saleDate,
+      userId,
+      status: 'NEXT_SLAUGHTER' as SaleStatus,
       notes: data.notes,
-      user: { connect: { id: userId } },
     };
 
-    return this.saleRepository.createWithRevenue(saleData);
+    return this.saleRepository.create(saleData);
   }
 
   async update(id: string, data: UpdateSaleData) {
@@ -201,8 +195,8 @@ export class SaleService {
     }
 
     const soldQuantity = lot.sales
-      .filter(s => s.status !== 'CANCELLED')
-      .reduce((sum, s) => sum + s.quantity, 0);
+      .filter((s: any) => s.status !== 'CANCELLED')
+      .reduce((sum: any, s: any) => sum + s.quantity, 0);
 
     const available = lot.quantity - soldQuantity;
 
@@ -215,10 +209,11 @@ export class SaleService {
 
   private validateStatusTransition(currentStatus: SaleStatus, newStatus: SaleStatus) {
     const validTransitions: Record<SaleStatus, SaleStatus[]> = {
-      NEGOTIATING: ['CONFIRMED', 'CANCELLED'],
-      CONFIRMED: ['SHIPPED', 'CANCELLED'],
-      SHIPPED: ['DELIVERED', 'CANCELLED'],
-      DELIVERED: [],
+      NEXT_SLAUGHTER: ['SCHEDULED', 'CANCELLED'],
+      SCHEDULED: ['SHIPPED', 'CANCELLED'],
+      SHIPPED: ['SLAUGHTERED', 'CANCELLED'],
+      SLAUGHTERED: ['RECONCILED', 'CANCELLED'],
+      RECONCILED: [],
       CANCELLED: [],
     };
 
@@ -229,10 +224,10 @@ export class SaleService {
 
   private async generateSaleNumber() {
     const year = new Date().getFullYear();
-    const lastSale = await this.saleRepository.findFirst(
+    const lastSale = await this.saleRepository.findAll(
       {},
-      { sortBy: 'saleNumber', sortOrder: 'desc' }
-    );
+      { sortBy: 'saleNumber', sortOrder: 'desc', limit: 1 }
+    ).then(results => results.data[0] || null);
 
     let sequence = 1;
     if (lastSale && lastSale.saleNumber.startsWith(`VND${year}`)) {

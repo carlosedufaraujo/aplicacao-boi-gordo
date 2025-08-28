@@ -84,11 +84,11 @@ export class PenRepository extends BaseRepository<Pen> {
     const pen = await this.findWithOccupation(id);
     if (!pen) return null;
 
-    const totalOccupied = pen.lotAllocations.reduce((sum, allocation) => sum + allocation.quantity, 0);
+    const totalOccupied = pen.lotAllocations.reduce((sum: number, allocation: any) => sum + allocation.quantity, 0);
     const occupationRate = (totalOccupied / pen.capacity) * 100;
     const availableSpace = pen.capacity - totalOccupied;
 
-    const lotsSummary = pen.lotAllocations.map(allocation => ({
+    const lotsSummary = pen.lotAllocations.map((allocation: any) => ({
       lotId: allocation.lot.id,
       lotNumber: allocation.lot.lotNumber,
       vendorName: allocation.lot.purchaseOrder.vendor.name,
@@ -125,8 +125,8 @@ export class PenRepository extends BaseRepository<Pen> {
       },
     });
 
-    const stats = pens.reduce((acc, pen) => {
-      const occupied = pen.lotAllocations.reduce((sum, a) => sum + a.quantity, 0);
+    const stats = pens.reduce((acc: any, pen: any) => {
+      const occupied = pen.lotAllocations.reduce((sum: number, a: any) => sum + a.quantity, 0);
       
       acc.totalPens++;
       acc.totalCapacity += pen.capacity;

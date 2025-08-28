@@ -1,4 +1,4 @@
-import { Pen, PenStatus, PenType } from '@prisma/client';
+import { PenStatus, PenType } from '@prisma/client';
 import { PenRepository } from '@/repositories/pen.repository';
 import { NotFoundError, ValidationError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';
@@ -140,7 +140,7 @@ export class PenService {
   }
 
   async updateStatus(id: string, status: PenStatus) {
-    const pen = await this.findById(id);
+    const _pen = await this.findById(id);
 
     // Validações específicas por status
     if (status === 'MAINTENANCE' || status === 'QUARANTINE') {
@@ -205,7 +205,7 @@ export class PenService {
     if (startDate) dateFilter.gte = startDate;
     if (endDate) dateFilter.lte = endDate;
 
-    const protocols = pen.healthProtocols.filter(protocol => {
+    const protocols = pen.healthProtocols.filter((protocol: any) => {
       if (!startDate && !endDate) return true;
       const date = protocol.applicationDate;
       if (startDate && date < startDate) return false;
@@ -220,7 +220,7 @@ export class PenService {
         capacity: pen.capacity,
       },
       protocols,
-      totalCost: protocols.reduce((sum, p) => sum + p.totalCost, 0),
+      totalCost: protocols.reduce((sum: number, p: any) => sum + p.totalCost, 0),
     };
   }
 } 

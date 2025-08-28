@@ -48,8 +48,8 @@ export class PartnerRepository extends BaseRepository<Partner> {
       totalPurchasesAsVendor: partner.purchaseOrdersAsVendor.length,
       totalPurchasesAsBroker: partner.purchaseOrdersAsBroker.length,
       totalSales: partner.saleRecords.length,
-      totalContributions: partner.contributions.reduce((sum, c) => sum + c.amount, 0),
-      activeLots: partner.purchaseOrdersAsVendor.filter(po => po.lot?.status === 'ACTIVE').length,
+      totalContributions: partner.contributions.reduce((sum: number, c: any) => sum + c.amount, 0),
+      activeLots: partner.purchaseOrdersAsVendor.filter((po: any) => po.lot?.status === 'ACTIVE').length,
     };
 
     return { partner, stats };

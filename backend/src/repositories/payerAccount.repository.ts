@@ -69,11 +69,11 @@ export class PayerAccountRepository extends BaseRepository<PayerAccount> {
     const account = await this.getAccountWithTransactions(id);
     if (!account) return null;
 
-    const totalExpenses = account.expenses.reduce((sum, e) => sum + (e.isPaid ? e.totalAmount : 0), 0);
-    const totalRevenues = account.revenues.reduce((sum, r) => sum + (r.isReceived ? r.totalAmount : 0), 0);
-    const totalContributions = account.contributions.reduce((sum, c) => sum + c.amount, 0);
-    const pendingExpenses = account.expenses.filter(e => !e.isPaid).reduce((sum, e) => sum + e.totalAmount, 0);
-    const pendingRevenues = account.revenues.filter(r => !r.isReceived).reduce((sum, r) => sum + r.totalAmount, 0);
+    const totalExpenses = account.expenses.reduce((sum: number, e: any) => sum + (e.isPaid ? e.totalAmount : 0), 0);
+    const totalRevenues = account.revenues.reduce((sum: number, r: any) => sum + (r.isReceived ? r.totalAmount : 0), 0);
+    const totalContributions = account.contributions.reduce((sum: number, c: any) => sum + c.amount, 0);
+    const pendingExpenses = account.expenses.filter((e: any) => !e.isPaid).reduce((sum: number, e: any) => sum + e.totalAmount, 0);
+    const pendingRevenues = account.revenues.filter((r: any) => !r.isReceived).reduce((sum: number, r: any) => sum + r.totalAmount, 0);
 
     return {
       account,

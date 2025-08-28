@@ -1,21 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
 import { UnauthorizedError, ForbiddenError } from '@/utils/AppError';
-import { env } from '@/config/env';
-import { prisma } from '@/config/database';
+import { supabase } from '@/config/supabase';
 import { User, UserRole } from '@prisma/client';
-
-interface JwtPayload {
-  id: string;
-  email: string;
-  role: UserRole;
-}
 
 // Estende a interface Request para incluir o usuário
 declare global {
   namespace Express {
     interface Request {
-      user?: User;
+      user?: any;
     }
   }
 }
@@ -23,7 +15,7 @@ declare global {
 // Middleware de autenticação
 export async function authenticate(
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
@@ -38,35 +30,39 @@ export async function authenticate(
       throw new UnauthorizedError('Formato de token inválido');
     }
 
-    // Verifica o token
-    const decoded = jwt.verify(token, env.jwtSecret) as JwtPayload;
+    // Valida token via Supabase Auth
+    const { data: { user: authUser }, error } = await supabase.auth.getUser(token);
 
-    // Busca o usuário no banco
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-    });
+    if (error || !authUser) {
+      throw new UnauthorizedError('Token inválido ou expirado');
+    }
 
-    if (!user || !user.isActive) {
+    // Busca dados adicionais da tabela de sincronização
+    const { data: localUser, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', authUser.email)
+      .single();
+
+    if (userError || !localUser || !localUser.isActive) {
       throw new UnauthorizedError('Usuário não encontrado ou inativo');
     }
 
     // Adiciona o usuário à requisição
-    req.user = user;
+    req.user = localUser;
     next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      next(new UnauthorizedError('Token inválido'));
-    } else if (error instanceof jwt.TokenExpiredError) {
-      next(new UnauthorizedError('Token expirado'));
-    } else {
+    if (error instanceof UnauthorizedError) {
       next(error);
+    } else {
+      next(new UnauthorizedError('Erro de autenticação'));
     }
   }
 }
 
 // Middleware de autorização por role
 export function authorize(...roles: UserRole[]) {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       return next(new UnauthorizedError('Usuário não autenticado'));
     }
@@ -82,7 +78,7 @@ export function authorize(...roles: UserRole[]) {
 // Middleware opcional de autenticação (não obriga estar autenticado)
 export async function optionalAuthenticate(
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
@@ -96,13 +92,18 @@ export async function optionalAuthenticate(
       return next();
     }
 
-    const decoded = jwt.verify(token, env.jwtSecret) as JwtPayload;
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-    });
+    const { data: { user: authUser }, error } = await supabase.auth.getUser(token);
+    
+    if (!error && authUser) {
+      const { data: localUser, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', authUser.email)
+        .single();
 
-    if (user && user.isActive) {
-      req.user = user;
+      if (!userError && localUser && localUser.isActive) {
+        req.user = localUser;
+      }
     }
 
     next();

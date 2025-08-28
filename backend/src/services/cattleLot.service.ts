@@ -1,4 +1,4 @@
-import { CattleLot, LotStatus } from '@prisma/client';
+import { LotStatus } from '@prisma/client';
 import { CattleLotRepository } from '@/repositories/cattleLot.repository';
 import { NotFoundError, ValidationError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';
@@ -125,8 +125,8 @@ export class CattleLotService {
     }
 
     // Valida quantidade total
-    const totalToAllocate = allocations.reduce((sum, a) => sum + a.quantity, 0);
-    const alreadyAllocated = lot.penAllocations.reduce((sum, a) => sum + a.quantity, 0);
+    const totalToAllocate = allocations.reduce((sum: number, a: any) => sum + a.quantity, 0);
+    const alreadyAllocated = lot.penAllocations.reduce((sum: number, a: any) => sum + a.quantity, 0);
     
     if (alreadyAllocated + totalToAllocate > lot.currentQuantity) {
       throw new ValidationError(
@@ -178,7 +178,7 @@ export class CattleLotService {
     return this.findById(id);
   }
 
-  async recordWeightLoss(id: string, data: WeightLossData, userId: string) {
+  async recordWeightLoss(id: string, data: WeightLossData, _userId: string) {
     const lot = await this.findById(id);
 
     const weightLoss = data.expectedWeight - data.actualWeight;

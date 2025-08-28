@@ -86,7 +86,7 @@ export class ExpenseController {
    * GET /expenses/overdue
    * Lista despesas vencidas
    */
-  async overdue(req: Request, res: Response): Promise<void> {
+  async overdue(_req: Request, res: Response): Promise<void> {
     const expenses = await expenseService.findOverdue();
 
     res.json({

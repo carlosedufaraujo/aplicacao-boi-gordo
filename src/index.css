@@ -2,6 +2,280 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Animações personalizadas para gráficos */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.chart-animate-in {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.chart-slide-in {
+  animation: slideInLeft 0.4s ease-out;
+}
+
+.chart-pulse {
+  animation: pulse-soft 2s infinite;
+}
+
+/* Classes de animação avançadas */
+.animate-bounce-subtle {
+  animation: bounce-subtle 1s ease-in-out infinite;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.animate-slide-in-down {
+  animation: slideInDown 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Transições de hover avançadas */
+.hover-lift {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.hover-glow {
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.hover-scale {
+  transition: transform 0.2s ease-in-out;
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Estados de loading */
+.loading-skeleton {
+  background: linear-gradient(90deg, 
+    hsl(var(--muted)) 25%, 
+    hsl(var(--muted-foreground) / 0.1) 50%, 
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: loading-shimmer 1.5s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Transições suaves para ícones e elementos interativos */
+.icon-transition {
+  transition: all 0.2s ease-in-out;
+}
+
+.icon-transition:hover {
+  transform: scale(1.05);
+}
+
+/* Classes semânticas para ícones com suporte a tema */
+.icon-success {
+  @apply text-emerald-600 dark:text-emerald-400;
+}
+
+.icon-warning {
+  @apply text-amber-600 dark:text-amber-400;
+}
+
+.icon-error {
+  @apply text-red-600 dark:text-red-400;
+}
+
+.icon-info {
+  @apply text-blue-600 dark:text-blue-400;
+}
+
+.icon-muted {
+  @apply text-muted-foreground;
+}
+
+.icon-primary {
+  @apply text-primary;
+}
+
+.icon-secondary {
+  @apply text-muted-foreground;
+}
+
+/* Classes semânticas para backgrounds */
+.bg-success {
+  @apply bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800;
+}
+
+.bg-warning {
+  @apply bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800;
+}
+
+.bg-error {
+  @apply bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800;
+}
+
+.bg-info {
+  @apply bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800;
+}
+
+/* Classes semânticas para texto */
+.text-success {
+  @apply text-emerald-700 dark:text-emerald-300;
+}
+
+.text-warning {
+  @apply text-amber-700 dark:text-amber-300;
+}
+
+.text-error {
+  @apply text-red-700 dark:text-red-300;
+}
+
+.text-info {
+  @apply text-blue-700 dark:text-blue-300;
+}
+
+/* Classes para status e badges */
+.status-active {
+  @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200;
+}
+
+.status-pending {
+  @apply bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200;
+}
+
+.status-inactive {
+  @apply bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200;
+}
+
+.status-error {
+  @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+}
+
+/* Transições para mudança de tema */
+* {
+  transition: background-color 0.2s ease-in-out, 
+              border-color 0.2s ease-in-out, 
+              color 0.2s ease-in-out;
+}
+
 /* CSS Reset e Configurações Fundamentais */
 *,
 *::before,
@@ -44,4 +318,181 @@ body {
 @keyframes shrink {
   from { width: 100%; }
   to { width: 0%; }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* =================================================================
+   SISTEMA DE TIPOGRAFIA - BOVICONTROL
+   ================================================================= */
+
+/* Componentes Semânticos */
+.page-title {
+  @apply text-xl font-bold leading-tight tracking-tight text-gray-900 dark:text-gray-100;
+}
+
+.page-subtitle {
+  @apply text-sm font-normal leading-relaxed text-muted-foreground;
+}
+
+.card-title {
+  @apply text-base font-semibold leading-snug text-gray-900 dark:text-gray-100;
+}
+
+.card-subtitle {
+  @apply text-xs font-normal leading-relaxed text-muted-foreground;
+}
+
+.card-value {
+  @apply text-lg font-bold text-gray-900 dark:text-gray-100;
+}
+
+/* KPI Cards */
+.kpi-label {
+  @apply text-xs font-medium uppercase tracking-wider text-muted-foreground;
+}
+
+.kpi-value {
+  @apply text-lg font-bold text-gray-900 dark:text-gray-100;
+}
+
+.kpi-variation {
+  @apply text-xs font-medium;
+}
+
+/* Tabelas */
+.table-header {
+  @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+}
+
+.table-cell {
+  @apply text-sm font-normal;
+}
+
+.table-cell-important {
+  @apply text-sm font-medium text-gray-900 dark:text-gray-100;
+}
+
+/* Forms */
+.form-label {
+  @apply text-xs font-medium text-gray-700 dark:text-gray-300;
+}
+
+.form-input {
+  @apply text-sm;
+}
+
+.form-helper {
+  @apply text-xs text-muted-foreground;
+}
+
+.form-error {
+  @apply text-xs text-destructive;
+}
+
+/* Texto Geral */
+.text-body {
+  @apply text-sm font-normal leading-relaxed;
+}
+
+.text-body-sm {
+  @apply text-xs font-normal leading-relaxed;
+}
+
+.text-caption {
+  @apply text-xs font-medium leading-normal;
+}
+
+/* Responsividade Mobile */
+@media (max-width: 640px) {
+  .page-title {
+    @apply text-lg;
+  }
+  
+  .kpi-value {
+    @apply text-base;
+  }
+  
+  .card-value {
+    @apply text-base;
+  }
 }

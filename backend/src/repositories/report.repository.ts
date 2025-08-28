@@ -122,9 +122,9 @@ export class ReportRepository {
     });
 
     // Busca aportes
-    const contributions = await prisma.contribution.findMany({
+    const contributions = await prisma.financialContribution.findMany({
       where: {
-        date: {
+        contributionDate: {
           gte: startDate,
           lte: endDate,
         },
@@ -141,8 +141,8 @@ export class ReportRepository {
     const dailyFlow = this.generateDailyFlow(revenues, expenses, contributions, startDate, endDate);
 
     // Calcula totais
-    const totalInflow = revenues.reduce((sum, r) => sum + (r.isReceived ? r.totalAmount : 0), 0) +
-                       contributions.reduce((sum, c) => sum + c.amount, 0);
+    const totalInflow = revenues.reduce((sum: number, r: any) => sum + (r.isReceived ? r.totalAmount : 0), 0) +
+                       contributions.reduce((sum: number, c: any) => sum + c.amount, 0);
     const totalOutflow = expenses.reduce((sum, e) => sum + (e.isPaid ? e.totalAmount : 0), 0);
     const netFlow = totalInflow - totalOutflow;
 
@@ -177,10 +177,9 @@ export class ReportRepository {
             vendor: true,
           },
         },
-        sales: {
+        saleRecords: {
           include: {
             buyer: true,
-            revenues: true,
           },
         },
         expenses: true,
@@ -193,14 +192,14 @@ export class ReportRepository {
       },
     });
 
-    return lots.map(lot => {
-      const totalSales = lot.sales.reduce((sum, s) => sum + s.totalAmount, 0);
+    return lots.map((lot: any) => {
+      const totalSales = lot.saleRecords.reduce((sum: number, s: any) => sum + s.totalAmount, 0);
       const totalExpenses = lot.totalCost;
       const profit = totalSales - totalExpenses;
       
-      const soldQuantity = lot.sales
-        .filter(s => s.status !== 'CANCELLED')
-        .reduce((sum, s) => sum + s.quantity, 0);
+      const soldQuantity = lot.saleRecords
+        .filter((s: any) => s.status !== 'CANCELLED')
+        .reduce((sum: number, s: any) => sum + s.quantity, 0);
       
       const avgSalePrice = soldQuantity > 0 ? totalSales / soldQuantity : 0;
       const avgPurchasePrice = lot.quantity > 0 ? lot.purchaseCost / lot.quantity : 0;
@@ -252,7 +251,7 @@ export class ReportRepository {
       include: {
         lotAllocations: {
           where: {
-            exitDate: null,
+            removalDate: null,
           },
           include: {
             lot: {
@@ -265,21 +264,21 @@ export class ReportRepository {
       },
     });
 
-    const totalCapacity = pens.reduce((sum, p) => sum + p.capacity, 0);
-    const totalOccupied = pens.reduce((sum, p) => 
-      sum + p.lotAllocations.reduce((s, a) => s + a.quantity, 0), 0
+    const totalCapacity = pens.reduce((sum: number, p: any) => sum + p.capacity, 0);
+    const totalOccupied = pens.reduce((sum: number, p: any) => 
+      sum + p.lotAllocations.reduce((s: number, a: any) => s + a.quantity, 0), 0
     );
 
     return {
       summary: {
         totalPens: pens.length,
-        activePens: pens.filter(p => p.status === 'ACTIVE').length,
+        activePens: pens.filter((p: any) => p.status === 'ACTIVE').length,
         totalCapacity,
         totalOccupied,
         occupancyRate: totalCapacity > 0 ? (totalOccupied / totalCapacity) * 100 : 0,
       },
-      pens: pens.map(pen => {
-        const occupied = pen.lotAllocations.reduce((sum, a) => sum + a.quantity, 0);
+      pens: pens.map((pen: any) => {
+        const occupied = pen.lotAllocations.reduce((sum: number, a: any) => sum + a.quantity, 0);
         return {
           id: pen.id,
           name: pen.name,
@@ -289,12 +288,12 @@ export class ReportRepository {
           occupied,
           available: pen.capacity - occupied,
           occupancyRate: pen.capacity > 0 ? (occupied / pen.capacity) * 100 : 0,
-          lots: pen.lotAllocations.map(a => ({
+          lots: pen.lotAllocations.map((a: any) => ({
             lotId: a.lot.id,
             lotNumber: a.lot.lotNumber,
             quantity: a.quantity,
-            entryDate: a.entryDate,
-            daysInPen: Math.floor((new Date().getTime() - a.entryDate.getTime()) / (1000 * 60 * 60 * 24)),
+            entryDate: a.allocationDate,
+            daysInPen: Math.floor((new Date().getTime() - a.allocationDate.getTime()) / (1000 * 60 * 60 * 24)),
           })),
         };
       }),
@@ -393,7 +392,7 @@ export class ReportRepository {
 
     // Adiciona aportes
     contributions.forEach(contribution => {
-      const dateKey = contribution.date.toISOString().split('T')[0];
+      const dateKey = contribution.contributionDate.toISOString().split('T')[0];
       if (dailyMap[dateKey]) {
         dailyMap[dateKey].inflow += contribution.amount;
         dailyMap[dateKey].details.contributions.push({
