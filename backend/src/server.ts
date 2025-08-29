@@ -1,12 +1,12 @@
 import { createApp } from './app';
-// import { connectDatabase } from '@/config/database'; // Comentado - usando apenas Supabase
+import { initializeSupabase } from '@/config/supabase-client';
 import { env } from '@/config/env';
 import { logger } from '@/config/logger';
 
 async function startServer(): Promise<void> {
   try {
-    // Conecta ao banco de dados
-    // await connectDatabase(); // Comentado - usando apenas Supabase
+    // Inicializa conexão com Supabase (comentado temporariamente para permitir início)
+    // await initializeSupabase();
 
     // Cria a aplicação Express
     const app = createApp();

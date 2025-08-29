@@ -83,8 +83,8 @@ export const partnerApi = {
    * Lista todos os parceiros com filtros
    */
   async getAll(filters: PartnerFilters = {}): Promise<ApiResponse<Partner[]>> {
-    const response = await apiClient.get('/partners', { params: filters });
-    return response.data;
+    const response = await apiClient.get('/partners', filters);
+    return response;
   },
 
   /**
@@ -92,7 +92,7 @@ export const partnerApi = {
    */
   async getById(id: string): Promise<ApiResponse<Partner>> {
     const response = await apiClient.get(`/partners/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -100,7 +100,7 @@ export const partnerApi = {
    */
   async getByType(partnerType: string): Promise<ApiResponse<Partner[]>> {
     const response = await apiClient.get(`/partners/type/${partnerType}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -108,7 +108,7 @@ export const partnerApi = {
    */
   async getByStatus(status: string): Promise<ApiResponse<Partner[]>> {
     const response = await apiClient.get(`/partners/status/${status}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -116,7 +116,7 @@ export const partnerApi = {
    */
   async getActive(): Promise<ApiResponse<Partner[]>> {
     const response = await apiClient.get('/partners/active');
-    return response.data;
+    return response;
   },
 
   /**
@@ -124,7 +124,7 @@ export const partnerApi = {
    */
   async create(data: CreatePartnerData): Promise<ApiResponse<Partner>> {
     const response = await apiClient.post('/partners', data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -132,7 +132,7 @@ export const partnerApi = {
    */
   async update(id: string, data: UpdatePartnerData): Promise<ApiResponse<Partner>> {
     const response = await apiClient.put(`/partners/${id}`, data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -142,7 +142,7 @@ export const partnerApi = {
     const response = await apiClient.patch(`/partners/${id}/toggle`, {
       isActive
     });
-    return response.data;
+    return response;
   },
 
   /**
@@ -150,7 +150,7 @@ export const partnerApi = {
    */
   async remove(id: string): Promise<ApiResponse<void>> {
     const response = await apiClient.delete(`/partners/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -158,6 +158,6 @@ export const partnerApi = {
    */
   async getStats(): Promise<ApiResponse<PartnerStats>> {
     const response = await apiClient.get('/partners/stats');
-    return response.data;
+    return response;
   }
 };

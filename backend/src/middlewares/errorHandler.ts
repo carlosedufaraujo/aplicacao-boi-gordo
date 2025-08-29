@@ -22,15 +22,20 @@ export function errorHandler(
   let message = 'Erro interno do servidor';
   let details: any;
 
-  // Log do erro
-  logger.error({
-    error: error.message,
+  // Log do erro com formatação adequada
+  const errorInfo = {
+    message: error.message,
+    name: error.name,
     stack: error.stack,
     url: req.url,
     method: req.method,
     ip: req.ip,
     user: (req as any).user?.id,
-  });
+    timestamp: new Date().toISOString(),
+  };
+
+  // Log estruturado do erro
+  logger.error(`❌ ${error.name || 'Error'}: ${error.message}`, errorInfo);
 
   // Trata erros do Prisma
   if (error instanceof Prisma.PrismaClientKnownRequestError) {

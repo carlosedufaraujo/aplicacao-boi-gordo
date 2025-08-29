@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import { UnauthorizedError, ForbiddenError } from '@/utils/AppError';
 import { prisma } from '@/config/database';
-import { User, UserRole } from '@prisma/client';
-import jwt from 'jsonwebtoken';
-import { env } from '@/config/env';
+import { UserRole } from '@prisma/client';
 
 // Estende a interface Request para incluir o usuário
 declare global {
@@ -14,8 +13,18 @@ declare global {
   }
 }
 
-// Middleware de autenticação
-export async function authenticate(
+interface JWTPayload {
+  id: string;
+  email: string;
+  role: string;
+  iat: number;
+  exp: number;
+}
+
+/**
+ * Middleware de autenticação 100% Backend (JWT próprio)
+ */
+export async function authenticateBackend(
   req: Request,
   _res: Response,
   next: NextFunction
@@ -32,23 +41,28 @@ export async function authenticate(
       throw new UnauthorizedError('Formato de token inválido');
     }
 
-    // Valida token JWT
-    const decoded = jwt.verify(token, env.jwtSecret) as any;
+    // Valida token JWT (nosso próprio)
+    const jwtSecret = process.env.JWT_SECRET || 'seu_jwt_secret_muito_seguro_aqui';
+    const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
 
     // Busca usuário no banco via Prisma
-    const user = await prisma.user.findUnique({
+    const localUser = await prisma.user.findUnique({
       where: { id: decoded.id }
     });
 
-    if (!user || !user.isActive) {
+    if (!localUser || !localUser.isActive) {
       throw new UnauthorizedError('Usuário não encontrado ou inativo');
     }
 
     // Adiciona o usuário à requisição
-    req.user = user;
+    req.user = localUser;
     next();
   } catch (error) {
-    if (error instanceof UnauthorizedError) {
+    if (error instanceof jwt.JsonWebTokenError) {
+      next(new UnauthorizedError('Token inválido'));
+    } else if (error instanceof jwt.TokenExpiredError) {
+      next(new UnauthorizedError('Token expirado'));
+    } else if (error instanceof UnauthorizedError) {
       next(error);
     } else {
       next(new UnauthorizedError('Erro de autenticação'));
@@ -56,8 +70,10 @@ export async function authenticate(
   }
 }
 
-// Middleware de autorização por role
-export function authorize(...roles: UserRole[]) {
+/**
+ * Middleware de autorização por role (Backend)
+ */
+export function authorizeBackend(...roles: UserRole[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       return next(new UnauthorizedError('Usuário não autenticado'));
@@ -71,8 +87,10 @@ export function authorize(...roles: UserRole[]) {
   };
 }
 
-// Middleware opcional de autenticação (não obriga estar autenticado)
-export async function optionalAuthenticate(
+/**
+ * Middleware opcional de autenticação Backend
+ */
+export async function optionalAuthenticateBackend(
   req: Request,
   _res: Response,
   next: NextFunction
@@ -88,16 +106,17 @@ export async function optionalAuthenticate(
       return next();
     }
 
-    // Valida token JWT
-    const decoded = jwt.verify(token, env.jwtSecret) as any;
+    const jwtSecret = process.env.JWT_SECRET || 'seu_jwt_secret_muito_seguro_aqui';
+    const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
 
-    // Busca usuário no banco via Prisma
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id }
-    });
+    const { data: localUser, error: userError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', decoded.id)
+      .single();
 
-    if (user && user.isActive) {
-      req.user = user;
+    if (!userError && localUser && localUser.isActive) {
+      req.user = localUser;
     }
 
     next();
@@ -105,4 +124,4 @@ export async function optionalAuthenticate(
     // Ignora erros e continua sem autenticação
     next();
   }
-} 
+}

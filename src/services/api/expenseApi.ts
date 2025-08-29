@@ -82,8 +82,8 @@ export const expenseApi = {
    * Lista todas as despesas com filtros
    */
   async getAll(filters: ExpenseFilters = {}): Promise<ApiResponse<Expense[]>> {
-    const response = await apiClient.get('/expenses', { params: filters });
-    return response.data;
+    const response = await apiClient.get('/expenses', filters);
+    return response;
   },
 
   /**
@@ -91,7 +91,7 @@ export const expenseApi = {
    */
   async getById(id: string): Promise<ApiResponse<Expense>> {
     const response = await apiClient.get(`/expenses/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -99,7 +99,7 @@ export const expenseApi = {
    */
   async getByStatus(status: string): Promise<ApiResponse<Expense[]>> {
     const response = await apiClient.get(`/expenses/status/${status}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -107,7 +107,7 @@ export const expenseApi = {
    */
   async getByCategory(categoryId: string): Promise<ApiResponse<Expense[]>> {
     const response = await apiClient.get(`/expenses/category/${categoryId}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -115,7 +115,7 @@ export const expenseApi = {
    */
   async getByPurchaseOrder(purchaseOrderId: string): Promise<ApiResponse<Expense[]>> {
     const response = await apiClient.get(`/expenses/purchase-order/${purchaseOrderId}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -123,7 +123,7 @@ export const expenseApi = {
    */
   async create(data: CreateExpenseData): Promise<ApiResponse<Expense>> {
     const response = await apiClient.post('/expenses', data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -131,7 +131,7 @@ export const expenseApi = {
    */
   async update(id: string, data: UpdateExpenseData): Promise<ApiResponse<Expense>> {
     const response = await apiClient.put(`/expenses/${id}`, data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -142,7 +142,7 @@ export const expenseApi = {
       paidValue,
       paidDate
     });
-    return response.data;
+    return response;
   },
 
   /**
@@ -150,7 +150,7 @@ export const expenseApi = {
    */
   async remove(id: string): Promise<ApiResponse<void>> {
     const response = await apiClient.delete(`/expenses/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -158,6 +158,6 @@ export const expenseApi = {
    */
   async getStats(): Promise<ApiResponse<ExpenseStats>> {
     const response = await apiClient.get('/expenses/stats');
-    return response.data;
+    return response;
   }
 };

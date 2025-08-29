@@ -1,17 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Configuração do Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// TEMPORÁRIO: Usar service_role key para testar conexão
-// TODO: Substituir por chave anon válida
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTcxNDYwNywiZXhwIjoyMDcxMjkwNjA3fQ.8U_SEhK7xB33ABE3KYdVhGsMzuF9fqIGTGfew_KPKb8';
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Variáveis de ambiente Supabase não configuradas. Verifique o arquivo .env');
+}
 
 // Verificar configuração
 console.log('🔧 Configuração Supabase:', {
   url: supabaseUrl,
   anonKey: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'NÃO DEFINIDA',
-  keyType: supabaseAnonKey.includes('service_role') ? 'SERVICE_ROLE (TEMPORÁRIO)' : 'ANON'
+  keyType: 'ANON (Seguro para Frontend)'
 });
 
 // Cliente Supabase para o frontend
@@ -29,42 +30,49 @@ export interface User {
   updatedAt: string;
 }
 
-// Serviço de autenticação
+// Serviço de autenticação (DESABILITADO - usando Backend próprio)
 export class SupabaseAuthService {
-  // Login
+  // Login via Backend API (não Supabase Auth)
   async signIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
+    // Redirecionar para API Backend
+    const response = await fetch('http://localhost:3333/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
     });
     
-    if (error) throw error;
-    return data;
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Erro no login');
+    }
+    
+    const data = await response.json();
+    return { user: data.user, session: { access_token: data.token } };
   }
 
-  // Logout
+  // Logout via Backend API
   async signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    return true;
   }
 
-  // Obter usuário atual
+  // Obter usuário atual do localStorage
   async getCurrentUser() {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    return user;
+    const userData = localStorage.getItem('user');
+    return userData ? JSON.parse(userData) : null;
   }
 
-  // Obter sessão atual
+  // Obter sessão atual do localStorage  
   async getCurrentSession() {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    return session;
+    const token = localStorage.getItem('authToken');
+    return token ? { access_token: token } : null;
   }
 
-  // Escutar mudanças de autenticação
+  // Simular mudanças de autenticação (sem Supabase)
   onAuthStateChange(callback: (event: string, session: any) => void) {
-    return supabase.auth.onAuthStateChange(callback);
+    // Retorna um subscription mock
+    return { data: { subscription: { unsubscribe: () => {} } } };
   }
 }
 

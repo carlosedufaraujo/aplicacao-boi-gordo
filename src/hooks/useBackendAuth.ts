@@ -1,15 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { authService, User } from '../services/supabase';
+import { backendAuth, User, Session } from '@/services/backendAuth';
 
 interface AuthState {
   user: User | null;
-  session: any;
+  session: Session | null;
   loading: boolean;
   error: string | null;
   initialized: boolean;
 }
 
-export const useSupabaseAuth = () => {
+/**
+ * Hook de autenticação 100% Backend
+ * Substitui completamente o useSupabaseAuth
+ */
+export const useBackendAuth = () => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     session: null,
@@ -21,22 +25,17 @@ export const useSupabaseAuth = () => {
   const initializingRef = useRef(false);
   const mountedRef = useRef(true);
 
-  // Login via Backend API (100% próprio)
+  // Login via Backend
   const signIn = useCallback(async (email: string, password: string) => {
     try {
-      console.log('🔐 [AUTH] Iniciando login via Backend...');
+      console.log('🔐 [BACKEND AUTH] Iniciando login...');
       setAuthState(prev => ({ ...prev, loading: true, error: null }));
       
-      const { user, session } = await authService.signIn(email, password);
-      console.log('🔐 [AUTH] Login bem-sucedido via Backend:', user?.email);
-      
-      // Salvar dados no localStorage
-      localStorage.setItem('authToken', session.access_token);
-      localStorage.setItem('user', JSON.stringify(user));
+      const { user, session } = await backendAuth.signIn(email, password);
       
       if (user && mountedRef.current) {
         setAuthState({
-          user: user as any,
+          user,
           session,
           loading: false,
           error: null,
@@ -44,7 +43,7 @@ export const useSupabaseAuth = () => {
         });
       }
     } catch (error: any) {
-      console.error('🔐 [AUTH] Erro no login:', error);
+      console.error('🔐 [BACKEND AUTH] Erro no login:', error);
       if (mountedRef.current) {
         setAuthState(prev => ({
           ...prev,
@@ -59,8 +58,9 @@ export const useSupabaseAuth = () => {
   // Logout
   const signOut = useCallback(async () => {
     try {
-      console.log('🔐 [AUTH] Fazendo logout...');
-      await authService.signOut();
+      console.log('🔐 [BACKEND AUTH] Fazendo logout...');
+      await backendAuth.signOut();
+      
       if (mountedRef.current) {
         setAuthState({
           user: null,
@@ -71,7 +71,7 @@ export const useSupabaseAuth = () => {
         });
       }
     } catch (error: any) {
-      console.error('🔐 [AUTH] Erro no logout:', error);
+      console.error('🔐 [BACKEND AUTH] Erro no logout:', error);
       if (mountedRef.current) {
         setAuthState(prev => ({
           ...prev,
@@ -81,38 +81,47 @@ export const useSupabaseAuth = () => {
     }
   }, []);
 
-  // Verificar sessão via localStorage (Backend próprio)
+  // Verificar sessão
   const checkSession = useCallback(async () => {
-    // Evitar múltiplas inicializações
     if (initializingRef.current) {
-      console.log('🔐 [AUTH] Já inicializando, pulando...');
+      console.log('🔐 [BACKEND AUTH] Já inicializando, pulando...');
       return;
     }
 
     initializingRef.current = true;
 
     try {
-      console.log('🔐 [AUTH] Verificando sessão via Backend...');
+      console.log('🔐 [BACKEND AUTH] Verificando sessão...');
       
-      const token = localStorage.getItem('authToken');
-      const userData = localStorage.getItem('user');
+      const session = await backendAuth.getCurrentSession();
       
-      if (token && userData && mountedRef.current) {
-        console.log('🔐 [AUTH] Sessão ativa encontrada no localStorage');
-        const user = JSON.parse(userData);
-        const session = { access_token: token };
+      if (session && mountedRef.current) {
+        console.log('🔐 [BACKEND AUTH] Sessão ativa encontrada');
         
-        if (mountedRef.current) {
+        // Validar token
+        const isValid = await backendAuth.validateToken();
+        
+        if (isValid) {
           setAuthState({
-            user: user as any,
+            user: session.user,
             session,
+            loading: false,
+            error: null,
+            initialized: true
+          });
+        } else {
+          console.log('🔐 [BACKEND AUTH] Token inválido, removendo sessão');
+          await backendAuth.signOut();
+          setAuthState({
+            user: null,
+            session: null,
             loading: false,
             error: null,
             initialized: true
           });
         }
       } else if (mountedRef.current) {
-        console.log('🔐 [AUTH] Nenhuma sessão ativa');
+        console.log('🔐 [BACKEND AUTH] Nenhuma sessão ativa');
         setAuthState({
           user: null,
           session: null,
@@ -122,7 +131,7 @@ export const useSupabaseAuth = () => {
         });
       }
     } catch (error: any) {
-      console.error('🔐 [AUTH] Erro ao verificar sessão:', error);
+      console.error('🔐 [BACKEND AUTH] Erro ao verificar sessão:', error);
       if (mountedRef.current) {
         setAuthState({
           user: null,
@@ -137,20 +146,15 @@ export const useSupabaseAuth = () => {
     }
   }, []);
 
-  // Inicialização e listener de mudanças
+  // Inicialização
   useEffect(() => {
     mountedRef.current = true;
-
-    // Verificar sessão inicial
     checkSession();
-
-    // Sistema Backend próprio - sem listeners do Supabase
-    console.log('🔐 [AUTH] Sistema Backend próprio inicializado');
 
     return () => {
       mountedRef.current = false;
     };
-  }, []); // Executar apenas uma vez
+  }, [checkSession]);
 
   return {
     ...authState,
@@ -158,7 +162,13 @@ export const useSupabaseAuth = () => {
     signOut,
     checkSession,
     isAuthenticated: !!authState.user,
-    isAdmin: authState.user?.role === 'ADMIN',
-    isMaster: authState.user?.isMaster === true
+    isAdmin: authState.user?.role === 'ADMIN' || authState.user?.role === 'MASTER',
+    isMaster: authState.user?.isMaster === true,
+    // Compatibilidade com código existente
+    user: authState.user,
+    session: authState.session,
+    loading: authState.loading,
+    error: authState.error,
+    initialized: authState.initialized
   };
 };

@@ -39,28 +39,28 @@ router.get(
 
 router.post(
   '/:id/allocate',
-  authorize('ADMIN', 'MANAGER', 'USER'),
+  authorizeBackend('ADMIN', 'MANAGER', 'USER'),
   validate(cattleLotValidation.allocate),
   cattleLotController.allocate
 );
 
 router.post(
   '/:id/mortality',
-  authorize('ADMIN', 'MANAGER', 'USER'),
+  authorizeBackend('ADMIN', 'MANAGER', 'USER'),
   validate(cattleLotValidation.recordMortality),
   cattleLotController.recordMortality
 );
 
 router.post(
   '/:id/weight-loss',
-  authorize('ADMIN', 'MANAGER', 'USER'),
+  authorizeBackend('ADMIN', 'MANAGER', 'USER'),
   validate(cattleLotValidation.recordWeightLoss),
   cattleLotController.recordWeightLoss
 );
 
 router.patch(
   '/:id/costs',
-  authorize('ADMIN', 'MANAGER'),
+  authorizeBackend('ADMIN', 'MANAGER'),
   validate(cattleLotValidation.updateCosts),
   cattleLotController.updateCosts
 );

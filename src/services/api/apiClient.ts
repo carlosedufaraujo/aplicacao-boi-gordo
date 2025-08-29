@@ -1,22 +1,19 @@
-import { supabase } from '../supabase';
-
 /**
  * Cliente API para comunicação com o Backend
- * Integra autenticação Supabase com API Backend
+ * Usa autenticação JWT própria via localStorage
  */
 export class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3333';
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3333/api/v1';
   }
 
   /**
-   * Obtém o token de autenticação do Supabase
+   * Obtém o token de autenticação do Backend (localStorage)
    */
   private async getAuthToken(): Promise<string | null> {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token || null;
+    return localStorage.getItem('authToken');
   }
 
   /**
@@ -67,7 +64,7 @@ export class ApiClient {
       });
     }
 
-    return this.request<T>(url.pathname + url.search);
+    return this.request<T>(endpoint + url.search);
   }
 
   /**

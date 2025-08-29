@@ -1,7 +1,10 @@
 import { User, UserRole } from '@prisma/client';
-import { supabase, supabaseAuth } from '@/config/supabase';
 import { UnauthorizedError, ConflictError } from '@/utils/AppError';
 import { isMasterAdmin } from '@/utils/auth';
+import { prisma } from '@/config/database';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { env } from '@/config/env';
 
 interface RegisterData {
   email: string;
@@ -20,47 +23,47 @@ export class AuthService {
    * Registra um novo usuário
    */
   async register(data: RegisterData): Promise<AuthResponse> {
-    // Verifica se o email já existe no Supabase Auth
-    const { data: existingUser, error: checkError } = await supabase.auth.admin.listUsers();
-    
-    if (checkError) {
-      throw new Error(`Erro ao verificar usuários: ${checkError.message}`);
-    }
+    // Verifica se o email já existe
+    const existingUser = await prisma.user.findUnique({
+      where: { email: data.email }
+    });
 
-    const userExists = existingUser.users.some(u => u.email === data.email);
-    if (userExists) {
+    if (existingUser) {
       throw new ConflictError('Email já cadastrado');
     }
 
-    // Cria usuário no Supabase Auth
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
-      email_confirm: true,
-      user_metadata: {
+    // Hash da senha
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    // Cria usuário no banco via Prisma
+    const user = await prisma.user.create({
+      data: {
+        email: data.email,
+        password: hashedPassword,
         name: data.name,
-        role: data.role || 'USER',
-        isMaster: isMasterAdmin(data.email)
+        role: (data.role || 'USER') as UserRole,
+        isMaster: isMasterAdmin(data.email),
+        isActive: true
       }
     });
 
-    if (authError || !authUser.user) {
-      throw new Error(`Erro ao criar usuário no Supabase Auth: ${authError?.message}`);
-    }
+    // Gera token JWT
+    const token = jwt.sign(
+      { 
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      env.jwtSecret,
+      { expiresIn: env.jwtExpiresIn }
+    );
 
     // Remove a senha da resposta
-    const userData = {
-      id: authUser.user.id,
-      email: authUser.user.email,
-      name: data.name,
-      role: data.role || 'USER',
-      isMaster: isMasterAdmin(data.email),
-      isActive: true
-    };
+    const { password: _, ...userData } = user;
 
     return {
       user: userData,
-      token: 'temp_token', // Token temporário até implementar sessão completa
+      token
     };
   }
 
@@ -68,30 +71,36 @@ export class AuthService {
    * Realiza login do usuário
    */
   async login(email: string, password: string): Promise<AuthResponse> {
-    // Login via Supabase Auth
-    const { data: authData, error: authError } = await supabaseAuth.auth.signInWithPassword({
-      email,
-      password
+    // Buscar usuário no banco local via Prisma
+    const user = await prisma.user.findUnique({
+      where: { email }
     });
 
-    if (authError || !authData.user) {
+    if (!user || !user.isActive) {
       throw new UnauthorizedError('Credenciais inválidas');
     }
 
-    // Buscar dados do usuário na tabela de sincronização
-    const { data: localUser, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
-
-    if (userError || !localUser || !localUser.isActive) {
-      throw new UnauthorizedError('Usuário não encontrado ou inativo');
+    // Verificar senha com bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    if (!isPasswordValid) {
+      throw new UnauthorizedError('Credenciais inválidas');
     }
 
+    // Gerar token JWT
+    const token = jwt.sign(
+      { 
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      env.jwtSecret,
+      { expiresIn: env.jwtExpiresIn }
+    );
+
     return {
-      user: localUser,
-      token: authData.session.access_token,
+      user,
+      token
     };
   }
 
@@ -104,7 +113,7 @@ export class AuthService {
     newPassword: string
   ): Promise<void> {
     // Atualiza senha no Supabase Auth
-    const { error } = await supabase.auth.admin.updateUserById(userId, {
+    const { error } = await prisma.auth.admin.updateUserById(userId, {
       password: newPassword
     });
 
@@ -117,7 +126,7 @@ export class AuthService {
    * Verifica token de autenticação
    */
   async verifyToken(token: string): Promise<any> {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    const { data: { user }, error } = await prisma.auth.getUser(token);
     
     if (error || !user) {
       throw new UnauthorizedError('Token inválido');
@@ -205,7 +214,7 @@ export class AuthService {
    */
   async deactivateUser(userId: string): Promise<void> {
     // Desativa no Supabase Auth
-    await supabase.auth.admin.updateUserById(userId, {
+    await prisma.auth.admin.updateUserById(userId, {
       user_metadata: { isActive: false }
     });
 
@@ -224,7 +233,7 @@ export class AuthService {
    */
   async reactivateUser(userId: string): Promise<void> {
     // Reativa no Supabase Auth
-    await supabase.auth.admin.updateUserById(userId, {
+    await prisma.auth.admin.updateUserById(userId, {
       user_metadata: { isActive: true }
     });
 
@@ -242,7 +251,7 @@ export class AuthService {
    * Logout do usuário
    */
   async logout(token: string): Promise<void> {
-    const { error } = await supabase.auth.admin.signOut(token);
+    const { error } = await prisma.auth.admin.signOut(token);
     
     if (error) {
       throw new Error(`Erro ao fazer logout: ${error.message}`);

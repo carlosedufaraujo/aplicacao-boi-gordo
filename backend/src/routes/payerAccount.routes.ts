@@ -40,28 +40,28 @@ router.get(
 
 router.post(
   '/',
-  authorize('ADMIN'),
+  authorizeBackend('ADMIN'),
   validate(payerAccountValidation.create),
   payerAccountController.create
 );
 
 router.put(
   '/:id',
-  authorize('ADMIN'),
+  authorizeBackend('ADMIN'),
   validate(payerAccountValidation.update),
   payerAccountController.update
 );
 
 router.post(
   '/:id/balance',
-  authorize('ADMIN', 'MANAGER'),
+  authorizeBackend('ADMIN', 'MANAGER'),
   validate(payerAccountValidation.updateBalance),
   payerAccountController.updateBalance
 );
 
 router.delete(
   '/:id',
-  authorize('ADMIN'),
+  authorizeBackend('ADMIN'),
   payerAccountController.delete
 );
 

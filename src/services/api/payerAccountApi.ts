@@ -72,8 +72,8 @@ export const payerAccountApi = {
    * Lista todas as contas pagadoras com filtros
    */
   async getAll(filters: PayerAccountFilters = {}): Promise<ApiResponse<PayerAccount[]>> {
-    const response = await apiClient.get('/payer-accounts', { params: filters });
-    return response.data;
+    const response = await apiClient.get('/payer-accounts', filters);
+    return response;
   },
 
   /**
@@ -81,7 +81,7 @@ export const payerAccountApi = {
    */
   async getById(id: string): Promise<ApiResponse<PayerAccount>> {
     const response = await apiClient.get(`/payer-accounts/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -89,7 +89,7 @@ export const payerAccountApi = {
    */
   async getByStatus(status: string): Promise<ApiResponse<PayerAccount[]>> {
     const response = await apiClient.get(`/payer-accounts/status/${status}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -97,7 +97,7 @@ export const payerAccountApi = {
    */
   async getByType(accountType: string): Promise<ApiResponse<PayerAccount[]>> {
     const response = await apiClient.get(`/payer-accounts/type/${accountType}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -105,7 +105,7 @@ export const payerAccountApi = {
    */
   async getActive(): Promise<ApiResponse<PayerAccount[]>> {
     const response = await apiClient.get('/payer-accounts/active');
-    return response.data;
+    return response;
   },
 
   /**
@@ -113,7 +113,7 @@ export const payerAccountApi = {
    */
   async create(data: CreatePayerAccountData): Promise<ApiResponse<PayerAccount>> {
     const response = await apiClient.post('/payer-accounts', data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -121,7 +121,7 @@ export const payerAccountApi = {
    */
   async update(id: string, data: UpdatePayerAccountData): Promise<ApiResponse<PayerAccount>> {
     const response = await apiClient.put(`/payer-accounts/${id}`, data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -132,7 +132,7 @@ export const payerAccountApi = {
       balance,
       operation
     });
-    return response.data;
+    return response;
   },
 
   /**
@@ -142,7 +142,7 @@ export const payerAccountApi = {
     const response = await apiClient.patch(`/payer-accounts/${id}/toggle`, {
       isActive
     });
-    return response.data;
+    return response;
   },
 
   /**
@@ -150,7 +150,7 @@ export const payerAccountApi = {
    */
   async remove(id: string): Promise<ApiResponse<void>> {
     const response = await apiClient.delete(`/payer-accounts/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -158,6 +158,6 @@ export const payerAccountApi = {
    */
   async getStats(): Promise<ApiResponse<PayerAccountStats>> {
     const response = await apiClient.get('/payer-accounts/stats');
-    return response.data;
+    return response;
   }
 };

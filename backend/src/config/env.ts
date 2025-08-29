@@ -1,8 +1,4 @@
-import dotenv from 'dotenv';
-import path from 'path';
-
-// Carrega variáveis de ambiente
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+import { env as validatedEnv, validateEnv } from './env.validation';
 
 interface EnvConfig {
   // Database
@@ -52,30 +48,19 @@ interface EnvConfig {
   masterIpWhitelist?: string;
 }
 
-function validateEnv(): EnvConfig {
-  const requiredEnvVars = [
-    'DATABASE_URL',
-    'JWT_SECRET',
-  ];
-
-  // Verifica variáveis obrigatórias
-  for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-      throw new Error(`Missing required environment variable: ${envVar}`);
-    }
-  }
-
+function getEnvConfig(): EnvConfig {
+  // Usa as variáveis já validadas pelo Zod
   return {
     // Database
-    databaseUrl: process.env.DATABASE_URL!,
+    databaseUrl: validatedEnv.DATABASE_URL,
     
     // Server
-    port: parseInt(process.env.PORT || '3333', 10),
-    nodeEnv: (process.env.NODE_ENV || 'development') as 'development' | 'production' | 'test',
+    port: validatedEnv.PORT,
+    nodeEnv: validatedEnv.NODE_ENV,
     
     // JWT
-    jwtSecret: process.env.JWT_SECRET!,
-    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    jwtSecret: validatedEnv.JWT_SECRET,
+    jwtExpiresIn: validatedEnv.JWT_EXPIRES_IN,
     
     // API
     apiPrefix: process.env.API_PREFIX || '/api/v1',
@@ -104,7 +89,7 @@ function validateEnv(): EnvConfig {
     },
     
     // Supabase
-    supabaseUrl: process.env.SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.supabase.co',
+    supabaseUrl: process.env.SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.prisma.co',
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
     supabaseServiceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
     

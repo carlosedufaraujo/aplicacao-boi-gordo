@@ -12,6 +12,7 @@ import { httpLogger } from '@/config/logger';
 import { swaggerSpecs } from '@/config/swagger';
 
 // Importação das rotas
+import healthRoutes from '@/routes/health.routes';
 import { authRoutes } from '@/routes/auth.routes';
 import { userRoutes } from '@/routes/user.routes';
 import { partnerRoutes } from '@/routes/partner.routes';
@@ -25,17 +26,7 @@ import revenueRoutes from '@/routes/revenue.routes';
 // import reportRoutes from '@/routes/report.routes';
 // import dashboardRoutes from '@/routes/dashboard.routes';
 
-// Rotas Supabase (nova arquitetura)
-import purchaseOrderSupabaseRoutes from '@/routes/supabase/purchaseOrder.supabase.routes';
-import cattleLotSupabaseRoutes from '@/routes/supabase/cattleLot.supabase.routes';
-import expenseSupabaseRoutes from '@/routes/supabase/expense.supabase.routes';
-import revenueSupabaseRoutes from '@/routes/supabase/revenue.supabase.routes';
-import payerAccountSupabaseRoutes from '@/routes/supabase/payerAccount.supabase.routes';
-import partnerSupabaseRoutes from '@/routes/supabase/partner.supabase.routes';
-import penSupabaseRoutes from '@/routes/supabase/pen.supabase.routes';
-import cycleSupabaseRoutes from '@/routes/supabase/cycle.supabase.routes';
-import saleSupabaseRoutes from '@/routes/supabase/sale.supabase.routes';
-import saleRecordSupabaseRoutes from '@/routes/supabase/saleRecord.supabase.routes';
+// Rotas removidas - usando apenas Prisma agora
 
 export function createApp(): Application {
   const app = express();
@@ -75,14 +66,8 @@ export function createApp(): Application {
     }));
   }
 
-  // Health check
-  app.get('/health', (_, res) => {
-    res.json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      environment: env.nodeEnv,
-    });
-  });
+  // Health check routes
+  app.use('/health', healthRoutes);
 
   // Rotas públicas temporárias para desenvolvimento
   app.get('/api/v1/stats', async (_, res) => {

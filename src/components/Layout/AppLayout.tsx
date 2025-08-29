@@ -34,7 +34,7 @@ import {
   Moon,
   Sun,
 } from "lucide-react";
-import { useSupabase } from "@/providers/SupabaseProvider";
+import { useBackend } from "@/providers/BackendProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -56,7 +56,7 @@ interface AppLayoutProps {
 
 // Componente interno para controlar o sidebar
 function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage: string; setCurrentPage: (page: string) => void; children: React.ReactNode }) {
-  const { signOut, isAdmin, isMaster, user } = useSupabase();
+  const { signOut, isAdmin, isMaster, user } = useBackend();
   const { theme, toggleTheme } = useTheme();
   const { state, open, setOpen } = useSidebar();
   const sidebarRef = useRef<HTMLDivElement>(null);

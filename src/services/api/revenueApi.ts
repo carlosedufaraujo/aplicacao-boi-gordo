@@ -80,8 +80,8 @@ export const revenueApi = {
    * Lista todas as receitas com filtros
    */
   async getAll(filters: RevenueFilters = {}): Promise<ApiResponse<Revenue[]>> {
-    const response = await apiClient.get('/revenues', { params: filters });
-    return response.data;
+    const response = await apiClient.get('/revenues', filters);
+    return response;
   },
 
   /**
@@ -89,7 +89,7 @@ export const revenueApi = {
    */
   async getById(id: string): Promise<ApiResponse<Revenue>> {
     const response = await apiClient.get(`/revenues/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -97,7 +97,7 @@ export const revenueApi = {
    */
   async getByStatus(status: string): Promise<ApiResponse<Revenue[]>> {
     const response = await apiClient.get(`/revenues/status/${status}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -105,7 +105,7 @@ export const revenueApi = {
    */
   async getByCategory(categoryId: string): Promise<ApiResponse<Revenue[]>> {
     const response = await apiClient.get(`/revenues/category/${categoryId}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -113,7 +113,7 @@ export const revenueApi = {
    */
   async getBySaleRecord(saleRecordId: string): Promise<ApiResponse<Revenue[]>> {
     const response = await apiClient.get(`/revenues/sale-record/${saleRecordId}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -121,7 +121,7 @@ export const revenueApi = {
    */
   async create(data: CreateRevenueData): Promise<ApiResponse<Revenue>> {
     const response = await apiClient.post('/revenues', data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -129,7 +129,7 @@ export const revenueApi = {
    */
   async update(id: string, data: UpdateRevenueData): Promise<ApiResponse<Revenue>> {
     const response = await apiClient.put(`/revenues/${id}`, data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -140,7 +140,7 @@ export const revenueApi = {
       receivedValue,
       receivedDate
     });
-    return response.data;
+    return response;
   },
 
   /**
@@ -148,7 +148,7 @@ export const revenueApi = {
    */
   async remove(id: string): Promise<ApiResponse<void>> {
     const response = await apiClient.delete(`/revenues/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -156,6 +156,6 @@ export const revenueApi = {
    */
   async getStats(): Promise<ApiResponse<RevenueStats>> {
     const response = await apiClient.get('/revenues/stats');
-    return response.data;
+    return response;
   }
 };

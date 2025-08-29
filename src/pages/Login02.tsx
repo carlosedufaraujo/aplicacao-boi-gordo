@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, Wifi, WifiOff, AlertCircle, Moon, Sun } from 'lucide-react';
-import { useSupabase } from '../providers/SupabaseProvider';
+import { useBackend } from '../providers/BackendProvider';
 import { useTheme } from '../providers/ThemeProvider';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ interface Login02Props {
 
 export function Login02({ className }: Login02Props) {
   const navigate = useNavigate();
-  const { signIn, isAuthenticated, loading: authLoading } = useSupabase();
+  const { signIn, isAuthenticated, loading: authLoading } = useBackend();
   const { theme, toggleTheme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

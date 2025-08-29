@@ -4,8 +4,8 @@ import { prisma } from '@/config/database';
 export interface PaginationParams {
   page?: number;
   limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  orderBy?: string;
+  order?: 'asc' | 'desc';
 }
 
 export interface PaginatedResult<T> {
@@ -20,26 +20,21 @@ export abstract class BaseRepository<T> {
   protected prisma: PrismaClient;
   protected model: any;
 
-  constructor(model: any) {
+  constructor(modelName: string) {
     this.prisma = prisma;
-    this.model = model;
+    this.model = (prisma as any)[modelName];
   }
 
   async findAll(
-    where: any = {},
-    pagination?: PaginationParams,
-    include?: any
+    filters?: Record<string, any>,
+    pagination?: PaginationParams
   ): Promise<PaginatedResult<T>> {
     const page = pagination?.page || 1;
-    const limit = pagination?.limit || 20;
+    const limit = pagination?.limit || 10;
     const skip = (page - 1) * limit;
 
-    const orderBy: any = {};
-    if (pagination?.sortBy) {
-      orderBy[pagination.sortBy] = pagination.sortOrder || 'desc';
-    } else {
-      orderBy.createdAt = 'desc';
-    }
+    const where = this.buildWhereClause(filters);
+    const orderBy = this.buildOrderBy(pagination);
 
     const [data, total] = await Promise.all([
       this.model.findMany({
@@ -47,7 +42,6 @@ export abstract class BaseRepository<T> {
         skip,
         take: limit,
         orderBy,
-        include,
       }),
       this.model.count({ where }),
     ]);
@@ -61,57 +55,69 @@ export abstract class BaseRepository<T> {
     };
   }
 
-  async findById(id: string, include?: any): Promise<T | null> {
-    return this.model.findUnique({
+  async findById(id: string): Promise<T | null> {
+    return await this.model.findUnique({
       where: { id },
-      include,
     });
   }
 
-  async findOne(where: any, include?: any): Promise<T | null> {
-    return this.model.findFirst({
-      where,
-      include,
-    });
-  }
-
-  async create(data: any, include?: any): Promise<T> {
-    return this.model.create({
+  async create(data: Partial<T>): Promise<T> {
+    return await this.model.create({
       data,
-      include,
     });
   }
 
-  async update(id: string, data: any, include?: any): Promise<T> {
-    return this.model.update({
+  async update(id: string, data: Partial<T>): Promise<T> {
+    return await this.model.update({
       where: { id },
       data,
-      include,
     });
   }
 
-  async delete(id: string): Promise<T> {
-    return this.model.delete({
+  async delete(id: string): Promise<boolean> {
+    try {
+      await this.model.delete({
+        where: { id },
+      });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const count = await this.model.count({
       where: { id },
     });
-  }
-
-  async deleteMany(where: any): Promise<{ count: number }> {
-    return this.model.deleteMany({
-      where,
-    });
-  }
-
-  async count(where: any = {}): Promise<number> {
-    return this.model.count({ where });
-  }
-
-  async exists(where: any): Promise<boolean> {
-    const count = await this.count(where);
     return count > 0;
   }
 
-  async transaction<R>(fn: (tx: Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>) => Promise<R>): Promise<R> {
-    return this.prisma.$transaction(fn);
+  protected buildWhereClause(filters?: Record<string, any>): any {
+    if (!filters) return {};
+    
+    const where: any = {};
+    
+    for (const [key, value] of Object.entries(filters)) {
+      if (value !== undefined && value !== null && value !== '') {
+        if (typeof value === 'string' && key.endsWith('_like')) {
+          const field = key.replace('_like', '');
+          where[field] = { contains: value, mode: 'insensitive' };
+        } else {
+          where[key] = value;
+        }
+      }
+    }
+    
+    return where;
   }
-} 
+
+  protected buildOrderBy(pagination?: PaginationParams): any {
+    if (!pagination?.orderBy) {
+      return { createdAt: 'desc' };
+    }
+    
+    return {
+      [pagination.orderBy]: pagination.order || 'asc',
+    };
+  }
+}

@@ -1,5 +1,5 @@
 import { PrismaClient, UserRole } from '@prisma/client';
-import { supabase } from '@/config/supabase';
+
 
 const prisma = new PrismaClient();
 
@@ -10,7 +10,7 @@ async function main() {
     // 1. Criar usuário master no Supabase Auth
     console.log('📝 Criando usuário master no Supabase Auth...');
     
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authUser, error: authError } = await prisma.auth.admin.createUser({
       email: 'carlosedufaraujo@outlook.com',
       password: '368308450',
       email_confirm: true,
@@ -80,7 +80,7 @@ async function main() {
 
     for (const testUser of testUsers) {
       // Criar no Supabase Auth
-      const { data: testAuthUser, error: testAuthError } = await supabase.auth.admin.createUser({
+      const { data: testAuthUser, error: testAuthError } = await prisma.auth.admin.createUser({
         email: testUser.email,
         password: testUser.password,
         email_confirm: true,

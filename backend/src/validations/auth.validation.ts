@@ -1,5 +1,6 @@
 import Joi from 'joi';
-import { UserRole } from '@prisma/client';
+
+const UserRoles = ['ADMIN', 'MANAGER', 'USER', 'VIEWER'];
 
 export const authValidation = {
   register: Joi.object({
@@ -17,7 +18,7 @@ export const authValidation = {
       'any.required': 'Nome é obrigatório',
     }),
     role: Joi.string()
-      .valid(...Object.values(UserRole))
+      .valid(...UserRoles)
       .optional(),
   }),
 

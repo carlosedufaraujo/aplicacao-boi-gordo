@@ -75,7 +75,7 @@ export const penApi = {
    * Lista todos os currais com filtros
    */
   async getAll(filters: PenFilters = {}): Promise<ApiResponse<Pen[]>> {
-    const response = await apiClient.get('/pens', { params: filters });
+    const response = await apiClient.get('/pens', filters);
     return response.data;
   },
 

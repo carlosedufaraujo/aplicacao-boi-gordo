@@ -6,14 +6,34 @@ const { combine, timestamp, printf, colorize, errors } = winston.format;
 
 // Formato customizado para logs
 const logFormat = printf(({ level, message, timestamp, stack, ...metadata }) => {
-  let msg = `${timestamp} [${level}]: ${message}`;
+  let msg = `${timestamp} [${level}]: `;
+  
+  // Trata objetos de erro adequadamente
+  if (typeof message === 'object') {
+    if (message instanceof Error) {
+      msg += `${message.message}`;
+      if (message.stack && !stack) {
+        stack = message.stack;
+      }
+    } else {
+      msg += JSON.stringify(message, null, 2);
+    }
+  } else {
+    msg += message;
+  }
   
   if (stack) {
     msg += `\n${stack}`;
   }
   
   if (Object.keys(metadata).length > 0) {
-    msg += ` ${JSON.stringify(metadata)}`;
+    // Filtra propriedades vazias e serializa adequadamente
+    const cleanMetadata = Object.fromEntries(
+      Object.entries(metadata).filter(([_, value]) => value !== undefined && value !== null)
+    );
+    if (Object.keys(cleanMetadata).length > 0) {
+      msg += ` ${JSON.stringify(cleanMetadata, null, 2)}`;
+    }
   }
   
   return msg;

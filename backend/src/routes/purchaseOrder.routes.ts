@@ -39,35 +39,35 @@ router.get(
 
 router.post(
   '/',
-  authorize('ADMIN', 'MANAGER'),
+  authorizeBackend('ADMIN', 'MANAGER'),
   validate(purchaseOrderValidation.create),
   purchaseOrderController.create
 );
 
 router.put(
   '/:id',
-  authorize('ADMIN', 'MANAGER'),
+  authorizeBackend('ADMIN', 'MANAGER'),
   validate(purchaseOrderValidation.update),
   purchaseOrderController.update
 );
 
 router.patch(
   '/:id/stage',
-  authorize('ADMIN', 'MANAGER'),
+  authorizeBackend('ADMIN', 'MANAGER'),
   validate(purchaseOrderValidation.updateStage),
   purchaseOrderController.updateStage
 );
 
 router.post(
   '/:id/reception',
-  authorize('ADMIN', 'MANAGER', 'USER'),
+  authorizeBackend('ADMIN', 'MANAGER', 'USER'),
   validate(purchaseOrderValidation.registerReception),
   purchaseOrderController.registerReception
 );
 
 router.delete(
   '/:id',
-  authorize('ADMIN'),
+  authorizeBackend('ADMIN'),
   purchaseOrderController.delete
 );
 

@@ -70,7 +70,7 @@ export const cycleApi = {
    * Lista todos os ciclos com filtros
    */
   async getAll(filters: CycleFilters = {}): Promise<ApiResponse<Cycle[]>> {
-    const response = await apiClient.get('/cycles', { params: filters });
+    const response = await apiClient.get('/cycles', filters);
     return response.data;
   },
 

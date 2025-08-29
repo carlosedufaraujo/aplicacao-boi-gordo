@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { NotificationProvider } from '@/components/Notifications/NotificationProvider';
 import { DataSyncProvider } from '@/components/Common/DataSyncProvider';
-import { SupabaseProvider, useSupabase } from '@/providers/SupabaseProvider';
+import { BackendProvider, useBackend } from '@/providers/BackendProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 import { PenNavigationProvider } from '@/contexts/PenNavigationContext';
@@ -54,7 +54,7 @@ const PageLoader = () => (
 // ============================================================================
 const AppContent: React.FC = () => {
   const [currentPage, setCurrentPage] = React.useState('dashboard');
-  const { isAuthenticated, loading, user } = useSupabase();
+  const { isAuthenticated, loading, user } = useBackend();
 
   useEffect(() => {
     registerExistingUpdates();
@@ -138,7 +138,7 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="bovicontrol-ui-theme">
-      <SupabaseProvider>
+      <BackendProvider>
         <SettingsProvider>
           <NotificationProvider>
             <DataSyncProvider>
@@ -157,7 +157,7 @@ function App() {
             </DataSyncProvider>
           </NotificationProvider>
         </SettingsProvider>
-      </SupabaseProvider>
+      </BackendProvider>
     </ThemeProvider>
   );
 }

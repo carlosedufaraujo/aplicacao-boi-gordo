@@ -55,35 +55,35 @@ router.get(
 
 router.post(
   '/',
-  authorize('ADMIN', 'MANAGER'),
+  authorizeBackend('ADMIN', 'MANAGER'),
   validate(penValidation.create),
   penController.create
 );
 
 router.put(
   '/:id',
-  authorize('ADMIN', 'MANAGER'),
+  authorizeBackend('ADMIN', 'MANAGER'),
   validate(penValidation.update),
   penController.update
 );
 
 router.patch(
   '/:id/status',
-  authorize('ADMIN', 'MANAGER'),
+  authorizeBackend('ADMIN', 'MANAGER'),
   validate(penValidation.updateStatus),
   penController.updateStatus
 );
 
 router.post(
   '/:id/health-protocol',
-  authorize('ADMIN', 'MANAGER', 'USER'),
+  authorizeBackend('ADMIN', 'MANAGER', 'USER'),
   validate(penValidation.applyHealthProtocol),
   penController.applyHealthProtocol
 );
 
 router.delete(
   '/:id',
-  authorize('ADMIN'),
+  authorizeBackend('ADMIN'),
   penController.delete
 );
 

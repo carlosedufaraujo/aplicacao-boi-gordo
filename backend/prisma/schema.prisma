@@ -8,17 +8,15 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String?  // Opcional para Supabase Auth
-  name      String
-  role      UserRole @default(USER)
-  phone     String?
-  isActive  Boolean  @default(true)
-  isMaster  Boolean  @default(false) // Campo para identificar usuário master
-  createdAt DateTime @default(now()) @db.Timestamp(6)
-  updatedAt DateTime @default(now()) @updatedAt @db.Timestamp(6)
-  cycles    cycles[]
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String    @unique
+  password  String
+  name      String?
+  role      String?   @default("USER")
+  isMaster  Boolean?  @default(false)
+  isActive  Boolean?  @default(true)
+  createdAt DateTime? @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
 
   @@map("users")
 }
@@ -545,7 +543,18 @@ model cycles {
   isActive      Boolean     @default(true)
   createdAt     DateTime    @default(now()) @db.Timestamp(6)
   updatedAt     DateTime    @default(now()) @db.Timestamp(6)
-  users         User        @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cycles_user")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model users_sync {
+  id        String    @id @db.Uuid
+  email     String    @unique
+  name      String?
+  role      String?   @default("USER")
+  isMaster  Boolean?  @default(false)
+  isActive  Boolean?  @default(true)
+  createdAt DateTime? @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime? @default(now()) @db.Timestamptz(6)
 }
 
 enum UserRole {

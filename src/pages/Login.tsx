@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Wifi, WifiOff } from 'lucide-react';
-import { useSupabase } from '../providers/SupabaseProvider';
+import { useBackend } from '../providers/BackendProvider';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { signIn, isAuthenticated, loading: authLoading } = useSupabase();
+  const { signIn, isAuthenticated, loading: authLoading } = useBackend();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');

@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { supabase } from '@/config/supabase';
+
 
 const prisma = new PrismaClient();
 
@@ -20,7 +20,7 @@ async function main() {
     };
 
     // Criar no Supabase Auth
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authUser, error: authError } = await prisma.auth.admin.createUser({
       email: masterUserData.email,
       password: masterUserData.password,
       email_confirm: true,
@@ -97,7 +97,7 @@ async function main() {
     for (const userData of testUsers) {
       try {
         // Criar no Supabase Auth
-        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+        const { data: authUser, error: authError } = await prisma.auth.admin.createUser({
           email: userData.email,
           password: userData.password,
           email_confirm: true,

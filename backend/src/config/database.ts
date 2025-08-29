@@ -34,7 +34,15 @@ export async function connectDatabase(): Promise<void> {
     await prisma.$connect();
     logger.info('✅ Database connected successfully');
   } catch (error) {
-    logger.error('❌ Database connection failed:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    logger.error(`❌ Database connection failed: ${errorMessage}`, {
+      error: errorMessage,
+      stack: errorStack,
+      timestamp: new Date().toISOString(),
+      databaseUrl: env.databaseUrl ? env.databaseUrl.replace(/\/\/.*:.*@/, '//***:***@') : 'undefined'
+    });
     process.exit(1);
   }
 }
@@ -62,7 +70,15 @@ prisma.$connect()
     logger.info('✅ Conectado ao banco de dados');
   })
   .catch((error) => {
-    logger.error('❌ Erro ao conectar ao banco de dados:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    logger.error(`❌ Erro ao conectar ao banco de dados: ${errorMessage}`, {
+      error: errorMessage,
+      stack: errorStack,
+      timestamp: new Date().toISOString(),
+      databaseUrl: env.databaseUrl ? env.databaseUrl.replace(/\/\/.*:.*@/, '//***:***@') : 'undefined'
+    });
     process.exit(1);
   });
 

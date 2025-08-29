@@ -91,21 +91,21 @@ router.get(
 
 router.post(
   '/',
-  authorize('ADMIN', 'MANAGER'),
+  authorizeBackend('ADMIN', 'MANAGER'),
   validate(partnerValidation.create),
   partnerController.create
 );
 
 router.put(
   '/:id',
-  authorize('ADMIN', 'MANAGER'),
+  authorizeBackend('ADMIN', 'MANAGER'),
   validate(partnerValidation.update),
   partnerController.update
 );
 
 router.delete(
   '/:id',
-  authorize('ADMIN'),
+  authorizeBackend('ADMIN'),
   partnerController.delete
 );
 
