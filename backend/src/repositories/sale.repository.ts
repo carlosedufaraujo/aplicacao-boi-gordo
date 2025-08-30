@@ -14,7 +14,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
         buyer: true,
         lot: {
           include: {
-            purchaseOrder: {
+            cattlePurchase: {
               include: {
                 vendor: true,
               },

@@ -102,7 +102,7 @@ export class PayerAccountService {
     }
 
     const hasTransactions = 
-      accountStats.account.purchaseOrders.length > 0 ||
+      accountStats.account.cattlePurchases?.length > 0 ||
       accountStats.account.expenses.length > 0 ||
       accountStats.account.revenues.length > 0 ||
       accountStats.account.contributions.length > 0;

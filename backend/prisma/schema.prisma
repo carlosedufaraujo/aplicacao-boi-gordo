@@ -363,7 +363,6 @@ model Expense {
   penId           String?
   vendorId        String?
   payerAccountId  String?
-  purchaseOrderId String?
   userId          String
   notes           String?
   createdAt       DateTime             @default(now())

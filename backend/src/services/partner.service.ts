@@ -103,8 +103,8 @@ export class PartnerService {
 
     // Verifica se tem relacionamentos
     const hasRelations = 
-      partner.purchaseOrdersAsVendor.length > 0 ||
-      partner.purchaseOrdersAsBroker.length > 0 ||
+      partner.cattlePurchasesAsVendor?.length > 0 ||
+      partner.cattlePurchasesAsBroker?.length > 0 ||
       partner.saleRecords.length > 0 ||
       partner.contributions.length > 0;
 

@@ -12,7 +12,7 @@ export class SaleRecordController {
     const { purchaseId, buyerId, status, startDate, endDate, search, page, limit, sortBy, sortOrder } = req.query;
 
     const filters = {
-      cattleLotId: cattleLotId as string,
+      purchaseId: purchaseId as string,
       buyerId: buyerId as string,
       status: status as string,
       startDate: startDate ? new Date(startDate as string) : undefined,
@@ -85,7 +85,7 @@ export class SaleRecordController {
 
     const filters = {
       buyerId: buyerId as string,
-      cattleLotId: cattleLotId as string,
+      purchaseId: purchaseId as string,
       status: status as string,
     };
 
@@ -139,7 +139,7 @@ export class SaleRecordController {
     const { purchaseId, buyerId, status, startDate, endDate } = req.query;
 
     const filters = {
-      cattleLotId: cattleLotId as string,
+      purchaseId: purchaseId as string,
       buyerId: buyerId as string,
       status: status as string,
       startDate: startDate ? new Date(startDate as string) : undefined,

@@ -14,7 +14,7 @@ export function validate(
   source: ValidationSource = 'body',
   options: ValidationOptions = {}
 ) {
-  return (_req: Request, _res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     const validationOptions: Joi.ValidationOptions = {
       abortEarly: options.abortEarly ?? false,
       stripUnknown: options.stripUnknown ?? true,

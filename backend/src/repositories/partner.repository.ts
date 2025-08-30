@@ -78,8 +78,8 @@ export class PartnerRepository extends BaseRepository<Partner> {
     return await this.model.findUnique({
       where: { id },
       include: {
-        purchaseOrdersAsVendor: true,
-        purchaseOrdersAsBroker: true,
+        cattlePurchasesAsVendor: true,
+        cattlePurchasesAsBroker: true,
         saleRecords: true,
         contributions: true,
       },
@@ -90,17 +90,17 @@ export class PartnerRepository extends BaseRepository<Partner> {
     const partner = await this.model.findUnique({
       where: { id },
       include: {
-        purchaseOrdersAsVendor: {
+        cattlePurchasesAsVendor: {
           select: {
             id: true,
-            totalValue: true,
+            purchaseValue: true,
             status: true,
           },
         },
-        purchaseOrdersAsBroker: {
+        cattlePurchasesAsBroker: {
           select: {
             id: true,
-            totalValue: true,
+            purchaseValue: true,
             status: true,
           },
         },
@@ -130,14 +130,14 @@ export class PartnerRepository extends BaseRepository<Partner> {
         type: partner.type,
       },
       totals: {
-        asVendor: partner.purchaseOrdersAsVendor.reduce((sum: number, po: any) => sum + (po.totalValue || 0), 0),
-        asBroker: partner.purchaseOrdersAsBroker.reduce((sum: number, po: any) => sum + (po.totalValue || 0), 0),
+        asVendor: partner.cattlePurchasesAsVendor?.reduce((sum: number, cp: any) => sum + (cp.purchaseValue || 0), 0) || 0,
+        asBroker: partner.cattlePurchasesAsBroker?.reduce((sum: number, cp: any) => sum + (cp.purchaseValue || 0), 0) || 0,
         sales: partner.saleRecords.reduce((sum: number, sale: any) => sum + (sale.totalValue || 0), 0),
         contributions: partner.contributions.reduce((sum: number, contrib: any) => sum + (contrib.amount || 0), 0),
       },
       counts: {
-        purchaseOrdersAsVendor: partner.purchaseOrdersAsVendor.length,
-        purchaseOrdersAsBroker: partner.purchaseOrdersAsBroker.length,
+        cattlePurchasesAsVendor: partner.cattlePurchasesAsVendor?.length || 0,
+        cattlePurchasesAsBroker: partner.cattlePurchasesAsBroker?.length || 0,
         saleRecords: partner.saleRecords.length,
         contributions: partner.contributions.length,
       },

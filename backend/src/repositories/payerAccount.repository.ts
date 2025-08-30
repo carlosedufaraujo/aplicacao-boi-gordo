@@ -39,7 +39,7 @@ export class PayerAccountRepository extends BaseRepository<PayerAccount> {
     return this.model.findUnique({
       where,
       include: {
-        purchaseOrders: {
+        cattlePurchases: {
           where: startDate || endDate ? { createdAt: dateFilter } : undefined,
           include: {
             vendor: true,
