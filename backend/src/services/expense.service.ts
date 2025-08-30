@@ -14,7 +14,6 @@ interface CreateExpenseData {
   penId?: string;
   vendorId?: string;
   payerAccountId?: string;
-  purchaseOrderId?: string;
   notes?: string;
 }
 

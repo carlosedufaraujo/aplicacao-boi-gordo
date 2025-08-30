@@ -9,7 +9,7 @@ export class SaleRecordController {
    * Lista todos os registros de venda com filtros
    */
   async index(req: Request, res: Response): Promise<void> {
-    const { cattleLotId, buyerId, status, startDate, endDate, search, page, limit, sortBy, sortOrder } = req.query;
+    const { purchaseId, buyerId, status, startDate, endDate, search, page, limit, sortBy, sortOrder } = req.query;
 
     const filters = {
       cattleLotId: cattleLotId as string,
@@ -136,7 +136,7 @@ export class SaleRecordController {
    * Retorna resumo das vendas
    */
   async summary(req: Request, res: Response): Promise<void> {
-    const { cattleLotId, buyerId, status, startDate, endDate } = req.query;
+    const { purchaseId, buyerId, status, startDate, endDate } = req.query;
 
     const filters = {
       cattleLotId: cattleLotId as string,

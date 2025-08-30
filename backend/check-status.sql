@@ -1,1 +1,0 @@
-SELECT DISTINCT status FROM cattle_purchases;

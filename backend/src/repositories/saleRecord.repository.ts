@@ -9,7 +9,7 @@ export class SaleRecordRepository extends BaseRepository {
     return this.model.findUnique({
       where: { id },
       include: {
-        cattleLot: true,
+        purchase: true,
         buyer: true,
         payerAccount: true,
       },
@@ -28,8 +28,8 @@ export class SaleRecordRepository extends BaseRepository {
       where.buyerId = filters.buyerId;
     }
 
-    if (filters?.cattleLotId) {
-      where.cattleLotId = filters.cattleLotId;
+    if (filters?.purchaseId) {
+      where.purchaseId = filters.purchaseId;
     }
 
     if (filters?.status) {
@@ -39,7 +39,7 @@ export class SaleRecordRepository extends BaseRepository {
     return this.model.findMany({
       where,
       include: {
-        cattleLot: true,
+        purchase: true,
         buyer: true,
         payerAccount: true,
       },
@@ -47,9 +47,9 @@ export class SaleRecordRepository extends BaseRepository {
     });
   }
 
-  async findByCattleLot(cattleLotId: string) {
+  async findByPurchase(purchaseId: string) {
     return this.model.findMany({
-      where: { cattleLotId },
+      where: { purchaseId },
       include: {
         buyer: true,
         payerAccount: true,
@@ -62,7 +62,7 @@ export class SaleRecordRepository extends BaseRepository {
     return this.model.findMany({
       where: { buyerId },
       include: {
-        cattleLot: true,
+        purchase: true,
         payerAccount: true,
       },
       orderBy: { saleDate: 'desc' },

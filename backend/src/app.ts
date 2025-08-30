@@ -116,13 +116,12 @@ export function createApp(): Application {
   app.get('/api/v1/frontend-data', async (_, res) => {
     res.json({
       cycles: [],
-      cattleLots: [],
+      cattlePurchases: [],
       partners: [],
       expenses: [],
       revenues: [],
       sales: [],
       pens: [],
-      purchaseOrders: [],
     });
   });
 

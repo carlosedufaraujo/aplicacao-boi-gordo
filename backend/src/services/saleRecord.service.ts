@@ -3,7 +3,7 @@ import { NotFoundError, ValidationError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';
 
 interface CreateSaleRecordData {
-  cattleLotId: string;
+  purchaseId: string;
   buyerId: string;
   saleDate: Date;
   quantity: number;
@@ -23,7 +23,7 @@ interface CreateSaleRecordData {
 interface UpdateSaleRecordData extends Partial<CreateSaleRecordData> {}
 
 interface SaleRecordFilters {
-  cattleLotId?: string;
+  purchaseId?: string;
   buyerId?: string;
   status?: string;
   startDate?: Date;
@@ -41,8 +41,8 @@ export class SaleRecordService {
   async findAll(filters: SaleRecordFilters, pagination?: PaginationParams) {
     const where: any = {};
 
-    if (filters.cattleLotId) {
-      where.cattleLotId = filters.cattleLotId;
+    if (filters.purchaseId) {
+      where.purchaseId = filters.purchaseId;
     }
 
     if (filters.buyerId) {
@@ -93,8 +93,8 @@ export class SaleRecordService {
     return this.saleRecordRepository.findByPeriod(startDate, endDate, filters);
   }
 
-  async findByCattleLot(cattleLotId: string) {
-    return this.saleRecordRepository.findByCattleLot(cattleLotId);
+  async findByPurchase(purchaseId: string) {
+    return this.saleRecordRepository.findByPurchase(purchaseId);
   }
 
   async findByBuyer(buyerId: string) {
