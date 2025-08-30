@@ -1,21 +1,17 @@
 import { createApp } from './app';
-import { initializeSupabase } from '@/config/supabase-client';
 import { env } from '@/config/env';
 import { logger } from '@/config/logger';
 
 async function startServer(): Promise<void> {
   try {
-    // Inicializa conexão com Supabase (comentado temporariamente para permitir início)
-    // await initializeSupabase();
-
     // Cria a aplicação Express
     const app = createApp();
 
     // Inicia o servidor
-    const server = app.listen(env.port, () => {
-      logger.info(`🚀 Server running on port ${env.port}`);
-      logger.info(`📝 API documentation: http://localhost:${env.port}${env.apiPrefix}`);
-      logger.info(`🌍 Environment: ${env.nodeEnv}`);
+    const server = app.listen(env.PORT, () => {
+      logger.info(`🚀 Server running on port ${env.PORT}`);
+      logger.info(`📝 API documentation: http://localhost:${env.PORT}${env.API_PREFIX}/api-docs`);
+      logger.info(`🌍 Environment: ${env.NODE_ENV}`);
     });
 
     // Graceful shutdown

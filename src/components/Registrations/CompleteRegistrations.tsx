@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cleanCpfCnpj, formatCpfCnpj } from '@/utils/cpfCnpjUtils';
 
 // Componentes shadcn/ui
 import {
@@ -337,7 +338,17 @@ const ItemCard: React.FC<{
           </div>
           
           <div className="text-xs text-muted-foreground">
-            Desde {format(new Date(item.createdAt), 'MMM/yy', { locale: ptBR })}
+            Desde {(() => {
+              try {
+                if (!item.createdAt) return 'Data não informada';
+                const date = new Date(item.createdAt);
+                if (isNaN(date.getTime())) return 'Data inválida';
+                return format(date, 'MMM/yy', { locale: ptBR });
+              } catch (err) {
+                console.warn('Erro ao formatar data:', { date: item.createdAt, error: err });
+                return 'Data inválida';
+              }
+            })()}
           </div>
         </div>
       </CardContent>
@@ -374,6 +385,9 @@ const ItemDetailModal: React.FC<{
             <Eye className="h-4 w-4" />
             Detalhes do {getTypeLabel(type)}
           </DialogTitle>
+          <DialogDescription>
+            Visualize as informações detalhadas do cadastro.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
@@ -627,7 +641,28 @@ const PartnerForm: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // Limpar CPF/CNPJ e remover campos vazios antes de salvar
+    const cleanedData: any = {};
+    
+    // Adicionar apenas campos preenchidos
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value !== '' && value !== null && value !== undefined) {
+        if (key === 'cpfCnpj') {
+          cleanedData[key] = cleanCpfCnpj(value as string);
+        } else {
+          cleanedData[key] = value;
+        }
+      }
+    });
+    
+    // Preservar campos originais se estiver editando
+    const dataToSave = partner ? {
+      ...partner, // Preserva todos os campos originais
+      ...cleanedData, // Sobrescreve com os campos editados
+    } : cleanedData;
+    
+    onSave(dataToSave);
   };
 
   return (
@@ -656,6 +691,7 @@ const PartnerForm: React.FC<{
               <SelectItem value="BUYER">Comprador</SelectItem>
               <SelectItem value="INVESTOR">Investidor</SelectItem>
               <SelectItem value="SERVICE_PROVIDER">Prestador de Serviço</SelectItem>
+              <SelectItem value="FREIGHT_CARRIER">Transportadora/Frete</SelectItem>
               <SelectItem value="OTHER">Outro</SelectItem>
             </SelectContent>
           </Select>
@@ -666,10 +702,14 @@ const PartnerForm: React.FC<{
         <div className="space-y-2">
           <Label className="form-label">CPF/CNPJ</Label>
           <Input
-            value={formData.cpfCnpj}
-            onChange={(e) => setFormData({ ...formData, cpfCnpj: e.target.value })}
-            placeholder="000.000.000-00"
+            value={formatCpfCnpj(formData.cpfCnpj || '')}
+            onChange={(e) => {
+              const formatted = formatCpfCnpj(e.target.value);
+              setFormData({ ...formData, cpfCnpj: formatted });
+            }}
+            placeholder="000.000.000-00 ou 00.000.000/0000-00"
             className="form-input"
+            maxLength={18}
           />
         </div>
         
@@ -747,15 +787,24 @@ const PenForm: React.FC<{
     penNumber: '',
     capacity: '',
     location: '',
+    type: 'FATTENING', // Tipo padrão
+    status: 'AVAILABLE', // Status padrão
     isActive: true
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
+    // Preservar campos originais se estiver editando
+    const dataToSave = pen ? {
+      ...pen, // Preserva todos os campos originais
+      ...formData, // Sobrescreve com os campos editados
+      capacity: parseInt(formData.capacity) || 0
+    } : {
       ...formData,
       capacity: parseInt(formData.capacity) || 0
-    });
+    };
+    
+    onSave(dataToSave);
   };
 
   return (
@@ -795,6 +844,36 @@ const PenForm: React.FC<{
         />
       </div>
 
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="form-label">Tipo</Label>
+          <select
+            value={formData.type || 'FATTENING'}
+            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="RECEPTION">Recepção</option>
+            <option value="FATTENING">Engorda</option>
+            <option value="QUARANTINE">Quarentena</option>
+            <option value="HOSPITAL">Hospital</option>
+          </select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="form-label">Status</Label>
+          <select
+            value={formData.status || 'AVAILABLE'}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="AVAILABLE">Disponível</option>
+            <option value="OCCUPIED">Ocupado</option>
+            <option value="MAINTENANCE">Manutenção</option>
+            <option value="QUARANTINE">Quarentena</option>
+          </select>
+        </div>
+      </div>
+
       <div className="flex items-center space-x-2">
         <Switch
           checked={formData.isActive}
@@ -827,12 +906,23 @@ const PayerAccountForm: React.FC<{
     agency: '',
     accountNumber: '',
     accountType: 'CHECKING',
+    balance: 0,
     isActive: true
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    // Preservar campos originais se estiver editando
+    const dataToSave = account ? {
+      ...account, // Preserva todos os campos originais
+      ...formData, // Sobrescreve com os campos editados
+      balance: parseFloat(formData.balance) || 0
+    } : {
+      ...formData,
+      balance: parseFloat(formData.balance) || 0
+    };
+    
+    onSave(dataToSave);
   };
 
   return (
@@ -885,19 +975,33 @@ const PayerAccountForm: React.FC<{
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="form-label">Tipo de Conta *</Label>
-        <Select value={formData.accountType} onValueChange={(value) => setFormData({ ...formData, accountType: value })}>
-          <SelectTrigger className="form-input">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="CHECKING">Conta Corrente</SelectItem>
-            <SelectItem value="SAVINGS">Poupança</SelectItem>
-            <SelectItem value="INVESTMENT">Investimento</SelectItem>
-            <SelectItem value="CASH">Dinheiro</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="form-label">Tipo de Conta *</Label>
+          <Select value={formData.accountType} onValueChange={(value) => setFormData({ ...formData, accountType: value })}>
+            <SelectTrigger className="form-input">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="CHECKING">Conta Corrente</SelectItem>
+              <SelectItem value="SAVINGS">Poupança</SelectItem>
+              <SelectItem value="INVESTMENT">Investimento</SelectItem>
+              <SelectItem value="CASH">Dinheiro</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="form-label">Saldo Inicial</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={formData.balance || 0}
+            onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
+            placeholder="0.00"
+            className="form-input"
+          />
+        </div>
       </div>
 
       <div className="flex items-center space-x-2">
@@ -926,22 +1030,56 @@ const CycleForm: React.FC<{
   onSave: (data: any) => void; 
   onCancel: () => void 
 }> = ({ cycle, onSave, onCancel }) => {
-  const [formData, setFormData] = useState(cycle || {
-    name: '',
-    description: '',
-    startDate: '',
-    endDate: '',
-    isActive: true
+  // Função para converter ISO date string para formato yyyy-MM-dd
+  const formatDateForInput = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toISOString().split('T')[0];
+    } catch {
+      return '';
+    }
+  };
+
+  const [formData, setFormData] = useState(() => {
+    if (cycle) {
+      return {
+        ...cycle,
+        startDate: formatDateForInput(cycle.startDate),
+        endDate: formatDateForInput(cycle.endDate),
+        budget: cycle.budget ?? 0,
+        targetAnimals: cycle.targetAnimals ?? 0,
+        isActive: cycle.isActive ?? true
+      };
+    }
+    return {
+      name: '',
+      description: '',
+      startDate: '',
+      endDate: '',
+      status: 'PLANNED',
+      budget: 0,
+      targetAnimals: 0,
+      isActive: true
+    };
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const processedData = {
+    // Preservar campos originais se estiver editando
+    const dataToSave = cycle ? {
+      ...cycle, // Preserva todos os campos originais
+      ...formData, // Sobrescreve com os campos editados
+      startDate: formData.startDate ? new Date(formData.startDate).toISOString() : new Date().toISOString(),
+      endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null
+    } : {
       ...formData,
       startDate: formData.startDate ? new Date(formData.startDate).toISOString() : new Date().toISOString(),
       endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null
     };
-    onSave(processedData);
+    
+    onSave(dataToSave);
   };
 
   return (
@@ -949,7 +1087,7 @@ const CycleForm: React.FC<{
       <div className="space-y-2">
         <Label className="form-label">Nome do Ciclo *</Label>
         <Input
-          value={formData.name}
+          value={formData.name || ''}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="Ciclo 2024/1"
           required
@@ -958,9 +1096,24 @@ const CycleForm: React.FC<{
       </div>
 
       <div className="space-y-2">
+        <Label className="form-label">Status *</Label>
+        <Select value={formData.status || 'PLANNED'} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+          <SelectTrigger className="form-input">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="PLANNED">Planejado</SelectItem>
+            <SelectItem value="ACTIVE">Ativo</SelectItem>
+            <SelectItem value="COMPLETED">Completo</SelectItem>
+            <SelectItem value="CANCELLED">Cancelado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
         <Label className="form-label">Descrição</Label>
         <Textarea
-          value={formData.description}
+          value={formData.description || ''}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="Descrição do ciclo..."
           className="form-input"
@@ -972,7 +1125,7 @@ const CycleForm: React.FC<{
           <Label className="form-label">Data de Início</Label>
           <Input
             type="date"
-            value={formData.startDate}
+            value={formData.startDate || ''}
             onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
             className="form-input"
           />
@@ -982,8 +1135,33 @@ const CycleForm: React.FC<{
           <Label className="form-label">Data de Fim</Label>
           <Input
             type="date"
-            value={formData.endDate}
+            value={formData.endDate || ''}
             onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+            className="form-input"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="form-label">Orçamento</Label>
+          <Input
+            type="number"
+            step="0.01"
+            value={formData.budget || 0}
+            onChange={(e) => setFormData({ ...formData, budget: parseFloat(e.target.value) || 0 })}
+            placeholder="0.00"
+            className="form-input"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label className="form-label">Número de Animais</Label>
+          <Input
+            type="number"
+            value={formData.targetAnimals || 0}
+            onChange={(e) => setFormData({ ...formData, targetAnimals: parseInt(e.target.value) || 0 })}
+            placeholder="0"
             className="form-input"
           />
         </div>
@@ -1080,11 +1258,18 @@ export const CompleteRegistrations: React.FC = () => {
 
   // Métricas calculadas
   const metrics = useMemo(() => {
-    const activePartners = partners?.filter(p => p.isActive).length || 0;
-    const totalPens = pens?.length || 0;
-    const activePens = pens?.filter(p => p.isActive).length || 0;
-    const totalAccounts = payerAccounts?.length || 0;
-    const activeCycles = cycles?.filter(c => c.isActive).length || 0;
+    const partnersArray = Array.isArray(partners) ? partners : [];
+    const activePartners = partnersArray.filter(p => p.isActive).length;
+    
+    const pensArray = Array.isArray(pens) ? pens : [];
+    const totalPens = pensArray.length;
+    const activePens = pensArray.filter(p => p.isActive).length;
+    
+    const accountsArray = Array.isArray(payerAccounts) ? payerAccounts : [];
+    const totalAccounts = accountsArray.length;
+    
+    const cyclesArray = Array.isArray(cycles) ? cycles : [];
+    const activeCycles = cyclesArray.filter(c => c.isActive).length;
 
     return {
       totalPartners: partners?.length || 0,
@@ -1210,6 +1395,26 @@ export const CompleteRegistrations: React.FC = () => {
   };
 
   const isLoading = partnersLoading || pensLoading || accountsLoading || cyclesLoading;
+
+  // DEBUG - Removido para mostrar a página normal
+  // Descomente se precisar debugar novamente
+  /*
+  if (false) { 
+    const DebugRegistrations = React.lazy(() => import('./DebugRegistrations').then(module => ({ default: module.DebugRegistrations })));
+    return (
+      <React.Suspense fallback={<div>Carregando debug...</div>}>
+        <div className="space-y-4">
+          <DebugRegistrations />
+          {!isLoading && (
+            <div className="text-center">
+              <p className="text-sm text-green-600 mb-2">✅ Dados carregados! Mostrando interface normal abaixo:</p>
+            </div>
+          )}
+        </div>
+      </React.Suspense>
+    );
+  }
+  */
 
   if (isLoading) {
     return (

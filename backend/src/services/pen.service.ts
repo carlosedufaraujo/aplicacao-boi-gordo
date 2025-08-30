@@ -74,7 +74,7 @@ export class PenService {
       },
     };
 
-    return this.penRepository.findAll(where, pagination, include);
+    return this.penRepository.findAll(where, pagination);
   }
 
   async findById(id: string) {

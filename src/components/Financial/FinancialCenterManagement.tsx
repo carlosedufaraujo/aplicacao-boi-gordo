@@ -33,6 +33,7 @@ import { TableWithPagination } from '../Common/TableWithPagination';
 import { format, startOfMonth, endOfMonth, subDays, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { EXPENSE_CATEGORIES } from '../../types';
+import { formatCurrency, formatCompactCurrency } from '@/utils/formatters';
 
 export const FinancialCenterManagement: React.FC = () => {
   const { 
@@ -624,7 +625,7 @@ export const FinancialCenterManagement: React.FC = () => {
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-lg font-bold text-b3x-navy-900">
-                R$ {(totalAmount / 1000).toFixed(0)}k
+                {formatCompactCurrency(totalAmount )}
               </div>
               <ChevronRight className="w-4 h-4 text-neutral-600" />
             </div>
@@ -943,7 +944,7 @@ export const FinancialCenterManagement: React.FC = () => {
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-neutral-600">{typeInfo[type as keyof typeof typeInfo].label}</span>
                         <span className="font-medium">
-                          R$ {(value / 1000).toFixed(0)}k ({percentage.toFixed(1)}%)
+                          {formatCompactCurrency(value )} ({percentage.toFixed(1)}%)
                         </span>
                       </div>
                       <div className="w-full bg-neutral-200 rounded-full h-2">
@@ -980,7 +981,7 @@ export const FinancialCenterManagement: React.FC = () => {
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-neutral-600">{typeInfo[type as keyof typeof typeInfo].label}</span>
                         <span className="font-medium">
-                          R$ {(value / 1000).toFixed(0)}k ({percentage.toFixed(1)}%)
+                          {formatCompactCurrency(value )} ({percentage.toFixed(1)}%)
                         </span>
                       </div>
                       <div className="w-full bg-neutral-200 rounded-full h-2">
@@ -1218,7 +1219,7 @@ export const FinancialCenterManagement: React.FC = () => {
                 </div>
               </div>
               <div className="text-xl font-bold text-b3x-lime-600">
-                R$ {(expensesByType.acquisition / 1000).toFixed(0)}k
+                {formatCompactCurrency(expensesByType.acquisition )}
               </div>
             </div>
 
@@ -1233,7 +1234,7 @@ export const FinancialCenterManagement: React.FC = () => {
                 </div>
               </div>
               <div className="text-xl font-bold text-success-600">
-                R$ {(expensesByType.fattening / 1000).toFixed(0)}k
+                {formatCompactCurrency(expensesByType.fattening )}
               </div>
             </div>
 
@@ -1248,7 +1249,7 @@ export const FinancialCenterManagement: React.FC = () => {
                 </div>
               </div>
               <div className="text-xl font-bold text-info-600">
-                R$ {(expensesByType.administrative / 1000).toFixed(0)}k
+                {formatCompactCurrency(expensesByType.administrative )}
               </div>
             </div>
 
@@ -1263,7 +1264,7 @@ export const FinancialCenterManagement: React.FC = () => {
                 </div>
               </div>
               <div className="text-xl font-bold text-warning-600">
-                R$ {(expensesByType.financial / 1000).toFixed(0)}k
+                {formatCompactCurrency(expensesByType.financial )}
               </div>
             </div>
           </div>
@@ -1462,7 +1463,7 @@ export const FinancialCenterManagement: React.FC = () => {
                 </div>
               </div>
               <div className="text-xl font-bold text-success-600">
-                R$ {(revenuesByType.sales / 1000).toFixed(0)}k
+                {formatCompactCurrency(revenuesByType.sales )}
               </div>
             </div>
 
@@ -1477,7 +1478,7 @@ export const FinancialCenterManagement: React.FC = () => {
                 </div>
               </div>
               <div className="text-xl font-bold text-info-600">
-                R$ {(revenuesByType.contributions / 1000).toFixed(0)}k
+                {formatCompactCurrency(revenuesByType.contributions )}
               </div>
             </div>
 
@@ -1492,7 +1493,7 @@ export const FinancialCenterManagement: React.FC = () => {
                 </div>
               </div>
               <div className="text-xl font-bold text-warning-600">
-                R$ {(revenuesByType.financing / 1000).toFixed(0)}k
+                {formatCompactCurrency(revenuesByType.financing )}
               </div>
             </div>
 
@@ -1507,7 +1508,7 @@ export const FinancialCenterManagement: React.FC = () => {
                 </div>
               </div>
               <div className="text-xl font-bold text-neutral-600">
-                R$ {(revenuesByType.other / 1000).toFixed(0)}k
+                {formatCompactCurrency(revenuesByType.other )}
               </div>
             </div>
           </div>
@@ -2105,7 +2106,7 @@ export const FinancialCenterManagement: React.FC = () => {
                                      type === 'financing' ? 'Financiamentos' : 'Outras'}
                                   </span>
                                   <span className="font-medium">
-                                    R$ {(value / 1000).toFixed(0)}k ({percentage.toFixed(1)}%)
+                                    {formatCompactCurrency(value )} ({percentage.toFixed(1)}%)
                                   </span>
                                 </div>
                                 <div className="w-full bg-neutral-200 rounded-full h-1.5">
@@ -2135,7 +2136,7 @@ export const FinancialCenterManagement: React.FC = () => {
                                      type === 'administrative' ? 'Administrativo' : 'Financeiro'}
                                   </span>
                                   <span className="font-medium">
-                                    R$ {(value / 1000).toFixed(0)}k ({percentage.toFixed(1)}%)
+                                    {formatCompactCurrency(value )} ({percentage.toFixed(1)}%)
                                   </span>
                                 </div>
                                 <div className="w-full bg-neutral-200 rounded-full h-1.5">

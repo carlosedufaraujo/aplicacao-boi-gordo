@@ -75,6 +75,11 @@ router.get(
 );
 
 router.get(
+  '/stats',
+  partnerController.stats
+);
+
+router.get(
   '/type/:type',
   partnerController.byType
 );
@@ -86,26 +91,26 @@ router.get(
 
 router.get(
   '/:id/stats',
-  partnerController.stats
+  partnerController.partnerStats
 );
 
 router.post(
   '/',
-  authorizeBackend('ADMIN', 'MANAGER'),
+  authorize('ADMIN', 'MANAGER'),
   validate(partnerValidation.create),
   partnerController.create
 );
 
 router.put(
   '/:id',
-  authorizeBackend('ADMIN', 'MANAGER'),
+  authorize('ADMIN', 'MANAGER'),
   validate(partnerValidation.update),
   partnerController.update
 );
 
 router.delete(
   '/:id',
-  authorizeBackend('ADMIN'),
+  authorize('ADMIN'),
   partnerController.delete
 );
 

@@ -2,42 +2,84 @@ import { PrismaClient } from '@prisma/client';
 import { prisma } from '@/config/database';
 
 export interface PaginationParams {
-  page?: number;
-  limit?: number;
+  page: number;
+  limit: number;
   orderBy?: string;
-  order?: 'asc' | 'desc';
+  orderDirection?: 'asc' | 'desc';
 }
 
 export interface PaginatedResult<T> {
-  data: T[];
+  items: T[];
   total: number;
   page: number;
   limit: number;
   totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface QueryOptions {
+  where?: any;
+  include?: any;
+  select?: any;
+  orderBy?: any;
 }
 
 export abstract class BaseRepository<T> {
   protected prisma: PrismaClient;
-  protected model: any;
+  protected modelName: string;
 
   constructor(modelName: string) {
     this.prisma = prisma;
-    this.model = (prisma as any)[modelName];
+    this.modelName = modelName;
+  }
+
+  protected get model(): any {
+    return (this.prisma as any)[this.modelName];
+  }
+
+  async findById(id: string, options?: QueryOptions): Promise<T | null> {
+    return await this.model.findUnique({
+      where: { id },
+      ...options,
+    });
+  }
+
+  async findOne(where: any, options?: QueryOptions): Promise<T | null> {
+    return await this.model.findFirst({
+      where,
+      ...options,
+    });
+  }
+
+  async findMany(where: any = {}, options?: QueryOptions): Promise<T[]> {
+    return await this.model.findMany({
+      where,
+      ...options,
+    });
   }
 
   async findAll(
-    filters?: Record<string, any>,
-    pagination?: PaginationParams
+    where: any = {},
+    pagination?: PaginationParams,
+    options?: QueryOptions
   ): Promise<PaginatedResult<T>> {
     const page = pagination?.page || 1;
     const limit = pagination?.limit || 10;
     const skip = (page - 1) * limit;
 
-    const where = this.buildWhereClause(filters);
-    const orderBy = this.buildOrderBy(pagination);
+    const orderBy = pagination?.orderBy
+      ? { [pagination.orderBy]: pagination.orderDirection || 'desc' }
+      : { createdAt: 'desc' };
 
-    const [data, total] = await Promise.all([
+    // Debug para identificar o problema
+    console.log('BaseRepository.findAll - modelName:', this.modelName);
+    console.log('BaseRepository.findAll - where:', JSON.stringify(where, null, 2));
+    console.log('BaseRepository.findAll - options:', JSON.stringify(options, null, 2));
+    
+    const [items, total] = await Promise.all([
       this.model.findMany({
+        ...options,
         where,
         skip,
         take: limit,
@@ -46,78 +88,65 @@ export abstract class BaseRepository<T> {
       this.model.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / limit);
+
     return {
-      data,
+      items,
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1,
     };
   }
 
-  async findById(id: string): Promise<T | null> {
-    return await this.model.findUnique({
-      where: { id },
-    });
+  async create(data: any): Promise<T> {
+    return await this.model.create({ data });
   }
 
-  async create(data: Partial<T>): Promise<T> {
-    return await this.model.create({
-      data,
-    });
+  async createMany(data: any[]): Promise<{ count: number }> {
+    return await this.model.createMany({ data });
   }
 
-  async update(id: string, data: Partial<T>): Promise<T> {
+  async update(id: string, data: any): Promise<T> {
     return await this.model.update({
       where: { id },
       data,
     });
   }
 
-  async delete(id: string): Promise<boolean> {
-    try {
-      await this.model.delete({
-        where: { id },
-      });
-      return true;
-    } catch (error) {
-      return false;
-    }
+  async updateMany(where: any, data: any): Promise<{ count: number }> {
+    return await this.model.updateMany({
+      where,
+      data,
+    });
   }
 
-  async exists(id: string): Promise<boolean> {
-    const count = await this.model.count({
+  async delete(id: string): Promise<T> {
+    return await this.model.delete({
       where: { id },
     });
+  }
+
+  async deleteMany(where: any): Promise<{ count: number }> {
+    return await this.model.deleteMany({ where });
+  }
+
+  async count(where: any = {}): Promise<number> {
+    return await this.model.count({ where });
+  }
+
+  async exists(where: any): Promise<boolean> {
+    const count = await this.count(where);
     return count > 0;
   }
 
-  protected buildWhereClause(filters?: Record<string, any>): any {
-    if (!filters) return {};
-    
-    const where: any = {};
-    
-    for (const [key, value] of Object.entries(filters)) {
-      if (value !== undefined && value !== null && value !== '') {
-        if (typeof value === 'string' && key.endsWith('_like')) {
-          const field = key.replace('_like', '');
-          where[field] = { contains: value, mode: 'insensitive' };
-        } else {
-          where[key] = value;
-        }
-      }
-    }
-    
-    return where;
+  async aggregate(options: any): Promise<any> {
+    return await this.model.aggregate(options);
   }
 
-  protected buildOrderBy(pagination?: PaginationParams): any {
-    if (!pagination?.orderBy) {
-      return { createdAt: 'desc' };
-    }
-    
-    return {
-      [pagination.orderBy]: pagination.order || 'asc',
-    };
+  async groupBy(options: any): Promise<any> {
+    return await this.model.groupBy(options);
   }
 }

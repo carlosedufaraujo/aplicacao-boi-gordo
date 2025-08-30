@@ -134,7 +134,7 @@ export class DashboardService {
     }
 
     // Alertas de mortalidade
-    const highMortalityLots = await prisma.cattleLot.findMany({
+    const highMortalityLots = await prisma.cattlePurchase.findMany({
       where: {
         status: 'ACTIVE',
         deathCount: { gt: 0 },
@@ -159,7 +159,7 @@ export class DashboardService {
   }
 
   private async getTotalAnimals() {
-    const result = await prisma.cattleLot.aggregate({
+    const result = await prisma.cattlePurchase.aggregate({
       where: { status: 'ACTIVE' },
       _sum: { remainingQuantity: true },
     });
@@ -167,7 +167,7 @@ export class DashboardService {
   }
 
   private async getActiveLots() {
-    return prisma.cattleLot.count({
+    return prisma.cattlePurchase.count({
       where: { status: 'ACTIVE' },
     });
   }

@@ -16,11 +16,11 @@ export const partnerValidation = {
         'any.required': 'Tipo é obrigatório',
         'any.only': 'Tipo inválido',
       }),
-    cpfCnpj: commonSchemas.cpfCnpj.optional(),
-    phone: commonSchemas.phone.optional(),
-    email: commonSchemas.email.optional(),
-    address: Joi.string().max(255).optional(),
-    notes: Joi.string().max(500).optional(),
+    cpfCnpj: commonSchemas.cpfCnpj.optional().allow('', null),
+    phone: commonSchemas.phone.optional().allow('', null),
+    email: commonSchemas.email.optional().allow('', null),
+    address: Joi.string().max(255).optional().allow('', null),
+    notes: Joi.string().max(500).optional().allow('', null),
   }),
 
   update: Joi.object({
@@ -28,11 +28,11 @@ export const partnerValidation = {
     type: Joi.string()
       .valid(...Object.values(PartnerType))
       .optional(),
-    cpfCnpj: commonSchemas.cpfCnpj.optional(),
-    phone: commonSchemas.phone.optional(),
-    email: commonSchemas.email.optional(),
-    address: Joi.string().max(255).optional(),
-    notes: Joi.string().max(500).optional(),
+    cpfCnpj: commonSchemas.cpfCnpj.optional().allow('', null),
+    phone: commonSchemas.phone.optional().allow('', null),
+    email: commonSchemas.email.optional().allow('', null),
+    address: Joi.string().max(255).optional().allow('', null),
+    notes: Joi.string().max(500).optional().allow('', null),
     isActive: Joi.boolean().optional(),
   }),
 

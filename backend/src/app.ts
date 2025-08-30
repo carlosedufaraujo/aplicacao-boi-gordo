@@ -17,12 +17,13 @@ import { authRoutes } from '@/routes/auth.routes';
 import { userRoutes } from '@/routes/user.routes';
 import { partnerRoutes } from '@/routes/partner.routes';
 import { payerAccountRoutes } from '@/routes/payerAccount.routes';
-import { purchaseOrderRoutes } from '@/routes/purchaseOrder.routes';
-import { cattleLotRoutes } from '@/routes/cattleLot.routes';
 import { penRoutes } from '@/routes/pen.routes';
 import expenseRoutes from '@/routes/expense.routes';
 import revenueRoutes from '@/routes/revenue.routes';
-// import saleRoutes from '@/routes/sale.routes';
+import { saleRecordRoutes } from '@/routes/saleRecord.routes';
+import { cycleRoutes } from '@/routes/cycle.routes';
+import { costCenterRoutes } from '@/routes/costCenter.routes';
+import cattlePurchaseRoutes from '@/routes/cattlePurchase.routes';
 // import reportRoutes from '@/routes/report.routes';
 // import dashboardRoutes from '@/routes/dashboard.routes';
 
@@ -31,20 +32,49 @@ import revenueRoutes from '@/routes/revenue.routes';
 export function createApp(): Application {
   const app = express();
 
-  // Segurança
-  app.use(helmet());
+  // Segurança - configuração mais permissiva para desenvolvimento
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-eval'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "http://localhost:3333", "http://localhost:5173", "http://localhost:5174"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }));
 
-  // CORS
+  // CORS - permitir múltiplas origens
   app.use(cors({
-    origin: env.frontendUrl,
+    origin: function(origin, callback) {
+      const allowedOrigins = [
+        'http://localhost:5173',
+        'http://localhost:5174', 
+        'http://localhost:5175',
+        'http://localhost:3000'
+      ];
+      
+      // Permitir requisições sem origin (ex: Postman, curl)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Em dev, permitir qualquer origem
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
   }));
 
   // Rate limiting (desabilitado em desenvolvimento)
-  if (env.nodeEnv !== 'development') {
+  if (env.NODE_ENV !== 'development') {
     const limiter = rateLimit({
-      windowMs: env.rateLimitWindowMs,
-      max: env.rateLimitMaxRequests,
+      windowMs: env.RATE_LIMIT_WINDOW_MS,
+      max: env.RATE_LIMIT_MAX_REQUESTS,
       message: 'Muitas requisições deste IP, tente novamente mais tarde.',
     });
     app.use(limiter);
@@ -55,7 +85,7 @@ export function createApp(): Application {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
   // Logging
-  if (env.nodeEnv === 'development') {
+  if (env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
   } else {
     // Log customizado para produção
@@ -109,32 +139,22 @@ export function createApp(): Application {
   apiRouter.use('/auth', authRoutes);
   apiRouter.use('/users', userRoutes);
   
-  // Rotas Supabase (nova arquitetura) - prioridade sobre as antigas
-  apiRouter.use('/purchase-orders', purchaseOrderSupabaseRoutes);
-  apiRouter.use('/cattle-lots', cattleLotSupabaseRoutes);
-  apiRouter.use('/expenses', expenseSupabaseRoutes);
-  apiRouter.use('/revenues', revenueSupabaseRoutes);
-  apiRouter.use('/payer-accounts', payerAccountSupabaseRoutes);
-  apiRouter.use('/partners', partnerSupabaseRoutes);
-  apiRouter.use('/pens', penSupabaseRoutes);
-  apiRouter.use('/cycles', cycleSupabaseRoutes);
-  apiRouter.use('/sales', saleSupabaseRoutes);
-  apiRouter.use('/sale-records', saleRecordSupabaseRoutes);
+  // Rotas do sistema
+  apiRouter.use('/expenses', expenseRoutes);
+  apiRouter.use('/revenues', revenueRoutes);
+  apiRouter.use('/payer-accounts', payerAccountRoutes);
+  apiRouter.use('/partners', partnerRoutes);
+  apiRouter.use('/pens', penRoutes);
+  apiRouter.use('/sale-records', saleRecordRoutes);
+  apiRouter.use('/sales', saleRecordRoutes); // Alias para compatibilidade
+  apiRouter.use('/cycles', cycleRoutes);
+  apiRouter.use('/cost-centers', costCenterRoutes);
   
-  // Rotas antigas (Prisma) - manter temporariamente
-  // apiRouter.use('/purchase-orders-old', purchaseOrderRoutes);
-  // apiRouter.use('/cattle-lots-old', cattleLotRoutes);
-  // apiRouter.use('/payer-accounts-old', payerAccountRoutes);
-  // apiRouter.use('/expenses-old', expenseRoutes);
-  // apiRouter.use('/revenues-old', revenueRoutes);
-  // apiRouter.use('/partners-old', partnerRoutes);
-  // apiRouter.use('/pens-old', penRoutes);
-  // apiRouter.use('/sales-old', saleRoutes);
-  // apiRouter.use('/reports', reportRoutes);
-  // apiRouter.use('/dashboard', dashboardRoutes);
+  // Rota unificada para compras de gado (substitui purchase-orders e cattle-lots)
+  apiRouter.use('/cattle-purchases', cattlePurchaseRoutes);
 
   // Monta as rotas no prefixo da API
-  app.use(env.apiPrefix, apiRouter);
+  app.use(env.API_PREFIX, apiRouter);
 
   // Tratamento de rotas não encontradas
   app.use(notFoundHandler);

@@ -169,7 +169,7 @@ export class ReportRepository {
   async generateLotPerformance(lotId?: string) {
     const where = lotId ? { id: lotId } : {};
 
-    const lots = await prisma.cattleLot.findMany({
+    const lots = await prisma.cattlePurchase.findMany({
       where,
       include: {
         purchaseOrder: {
@@ -211,7 +211,7 @@ export class ReportRepository {
           status: lot.status,
           entryDate: lot.entryDate,
         },
-        vendor: lot.purchaseOrder.vendor,
+        vendor: lot.cattlePurchase.vendor,
         quantities: {
           initial: lot.quantity,
           current: lot.remainingQuantity,

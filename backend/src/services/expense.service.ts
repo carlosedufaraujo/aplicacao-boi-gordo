@@ -100,7 +100,7 @@ export class ExpenseService {
       allocations: true,
     };
 
-    return this.expenseRepository.findAll(where, pagination, include);
+    return this.expenseRepository.findAll(where, pagination);
   }
 
   async findById(id: string) {
@@ -214,23 +214,43 @@ export class ExpenseService {
     return this.expenseRepository.getExpensesByCostCenter(startDate, endDate);
   }
 
+  async getStats(startDate?: Date, endDate?: Date) {
+    const filters: ExpenseFilters = {};
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+    
+    const summary = await this.getSummary(filters);
+    
+    return {
+      total: summary.total,
+      paid: summary.paid,
+      pending: summary.pending,
+      overdue: summary.overdue,
+      count: summary.count,
+      paidCount: summary.paidCount,
+      pendingCount: summary.pendingCount,
+      overdueCount: summary.overdueCount,
+      averageValue: summary.count > 0 ? summary.total / summary.count : 0
+    };
+  }
+
   async getSummary(filters?: ExpenseFilters) {
-    const expenses = await this.findAll(filters || {}, { page: 1, limit: 10000 });
+    const expenses = await this.findAll(filters || {}, { page: 1, limit: 1000 });
 
     const summary = {
-      total: expenses.data.reduce((sum, e) => sum + e.totalAmount, 0),
-      paid: expenses.data.filter(e => e.isPaid).reduce((sum, e) => sum + e.totalAmount, 0),
-      pending: expenses.data.filter(e => !e.isPaid).reduce((sum, e) => sum + e.totalAmount, 0),
+      total: expenses.items.reduce((sum, e) => sum + e.totalAmount, 0),
+      paid: expenses.items.filter(e => e.isPaid).reduce((sum, e) => sum + e.totalAmount, 0),
+      pending: expenses.items.filter(e => !e.isPaid).reduce((sum, e) => sum + e.totalAmount, 0),
       overdue: 0,
       count: expenses.total,
-      paidCount: expenses.data.filter(e => e.isPaid).length,
-      pendingCount: expenses.data.filter(e => !e.isPaid).length,
+      paidCount: expenses.items.filter(e => e.isPaid).length,
+      pendingCount: expenses.items.filter(e => !e.isPaid).length,
       overdueCount: 0,
     };
 
     // Calcula vencidas
     const today = new Date();
-    const overdue = expenses.data.filter(e => !e.isPaid && e.dueDate < today);
+    const overdue = expenses.items.filter(e => !e.isPaid && e.dueDate < today);
     summary.overdue = overdue.reduce((sum, e) => sum + e.totalAmount, 0);
     summary.overdueCount = overdue.length;
 

@@ -71,7 +71,7 @@ export const cycleApi = {
    */
   async getAll(filters: CycleFilters = {}): Promise<ApiResponse<Cycle[]>> {
     const response = await apiClient.get('/cycles', filters);
-    return response.data;
+    return response;
   },
 
   /**
@@ -79,7 +79,7 @@ export const cycleApi = {
    */
   async getById(id: string): Promise<ApiResponse<Cycle>> {
     const response = await apiClient.get(`/cycles/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -87,7 +87,7 @@ export const cycleApi = {
    */
   async getByStatus(status: string): Promise<ApiResponse<Cycle[]>> {
     const response = await apiClient.get(`/cycles/status/${status}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -95,7 +95,7 @@ export const cycleApi = {
    */
   async getActive(): Promise<ApiResponse<Cycle[]>> {
     const response = await apiClient.get('/cycles/active');
-    return response.data;
+    return response;
   },
 
   /**
@@ -103,7 +103,7 @@ export const cycleApi = {
    */
   async getCurrent(): Promise<ApiResponse<Cycle | null>> {
     const response = await apiClient.get('/cycles/current');
-    return response.data;
+    return response;
   },
 
   /**
@@ -111,7 +111,7 @@ export const cycleApi = {
    */
   async create(data: CreateCycleData): Promise<ApiResponse<Cycle>> {
     const response = await apiClient.post('/cycles', data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -119,7 +119,7 @@ export const cycleApi = {
    */
   async update(id: string, data: UpdateCycleData): Promise<ApiResponse<Cycle>> {
     const response = await apiClient.put(`/cycles/${id}`, data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -129,7 +129,7 @@ export const cycleApi = {
     const response = await apiClient.patch(`/cycles/${id}/complete`, {
       actualEndDate
     });
-    return response.data;
+    return response;
   },
 
   /**
@@ -139,7 +139,7 @@ export const cycleApi = {
     const response = await apiClient.patch(`/cycles/${id}/cancel`, {
       reason
     });
-    return response.data;
+    return response;
   },
 
   /**
@@ -147,7 +147,7 @@ export const cycleApi = {
    */
   async remove(id: string): Promise<ApiResponse<void>> {
     const response = await apiClient.delete(`/cycles/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -155,6 +155,6 @@ export const cycleApi = {
    */
   async getStats(): Promise<ApiResponse<CycleStats>> {
     const response = await apiClient.get('/cycles/stats');
-    return response.data;
+    return response;
   }
 };

@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UnauthorizedError, ForbiddenError } from '@/utils/AppError';
 import { prisma } from '@/config/database';
-import { UserRole } from '@prisma/client';
 
 // Estende a interface Request para incluir o usuário
 declare global {
@@ -25,13 +24,13 @@ interface JWTPayload {
  * Middleware de autenticação 100% Backend (JWT próprio)
  */
 export async function authenticateBackend(
-  req: Request,
+  _req: Request,
   _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
     // Extrai o token do header
-    const authHeader = req.headers.authorization;
+    const authHeader = _req.headers.authorization;
     if (!authHeader) {
       throw new UnauthorizedError('Token não fornecido');
     }
@@ -55,7 +54,7 @@ export async function authenticateBackend(
     }
 
     // Adiciona o usuário à requisição
-    req.user = localUser;
+    _req.user = localUser;
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
@@ -73,13 +72,13 @@ export async function authenticateBackend(
 /**
  * Middleware de autorização por role (Backend)
  */
-export function authorizeBackend(...roles: UserRole[]) {
-  return (req: Request, _res: Response, next: NextFunction): void => {
-    if (!req.user) {
+export function authorizeBackend(...roles: string[]) {
+  return (_req: Request, _res: Response, next: NextFunction): void => {
+    if (!_req.user) {
       return next(new UnauthorizedError('Usuário não autenticado'));
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(_req.user.role)) {
       return next(new ForbiddenError('Permissão insuficiente'));
     }
 
@@ -91,12 +90,12 @@ export function authorizeBackend(...roles: UserRole[]) {
  * Middleware opcional de autenticação Backend
  */
 export async function optionalAuthenticateBackend(
-  req: Request,
+  _req: Request,
   _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = _req.headers.authorization;
     if (!authHeader) {
       return next();
     }
@@ -109,14 +108,12 @@ export async function optionalAuthenticateBackend(
     const jwtSecret = process.env.JWT_SECRET || 'seu_jwt_secret_muito_seguro_aqui';
     const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
 
-    const { data: localUser, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', decoded.id)
-      .single();
+    const localUser = await prisma.user.findUnique({
+      where: { id: decoded.id }
+    });
 
-    if (!userError && localUser && localUser.isActive) {
-      req.user = localUser;
+    if (localUser && localUser.isActive) {
+      _req.user = localUser;
     }
 
     next();

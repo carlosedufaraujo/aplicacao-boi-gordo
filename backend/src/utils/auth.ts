@@ -15,32 +15,35 @@ export const isMasterAdmin = (email: string): boolean => {
 /**
  * Middleware para verificar se o usuário é o master admin
  */
-export const checkMasterPermission = (req: Request, res: Response, next: NextFunction) => {
+export const checkMasterPermission = (req: Request, res: Response, next: NextFunction): void => {
   if (!req.user || !isMasterAdmin(req.user.email)) {
-    return res.status(403).json({ 
+    res.status(403).json({ 
       error: 'Acesso negado', 
       message: 'Apenas o admin master pode executar esta ação' 
     })
+    return
   }
   next()
 }
 
-export const checkAdminPermission = (req: Request, res: Response, next: NextFunction) => {
+export const checkAdminPermission = (req: Request, res: Response, next: NextFunction): void => {
   if (!req.user || (req.user.role !== 'ADMIN' && !isMasterAdmin(req.user.email))) {
-    return res.status(403).json({ 
+    res.status(403).json({ 
       error: 'Acesso negado', 
       message: 'Apenas administradores podem executar esta ação' 
     })
+    return
   }
   next()
 }
 
-export const checkUserPermission = (req: Request, res: Response, next: NextFunction) => {
+export const checkUserPermission = (req: Request, res: Response, next: NextFunction): void => {
   if (!req.user) {
-    return res.status(401).json({ 
+    res.status(401).json({ 
       error: 'Não autorizado', 
       message: 'Usuário não autenticado' 
     })
+    return
   }
   next()
 }
@@ -74,7 +77,7 @@ export const isOwnerOrAdmin = (req: Request, res: Response, next: NextFunction) 
 /**
  * Middleware para proteger o usuário master de ser modificado
  */
-export const protectMasterUser = (req: Request, res: Response, next: NextFunction) => {
+export const protectMasterUser = (req: Request, res: Response, next: NextFunction): void => {
   const targetEmail = req.body.email || req.params.email;
   const requestingUserEmail = req.user?.email;
 

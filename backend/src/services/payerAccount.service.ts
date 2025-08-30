@@ -115,7 +115,29 @@ export class PayerAccountService {
     return this.accountRepository.delete(id);
   }
 
-  async getStats(id: string) {
+  async getStats() {
+    const accounts = await this.accountRepository.findAll({});
+    const total = accounts.data.length;
+    const totalBalance = accounts.data.reduce((sum, acc) => sum + acc.balance, 0);
+    
+    const byType = {
+      CHECKING: accounts.data.filter(a => a.accountType === 'CHECKING').length,
+      SAVINGS: accounts.data.filter(a => a.accountType === 'SAVINGS').length,
+      INVESTMENT: accounts.data.filter(a => a.accountType === 'INVESTMENT').length,
+      CREDIT: accounts.data.filter(a => a.accountType === 'CREDIT').length,
+    };
+
+    return {
+      total,
+      active: accounts.data.filter(a => a.isActive).length,
+      inactive: accounts.data.filter(a => !a.isActive).length,
+      totalBalance,
+      averageBalance: total > 0 ? totalBalance / total : 0,
+      byType
+    };
+  }
+
+  async getAccountStats(id: string) {
     const stats = await this.accountRepository.getAccountStats(id);
     
     if (!stats) {

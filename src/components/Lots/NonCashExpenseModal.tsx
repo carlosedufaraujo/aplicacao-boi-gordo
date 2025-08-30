@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, AlertTriangle, TrendingDown } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { CattleLot } from '../../types';
+import { formatWeight } from '@/utils/formatters';
 
 interface NonCashExpenseModalProps {
   isOpen: boolean;
@@ -35,7 +36,7 @@ export const NonCashExpenseModal: React.FC<NonCashExpenseModalProps> = ({ isOpen
         relatedEntityType: 'cattle_lot',
         relatedEntityId: lot.id
       });
-    } else {
+    } else {formatWeight(
       recordWeightLoss(lot.id, expectedWeight, actualWeight, weightLossNotes);
       
       const weightLoss = expectedWeight - actualWeight;
@@ -44,7 +45,7 @@ export const NonCashExpenseModal: React.FC<NonCashExpenseModalProps> = ({ isOpen
       // Adicionar notificação
       addNotification({
         title: 'Quebra de Peso Registrada',
-        message: `Quebra de ${weightLoss.toFixed(0)}kg (${lossPercentage.toFixed(1)}%) registrada no lote ${lot.lotNumber}`,
+        message: `Quebra de ${weightLoss)} (${lossPercentage.toFixed(1)}%) registrada no lote ${lot.lotNumber}`,
         type: 'info',
         relatedEntityType: 'cattle_lot',
         relatedEntityId: lot.id

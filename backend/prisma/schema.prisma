@@ -8,15 +8,17 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(uuid()) @db.Uuid
-  email     String    @unique
-  password  String
-  name      String?
-  role      String?   @default("USER")
-  isMaster  Boolean?  @default(false)
-  isActive  Boolean?  @default(true)
-  createdAt DateTime? @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  id              String           @id @default(uuid()) @db.Uuid
+  email           String           @unique
+  password        String
+  name            String?
+  role            String?          @default("USER")
+  isMaster        Boolean?         @default(false)
+  isActive        Boolean?         @default(true)
+  createdAt       DateTime?        @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime?        @default(now()) @updatedAt @db.Timestamptz(6)
+  // New CattlePurchase relation
+  cattlePurchases CattlePurchase[]
 
   @@map("users")
 }
@@ -34,9 +36,11 @@ model Partner {
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   contributions          FinancialContribution[]
-  purchaseOrdersAsBroker PurchaseOrder[]         @relation("Broker")
-  purchaseOrdersAsVendor PurchaseOrder[]         @relation("Vendor")
   saleRecords            SaleRecord[]
+  // New CattlePurchase relations
+  purchasesAsVendor      CattlePurchase[]        @relation("PurchaseVendor")
+  purchasesAsBroker      CattlePurchase[]        @relation("PurchaseBroker")
+  purchasesAsTransport   CattlePurchase[]        @relation("PurchaseTransport")
 
   @@map("partners")
 }
@@ -56,85 +60,116 @@ model PayerAccount {
   expenses        Expense[]
   contributions   FinancialContribution[]
   reconciliations FinancialReconciliation[]
-  purchaseOrders  PurchaseOrder[]
   revenues        Revenue[]
+  // New CattlePurchase relation
+  cattlePurchases CattlePurchase[]
 
   @@map("payer_accounts")
 }
 
-model PurchaseOrder {
-  id                    String              @id @default(cuid())
-  orderNumber           String              @unique
-  vendorId              String
-  brokerId              String?
-  userId                String
-  location              String
-  purchaseDate          DateTime
-  animalCount           Int
-  animalType            AnimalType
-  averageAge            Int?
-  totalWeight           Float
-  averageWeight         Float
-  carcassYield          Float
-  pricePerArroba        Float
-  totalValue            Float
-  commission            Float
-  freightCost           Float               @default(0)
-  otherCosts            Float               @default(0)
-  paymentType           PaymentType
-  payerAccountId        String
-  principalDueDate      DateTime
-  commissionDueDate     DateTime?
-  otherCostsDueDate     DateTime?
-  status                PurchaseOrderStatus @default(PENDING)
-  currentStage          String              @default("order")
-  receptionDate         DateTime?
-  actualWeight          Float?
-  actualCount           Int?
-  weightBreakPercentage Float?
-  transportMortality    Int?
-  notes                 String?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  lot                   CattleLot?
-  financialAccounts     FinancialAccount[]
-  broker                Partner?            @relation("Broker", fields: [brokerId], references: [id])
-  payerAccount          PayerAccount        @relation(fields: [payerAccountId], references: [id])
-  vendor                Partner             @relation("Vendor", fields: [vendorId], references: [id])
+// Tabela unificada para Lotes de Gado
+model CattlePurchase {
+  id      String @id @default(cuid())
+  // Código único de identificação
+  lotCode String @unique // Ex: LOT-2501001 (ano+mês+sequencial)
 
-  @@map("purchase_orders")
+  // Relacionamentos principais
+  vendorId           String
+  brokerId           String?
+  transportCompanyId String?
+  payerAccountId     String
+  userId             String?   @db.Uuid
+
+  // Localização e data
+  location     String?
+  purchaseDate DateTime
+  receivedDate DateTime? // Data de recepção no confinamento
+
+  // Informações dos animais
+  animalType      AnimalType @default(MALE)
+  animalAge       Float? // Idade média em meses
+  initialQuantity Int // Quantidade comprada
+  currentQuantity Int // Quantidade atual (após mortes)
+  deathCount      Int        @default(0)
+
+  // Pesos
+  purchaseWeight        Float // Peso total na compra
+  receivedWeight        Float? // Peso real na recepção
+  currentWeight         Float? // Peso atual estimado
+  averageWeight         Float? // Peso médio por animal
+  weightBreakPercentage Float? // Quebra de peso no transporte
+
+  // Valores e rendimento
+  carcassYield   Float @default(50) // Rendimento de carcaça %
+  pricePerArroba Float // Preço por arroba
+  purchaseValue  Float // Valor da compra (calculado)
+
+  // Custos adicionais
+  freightCost      Float  @default(0)
+  freightDistance  Float? // Distância em km
+  freightCostPerKm Float? // Custo por km
+  commission       Float  @default(0)
+  healthCost       Float  @default(0)
+  feedCost         Float  @default(0)
+  operationalCost  Float  @default(0)
+  totalCost        Float // Custo total acumulado
+
+  // Informações de pagamento
+  paymentType           PaymentType @default(CASH)
+  paymentTerms          String?
+  principalDueDate      DateTime?
+  commissionPaymentType String? // cash ou installment
+  commissionDueDate     DateTime?
+  freightPaymentType    String? // cash ou installment
+  freightDueDate        DateTime?
+
+  // GMD e projeções
+  expectedGMD            Float? // Ganho Médio Diário esperado (kg/dia)
+  targetWeight           Float? // Peso alvo de abate (kg)
+  estimatedSlaughterDate DateTime? // Data estimada de abate
+
+  // Status e controle
+  status PurchaseStatus @default(CONFIRMED)
+  stage  String? // Estágio detalhado do processo
+  notes  String?
+
+  // Mortalidade no transporte
+  transportMortality Int? @default(0)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  vendor           Partner      @relation("PurchaseVendor", fields: [vendorId], references: [id])
+  broker           Partner?     @relation("PurchaseBroker", fields: [brokerId], references: [id])
+  transportCompany Partner?     @relation("PurchaseTransport", fields: [transportCompanyId], references: [id])
+  payerAccount     PayerAccount @relation(fields: [payerAccountId], references: [id])
+  user             User?        @relation(fields: [userId], references: [id])
+
+  // Relacionamentos com outras tabelas
+  penAllocations    LotPenLink[]
+  healthRecords     HealthRecord[]
+  movements         LotMovement[]
+  weightReadings    WeightReading[]
+  saleRecords       SaleRecord[]
+  expenses          Expense[]
+  financialAccounts FinancialAccount[]
+  costAllocations   CostProportionalAllocation[]
+  nonCashExpenses   NonCashExpense[]
+
+  @@map("cattle_purchases")
 }
 
-model CattleLot {
-  id              String                       @id @default(cuid())
-  lotNumber       String                       @unique
-  purchaseOrderId String                       @unique
-  entryDate       DateTime
-  entryWeight     Float
-  entryQuantity   Int
-  acquisitionCost Float                        @default(0)
-  healthCost      Float                        @default(0)
-  feedCost        Float                        @default(0)
-  operationalCost Float                        @default(0)
-  freightCost     Float                        @default(0)
-  otherCosts      Float                        @default(0)
-  totalCost       Float                        @default(0)
-  deathCount      Int                          @default(0)
-  currentQuantity Int
-  status          LotStatus                    @default(ACTIVE)
-  createdAt       DateTime                     @default(now())
-  updatedAt       DateTime                     @updatedAt
-  purchaseOrder   PurchaseOrder                @relation(fields: [purchaseOrderId], references: [id])
-  costAllocations CostProportionalAllocation[]
-  expenses        Expense[]
-  healthRecords   HealthRecord[]
-  movements       LotMovement[]
-  penAllocations  LotPenLink[]
-  nonCashExpenses NonCashExpense[]
-  saleRecords     SaleRecord[]
-  weightReadings  WeightReading[]
-
-  @@map("cattle_lots")
+// Enum para status da compra unificado
+enum PurchaseStatus {
+  NEGOTIATING // Em negociação
+  CONFIRMED   // Compra confirmada
+  IN_TRANSIT  // Em trânsito
+  RECEIVED    // Recebido no confinamento
+  ACTIVE      // Em confinamento ativo (era CONFINED)
+  SOLD        // Vendido
+  CANCELLED   // Cancelado
 }
 
 model Pen {
@@ -155,21 +190,21 @@ model Pen {
 }
 
 model LotPenLink {
-  id              String     @id @default(cuid())
-  lotId           String
+  id              String         @id @default(cuid())
+  purchaseId      String
   penId           String
   quantity        Int
   percentageOfLot Float
   percentageOfPen Float
   allocationDate  DateTime
   removalDate     DateTime?
-  status          LinkStatus @default(ACTIVE)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  lot             CattleLot  @relation(fields: [lotId], references: [id])
-  pen             Pen        @relation(fields: [penId], references: [id])
+  status          LinkStatus     @default(ACTIVE)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  purchase        CattlePurchase @relation(fields: [purchaseId], references: [id])
+  pen             Pen            @relation(fields: [penId], references: [id])
 
-  @@unique([lotId, penId, allocationDate])
+  @@unique([purchaseId, penId, allocationDate])
   @@map("lot_pen_links")
 }
 
@@ -178,13 +213,13 @@ model CostProportionalAllocation {
   sourceId            String
   sourceType          CostSourceType
   penId               String
-  lotId               String
+  purchaseId          String
   originalValue       Float
   allocatedValue      Float
   allocatedPercentage Float
   allocationDate      DateTime
   createdAt           DateTime       @default(now())
-  lot                 CattleLot      @relation(fields: [lotId], references: [id])
+  purchase            CattlePurchase @relation(fields: [purchaseId], references: [id])
 
   @@map("cost_proportional_allocations")
 }
@@ -209,13 +244,13 @@ model HealthProtocol {
 model HealthRecord {
   id            String         @id @default(cuid())
   protocolId    String
-  lotId         String
+  purchaseId    String
   animalCount   Int
   costPerAnimal Float
   totalCost     Float
   userId        String
   createdAt     DateTime       @default(now())
-  lot           CattleLot      @relation(fields: [lotId], references: [id])
+  purchase      CattlePurchase @relation(fields: [purchaseId], references: [id])
   protocol      HealthProtocol @relation(fields: [protocolId], references: [id])
 
   @@map("health_records")
@@ -238,8 +273,8 @@ model FeedRecord {
 }
 
 model LotMovement {
-  id           String       @id @default(cuid())
-  lotId        String
+  id           String         @id @default(cuid())
+  purchaseId   String
   fromPenId    String?
   toPenId      String?
   movementType MovementType
@@ -247,31 +282,31 @@ model LotMovement {
   reason       String?
   userId       String
   movementDate DateTime
-  createdAt    DateTime     @default(now())
-  lot          CattleLot    @relation(fields: [lotId], references: [id])
+  createdAt    DateTime       @default(now())
+  purchase     CattlePurchase @relation(fields: [purchaseId], references: [id])
 
   @@map("lot_movements")
 }
 
 model WeightReading {
-  id            String    @id @default(cuid())
-  lotId         String
+  id            String         @id @default(cuid())
+  purchaseId    String
   readingDate   DateTime
   averageWeight Float
   totalWeight   Float
   animalCount   Int
   userId        String
   notes         String?
-  createdAt     DateTime  @default(now())
-  lot           CattleLot @relation(fields: [lotId], references: [id])
+  createdAt     DateTime       @default(now())
+  purchase      CattlePurchase @relation(fields: [purchaseId], references: [id])
 
   @@map("weight_readings")
 }
 
 model SaleRecord {
-  id               String     @id @default(cuid())
-  saleNumber       String     @unique
-  lotId            String
+  id               String         @id @default(cuid())
+  saleNumber       String         @unique
+  purchaseId       String
   buyerId          String
   designationDate  DateTime
   slaughterPlant   String
@@ -286,13 +321,13 @@ model SaleRecord {
   totalValue       Float?
   invoiceNumber    String?
   paymentDate      DateTime?
-  status           SaleStatus @default(NEXT_SLAUGHTER)
+  status           SaleStatus     @default(NEXT_SLAUGHTER)
   userId           String
   notes            String?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
-  buyer            Partner    @relation(fields: [buyerId], references: [id])
-  lot              CattleLot  @relation(fields: [lotId], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  buyer            Partner        @relation(fields: [buyerId], references: [id])
+  purchase         CattlePurchase @relation(fields: [purchaseId], references: [id])
 
   @@map("sale_records")
 }
@@ -324,7 +359,7 @@ model Expense {
   paymentDate     DateTime?
   isPaid          Boolean              @default(false)
   impactsCashFlow Boolean              @default(true)
-  lotId           String?
+  purchaseId      String?
   penId           String?
   vendorId        String?
   payerAccountId  String?
@@ -335,7 +370,7 @@ model Expense {
   updatedAt       DateTime             @updatedAt
   allocations     ExpenseAllocation[]
   costCenter      CostCenter?          @relation(fields: [costCenterId], references: [id])
-  lot             CattleLot?           @relation(fields: [lotId], references: [id])
+  purchase        CattlePurchase?      @relation(fields: [purchaseId], references: [id])
   payerAccount    PayerAccount?        @relation(fields: [payerAccountId], references: [id])
   reconciliations ReconciliationItem[]
 
@@ -367,9 +402,9 @@ model Revenue {
 }
 
 model NonCashExpense {
-  id            String      @id @default(cuid())
+  id            String         @id @default(cuid())
   type          NonCashType
-  lotId         String
+  purchaseId    String
   description   String
   quantity      Int?
   expectedValue Float?
@@ -377,8 +412,8 @@ model NonCashExpense {
   totalValue    Float
   recordDate    DateTime
   notes         String?
-  createdAt     DateTime    @default(now())
-  lot           CattleLot   @relation(fields: [lotId], references: [id])
+  createdAt     DateTime       @default(now())
+  purchase      CattlePurchase @relation(fields: [purchaseId], references: [id])
 
   @@map("non_cash_expenses")
 }
@@ -430,7 +465,7 @@ model FinancialAccount {
   id              String                 @id @default(cuid())
   type            AccountTransactionType
   category        String
-  purchaseOrderId String?
+  purchaseId      String?
   description     String
   amount          Float
   dueDate         DateTime
@@ -439,7 +474,7 @@ model FinancialAccount {
   notes           String?
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
-  purchaseOrder   PurchaseOrder?         @relation(fields: [purchaseOrderId], references: [id])
+  purchase        CattlePurchase?        @relation(fields: [purchaseId], references: [id])
 
   @@map("financial_accounts")
 }
@@ -571,6 +606,7 @@ enum PartnerType {
   INVESTOR
   SERVICE_PROVIDER
   OTHER
+  FREIGHT_CARRIER
 }
 
 enum AccountType {
@@ -592,19 +628,7 @@ enum PaymentType {
   MIXED
 }
 
-enum PurchaseOrderStatus {
-  PENDING
-  PAYMENT_VALIDATING
-  RECEPTION
-  CONFINED
-  CANCELLED
-}
-
-enum LotStatus {
-  ACTIVE
-  SOLD
-  CANCELLED
-}
+// Enums PurchaseOrderStatus e LotStatus removidos - agora usando PurchaseStatus unificado
 
 enum PenType {
   RECEPTION
@@ -630,6 +654,7 @@ enum CostSourceType {
   FEED
   OPERATIONAL
   OTHER
+  PURCHASE_ORDER
 }
 
 enum ProtocolType {

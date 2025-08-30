@@ -4,10 +4,10 @@ import { logger } from './logger';
 
 // Configuração do Prisma baseada no ambiente
 const prismaClientOptions = {
-  log: env.nodeEnv === 'development' 
+  log: env.NODE_ENV === 'development' 
     ? ['query' as const, 'error' as const, 'warn' as const] 
     : ['error' as const],
-  errorFormat: env.nodeEnv === 'development' 
+  errorFormat: env.NODE_ENV === 'development' 
     ? 'pretty' as const 
     : 'minimal' as const,
 } as const;
@@ -16,7 +16,7 @@ const prismaClientOptions = {
 export const prisma = new PrismaClient(prismaClientOptions);
 
 // Middleware para log de queries em desenvolvimento
-if (env.nodeEnv === 'development') {
+if (env.NODE_ENV === 'development') {
   prisma.$use(async (params, next) => {
     const before = Date.now();
     const result = await next(params);
@@ -41,7 +41,7 @@ export async function connectDatabase(): Promise<void> {
       error: errorMessage,
       stack: errorStack,
       timestamp: new Date().toISOString(),
-      databaseUrl: env.databaseUrl ? env.databaseUrl.replace(/\/\/.*:.*@/, '//***:***@') : 'undefined'
+      databaseUrl: env.DATABASE_URL ? env.DATABASE_URL.replace(/\/\/.*:.*@/, '//***:***@') : 'undefined'
     });
     process.exit(1);
   }
@@ -77,7 +77,7 @@ prisma.$connect()
       error: errorMessage,
       stack: errorStack,
       timestamp: new Date().toISOString(),
-      databaseUrl: env.databaseUrl ? env.databaseUrl.replace(/\/\/.*:.*@/, '//***:***@') : 'undefined'
+      databaseUrl: env.DATABASE_URL ? env.DATABASE_URL.replace(/\/\/.*:.*@/, '//***:***@') : 'undefined'
     });
     process.exit(1);
   });

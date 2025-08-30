@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Plus, FileText, CreditCard, Truck, CheckCircle, Search, Filter, MoreVertical, Calendar, MapPin, User, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatCompactCurrency } from '@/utils/formatters';
 
 // Componentes shadcn/ui
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -292,7 +293,7 @@ export const ModernPipeline: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="kpi-value">
-                R$ {(stats.totalValue / 1000).toFixed(0)}k
+                {formatCompactCurrency(stats.totalValue)}
               </div>
             </CardContent>
           </Card>

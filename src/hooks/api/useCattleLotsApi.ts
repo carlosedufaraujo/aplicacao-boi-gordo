@@ -23,7 +23,11 @@ export const useCattleLotsApi = (initialFilters: CattleLotFilters = {}) => {
       const response = await cattleLotApi.getAll({ ...initialFilters, ...filters });
       
       if (response.status === 'success' && response.data) {
-        setCattleLots(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const lots = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setCattleLots(lots);
       } else {
         throw new Error(response.message || 'Erro ao carregar lotes de gado');
       }
@@ -105,6 +109,30 @@ export const useCattleLotsApi = (initialFilters: CattleLotFilters = {}) => {
       return null;
     }
   }, [loadStats]);
+
+  /**
+   * Atualiza GMD e peso alvo
+   */
+  const updateGMD = useCallback(async (id: string, data: { expectedGMD: number; targetWeight: number }): Promise<boolean> => {
+    try {
+      const response = await cattleLotApi.updateGMD(id, data);
+      
+      if (response.status === 'success') {
+        // Recarregar o lote específico
+        await loadCattleLots();
+        
+        toast.success('GMD e peso alvo atualizados com sucesso!');
+        return true;
+      } else {
+        throw new Error(response.message || 'Erro ao atualizar GMD');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      toast.error(`Erro ao atualizar GMD: ${errorMessage}`);
+      console.error('Erro ao atualizar GMD:', err);
+      return false;
+    }
+  }, [loadCattleLots]);
 
   /**
    * Aloca animais em currais
@@ -221,10 +249,11 @@ export const useCattleLotsApi = (initialFilters: CattleLotFilters = {}) => {
   }, [loadCattleLots, loadStats]);
 
   // Carregamento inicial
+  // Carregamento inicial (SEM DEPENDÊNCIAS para evitar loops)
   useEffect(() => {
     loadCattleLots();
     loadStats();
-  }, [loadCattleLots, loadStats]);
+  }, []); // ← CORRIGIDO: sem dependências para evitar loops infinitos
 
   return {
     // Estados
@@ -234,8 +263,11 @@ export const useCattleLotsApi = (initialFilters: CattleLotFilters = {}) => {
     stats,
     
     // Ações
+    loadCattleLots,
+    loadStats,
     createCattleLot,
     updateCattleLot,
+    updateGMD,
     allocateToPens,
     deleteCattleLot,
     getCattleLotById,

@@ -29,7 +29,7 @@ import {
   MapPin,
   Smartphone
 } from 'lucide-react';
-import { useSupabase } from '@/providers/SupabaseProvider';
+import { useBackend } from '@/providers/BackendProvider';
 
 // Componentes shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -160,7 +160,7 @@ const modules = [
 ];
 
 export const CompleteUserManagement: React.FC = () => {
-  const { user: currentUser } = useSupabase();
+  const { user: currentUser } = useBackend();
   
   // Estados
   const [searchTerm, setSearchTerm] = useState('');

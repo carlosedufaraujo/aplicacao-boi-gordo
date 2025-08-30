@@ -18,10 +18,10 @@ const CompleteRegistrations = lazy(() => import('@/components/Registrations/Comp
 const ModernDREWithSupabase = lazy(() => import('@/components/DRE/ModernDREWithSupabase').then(module => ({ default: module.ModernDREWithSupabase })));
 const CompleteFinancialCenter = lazy(() => import('@/components/Financial/CompleteFinancialCenter').then(module => ({ default: module.CompleteFinancialCenter })));
 const CompleteSales = lazy(() => import('@/components/SalesPipeline/CompleteSales').then(module => ({ default: module.CompleteSales })));
-const CompletePipeline = lazy(() => import('@/components/Pipeline/CompletePipeline').then(module => ({ default: module.CompletePipeline })));
+const PurchaseManagement = lazy(() => import('@/components/Purchases/SimplifiedPurchaseManagement').then(module => ({ default: module.SimplifiedPurchaseManagement })));
 const CompleteCalendar = lazy(() => import('@/components/Calendar/CompleteCalendar').then(module => ({ default: module.CompleteCalendar })));
 const CompleteFinancialReconciliation = lazy(() => import('@/components/Financial/CompleteFinancialReconciliation').then(module => ({ default: module.CompleteFinancialReconciliation })));
-const CompleteUserManagement = lazy(() => import('@/components/System/CompleteUserManagement').then(module => ({ default: module.CompleteUserManagement })));
+const CleanUserManagement = lazy(() => import('@/components/System/CleanUserManagement'));
 
 // Componentes de configurações - TODOS MODERNOS
 const NotificationSettings = lazy(() => import('@/components/System/NotificationSettings').then(module => ({ default: module.NotificationSettings })));
@@ -90,13 +90,13 @@ const AppContent: React.FC = () => {
       case 'sales-pipeline':
         return <CompleteSales />;
       case 'pipeline':
-        return <CompletePipeline />;
+        return <PurchaseManagement />;
       case 'calendar':
         return <CompleteCalendar />;
       case 'financial-reconciliation':
         return <CompleteFinancialReconciliation />;
       case 'users':
-        return <CompleteUserManagement />;
+        return <CleanUserManagement />;
       case 'settings':
         return <GeneralSettings />;
       case 'notifications':

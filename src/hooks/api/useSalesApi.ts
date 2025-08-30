@@ -16,9 +16,9 @@ export const useSalesApi = () => {
       console.log('🔄 Carregando vendas via API...');
       
       const data = await salesApi.findAll(filters);
-      console.log('✅ Vendas carregadas via API:', data.length);
+      console.log('✅ Vendas carregadas via API:', data?.length || 0);
       
-      setSales(data);
+      setSales(data || []);
     } catch (err: any) {
       console.error('❌ Erro ao carregar vendas:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao carregar vendas';

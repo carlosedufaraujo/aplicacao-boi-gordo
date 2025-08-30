@@ -49,6 +49,19 @@ export class PayerAccountController {
   }
 
   /**
+   * GET /payer-accounts/stats
+   * Retorna estatísticas gerais
+   */
+  async stats(req: Request, res: Response): Promise<void> {
+    const stats = await payerAccountService.getStats();
+
+    res.json({
+      status: 'success',
+      data: stats,
+    });
+  }
+
+  /**
    * GET /payer-accounts/type/:type
    * Lista contas por tipo
    */
@@ -126,10 +139,10 @@ export class PayerAccountController {
    * GET /payer-accounts/:id/stats
    * Retorna estatísticas da conta
    */
-  async stats(req: Request, res: Response): Promise<void> {
+  async accountStats(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     
-    const stats = await payerAccountService.getStats(id);
+    const stats = await payerAccountService.getAccountStats(id);
 
     res.json({
       status: 'success',

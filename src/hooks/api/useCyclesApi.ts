@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
   const [cycles, setCycles] = useState<Cycle[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Voltar para true inicial
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<CycleStats | null>(null);
 
@@ -14,7 +14,11 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
       setError(null);
       const response = await cycleApi.getAll({ ...initialFilters, ...filters });
       if (response.status === 'success' && response.data) {
-        setCycles(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const items = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setCycles(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar ciclos');
       }
@@ -43,11 +47,14 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
     try {
       setLoading(true);
       setError(null);
+      console.log('[createCycle] Dados enviados:', data);
       const response = await cycleApi.create(data);
+      console.log('[createCycle] Resposta:', response);
       if (response.status === 'success' && response.data) {
-        setCycles(prev => [response.data!, ...prev]);
         toast.success('Ciclo criado com sucesso');
-        loadStats();
+        // Recarregar a lista completa para garantir sincronização
+        await loadCycles();
+        await loadStats();
         return response.data;
       } else {
         throw new Error(response.message || 'Erro ao criar ciclo');
@@ -55,13 +62,13 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
-      console.error('Erro ao criar ciclo:', err);
-      toast.error('Erro ao criar ciclo');
+      console.error('[createCycle] Erro detalhado:', err);
+      toast.error(`Erro ao criar ciclo: ${errorMessage}`);
       return null;
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadCycles, loadStats]);
 
   const updateCycle = useCallback(async (id: string, data: UpdateCycleData): Promise<Cycle | null> => {
     try {
@@ -69,9 +76,10 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
       setError(null);
       const response = await cycleApi.update(id, data);
       if (response.status === 'success' && response.data) {
-        setCycles(prev => prev.map(cycle => cycle.id === id ? response.data! : cycle));
         toast.success('Ciclo atualizado com sucesso');
-        loadStats();
+        // Recarregar a lista completa para garantir sincronização
+        await loadCycles();
+        await loadStats();
         return response.data;
       } else {
         throw new Error(response.message || 'Erro ao atualizar ciclo');
@@ -85,7 +93,7 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadCycles, loadStats]);
 
   const completeCycle = useCallback(async (id: string, actualEndDate?: string): Promise<Cycle | null> => {
     try {
@@ -109,7 +117,7 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadCycles, loadStats]);
 
   const deleteCycle = useCallback(async (id: string): Promise<boolean> => {
     try {
@@ -133,7 +141,7 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadCycles, loadStats]);
 
   const getCurrentCycle = useCallback(async (): Promise<Cycle | null> => {
     try {
@@ -153,10 +161,46 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
     loadStats();
   }, [loadCycles, loadStats]);
 
+  // Carregamento inicial
   useEffect(() => {
-    loadCycles();
-    loadStats();
-  }, [loadCycles, loadStats]);
+    console.log('[useCyclesApi] Montando componente, iniciando carregamento...');
+    
+    const loadInitialData = async () => {
+      try {
+        console.log('[useCyclesApi] Iniciando loadInitialData...');
+        setLoading(true);
+        
+        // Carregar ciclos
+        const cyclesPromise = cycleApi.getAll(initialFilters);
+        // Carregar stats
+        const statsPromise = cycleApi.getStats();
+        
+        // Aguardar ambos
+        const [cyclesResponse, statsResponse] = await Promise.all([cyclesPromise, statsPromise]);
+        
+        console.log('[useCyclesApi] Respostas recebidas:', { cyclesResponse, statsResponse });
+        
+        if (cyclesResponse.status === 'success' && cyclesResponse.data) {
+          const items = Array.isArray(cyclesResponse.data) 
+            ? cyclesResponse.data 
+            : cyclesResponse.data.data || [];
+          setCycles(items);
+        }
+        
+        if (statsResponse.status === 'success' && statsResponse.data) {
+          setStats(statsResponse.data);
+        }
+      } catch (err) {
+        console.error('[useCyclesApi] Erro no carregamento inicial:', err);
+        setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      } finally {
+        console.log('[useCyclesApi] Finalizando carregamento inicial');
+        setLoading(false);
+      }
+    };
+    
+    loadInitialData();
+  }, []); // Executar apenas na montagem
 
   return {
     cycles,

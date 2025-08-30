@@ -23,7 +23,11 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
       const response = await revenueApi.getAll({ ...initialFilters, ...filters });
       
       if (response.status === 'success' && response.data) {
-        setRevenues(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const items = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setRevenues(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar receitas');
       }
@@ -45,7 +49,11 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
       const response = await revenueApi.getStats();
       
       if (response.status === 'success' && response.data) {
-        setStats(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const items = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setRevenues(items);
       }
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
@@ -239,6 +247,16 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
   }, []);
 
   /**
+   * Recarrega os dados
+   */
+  const refresh = useCallback(async (filters?: RevenueFilters) => {
+    await Promise.all([
+      loadRevenues(filters),
+      loadStats()
+    ]);
+  }, [loadRevenues, loadStats]);
+
+  /**
    * Busca receitas por registro de venda
    */
   const getRevenuesBySaleRecord = useCallback(async (saleRecordId: string): Promise<Revenue[]> => {
@@ -256,19 +274,11 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
     }
   }, []);
 
-  /**
-   * Recarrega os dados
-   */
-  const refresh = useCallback(() => {
-    loadRevenues();
-    loadStats();
-  }, [loadRevenues, loadStats]);
-
-  // Carregamento inicial
+  // Carregamento inicial (SEM DEPENDÊNCIAS para evitar loops)
   useEffect(() => {
     loadRevenues();
     loadStats();
-  }, [loadRevenues, loadStats]);
+  }, []); // ← CORRIGIDO: sem dependências para evitar loops infinitos
 
   return {
     revenues,

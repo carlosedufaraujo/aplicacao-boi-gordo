@@ -3,35 +3,49 @@ import { apiClient } from './apiClient';
 export interface Expense {
   id: string;
   description: string;
-  value: number;
+  value?: number;
+  totalAmount?: number;
   dueDate: string;
-  categoryId: string;
-  payerAccountId: string;
+  category?: string;
+  categoryId?: string;
+  costCenterId?: string;
+  payerAccountId?: string;
   purchaseOrderId?: string;
   notes?: string;
   isPaid: boolean;
+  paymentDate?: string;
   paidDate?: string;
   paidValue?: number;
-  status: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
-  userId: string;
+  impactsCashFlow?: boolean;
+  lotId?: string;
+  penId?: string;
+  vendorId?: string;
+  status?: 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  userId?: string;
   createdAt: string;
   updatedAt: string;
-  category?: any;
   payerAccount?: any;
   purchaseOrder?: any;
 }
 
 export interface CreateExpenseData {
   description: string;
-  value: number;
+  value?: number;
+  totalAmount?: number;
   dueDate: string;
-  categoryId: string;
-  payerAccountId: string;
+  category?: string;
+  categoryId?: string;
+  costCenterId?: string;
+  payerAccountId?: string;
   purchaseOrderId?: string;
   notes?: string;
   isPaid?: boolean;
   paidDate?: string;
   paidValue?: number;
+  impactsCashFlow?: boolean;
+  lotId?: string;
+  penId?: string;
+  vendorId?: string;
 }
 
 export interface UpdateExpenseData extends Partial<CreateExpenseData> {
@@ -122,7 +136,25 @@ export const expenseApi = {
    * Cria uma nova despesa
    */
   async create(data: CreateExpenseData): Promise<ApiResponse<Expense>> {
-    const response = await apiClient.post('/expenses', data);
+    // Map frontend field names to backend field names and remove empty values
+    const mappedData: any = {
+      description: data.description,
+      totalAmount: data.totalAmount || data.value,
+      dueDate: data.dueDate,
+      category: data.category || data.categoryId,
+      impactsCashFlow: data.impactsCashFlow !== false, // default true
+    };
+    
+    // Add optional fields only if they have values
+    if (data.costCenterId) mappedData.costCenterId = data.costCenterId;
+    if (data.payerAccountId) mappedData.payerAccountId = data.payerAccountId;
+    if (data.purchaseOrderId) mappedData.purchaseOrderId = data.purchaseOrderId;
+    if (data.notes) mappedData.notes = data.notes;
+    if (data.lotId) mappedData.lotId = data.lotId;
+    if (data.penId) mappedData.penId = data.penId;
+    if (data.vendorId) mappedData.vendorId = data.vendorId;
+    
+    const response = await apiClient.post('/expenses', mappedData);
     return response;
   },
 
@@ -130,7 +162,30 @@ export const expenseApi = {
    * Atualiza uma despesa
    */
   async update(id: string, data: UpdateExpenseData): Promise<ApiResponse<Expense>> {
-    const response = await apiClient.put(`/expenses/${id}`, data);
+    // Map frontend field names to backend field names and remove empty/undefined values
+    const mappedData: any = {};
+    
+    // Add fields only if they are defined
+    if (data.description !== undefined) mappedData.description = data.description;
+    if (data.totalAmount !== undefined || data.value !== undefined) {
+      mappedData.totalAmount = data.totalAmount || data.value;
+    }
+    if (data.dueDate !== undefined) mappedData.dueDate = data.dueDate;
+    if (data.category !== undefined || data.categoryId !== undefined) {
+      mappedData.category = data.category || data.categoryId;
+    }
+    if (data.costCenterId !== undefined && data.costCenterId) mappedData.costCenterId = data.costCenterId;
+    if (data.payerAccountId !== undefined && data.payerAccountId) mappedData.payerAccountId = data.payerAccountId;
+    if (data.purchaseOrderId !== undefined && data.purchaseOrderId) mappedData.purchaseOrderId = data.purchaseOrderId;
+    if (data.notes !== undefined && data.notes) mappedData.notes = data.notes;
+    if (data.impactsCashFlow !== undefined) mappedData.impactsCashFlow = data.impactsCashFlow;
+    if (data.lotId !== undefined && data.lotId) mappedData.lotId = data.lotId;
+    if (data.penId !== undefined && data.penId) mappedData.penId = data.penId;
+    if (data.vendorId !== undefined && data.vendorId) mappedData.vendorId = data.vendorId;
+    if (data.isPaid !== undefined) mappedData.isPaid = data.isPaid;
+    if (data.paidDate !== undefined) mappedData.paymentDate = data.paidDate;
+    
+    const response = await apiClient.put(`/expenses/${id}`, mappedData);
     return response;
   },
 

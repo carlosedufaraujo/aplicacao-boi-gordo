@@ -16,9 +16,9 @@ export const useSaleRecordsApi = () => {
       console.log('🔄 Carregando registros de venda via API...');
       
       const data = await saleRecordsApi.findAll(filters);
-      console.log('✅ Registros de venda carregados via API:', data.length);
+      console.log('✅ Registros de venda carregados via API:', data?.length || 0);
       
-      setSaleRecords(data);
+      setSaleRecords(data || []);
     } catch (err: any) {
       console.error('❌ Erro ao carregar registros de venda:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao carregar registros de venda';

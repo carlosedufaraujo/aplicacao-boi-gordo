@@ -41,7 +41,7 @@ const logFormat = printf(({ level, message, timestamp, stack, ...metadata }) => 
 
 // Configuração para desenvolvimento
 const developmentLogger = winston.createLogger({
-  level: env.logLevel,
+  level: env.LOG_LEVEL,
   format: combine(
     colorize(),
     timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
@@ -85,7 +85,7 @@ const productionLogger = winston.createLogger({
 });
 
 // Exporta o logger apropriado baseado no ambiente
-export const logger = env.nodeEnv === 'production' ? productionLogger : developmentLogger;
+export const logger = env.NODE_ENV === 'production' ? productionLogger : developmentLogger;
 
 // Cria um logger child para requisições HTTP
 export const httpLogger = winston.createLogger({

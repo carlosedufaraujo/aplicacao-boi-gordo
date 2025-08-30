@@ -11,6 +11,10 @@ const expenseController = new ExpenseController();
 router.use(authenticate);
 
 // Estatísticas e resumos
+router.get('/stats',
+  expenseController.stats
+);
+
 router.get('/stats/category', 
   validate(expenseValidation.dateRange, 'query'),
   expenseController.statsByCategory

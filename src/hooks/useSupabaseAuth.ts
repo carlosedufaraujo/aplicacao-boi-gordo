@@ -1,164 +1,31 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { authService, User } from '../services/supabase';
+// Este hook foi migrado para useBackendAuth
+// Mantido apenas para compatibilidade durante a migração
+// USE useBackend() do BackendProvider em vez deste hook
 
-interface AuthState {
-  user: User | null;
-  session: any;
-  loading: boolean;
-  error: string | null;
-  initialized: boolean;
-}
+import { useBackend } from '../providers/BackendProvider';
 
 export const useSupabaseAuth = () => {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    session: null,
-    loading: true,
-    error: null,
-    initialized: false
-  });
-
-  const initializingRef = useRef(false);
-  const mountedRef = useRef(true);
-
-  // Login via Backend API (100% próprio)
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      console.log('🔐 [AUTH] Iniciando login via Backend...');
-      setAuthState(prev => ({ ...prev, loading: true, error: null }));
-      
-      const { user, session } = await authService.signIn(email, password);
-      console.log('🔐 [AUTH] Login bem-sucedido via Backend:', user?.email);
-      
-      // Salvar dados no localStorage
-      localStorage.setItem('authToken', session.access_token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      if (user && mountedRef.current) {
-        setAuthState({
-          user: user as any,
-          session,
-          loading: false,
-          error: null,
-          initialized: true
-        });
-      }
-    } catch (error: any) {
-      console.error('🔐 [AUTH] Erro no login:', error);
-      if (mountedRef.current) {
-        setAuthState(prev => ({
-          ...prev,
-          loading: false,
-          error: error.message || 'Erro no login'
-        }));
-      }
-      throw error;
-    }
-  }, []);
-
-  // Logout
-  const signOut = useCallback(async () => {
-    try {
-      console.log('🔐 [AUTH] Fazendo logout...');
-      await authService.signOut();
-      if (mountedRef.current) {
-        setAuthState({
-          user: null,
-          session: null,
-          loading: false,
-          error: null,
-          initialized: true
-        });
-      }
-    } catch (error: any) {
-      console.error('🔐 [AUTH] Erro no logout:', error);
-      if (mountedRef.current) {
-        setAuthState(prev => ({
-          ...prev,
-          error: error.message || 'Erro no logout'
-        }));
-      }
-    }
-  }, []);
-
-  // Verificar sessão via localStorage (Backend próprio)
-  const checkSession = useCallback(async () => {
-    // Evitar múltiplas inicializações
-    if (initializingRef.current) {
-      console.log('🔐 [AUTH] Já inicializando, pulando...');
-      return;
-    }
-
-    initializingRef.current = true;
-
-    try {
-      console.log('🔐 [AUTH] Verificando sessão via Backend...');
-      
-      const token = localStorage.getItem('authToken');
-      const userData = localStorage.getItem('user');
-      
-      if (token && userData && mountedRef.current) {
-        console.log('🔐 [AUTH] Sessão ativa encontrada no localStorage');
-        const user = JSON.parse(userData);
-        const session = { access_token: token };
-        
-        if (mountedRef.current) {
-          setAuthState({
-            user: user as any,
-            session,
-            loading: false,
-            error: null,
-            initialized: true
-          });
-        }
-      } else if (mountedRef.current) {
-        console.log('🔐 [AUTH] Nenhuma sessão ativa');
-        setAuthState({
-          user: null,
-          session: null,
-          loading: false,
-          error: null,
-          initialized: true
-        });
-      }
-    } catch (error: any) {
-      console.error('🔐 [AUTH] Erro ao verificar sessão:', error);
-      if (mountedRef.current) {
-        setAuthState({
-          user: null,
-          session: null,
-          loading: false,
-          error: error.message || 'Erro ao verificar sessão',
-          initialized: true
-        });
-      }
-    } finally {
-      initializingRef.current = false;
-    }
-  }, []);
-
-  // Inicialização e listener de mudanças
-  useEffect(() => {
-    mountedRef.current = true;
-
-    // Verificar sessão inicial
-    checkSession();
-
-    // Sistema Backend próprio - sem listeners do Supabase
-    console.log('🔐 [AUTH] Sistema Backend próprio inicializado');
-
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []); // Executar apenas uma vez
-
+  console.warn('⚠️ useSupabaseAuth está deprecado. Use useBackend() do BackendProvider');
+  
+  const backend = useBackend();
+  
+  // Mapear para estrutura antiga para compatibilidade
   return {
-    ...authState,
-    signIn,
-    signOut,
-    checkSession,
-    isAuthenticated: !!authState.user,
-    isAdmin: authState.user?.role === 'ADMIN',
-    isMaster: authState.user?.isMaster === true
+    user: backend.user,
+    session: backend.token ? { access_token: backend.token } : null,
+    loading: backend.loading,
+    error: backend.error,
+    initialized: !backend.loading,
+    signIn: backend.signIn,
+    signOut: backend.signOut,
+    signUp: backend.signUp,
+    updateUser: async (updates: any) => {
+      console.warn('updateUser não implementado no backend ainda');
+      return { data: null, error: new Error('Não implementado') };
+    },
+    refreshSession: async () => {
+      console.warn('refreshSession não implementado no backend ainda');
+      return { data: null, error: null };
+    }
   };
 };

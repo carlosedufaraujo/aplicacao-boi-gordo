@@ -44,6 +44,7 @@ import {
 } from 'lucide-react';
 import { format, addDays, differenceInDays, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatCurrency, formatCompactCurrency } from '@/utils/formatters';
 
 // Componentes shadcn/ui
 import {
@@ -426,7 +427,7 @@ const KanbanColumn: React.FC<{
         <div className="mb-4 p-2 bg-background/50 rounded border">
           <p className="text-xs text-muted-foreground">Valor Total</p>
           <p className="font-medium text-sm">
-            R$ {(totalValue / 1000).toFixed(0)}k
+            {formatCompactCurrency(totalValue)}
           </p>
         </div>
       )}
@@ -852,7 +853,7 @@ export const CompleteSales: React.FC = () => {
                             {sale.quantity} animais
                           </TableCell>
                           <TableCell className="table-cell">
-                            R$ {(sale.totalValue / 1000).toFixed(0)}k
+                            {formatCurrency(sale.totalValue)}
                           </TableCell>
                           <TableCell>
                             <Badge className={`${stage?.color} text-white`}>

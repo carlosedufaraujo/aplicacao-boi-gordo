@@ -66,6 +66,24 @@ export class ExpenseController {
   }
 
   /**
+   * GET /expenses/stats
+   * Retorna estatísticas gerais de despesas
+   */
+  async stats(req: Request, res: Response): Promise<void> {
+    const { startDate, endDate } = req.query;
+    
+    const stats = await expenseService.getStats(
+      startDate ? new Date(startDate as string) : undefined,
+      endDate ? new Date(endDate as string) : undefined
+    );
+
+    res.json({
+      status: 'success',
+      data: stats,
+    });
+  }
+
+  /**
    * GET /expenses/pending
    * Lista despesas pendentes
    */

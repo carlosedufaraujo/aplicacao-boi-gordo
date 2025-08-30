@@ -23,7 +23,11 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const response = await payerAccountApi.getAll({ ...initialFilters, ...filters });
       
       if (response.status === 'success' && response.data) {
-        setPayerAccounts(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const items = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setPayerAccounts(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar contas pagadoras');
       }
@@ -45,7 +49,11 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const response = await payerAccountApi.getStats();
       
       if (response.status === 'success' && response.data) {
-        setStats(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const items = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setPayerAccounts(items);
       }
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
@@ -63,11 +71,11 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const response = await payerAccountApi.create(data);
       
       if (response.status === 'success' && response.data) {
-        setPayerAccounts(prev => [response.data!, ...prev]);
         toast.success('Conta pagadora criada com sucesso');
         
-        // Recarregar estatísticas
-        loadStats();
+        // Recarregar a lista completa para garantir sincronização
+        await loadPayerAccounts();
+        await loadStats();
         
         return response.data;
       } else {
@@ -82,7 +90,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPayerAccounts, loadStats]);
 
   /**
    * Atualiza uma conta pagadora
@@ -95,13 +103,11 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const response = await payerAccountApi.update(id, data);
       
       if (response.status === 'success' && response.data) {
-        setPayerAccounts(prev => prev.map(account => 
-          account.id === id ? response.data! : account
-        ));
         toast.success('Conta pagadora atualizada com sucesso');
         
-        // Recarregar estatísticas
-        loadStats();
+        // Recarregar a lista completa para garantir sincronização
+        await loadPayerAccounts();
+        await loadStats();
         
         return response.data;
       } else {
@@ -116,7 +122,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPayerAccounts, loadStats]);
 
   /**
    * Atualiza o saldo de uma conta
@@ -150,7 +156,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPayerAccounts, loadStats]);
 
   /**
    * Ativa/desativa uma conta
@@ -184,7 +190,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPayerAccounts, loadStats]);
 
   /**
    * Remove uma conta pagadora
@@ -216,7 +222,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPayerAccounts, loadStats]);
 
   /**
    * Busca uma conta pagadora por ID
@@ -300,15 +306,48 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
 
   // Carregamento inicial
   useEffect(() => {
-    loadPayerAccounts();
-    loadStats();
-  }, [loadPayerAccounts, loadStats]);
+    console.log('[usePayerAccountsApi] Montando componente, iniciando carregamento...');
+    
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        
+        // Carregar payer accounts e stats em paralelo
+        const [accountsResponse, statsResponse] = await Promise.all([
+          payerAccountApi.getAll(initialFilters),
+          payerAccountApi.getStats()
+        ]);
+        
+        if (accountsResponse.status === 'success' && accountsResponse.data) {
+          const items = Array.isArray(accountsResponse.data) 
+            ? accountsResponse.data 
+            : accountsResponse.data.data || [];
+          setPayerAccounts(items);
+        }
+        
+        if (statsResponse.status === 'success' && statsResponse.data) {
+          setStats(statsResponse.data);
+        }
+      } catch (err) {
+        console.error('[usePayerAccountsApi] Erro no carregamento inicial:', err);
+        setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadInitialData();
+  }, []); // Executar apenas na montagem
 
   return {
+    accounts: payerAccounts, // Alias para compatibilidade
     payerAccounts,
     loading,
     error,
     stats,
+    loadAccounts: loadPayerAccounts,
+    loadPayerAccounts,
+    loadStats,
     createPayerAccount,
     updatePayerAccount,
     updateAccountBalance,
@@ -319,5 +358,6 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
     getPayerAccountsByType,
     getActivePayerAccounts,
     refresh,
+    reload: refresh, // Alias para compatibilidade com DebugRegistrations
   };
 };

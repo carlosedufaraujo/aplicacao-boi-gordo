@@ -15,7 +15,7 @@ interface PenOccupancy {
 
 export const useRealtimePenOccupancy = () => {
   const [occupancyData, setOccupancyData] = useState<PenOccupancy[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Desabilitado temporariamente
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -82,23 +82,23 @@ export const useRealtimePenOccupancy = () => {
     }
   };
 
-  // Carregar dados iniciais
+  // Carregar dados iniciais (DESABILITADO - migrado para API Backend)
   const loadInitialData = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const { data: pens, error: pensError } = await supabase
-        .from('pens')
-        .select('*')
-        .eq('isActive', true)
-        .order('penNumber');
-
-      if (pensError) throw pensError;
-
-      const occupancyData = await calculateOccupancy(pens || []);
-      setOccupancyData(occupancyData);
-      
+      // Hook desabilitado - usando API Backend ao invés de Supabase direto
+      // Dados mock para não quebrar a interface
+      setOccupancyData([
+        {
+          penId: '1',
+          penNumber: 'A-001',
+          capacity: 100,
+          currentOccupancy: 45,
+          occupancyRate: 45,
+          status: 'partial',
+          lastUpdated: new Date(),
+          activeLots: 2
+        }
+      ]);
     } catch (err: any) {
       console.error('Erro ao carregar dados de ocupação:', err);
       setError(err.message);
@@ -107,66 +107,19 @@ export const useRealtimePenOccupancy = () => {
     }
   };
 
-  // Configurar subscriptions em tempo real
+  // Configurar subscriptions em tempo real (DESABILITADO)
   useEffect(() => {
     loadInitialData();
-
-    // Subscription para mudanças nos lotes
-    const lotsSubscription = supabase
-      .channel('lots-changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'cattle_lots' 
-        }, 
-        async (payload) => {
-          console.log('🔄 Mudança nos lotes detectada:', payload);
-          await loadInitialData(); // Recarregar dados
-        }
-      )
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'lot_pen_links' 
-        }, 
-        async (payload) => {
-          console.log('🔄 Mudança nas alocações detectada:', payload);
-          await loadInitialData(); // Recarregar dados
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Status da conexão realtime:', status);
-        setIsConnected(status === 'SUBSCRIBED');
-      });
-
-    // Subscription para mudanças nos currais
-    const pensSubscription = supabase
-      .channel('pens-changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'pens' 
-        }, 
-        async (payload) => {
-          console.log('🔄 Mudança nos currais detectada:', payload);
-          await loadInitialData(); // Recarregar dados
-        }
-      )
-      .subscribe();
-
-    // Atualização periódica (fallback)
+    
+    // Atualização periódica básica (fallback) - desabilitada
     const interval = setInterval(() => {
-      if (!loading) {
+      // Polling desabilitado - usar API Backend
+      if (!loading && false) { // Desabilitado
         loadInitialData();
       }
-    }, 30000); // A cada 30 segundos
+    }, 60000); // A cada 60 segundos
 
     return () => {
-      lotsSubscription.unsubscribe();
-      pensSubscription.unsubscribe();
       clearInterval(interval);
     };
   }, []);

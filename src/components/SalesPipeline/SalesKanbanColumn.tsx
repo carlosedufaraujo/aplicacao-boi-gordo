@@ -1,6 +1,7 @@
 import React from 'react';
 import { SalesKanbanCard } from './SalesKanbanCard';
 import { clsx } from 'clsx';
+import { formatCompactCurrency } from '@/utils/formatters';
 
 interface SalesKanbanColumnProps {
   stage: {
@@ -71,7 +72,7 @@ export const SalesKanbanColumn: React.FC<SalesKanbanColumnProps> = ({ stage, ite
           </div>
           <div>
             <div className="text-sm font-bold text-b3x-lime-600">
-              {(totalValue/1000).toFixed(0)}k
+              {formatCompactCurrency(totalValue)}
             </div>
             <div className="text-xs text-neutral-600">Valor</div>
           </div>

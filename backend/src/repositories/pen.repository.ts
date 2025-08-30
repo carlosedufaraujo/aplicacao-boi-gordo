@@ -1,219 +1,205 @@
-import { Pen, PenStatus, PenType } from '@prisma/client';
+import { Pen, PenStatus, PenType, Prisma } from '@prisma/client';
 import { BaseRepository } from './base.repository';
-import { prisma } from '@/config/database';
 
 export class PenRepository extends BaseRepository<Pen> {
   constructor() {
-    super(prisma.pen);
-  }
-
-  async findWithOccupation(id: string) {
-    return this.model.findUnique({
-      where: { id },
-      include: {
-        lotAllocations: {
-          where: { status: 'ACTIVE' },
-          include: {
-            lot: {
-              include: {
-                purchaseOrder: {
-                  include: {
-                    vendor: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        healthProtocols: {
-          orderBy: { applicationDate: 'desc' },
-          take: 10,
-        },
-        feedRecords: {
-          orderBy: { feedDate: 'desc' },
-          take: 10,
-        },
-      },
-    });
+    super('pen');
   }
 
   async findByStatus(status: PenStatus) {
-    return this.model.findMany({
-      where: { status, isActive: true },
-      include: {
-        lotAllocations: {
-          where: { status: 'ACTIVE' },
-          include: {
-            lot: true,
-          },
+    return await this.findMany(
+      { status, isActive: true },
+      {
+        include: {
+          lotAllocations: {
+            where: { status: 'ACTIVE' },
+            include: {
+              purchase: {
+                include: { vendor: true }
+              }
+            }
+          }
         },
-      },
-      orderBy: { penNumber: 'asc' },
-    });
+        orderBy: { penNumber: 'asc' }
+      }
+    );
   }
 
   async findByType(type: PenType) {
-    return this.model.findMany({
-      where: { type, isActive: true },
-      orderBy: { penNumber: 'asc' },
-    });
+    return await this.findMany(
+      { type, isActive: true },
+      { orderBy: { penNumber: 'asc' } }
+    );
   }
 
   async findAvailable(minCapacity?: number) {
-    const where: any = {
+    const where: Prisma.PenWhereInput = {
       status: 'AVAILABLE',
-      isActive: true,
+      isActive: true
     };
 
     if (minCapacity) {
       where.capacity = { gte: minCapacity };
     }
 
-    return this.model.findMany({
-      where,
+    return await this.findMany(where, {
       include: {
         lotAllocations: {
-          where: { status: 'ACTIVE' },
-        },
+          where: { status: 'ACTIVE' }
+        }
       },
-      orderBy: { capacity: 'desc' },
+      orderBy: { capacity: 'desc' }
     });
   }
 
-  async getPenOccupation(id: string) {
-    const pen = await this.findWithOccupation(id);
+  async findWithOccupation(id: string) {
+    const pen = await this.findById(id, {
+      include: {
+        lotAllocations: {
+          where: { status: 'ACTIVE' },
+          include: {
+            purchase: {
+              include: { vendor: true }
+            }
+          }
+        },
+        healthProtocols: {
+          orderBy: { applicationDate: 'desc' },
+          take: 10
+        },
+        feedRecords: {
+          orderBy: { feedDate: 'desc' },
+          take: 10
+        }
+      }
+    });
+
     if (!pen) return null;
 
-    const totalOccupied = pen.lotAllocations.reduce((sum: number, allocation: any) => sum + allocation.quantity, 0);
+    const totalOccupied = pen.lotAllocations.reduce(
+      (sum, allocation) => sum + allocation.quantity, 
+      0
+    );
+    
     const occupationRate = (totalOccupied / pen.capacity) * 100;
     const availableSpace = pen.capacity - totalOccupied;
 
-    const lotsSummary = pen.lotAllocations.map((allocation: any) => ({
-      lotId: allocation.lot.id,
-      lotNumber: allocation.lot.lotNumber,
-      vendorName: allocation.lot.purchaseOrder.vendor.name,
+    const lotsSummary = pen.lotAllocations.map(allocation => ({
+      purchaseId: allocation.purchase.id,
+      lotCode: allocation.purchase.lotCode,
+      vendorName: allocation.purchase.vendor.name,
       quantity: allocation.quantity,
       percentage: allocation.percentageOfPen,
-      allocationDate: allocation.allocationDate,
+      allocationDate: allocation.allocationDate
     }));
 
     return {
-      pen,
+      ...pen,
       occupation: {
         totalOccupied,
         occupationRate,
         availableSpace,
-        lotsSummary,
-      },
+        lotsSummary
+      }
     };
   }
 
-  async updateStatus(id: string, status: PenStatus) {
-    return this.model.update({
-      where: { id },
-      data: { status },
-    });
-  }
-
   async getOccupationStats() {
-    const pens = await this.model.findMany({
-      where: { isActive: true },
-      include: {
-        lotAllocations: {
-          where: { status: 'ACTIVE' },
-        },
-      },
-    });
-
-    const stats = pens.reduce((acc: any, pen: any) => {
-      const occupied = pen.lotAllocations.reduce((sum: number, a: any) => sum + a.quantity, 0);
-      
-      acc.totalPens++;
-      acc.totalCapacity += pen.capacity;
-      acc.totalOccupied += occupied;
-      
-      if (pen.status === 'AVAILABLE' && occupied === 0) {
-        acc.availablePens++;
-      } else if (pen.status === 'OCCUPIED') {
-        acc.occupiedPens++;
-      } else if (pen.status === 'MAINTENANCE') {
-        acc.maintenancePens++;
-      } else if (pen.status === 'QUARANTINE') {
-        acc.quarantinePens++;
+    const pens = await this.findMany(
+      { isActive: true },
+      {
+        include: {
+          lotAllocations: {
+            where: { status: 'ACTIVE' }
+          }
+        }
       }
+    );
 
-      return acc;
-    }, {
-      totalPens: 0,
+    const stats = {
+      totalPens: pens.length,
       totalCapacity: 0,
       totalOccupied: 0,
       availablePens: 0,
       occupiedPens: 0,
       maintenancePens: 0,
       quarantinePens: 0,
-    });
-
-    return {
-      ...stats,
-      occupationRate: stats.totalCapacity > 0 
-        ? (stats.totalOccupied / stats.totalCapacity) * 100 
-        : 0,
-      availableSpace: stats.totalCapacity - stats.totalOccupied,
+      occupationRate: 0,
+      availableSpace: 0
     };
-  }
 
-  async applyHealthProtocol(penId: string, protocolData: any) {
-    return this.prisma.$transaction(async (tx) => {
-      // Cria o protocolo
-      const protocol = await tx.healthProtocol.create({
-        data: {
-          ...protocolData,
-          penId,
-        },
-      });
-
-      // Busca alocações ativas no curral
-      const allocations = await tx.lotPenLink.findMany({
-        where: {
-          penId,
-          status: 'ACTIVE',
-        },
-        include: {
-          lot: true,
-        },
-      });
-
-      // Cria registros de saúde para cada lote proporcionalmente
-      const healthRecords = await Promise.all(
-        allocations.map(async (allocation) => {
-          const costPerAnimal = protocol.totalCost / 
-            allocations.reduce((sum, a) => sum + a.quantity, 0);
-          
-          const record = await tx.healthRecord.create({
-            data: {
-              protocolId: protocol.id,
-              lotId: allocation.lotId,
-              animalCount: allocation.quantity,
-              costPerAnimal,
-              totalCost: costPerAnimal * allocation.quantity,
-              userId: protocolData.userId,
-            },
-          });
-
-          // Atualiza custos do lote
-          await tx.cattleLot.update({
-            where: { id: allocation.lotId },
-            data: {
-              healthCost: { increment: record.totalCost },
-              totalCost: { increment: record.totalCost },
-            },
-          });
-
-          return record;
-        })
+    pens.forEach(pen => {
+      const occupied = pen.lotAllocations.reduce(
+        (sum, a) => sum + a.quantity, 
+        0
       );
-
-      return { protocol, healthRecords };
+      
+      stats.totalCapacity += pen.capacity;
+      stats.totalOccupied += occupied;
+      
+      if (pen.status === 'AVAILABLE' && occupied === 0) {
+        stats.availablePens++;
+      } else if (pen.status === 'OCCUPIED') {
+        stats.occupiedPens++;
+      } else if (pen.status === 'MAINTENANCE') {
+        stats.maintenancePens++;
+      } else if (pen.status === 'QUARANTINE') {
+        stats.quarantinePens++;
+      }
     });
+
+    stats.occupationRate = stats.totalCapacity > 0 
+      ? (stats.totalOccupied / stats.totalCapacity) * 100 
+      : 0;
+    
+    stats.availableSpace = stats.totalCapacity - stats.totalOccupied;
+
+    return stats;
   }
-} 
+
+  async updateStatus(id: string, status: PenStatus) {
+    return await this.update(id, { status });
+  }
+
+  async allocatePurchase(
+    penId: string, 
+    purchaseId: string, 
+    quantity: number
+  ) {
+    const pen = await this.findById(penId);
+    if (!pen) throw new Error('Curral não encontrado');
+
+    const purchase = await this.prisma.cattlePurchase.findUnique({
+      where: { id: purchaseId }
+    });
+    if (!purchase) throw new Error('Compra não encontrada');
+
+    // Cria alocação
+    await this.prisma.lotPenLink.create({
+      data: {
+        purchaseId,
+        penId,
+        quantity,
+        percentageOfLot: (quantity / purchase.currentQuantity) * 100,
+        percentageOfPen: (quantity / pen.capacity) * 100,
+        allocationDate: new Date(),
+        status: 'ACTIVE'
+      }
+    });
+
+    // Atualiza status do curral se necessário
+    const currentOccupation = await this.prisma.lotPenLink.aggregate({
+      where: {
+        penId,
+        status: 'ACTIVE'
+      },
+      _sum: { quantity: true }
+    });
+
+    const totalOccupied = currentOccupation._sum.quantity || 0;
+    
+    if (totalOccupied >= pen.capacity) {
+      await this.updateStatus(penId, 'OCCUPIED');
+    }
+  }
+}

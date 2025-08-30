@@ -1,6 +1,12 @@
-import { User, UserRole } from '@prisma/client';
-
+import { createClient } from '@supabase/supabase-js';
 import { AppError } from '@/utils/AppError';
+import { env } from '@/config/env';
+
+// Inicializar cliente Supabase
+const supabase = createClient(
+  env.SUPABASE_URL || '',
+  env.SUPABASE_ANON_KEY || ''
+);
 
 export class UserService {
   /**
@@ -121,7 +127,7 @@ export class UserService {
     role?: string;
   }): Promise<any> {
     // Criar no Supabase Auth
-    const { data: authUser, error: authError } = await prisma.auth.admin.createUser({
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email: userData.email,
       password: userData.password,
       email_confirm: true,
@@ -144,7 +150,7 @@ export class UserService {
    */
   async updateUserRole(userId: string, newRole: string): Promise<any> {
     // Atualizar metadata no Supabase Auth
-    const { error: authError } = await prisma.auth.admin.updateUserById(userId, {
+    const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
       user_metadata: { role: newRole }
     });
 
@@ -161,7 +167,7 @@ export class UserService {
    */
   async deleteUser(userId: string): Promise<void> {
     // Deletar do Supabase Auth
-    const { error: authError } = await prisma.auth.admin.deleteUser(userId);
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
 
     if (authError) {
       throw new AppError(`Erro ao deletar usuário: ${authError.message}`, 500);

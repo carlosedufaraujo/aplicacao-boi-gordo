@@ -4,7 +4,7 @@ import { prisma } from '@/config/database';
 
 export class PayerAccountRepository extends BaseRepository<PayerAccount> {
   constructor() {
-    super(prisma.payerAccount);
+    super('payerAccount');
   }
 
   async findByType(type: AccountType) {

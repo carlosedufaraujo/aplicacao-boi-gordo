@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { AppError } from '@/utils/AppError';
 import { logger } from '@/config/logger';
@@ -14,7 +14,7 @@ interface ErrorResponse {
 
 export function errorHandler(
   error: Error,
-  req: Request,
+  _req: Request,
   res: Response,
   _next: NextFunction
 ): void {
@@ -27,10 +27,10 @@ export function errorHandler(
     message: error.message,
     name: error.name,
     stack: error.stack,
-    url: req.url,
-    method: req.method,
-    ip: req.ip,
-    user: (req as any).user?.id,
+    url: _req.url,
+    method: _req.method,
+    ip: _req.ip,
+    user: (_req as any).user?.id,
     timestamp: new Date().toISOString(),
   };
 
@@ -74,7 +74,7 @@ export function errorHandler(
   };
 
   // Adiciona stack trace em desenvolvimento
-  if (env.nodeEnv === 'development') {
+  if (env.NODE_ENV === 'development') {
     response.stack = error.stack;
     response.details = details;
   }
@@ -83,7 +83,7 @@ export function errorHandler(
 }
 
 // Middleware para capturar erros de rotas não encontradas
-export function notFoundHandler(_req: Request, res: Response): void {
+export function notFoundHandler(__req: Request, res: Response): void {
   res.status(404).json({
     status: 'error',
     message: 'Rota não encontrada',

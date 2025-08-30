@@ -115,6 +115,13 @@ export class CattleLotApiService {
   }
 
   /**
+   * Atualiza GMD e peso alvo
+   */
+  async updateGMD(id: string, data: { expectedGMD: number; targetWeight: number }): Promise<ApiResponse<CattleLot>> {
+    return apiClient.patch<ApiResponse<CattleLot>>(`${this.endpoint}/${id}/gmd`, data);
+  }
+
+  /**
    * Aloca animais em currais
    */
   async allocateToPens(id: string, allocations: PenAllocation[]): Promise<ApiResponse<any>> {

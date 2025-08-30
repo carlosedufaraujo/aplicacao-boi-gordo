@@ -147,3 +147,4 @@ export class BackendAuthService {
 
 // Instância única do serviço
 export const backendAuth = new BackendAuthService();
+export const backendService = backendAuth; // Alias para compatibilidade

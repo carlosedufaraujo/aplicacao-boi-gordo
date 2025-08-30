@@ -14,7 +14,7 @@ export function validate(
   source: ValidationSource = 'body',
   options: ValidationOptions = {}
 ) {
-  return (req: Request, _res: Response, next: NextFunction): void => {
+  return (_req: Request, _res: Response, next: NextFunction): void => {
     const validationOptions: Joi.ValidationOptions = {
       abortEarly: options.abortEarly ?? false,
       stripUnknown: options.stripUnknown ?? true,
@@ -41,6 +41,19 @@ export function validate(
   };
 }
 
+// Middleware para express-validator
+import { validationResult } from 'express-validator';
+
+export function validateRequest(_req: Request, res: Response, next: NextFunction): void {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(new ValidationError(
+      errors.array().map(err => err.msg).join(', ')
+    ));
+  }
+  next();
+}
+
 // Schemas comuns reutilizáveis
 export const commonSchemas = {
   // ID válido (CUID)
@@ -63,8 +76,8 @@ export const commonSchemas = {
   // CPF/CNPJ
   cpfCnpj: Joi.string().pattern(/^[0-9]{11}$|^[0-9]{14}$/),
   
-  // Telefone
-  phone: Joi.string().pattern(/^[0-9]{10,11}$/),
+  // Telefone (aceita números nacionais e internacionais)
+  phone: Joi.string().pattern(/^[0-9]{10,15}$/),
   
   // Email
   email: Joi.string().email(),

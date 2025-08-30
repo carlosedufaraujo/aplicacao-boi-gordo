@@ -18,6 +18,11 @@ router.get(
 );
 
 router.get(
+  '/stats',
+  payerAccountController.stats
+);
+
+router.get(
   '/type/:type',
   payerAccountController.byType
 );
@@ -29,7 +34,7 @@ router.get(
 
 router.get(
   '/:id/stats',
-  payerAccountController.stats
+  payerAccountController.accountStats
 );
 
 router.get(
@@ -40,28 +45,28 @@ router.get(
 
 router.post(
   '/',
-  authorizeBackend('ADMIN'),
+  authorize('ADMIN'),
   validate(payerAccountValidation.create),
   payerAccountController.create
 );
 
 router.put(
   '/:id',
-  authorizeBackend('ADMIN'),
+  authorize('ADMIN'),
   validate(payerAccountValidation.update),
   payerAccountController.update
 );
 
 router.post(
   '/:id/balance',
-  authorizeBackend('ADMIN', 'MANAGER'),
+  authorize('ADMIN', 'MANAGER'),
   validate(payerAccountValidation.updateBalance),
   payerAccountController.updateBalance
 );
 
 router.delete(
   '/:id',
-  authorizeBackend('ADMIN'),
+  authorize('ADMIN'),
   payerAccountController.delete
 );
 

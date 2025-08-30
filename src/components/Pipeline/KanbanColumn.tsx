@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { PurchaseOrderCard } from './PurchaseOrderCard';
 import { PurchaseOrder } from '../../types';
 import { clsx } from 'clsx';
+import { formatCurrency, formatCompactCurrency } from '@/utils/formatters';
 
 interface KanbanColumnProps {
   stage: {
@@ -80,7 +81,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({ stage, orders, onNew
           </div>
           <div>
             <div className="text-sm font-bold text-b3x-lime-600">
-              {(totalValue/1000).toFixed(0)}k
+              {formatCompactCurrency(totalValue)}
             </div>
             <div className="text-xs text-neutral-600">Valor</div>
           </div>

@@ -4,7 +4,7 @@ import { prisma } from '@/config/database';
 
 export class RevenueRepository extends BaseRepository<Revenue> {
   constructor() {
-    super(prisma.revenue);
+    super('revenue');
   }
 
   async findWithRelations(id: string) {
@@ -13,9 +13,6 @@ export class RevenueRepository extends BaseRepository<Revenue> {
       include: {
         costCenter: true,
         payerAccount: true,
-        user: true,
-        allocations: true,
-        reconciliations: true,
       },
     });
   }
@@ -250,7 +247,7 @@ export class RevenueRepository extends BaseRepository<Revenue> {
     });
 
     // Agrupa por descrição para identificar recorrências
-    const grouped = revenues.reduce((acc, revenue) => {
+    const grouped = revenues.reduce((acc: any, revenue: any) => {
       const key = revenue.description.toLowerCase().trim();
       if (!acc[key]) {
         acc[key] = {

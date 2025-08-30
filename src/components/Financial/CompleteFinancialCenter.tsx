@@ -1,7 +1,10 @@
-import React, { useState, useMemo } from 'react';
-import { usePayerAccounts, useExpenses, useRevenues } from '@/hooks/useSupabaseData';
+import React, { useState, useMemo, useEffect } from 'react';
+import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
+import { useExpensesApi } from '@/hooks/api/useExpensesApi';
+import { useRevenuesApi } from '@/hooks/api/useRevenuesApi';
 import { usePDFGenerator } from '@/hooks/usePDFGenerator';
 import { toast } from 'sonner';
+import { eventBus, EVENTS } from '@/utils/eventBus';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -45,6 +48,7 @@ import {
 import { format, startOfMonth, endOfMonth, subMonths, addMonths, isAfter, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatSafeDate, formatSafeDateTime, toSafeDate, formatSafeCurrency, formatSafeDecimal, toSafeNumber } from '@/utils/dateUtils';
+import { formatCurrency } from '@/utils/formatters';
 
 // Componentes shadcn/ui
 import {
@@ -502,9 +506,9 @@ const TransactionCard: React.FC<{
 
 // Componente Principal
 export const CompleteFinancialCenter: React.FC = () => {
-  const { expenses, loading: expensesLoading } = useExpenses();
-  const { revenues, loading: revenuesLoading } = useRevenues();
-  const { payerAccounts, loading: accountsLoading, deletePayerAccount, createPayerAccount, updatePayerAccount } = usePayerAccounts();
+  const { expenses, loading: expensesLoading, refresh: refreshExpenses } = useExpensesApi();
+  const { revenues, loading: revenuesLoading, refresh: refreshRevenues } = useRevenuesApi();
+  const { payerAccounts, loading: accountsLoading, deletePayerAccount, createPayerAccount, updatePayerAccount } = usePayerAccountsApi();
   const { generatePDFFromElement, generateReportPDF } = usePDFGenerator();
   
   // Converter PayerAccounts para Accounts
@@ -595,6 +599,48 @@ export const CompleteFinancialCenter: React.FC = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
 
+  // Escutar eventos globais para refresh
+  useEffect(() => {
+    const handleRefreshFinancial = () => {
+      console.log('🔄 Recarregando dados financeiros após exclusão de lote...');
+      // Recarregar despesas e receitas
+      refreshExpenses();
+      refreshRevenues();
+    };
+
+    const handleLotDeleted = (data: any) => {
+      console.log('🗑️ Lote excluído detectado:', data);
+      // Aguardar um pouco para garantir que o backend processou
+      setTimeout(() => {
+        refreshExpenses();
+        refreshRevenues();
+      }, 1000);
+    };
+
+    const handleLotUpdated = (data: any) => {
+      console.log('✏️ Lote atualizado detectado:', data);
+      // Aguardar um pouco para garantir que o backend processou
+      setTimeout(() => {
+        refreshExpenses();
+        refreshRevenues();
+      }, 1000);
+    };
+
+    // Registrar listeners
+    const unsubscribeRefresh = eventBus.on(EVENTS.REFRESH_FINANCIAL, handleRefreshFinancial);
+    const unsubscribeLotDeleted = eventBus.on(EVENTS.LOT_DELETED, handleLotDeleted);
+    const unsubscribeLotUpdated = eventBus.on(EVENTS.LOT_UPDATED, handleLotUpdated);
+    const unsubscribeRefreshAll = eventBus.on(EVENTS.REFRESH_ALL, handleRefreshFinancial);
+
+    // Cleanup
+    return () => {
+      unsubscribeRefresh();
+      unsubscribeLotDeleted();
+      unsubscribeLotUpdated();
+      unsubscribeRefreshAll();
+    };
+  }, [refreshExpenses, refreshRevenues]);
+
   // Dados reais do Supabase via hooks
   
   // Converter dados para formato esperado
@@ -602,14 +648,14 @@ export const CompleteFinancialCenter: React.FC = () => {
     const expenseTransactions = expenses.map(expense => ({
       id: expense.id,
       description: expense.description,
-      amount: -expense.amount, // Despesas são negativas
+      amount: expense.totalAmount || 0, // Usar totalAmount do backend
       type: 'expense' as const,
       category: expense.category,
       accountId: expense.payerAccountId || '1',
-      date: expense.date,
+      date: expense.createdAt || expense.date,
       dueDate: expense.dueDate,
-      status: expense.status,
-      costCenter: expense.costCenter || 'general',
+      status: expense.isPaid ? 'paid' : 'pending',
+      costCenter: expense.costCenterId || 'general',
       tags: expense.tags || [],
       createdAt: expense.createdAt,
       updatedAt: expense.updatedAt
@@ -618,13 +664,13 @@ export const CompleteFinancialCenter: React.FC = () => {
     const revenueTransactions = revenues.map(revenue => ({
       id: revenue.id,
       description: revenue.description,
-      amount: revenue.amount, // Receitas são positivas
+      amount: revenue.totalAmount || 0, // Usar totalAmount do backend
       type: 'revenue' as const,
       category: revenue.category,
       accountId: revenue.payerAccountId || '1',
-      date: revenue.date,
+      date: revenue.createdAt || revenue.date,
       status: revenue.isReceived ? 'paid' as const : 'pending' as const,
-      costCenter: 'revenue',
+      costCenter: revenue.costCenterId || 'revenue',
       tags: [],
       createdAt: revenue.createdAt,
       updatedAt: revenue.updatedAt
@@ -1023,14 +1069,14 @@ export const CompleteFinancialCenter: React.FC = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Receitas</span>
-                        <span className="text-success">R$ {(metrics.totalRevenues / 1000).toFixed(0)}k</span>
+                        <span className="text-success">{formatCurrency(metrics.totalRevenues)}</span>
                       </div>
                       <Progress value={75} className="h-2" />
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Despesas</span>
-                        <span className="text-error">R$ {(metrics.totalExpenses / 1000).toFixed(0)}k</span>
+                        <span className="text-error">{formatCurrency(metrics.totalExpenses)}</span>
                       </div>
                       <Progress value={60} className="h-2" />
                     </div>
@@ -1038,7 +1084,7 @@ export const CompleteFinancialCenter: React.FC = () => {
                     <div className="flex justify-between font-medium">
                       <span>Resultado</span>
                       <span className={metrics.netCashFlow >= 0 ? 'text-success' : 'text-error'}>
-                        R$ {(Math.abs(metrics.netCashFlow) / 1000).toFixed(0)}k
+                        {formatCurrency(Math.abs(metrics.netCashFlow))}
                       </span>
                     </div>
                   </div>
@@ -1188,11 +1234,11 @@ export const CompleteFinancialCenter: React.FC = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Orçado</span>
-                        <span>R$ {(center.budget! / 1000).toFixed(0)}k</span>
+                        <span>{formatCurrency(center.budget!)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>Alocado</span>
-                        <span>R$ {(center.allocated / 1000).toFixed(0)}k</span>
+                        <span>{formatCurrency(center.allocated)}</span>
                       </div>
                       <Progress value={center.percentage} className="h-2" />
                       <p className="text-xs text-muted-foreground text-center">

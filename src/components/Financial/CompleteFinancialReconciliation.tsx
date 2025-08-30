@@ -64,6 +64,34 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
+// Mock data para regras de conciliação
+const mockReconciliationRules = [
+  {
+    id: '1',
+    name: 'Pagamentos PIX',
+    type: 'automatic',
+    criteria: 'PIX',
+    status: 'active',
+    matches: 156
+  },
+  {
+    id: '2',
+    name: 'Transferências TED',
+    type: 'automatic',
+    criteria: 'TED',
+    status: 'active',
+    matches: 89
+  },
+  {
+    id: '3',
+    name: 'Compras Fornecedores',
+    type: 'manual',
+    criteria: 'COMPRA',
+    status: 'active',
+    matches: 34
+  }
+];
+
 // Tipos para Conciliação Financeira
 interface BankTransaction {
   id: string;

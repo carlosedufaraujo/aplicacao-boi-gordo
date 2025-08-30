@@ -4,7 +4,7 @@ import { prisma } from '@/config/database';
 
 export class SaleRepository extends BaseRepository<SaleRecord> {
   constructor() {
-    super(prisma.saleRecord);
+    super('saleRecord');
   }
 
   async findWithRelations(id: string) {
@@ -73,7 +73,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       }
 
       // Atualiza o status do lote se toda a quantidade foi vendida
-      const lot = await tx.cattleLot.findUnique({
+      const lot = await tx.cattlePurchase.findUnique({
         where: { id: sale.lotId },
         include: {
           sales: true,
@@ -81,9 +81,9 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       });
 
       if (lot) {
-        const totalSold = lot.sales.reduce((sum, s) => sum + s.quantity, 0);
+        const totalSold = lot.sales.reduce((sum: number, s: any) => sum + s.quantity, 0);
         if (totalSold >= lot.quantity) {
-          await tx.cattleLot.update({
+          await tx.cattlePurchase.update({
             where: { id: lot.id },
             data: { status: 'SOLD' },
           });
@@ -180,9 +180,9 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
 
     const stats = {
       totalSales: sales.length,
-      totalAnimals: sales.reduce((sum, s) => sum + s.quantity, 0),
-      totalWeight: sales.reduce((sum, s) => sum + s.totalWeight, 0),
-      totalRevenue: sales.reduce((sum, s) => sum + s.totalAmount, 0),
+      totalAnimals: sales.reduce((sum: number, s: any) => sum + s.quantity, 0),
+      totalWeight: sales.reduce((sum: number, s: any) => sum + s.totalWeight, 0),
+      totalRevenue: sales.reduce((sum: number, s: any) => sum + s.totalAmount, 0),
       averagePricePerKg: 0,
       averagePricePerHead: 0,
       byStatus: {
@@ -219,7 +219,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
   }
 
   async getProfitabilityByLot(lotId: string) {
-    const lot = await prisma.cattleLot.findUnique({
+    const lot = await prisma.cattlePurchase.findUnique({
       where: { id: lotId },
       include: {
         sales: {
@@ -235,7 +235,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       throw new Error('Lote não encontrado');
     }
 
-    const totalSales = lot.sales.reduce((sum, s) => sum + s.totalAmount, 0);
+    const totalSales = lot.sales.reduce((sum: number, s: any) => sum + s.totalAmount, 0);
     const totalExpenses = lot.totalCost;
     const profit = totalSales - totalExpenses;
     const margin = totalSales > 0 ? (profit / totalSales) * 100 : 0;
@@ -249,7 +249,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       roi: totalExpenses > 0 ? (profit / totalExpenses) * 100 : 0,
       salesCount: lot.sales.length,
       totalAnimals: lot.quantity,
-      soldAnimals: lot.sales.reduce((sum, s) => sum + s.quantity, 0),
+      soldAnimals: lot.sales.reduce((sum: number, s: any) => sum + s.quantity, 0),
       remainingAnimals: lot.remainingQuantity,
     };
   }

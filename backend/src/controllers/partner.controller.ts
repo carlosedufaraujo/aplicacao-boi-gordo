@@ -49,6 +49,19 @@ export class PartnerController {
   }
 
   /**
+   * GET /partners/stats
+   * Retorna estatísticas gerais
+   */
+  async stats(req: Request, res: Response): Promise<void> {
+    const stats = await partnerService.getStats();
+
+    res.json({
+      status: 'success',
+      data: stats,
+    });
+  }
+
+  /**
    * GET /partners/type/:type
    * Lista parceiros por tipo
    */
@@ -110,10 +123,10 @@ export class PartnerController {
    * GET /partners/:id/stats
    * Retorna estatísticas do parceiro
    */
-  async stats(req: Request, res: Response): Promise<void> {
+  async partnerStats(req: Request, res: Response): Promise<void> {
     const { id } = req.params;
     
-    const stats = await partnerService.getStats(id);
+    const stats = await partnerService.getPartnerStats(id);
 
     res.json({
       status: 'success',

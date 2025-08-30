@@ -64,6 +64,24 @@ export class RevenueController {
   }
 
   /**
+   * GET /revenues/stats
+   * Retorna estatísticas gerais de receitas
+   */
+  async stats(req: Request, res: Response): Promise<void> {
+    const { startDate, endDate } = req.query;
+    
+    const stats = await revenueService.getStats(
+      startDate ? new Date(startDate as string) : undefined,
+      endDate ? new Date(endDate as string) : undefined
+    );
+
+    res.json({
+      status: 'success',
+      data: stats,
+    });
+  }
+
+  /**
    * GET /revenues/pending
    * Lista receitas pendentes
    */

@@ -9,7 +9,7 @@ export interface PurchaseOrder {
   location: string;
   purchaseDate: string;
   animalCount: number;
-  animalType: 'CATTLE' | 'BULL' | 'COW';
+  animalType: 'MALE' | 'FEMALE' | 'MIXED';
   averageAge?: number;
   totalWeight: number;
   carcassYield: number;
@@ -17,7 +17,7 @@ export interface PurchaseOrder {
   commission: number;
   freightCost?: number;
   otherCosts?: number;
-  paymentType: 'CASH' | 'INSTALLMENT' | 'FINANCING';
+  paymentType: 'CASH' | 'INSTALLMENT' | 'MIXED';
   payerAccountId: string;
   principalDueDate: string;
   commissionDueDate?: string;
@@ -46,7 +46,7 @@ export interface CreatePurchaseOrderData {
   location: string;
   purchaseDate: string;
   animalCount: number;
-  animalType: 'CATTLE' | 'BULL' | 'COW';
+  animalType: 'MALE' | 'FEMALE' | 'MIXED';
   averageAge?: number;
   totalWeight: number;
   carcassYield: number;
@@ -54,7 +54,7 @@ export interface CreatePurchaseOrderData {
   commission: number;
   freightCost?: number;
   otherCosts?: number;
-  paymentType: 'CASH' | 'INSTALLMENT' | 'FINANCING';
+  paymentType: 'CASH' | 'INSTALLMENT' | 'MIXED';
   payerAccountId: string;
   principalDueDate: string;
   commissionDueDate?: string;

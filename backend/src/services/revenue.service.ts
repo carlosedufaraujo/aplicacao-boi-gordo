@@ -91,7 +91,7 @@ export class RevenueService {
       allocations: true,
     };
 
-    return this.revenueRepository.findAll(where, pagination, include);
+    return this.revenueRepository.findAll(where, pagination);
   }
 
   async findById(id: string) {
@@ -197,23 +197,43 @@ export class RevenueService {
     return this.revenueRepository.getMonthlyRecurring();
   }
 
+  async getStats(startDate?: Date, endDate?: Date) {
+    const filters: RevenueFilters = {};
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+    
+    const summary = await this.getSummary(filters);
+    
+    return {
+      total: summary.total,
+      received: summary.received,
+      pending: summary.pending,
+      overdue: summary.overdue,
+      count: summary.count,
+      receivedCount: summary.receivedCount,
+      pendingCount: summary.pendingCount,
+      overdueCount: summary.overdueCount,
+      averageValue: summary.count > 0 ? summary.total / summary.count : 0
+    };
+  }
+
   async getSummary(filters?: RevenueFilters) {
-    const revenues = await this.findAll(filters || {}, { page: 1, limit: 10000 });
+    const revenues = await this.findAll(filters || {}, { page: 1, limit: 1000 });
 
     const summary = {
-      total: revenues.data.reduce((sum, r) => sum + r.totalAmount, 0),
-      received: revenues.data.filter(r => r.isReceived).reduce((sum, r) => sum + r.totalAmount, 0),
-      pending: revenues.data.filter(r => !r.isReceived).reduce((sum, r) => sum + r.totalAmount, 0),
+      total: revenues.items.reduce((sum, r) => sum + r.totalAmount, 0),
+      received: revenues.items.filter(r => r.isReceived).reduce((sum, r) => sum + r.totalAmount, 0),
+      pending: revenues.items.filter(r => !r.isReceived).reduce((sum, r) => sum + r.totalAmount, 0),
       overdue: 0,
       count: revenues.total,
-      receivedCount: revenues.data.filter(r => r.isReceived).length,
-      pendingCount: revenues.data.filter(r => !r.isReceived).length,
+      receivedCount: revenues.items.filter(r => r.isReceived).length,
+      pendingCount: revenues.items.filter(r => !r.isReceived).length,
       overdueCount: 0,
     };
 
     // Calcula vencidas
     const today = new Date();
-    const overdue = revenues.data.filter(r => !r.isReceived && r.dueDate < today);
+    const overdue = revenues.items.filter(r => !r.isReceived && r.dueDate < today);
     summary.overdue = overdue.reduce((sum, r) => sum + r.totalAmount, 0);
     summary.overdueCount = overdue.length;
 

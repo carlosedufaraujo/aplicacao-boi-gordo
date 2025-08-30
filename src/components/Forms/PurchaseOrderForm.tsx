@@ -4,9 +4,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Plus, Trash2, DollarSign, HandCoins, FileText, Target, Calendar, CreditCard, Tag, ShoppingCart, Users, MapPin, Package, Scale } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
-import { usePartners, useCycles } from '../../hooks/useSupabaseData';
 import { usePurchaseOrdersApi } from '../../hooks/api/usePurchaseOrdersApi';
-import { dataService } from '../../services/supabaseData';
+import { useCyclesApi } from '../../hooks/api/useCyclesApi';
+import { usePartnersApi } from '../../hooks/api/usePartnersApi';
+import { usePayerAccountsApi } from '../../hooks/api/usePayerAccountsApi';
 import { PurchaseOrderFormData, AdditionalCost, PurchaseOrder } from '../../types';
 import { PartnerForm } from './PartnerForm';
 import { Portal } from '../Common/Portal';
@@ -88,9 +89,10 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
   const [generatedOrderCode, setGeneratedOrderCode] = useState<string>('');
   const [isGeneratingCode, setIsGeneratingCode] = useState(false);
   
-  // Usar hooks do Supabase para dados atualizados
-  const { partners: supabasePartners, loading: partnersLoading } = usePartners();
-  const { cycles: supabaseCycles, loading: cyclesLoading } = useCycles();
+  // Usar hooks da API para dados atualizados
+  const { partners: apiPartners, loading: partnersLoading } = usePartnersApi();
+  const { cycles: apiCycles, loading: cyclesLoading } = useCyclesApi();
+  const { payerAccounts, loading: accountsLoading } = usePayerAccountsApi();
   const { createPurchaseOrder, updatePurchaseOrder: updateSupabasePurchaseOrder, deletePurchaseOrder } = usePurchaseOrdersApi();
   const [showNewVendorForm, setShowNewVendorForm] = useState(false);
   const [showNewBrokerForm, setShowNewBrokerForm] = useState(false);
@@ -119,13 +121,14 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     }
   });
 
-  // Usar dados do Supabase com fallback para o store
-  const partners = supabasePartners && supabasePartners.length > 0 ? supabasePartners : [];
-  const cycles = supabaseCycles && supabaseCycles.length > 0 ? supabaseCycles : [];
+  // Usar dados da API
+  const partners = apiPartners && apiPartners.length > 0 ? apiPartners : [];
+  const cycles = apiCycles && apiCycles.length > 0 ? apiCycles : [];
   
   const vendors = partners.filter(p => p.type === 'VENDOR' && p.isActive);
   const brokers = partners.filter(p => p.type === 'BROKER' && p.isActive);
-  const activeCycles = cycles.filter(c => c.isActive);
+  // Filtrar ciclos ativos (ACTIVE ou PLANNED)
+  const activeCycles = cycles.filter(c => c.status === 'ACTIVE' || c.status === 'PLANNED');
 
   // Carregar custos adicionais quando estiver editando
   useEffect(() => {
@@ -250,47 +253,95 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
         return;
       }
 
-      // Gerar código único consultando o banco de dados
+      // Gerar código único
       setIsGeneratingCode(true);
-      const uniqueOrderNumber = await dataService.generateUniqueOrderNumber();
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const uniqueOrderNumber = `OC-${timestamp}-${random}`;
       setGeneratedOrderCode(uniqueOrderNumber);
       setIsGeneratingCode(false);
       
-      // Mapear dados do formulário para o formato do Supabase
+      // Buscar primeira conta pagadora ativa
+      const activeAccounts = payerAccounts.filter(acc => acc.isActive);
+      const firstActiveAccount = activeAccounts[0];
+      
+      if (!firstActiveAccount) {
+        alert('É necessário ter pelo menos uma conta pagadora cadastrada. Por favor, cadastre uma conta primeiro.');
+        return;
+      }
+      
+      // Dados no formato esperado pelo backend
+      // Backend calcula: orderNumber, averageWeight, totalValue
+      // Backend define: status, currentStage
       const orderData = {
-        orderNumber: uniqueOrderNumber,
+        // Dados obrigatórios
         vendorId: data.vendorId,
-        brokerId: data.brokerId || null,
-        userId: 'default_user', // Usuário padrão temporário
         location: `${data.city}, ${data.state}`,
         purchaseDate: new Date(data.date).toISOString(),
         animalCount: parseInt(data.quantity),
-        animalType: data.animalType.toUpperCase() as 'MALE' | 'FEMALE',
-        averageAge: parseInt(data.estimatedAge) || null,
+        animalType: data.animalType.toUpperCase() as 'MALE' | 'FEMALE' | 'MIXED',
         totalWeight: parseFloat(data.totalWeight),
-        averageWeight: parseFloat(data.totalWeight) / parseInt(data.quantity),
         carcassYield: parseFloat(data.rcPercentage) || 50,
         pricePerArroba: parseFloat(data.pricePerArroba),
-        totalValue: (parseFloat(data.totalWeight) * parseFloat(data.pricePerArroba)) / 15, // Conversão kg para arroba
         commission: parseFloat(data.commission) || 0,
-        freightCost: 0, // Valor padrão
-        otherCosts: totalAdditionalCosts,
-        paymentType: data.paymentType.toUpperCase() as 'CASH' | 'INSTALLMENT',
-        payerAccountId: 'account-001', // Conta existente
-        principalDueDate: new Date(data.date).toISOString(),
-        commissionDueDate: data.commissionPaymentDate ? new Date(data.commissionPaymentDate).toISOString() : null,
-        otherCostsDueDate: null,
-        status: 'PENDING' as const,
-        currentStage: 'PENDING',
-        notes: data.observations || null
+        paymentType: data.paymentType.toUpperCase() as 'CASH' | 'INSTALLMENT' | 'MIXED',
+        payerAccountId: firstActiveAccount.id,
+        principalDueDate: data.paymentType === 'installment' && data.paymentDate ? 
+          new Date(data.paymentDate).toISOString() : 
+          new Date(data.date).toISOString(),
+        
+        // Dados opcionais
+        brokerId: data.brokerId || undefined,
+        averageAge: parseInt(data.estimatedAge) || undefined,
+        freightCost: undefined, // Backend usa 0 como padrão
+        otherCosts: totalAdditionalCosts > 0 ? totalAdditionalCosts : undefined,
+        // Se houver comissão, precisa ter data de vencimento (usa a data principal se não especificada)
+        commissionDueDate: (parseFloat(data.commission) || 0) > 0 ? 
+          (data.commissionPaymentDate ? 
+            new Date(data.commissionPaymentDate).toISOString() : 
+            new Date(data.date).toISOString()) : 
+          undefined,
+        // Se houver outros custos, precisa ter data de vencimento (usa a data principal se não especificada)  
+        otherCostsDueDate: totalAdditionalCosts > 0 ? 
+          (data.otherCostsPaymentDate ? 
+            new Date(data.otherCostsPaymentDate).toISOString() : 
+            new Date(data.date).toISOString()) : 
+          undefined,
+        notes: data.observations || undefined
       };
+      
+      // Remover campos undefined
+      const cleanData = Object.fromEntries(
+        Object.entries(orderData).filter(([_, value]) => value !== undefined)
+      );
+      
+      // Debug detalhado
+      console.group('🔍 DEBUG PURCHASE ORDER');
+      console.log('📋 Dados do formulário:', data);
+      console.log('💰 Custos adicionais:', {
+        total: totalAdditionalCosts,
+        itens: additionalCosts,
+        temCustos: totalAdditionalCosts > 0,
+        dataOtherCosts: data.otherCostsPaymentDate,
+        dataAutomatica: !data.otherCostsPaymentDate && totalAdditionalCosts > 0 ? '⚠️ Usando data da compra' : '✅ Data específica'
+      });
+      console.log('💳 Comissão:', {
+        valor: parseFloat(data.commission) || 0,
+        temComissao: (parseFloat(data.commission) || 0) > 0,
+        dataComissao: data.commissionPaymentDate,
+        dataEnviada: orderData.commissionDueDate,
+        dataAutomatica: !data.commissionPaymentDate && (parseFloat(data.commission) || 0) > 0 ? '⚠️ Usando data da compra' : '✅ Data específica'
+      });
+      console.log('📦 Dados enviados ao backend:', cleanData);
+      console.log('🔗 URL da requisição:', `${import.meta.env.VITE_API_URL || 'http://localhost:3333/api/v1'}/purchase-orders`);
+      console.groupEnd();
 
       if (isEditing && initialData) {
         // Atualizar ordem existente
-        await updateSupabasePurchaseOrder(initialData.id, orderData);
+        await updateSupabasePurchaseOrder(initialData.id, cleanData);
       } else {
-        // Criar nova ordem no Supabase
-        await createPurchaseOrder(orderData);
+        // Criar nova ordem via backend
+        await createPurchaseOrder(cleanData);
       }
       
       if (onSubmit) {
@@ -377,10 +428,14 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                       {...register('cycleId')}
                       className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent appearance-none bg-white"
                     >
-                      <option value="">Selecione um ciclo</option>
+                      <option value="">
+                        {cyclesLoading ? 'Carregando ciclos...' : 
+                         activeCycles.length === 0 ? 'Nenhum ciclo ativo disponível' : 
+                         'Selecione um ciclo'}
+                      </option>
                       {activeCycles.map(cycle => (
                         <option key={cycle.id} value={cycle.id}>
-                          {cycle.name}
+                          {cycle.name} ({cycle.status === 'ACTIVE' ? 'Ativo' : 'Planejado'})
                         </option>
                       ))}
                     </select>

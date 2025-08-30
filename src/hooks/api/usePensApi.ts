@@ -14,7 +14,11 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
       setError(null);
       const response = await penApi.getAll({ ...initialFilters, ...filters });
       if (response.status === 'success' && response.data) {
-        setPens(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const items = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setPens(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar currais');
       }
@@ -45,9 +49,10 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
       setError(null);
       const response = await penApi.create(data);
       if (response.status === 'success' && response.data) {
-        setPens(prev => [response.data!, ...prev]);
         toast.success('Curral criado com sucesso');
-        loadStats();
+        // Recarregar a lista completa para garantir sincronização
+        await loadPens();
+        await loadStats();
         return response.data;
       } else {
         throw new Error(response.message || 'Erro ao criar curral');
@@ -61,17 +66,20 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPens, loadStats]);
 
   const updatePen = useCallback(async (id: string, data: UpdatePenData): Promise<Pen | null> => {
     try {
       setLoading(true);
       setError(null);
+      console.log('[updatePen] Atualizando curral:', { id, data });
       const response = await penApi.update(id, data);
+      console.log('[updatePen] Resposta:', response);
       if (response.status === 'success' && response.data) {
-        setPens(prev => prev.map(pen => pen.id === id ? response.data! : pen));
         toast.success('Curral atualizado com sucesso');
-        loadStats();
+        // Recarregar a lista completa para garantir sincronização
+        await loadPens();
+        await loadStats();
         return response.data;
       } else {
         throw new Error(response.message || 'Erro ao atualizar curral');
@@ -85,7 +93,7 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPens, loadStats]);
 
   const deletePen = useCallback(async (id: string): Promise<boolean> => {
     try {
@@ -109,7 +117,7 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPens, loadStats]);
 
   const getPenOccupancy = useCallback(async (): Promise<PenOccupancy[]> => {
     try {
@@ -129,10 +137,40 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
     loadStats();
   }, [loadPens, loadStats]);
 
+  // Carregamento inicial
   useEffect(() => {
-    loadPens();
-    loadStats();
-  }, [loadPens, loadStats]);
+    console.log('[usePensApi] Montando componente, iniciando carregamento...');
+    
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        
+        // Carregar pens e stats em paralelo
+        const [pensResponse, statsResponse] = await Promise.all([
+          penApi.getAll(initialFilters),
+          penApi.getStats()
+        ]);
+        
+        if (pensResponse.status === 'success' && pensResponse.data) {
+          const items = Array.isArray(pensResponse.data) 
+            ? pensResponse.data 
+            : pensResponse.data.data || [];
+          setPens(items);
+        }
+        
+        if (statsResponse.status === 'success' && statsResponse.data) {
+          setStats(statsResponse.data);
+        }
+      } catch (err) {
+        console.error('[usePensApi] Erro no carregamento inicial:', err);
+        setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadInitialData();
+  }, []); // Executar apenas na montagem
 
   return {
     pens,
@@ -144,5 +182,6 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
     deletePen,
     getPenOccupancy,
     refresh,
+    reload: refresh, // Alias para compatibilidade
   };
 };

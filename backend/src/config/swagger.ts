@@ -15,11 +15,11 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: `http://localhost:${env.port}${env.apiPrefix}`,
+        url: `http://localhost:${env.PORT}${env.API_PREFIX}`,
         description: 'Servidor de Desenvolvimento',
       },
       {
-        url: `https://api.bovicontrol.com.br${env.apiPrefix}`,
+        url: `https://api.bovicontrol.com.br${env.API_PREFIX}`,
         description: 'Servidor de Produção',
       },
     ],

@@ -32,20 +32,20 @@ router.get('/pen-occupancy',
 
 // Relatórios avançados - requerem role MANAGER ou ADMIN
 router.post('/dre-comparison', 
-  authorizeBackend(['MANAGER', 'ADMIN']),
+  authorize(['MANAGER', 'ADMIN']),
   validate(reportValidation.dreComparison),
   reportController.dreComparison
 );
 
 router.get('/executive-summary', 
-  authorizeBackend(['MANAGER', 'ADMIN']),
+  authorize(['MANAGER', 'ADMIN']),
   validate(reportValidation.executiveSummary, 'query'),
   reportController.executiveSummary
 );
 
 // Exportação - requer role MANAGER ou ADMIN
 router.get('/export/:type', 
-  authorizeBackend(['MANAGER', 'ADMIN']),
+  authorize(['MANAGER', 'ADMIN']),
   validate(reportValidation.export, 'query'),
   reportController.export
 );

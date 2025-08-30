@@ -76,7 +76,7 @@ export const penApi = {
    */
   async getAll(filters: PenFilters = {}): Promise<ApiResponse<Pen[]>> {
     const response = await apiClient.get('/pens', filters);
-    return response.data;
+    return response;
   },
 
   /**
@@ -84,7 +84,7 @@ export const penApi = {
    */
   async getById(id: string): Promise<ApiResponse<Pen>> {
     const response = await apiClient.get(`/pens/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -92,7 +92,7 @@ export const penApi = {
    */
   async getByType(type: string): Promise<ApiResponse<Pen[]>> {
     const response = await apiClient.get(`/pens/type/${type}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -100,7 +100,7 @@ export const penApi = {
    */
   async getByStatus(status: string): Promise<ApiResponse<Pen[]>> {
     const response = await apiClient.get(`/pens/status/${status}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -108,7 +108,7 @@ export const penApi = {
    */
   async getActive(): Promise<ApiResponse<Pen[]>> {
     const response = await apiClient.get('/pens/active');
-    return response.data;
+    return response;
   },
 
   /**
@@ -116,7 +116,7 @@ export const penApi = {
    */
   async getAvailable(): Promise<ApiResponse<Pen[]>> {
     const response = await apiClient.get('/pens/available');
-    return response.data;
+    return response;
   },
 
   /**
@@ -124,7 +124,7 @@ export const penApi = {
    */
   async getOccupancy(): Promise<ApiResponse<PenOccupancy[]>> {
     const response = await apiClient.get('/pens/occupancy');
-    return response.data;
+    return response;
   },
 
   /**
@@ -132,7 +132,7 @@ export const penApi = {
    */
   async create(data: CreatePenData): Promise<ApiResponse<Pen>> {
     const response = await apiClient.post('/pens', data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -140,7 +140,7 @@ export const penApi = {
    */
   async update(id: string, data: UpdatePenData): Promise<ApiResponse<Pen>> {
     const response = await apiClient.put(`/pens/${id}`, data);
-    return response.data;
+    return response;
   },
 
   /**
@@ -150,7 +150,7 @@ export const penApi = {
     const response = await apiClient.patch(`/pens/${id}/toggle`, {
       isActive
     });
-    return response.data;
+    return response;
   },
 
   /**
@@ -158,7 +158,7 @@ export const penApi = {
    */
   async remove(id: string): Promise<ApiResponse<void>> {
     const response = await apiClient.delete(`/pens/${id}`);
-    return response.data;
+    return response;
   },
 
   /**
@@ -166,6 +166,6 @@ export const penApi = {
    */
   async getStats(): Promise<ApiResponse<PenStats>> {
     const response = await apiClient.get('/pens/stats');
-    return response.data;
+    return response;
   }
 };

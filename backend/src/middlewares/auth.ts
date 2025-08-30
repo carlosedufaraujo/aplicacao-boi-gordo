@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UnauthorizedError, ForbiddenError } from '@/utils/AppError';
 import { prisma } from '@/config/database';
-import { User, UserRole } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import { env } from '@/config/env';
 
@@ -16,13 +15,29 @@ declare global {
 
 // Middleware de autenticação
 export async function authenticate(
-  req: Request,
+  _req: Request,
   _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
+    // DESENVOLVIMENTO: Bypass de autenticação
+    if (env.NODE_ENV === 'development') {
+      // Busca um usuário admin para desenvolvimento
+      const devUser = await prisma.user.findFirst({
+        where: { 
+          email: 'admin@boigordo.com',
+          isActive: true 
+        }
+      });
+      
+      if (devUser) {
+        _req.user = devUser;
+        return next();
+      }
+    }
+
     // Extrai o token do header
-    const authHeader = req.headers.authorization;
+    const authHeader = _req.headers.authorization;
     if (!authHeader) {
       throw new UnauthorizedError('Token não fornecido');
     }
@@ -33,7 +48,7 @@ export async function authenticate(
     }
 
     // Valida token JWT
-    const decoded = jwt.verify(token, env.jwtSecret) as any;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as any;
 
     // Busca usuário no banco via Prisma
     const user = await prisma.user.findUnique({
@@ -45,7 +60,7 @@ export async function authenticate(
     }
 
     // Adiciona o usuário à requisição
-    req.user = user;
+    _req.user = user;
     next();
   } catch (error) {
     if (error instanceof UnauthorizedError) {
@@ -57,13 +72,13 @@ export async function authenticate(
 }
 
 // Middleware de autorização por role
-export function authorize(...roles: UserRole[]) {
-  return (req: Request, _res: Response, next: NextFunction): void => {
-    if (!req.user) {
+export function authorize(...roles: string[]) {
+  return (_req: Request, _res: Response, next: NextFunction): void => {
+    if (!_req.user) {
       return next(new UnauthorizedError('Usuário não autenticado'));
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(_req.user.role)) {
       return next(new ForbiddenError('Permissão insuficiente'));
     }
 
@@ -73,12 +88,12 @@ export function authorize(...roles: UserRole[]) {
 
 // Middleware opcional de autenticação (não obriga estar autenticado)
 export async function optionalAuthenticate(
-  req: Request,
+  _req: Request,
   _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const authHeader = req.headers.authorization;
+    const authHeader = _req.headers.authorization;
     if (!authHeader) {
       return next();
     }
@@ -89,7 +104,7 @@ export async function optionalAuthenticate(
     }
 
     // Valida token JWT
-    const decoded = jwt.verify(token, env.jwtSecret) as any;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as any;
 
     // Busca usuário no banco via Prisma
     const user = await prisma.user.findUnique({
@@ -97,7 +112,7 @@ export async function optionalAuthenticate(
     });
 
     if (user && user.isActive) {
-      req.user = user;
+      _req.user = user;
     }
 
     next();

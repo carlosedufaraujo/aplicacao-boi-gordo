@@ -171,7 +171,7 @@ const KanbanFilters = React.forwardRef<HTMLDivElement, {
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     {availableAssignees.map((assignee) => (
                       <SelectItem key={assignee} value={assignee}>
                         {assignee}
@@ -192,7 +192,7 @@ const KanbanFilters = React.forwardRef<HTMLDivElement, {
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="urgent">Urgente</SelectItem>
                     <SelectItem value="high">Alta</SelectItem>
                     <SelectItem value="medium">Média</SelectItem>
@@ -212,7 +212,7 @@ const KanbanFilters = React.forwardRef<HTMLDivElement, {
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="overdue">Atrasadas</SelectItem>
                     <SelectItem value="today">Hoje</SelectItem>
                     <SelectItem value="week">Esta Semana</SelectItem>
@@ -232,7 +232,7 @@ const KanbanFilters = React.forwardRef<HTMLDivElement, {
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     {availableTags.map((tag) => (
                       <SelectItem key={tag} value={tag}>
                         {tag}

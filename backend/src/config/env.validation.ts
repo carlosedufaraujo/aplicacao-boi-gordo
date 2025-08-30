@@ -11,7 +11,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url().describe('PostgreSQL connection string'),
   
   // Server
-  PORT: z.string().regex(/^\d+$/).transform(Number).default('3333'),
+  PORT: z.string().regex(/^\d+$/).transform(Number).default(3333),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   
   // JWT
@@ -28,15 +28,19 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
   
   // Rate Limiting
-  RATE_LIMIT_WINDOW_MS: z.string().regex(/^\d+$/).transform(Number).default('900000'),
-  RATE_LIMIT_MAX_REQUESTS: z.string().regex(/^\d+$/).transform(Number).default('100'),
+  RATE_LIMIT_WINDOW_MS: z.string().regex(/^\d+$/).transform(Number).default(900000),
+  RATE_LIMIT_MAX_REQUESTS: z.string().regex(/^\d+$/).transform(Number).default(100),
   
   // File Upload
-  MAX_FILE_SIZE: z.string().regex(/^\d+$/).transform(Number).default('10485760'),
+  MAX_FILE_SIZE: z.string().regex(/^\d+$/).transform(Number).default(10485760),
   UPLOAD_DIR: z.string().default('./uploads'),
   
   // Master Admin
   MASTER_ADMIN_EMAIL: z.string().email().default('admin@boigordo.com'),
+  
+  // Supabase
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_ANON_KEY: z.string().optional(),
 });
 
 // Validação das variáveis

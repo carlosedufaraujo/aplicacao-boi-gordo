@@ -4,7 +4,7 @@ import { prisma } from '@/config/database';
 
 export class ExpenseRepository extends BaseRepository<Expense> {
   constructor() {
-    super(prisma.expense);
+    super('expense');
   }
 
   async findWithRelations(id: string) {
@@ -22,9 +22,6 @@ export class ExpenseRepository extends BaseRepository<Expense> {
           },
         },
         payerAccount: true,
-        user: true,
-        allocations: true,
-        reconciliations: true,
       },
     });
   }

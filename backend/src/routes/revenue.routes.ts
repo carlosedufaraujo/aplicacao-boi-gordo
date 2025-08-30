@@ -11,6 +11,10 @@ const revenueController = new RevenueController();
 router.use(authenticate);
 
 // Estatísticas e resumos
+router.get('/stats',
+  revenueController.stats
+);
+
 router.get('/stats/category', 
   validate(revenueValidation.dateRange, 'query'),
   revenueController.statsByCategory

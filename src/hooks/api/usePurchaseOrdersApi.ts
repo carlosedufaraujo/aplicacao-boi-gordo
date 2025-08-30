@@ -23,7 +23,11 @@ export const usePurchaseOrdersApi = (initialFilters: PurchaseOrderFilters = {}) 
       const response = await purchaseOrderApi.getAll({ ...initialFilters, ...filters });
       
       if (response.status === 'success' && response.data) {
-        setPurchaseOrders(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const orders = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setPurchaseOrders(orders);
       } else {
         throw new Error(response.message || 'Erro ao carregar ordens de compra');
       }
@@ -207,10 +211,11 @@ export const usePurchaseOrdersApi = (initialFilters: PurchaseOrderFilters = {}) 
   }, [loadPurchaseOrders, loadStats]);
 
   // Carregamento inicial
+  // Carregamento inicial (SEM DEPENDÊNCIAS para evitar loops)
   useEffect(() => {
     loadPurchaseOrders();
     loadStats();
-  }, [loadPurchaseOrders, loadStats]);
+  }, []); // ← CORRIGIDO: sem dependências para evitar loops infinitos
 
   return {
     // Estados
@@ -220,6 +225,8 @@ export const usePurchaseOrdersApi = (initialFilters: PurchaseOrderFilters = {}) 
     stats,
     
     // Ações
+    loadPurchaseOrders,
+    loadStats,
     createPurchaseOrder,
     updatePurchaseOrder,
     updateStage,

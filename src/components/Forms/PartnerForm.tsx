@@ -5,14 +5,27 @@ import { z } from 'zod';
 import { X, Building, CreditCard, Truck } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { PartnerFormData } from '../../types';
+import { cleanCpfCnpj, formatCpfCnpj, isValidCpfCnpj } from '@/utils/cpfCnpjUtils';
 
 const partnerSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   city: z.string().min(1, 'Cidade é obrigatória'),
   state: z.string().min(2, 'Estado é obrigatório'),
-  phone: z.string().optional(),
+  phone: z.string()
+    .optional()
+    .refine((val) => !val || /^[0-9]{10,15}$/.test(val.replace(/\D/g, '')), {
+      message: 'Telefone deve ter entre 10 e 15 dígitos'
+    }),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
-  cpfCnpj: z.string().optional(),
+  cpfCnpj: z.string()
+    .optional()
+    .transform(val => val ? cleanCpfCnpj(val) : val)
+    .refine((val) => !val || val.length === 11 || val.length === 14, {
+      message: 'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos'
+    })
+    .refine((val) => !val || isValidCpfCnpj(val), {
+      message: 'CPF/CNPJ inválido'
+    }),
   address: z.string().optional(),
   bankName: z.string().optional(),
   bankAgency: z.string().optional(),
@@ -22,10 +35,29 @@ const partnerSchema = z.object({
   isTransporter: z.boolean().optional(),
 });
 
+// Função para formatar telefone
+const formatPhone = (value: string) => {
+  const numbers = value.replace(/\D/g, '');
+  
+  // Limita a 15 dígitos
+  const limited = numbers.substring(0, 15);
+  
+  // Formata para brasileiro se tiver 10 ou 11 dígitos
+  if (limited.length <= 11) {
+    if (limited.length <= 2) return limited;
+    if (limited.length <= 6) return `(${limited.slice(0, 2)}) ${limited.slice(2)}`;
+    if (limited.length <= 10) return `(${limited.slice(0, 2)}) ${limited.slice(2, 6)}-${limited.slice(6)}`;
+    return `(${limited.slice(0, 2)}) ${limited.slice(2, 7)}-${limited.slice(7)}`;
+  }
+  
+  // Para números internacionais, apenas retorna os dígitos
+  return limited;
+};
+
 interface PartnerFormProps {
   isOpen: boolean;
   onClose: () => void;
-  type: 'vendor' | 'broker' | 'slaughterhouse' | 'financial';
+  type: 'vendor' | 'broker' | 'slaughterhouse' | 'financial' | 'freight';
   isTransporter?: boolean;
   onSubmit?: (data: PartnerFormData) => void;
 }
@@ -44,7 +76,8 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({
     handleSubmit,
     formState: { errors },
     reset,
-    watch
+    watch,
+    setValue
   } = useForm<PartnerFormData>({
     resolver: zodResolver(partnerSchema),
     defaultValues: {
@@ -57,7 +90,8 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({
     vendor: isTransporter ? 'Transportadora' : 'Vendedor',
     broker: 'Corretor',
     slaughterhouse: 'Frigorífico',
-    financial: 'Instituição Financeira'
+    financial: 'Instituição Financeira',
+    freight: 'Transportadora'
   };
 
   const watchedFields = watch(['name', 'cpfCnpj', 'bankName', 'bankAgency', 'bankAccount', 'bankAccountType']);
@@ -69,12 +103,26 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({
   const showSummary = hasBankData || hasPersonalData;
 
   const handleFormSubmit = (data: PartnerFormData) => {
-    // Adicionar o tipo automaticamente baseado no prop
-    const partnerData = {
+    // Limpar o telefone e CPF/CNPJ para enviar apenas números
+    const cleanedData = {
       ...data,
-      type,
+      phone: data.phone ? data.phone.replace(/\D/g, '') : undefined,
+      cpfCnpj: data.cpfCnpj ? cleanCpfCnpj(data.cpfCnpj) : undefined
+    };
+    
+    // Adicionar o tipo automaticamente baseado no prop
+    // Se for transportadora ou tipo freight, usar FREIGHT_CARRIER
+    const partnerType = (isTransporter || type === 'freight') ? 'FREIGHT_CARRIER' : 
+                       type === 'vendor' ? 'VENDOR' :
+                       type === 'broker' ? 'BROKER' :
+                       type === 'slaughterhouse' ? 'BUYER' :
+                       type === 'financial' ? 'INVESTOR' : 'OTHER';
+    
+    const partnerData = {
+      ...cleanedData,
+      type: partnerType,
       isActive: true,
-      isTransporter: isTransporter
+      isTransporter: isTransporter || type === 'freight'
     };
 
     addPartner(partnerData);
@@ -145,9 +193,17 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({
                 <input
                   type="text"
                   {...register('cpfCnpj')}
+                  onChange={(e) => {
+                    const formatted = formatCpfCnpj(e.target.value);
+                    setValue('cpfCnpj', formatted);
+                  }}
                   className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-                  placeholder="Ex: 12.345.678/0001-90"
+                  placeholder="Ex: 123.456.789-00 ou 12.345.678/0001-90"
+                  maxLength={18}
                 />
+                {errors.cpfCnpj && (
+                  <p className="text-error-500 text-xs mt-1">{errors.cpfCnpj.message}</p>
+                )}
               </div>
 
               <div>
@@ -227,9 +283,18 @@ export const PartnerForm: React.FC<PartnerFormProps> = ({
               <input
                 type="text"
                 {...register('phone')}
+                onChange={(e) => {
+                  const formatted = formatPhone(e.target.value);
+                  e.target.value = formatted;
+                  register('phone').onChange(e);
+                }}
+                maxLength={20}
                 className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
                 placeholder="Ex: (16) 99999-9999"
               />
+              {errors.phone && (
+                <p className="text-error-500 text-xs mt-1">{errors.phone.message}</p>
+              )}
             </div>
 
             <div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Package, 
   Plus, 
@@ -40,6 +40,9 @@ import {
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatCurrency, formatWeight } from '@/utils/formatters';
+import { eventBus, EVENTS } from '@/utils/eventBus';
+import { parseLocation } from '@/utils/brazilianCities';
 
 // Componentes shadcn/ui
 import {
@@ -111,8 +114,16 @@ import {
 } from '@/components/ui/sheet';
 
 // Stores e hooks
-import { useCattleLots, usePurchaseOrders, usePartners, usePens } from '@/hooks/useSupabaseData';
-import { useRealtimePenOccupancy } from '@/hooks/useRealtimePenOccupancy';
+import { useCattleLotsApi } from '@/hooks/api/useCattleLotsApi';
+import { usePurchaseOrdersApi } from '@/hooks/api/usePurchaseOrdersApi';
+import { usePartnersApi } from '@/hooks/api/usePartnersApi';
+import { usePensApi } from '@/hooks/api/usePensApi';
+import { usePenOccupancyApi } from '@/hooks/api/usePenOccupancyApi';
+import { PenMapIntegrated } from './PenMapIntegrated';
+
+// Modais integrados da página de Compras
+import { PurchaseDetailsModal } from '@/components/Purchases/PurchaseDetailsModal';
+import { NewPurchaseOrderForm } from '@/components/Forms/NewPurchaseOrderForm';
 
 // Novos componentes
 import { PenOccupancyIndicators, OccupancyStats } from './PenOccupancyIndicators';
@@ -268,36 +279,99 @@ const PenMapView: React.FC<{ pens: PenMapData[] }> = ({ pens }) => {
 
 // Componente Principal
 export const CompleteLots: React.FC = () => {
-  const { cattleLots, loading: lotsLoading } = useCattleLots();
-  const { purchaseOrders, loading: ordersLoading } = usePurchaseOrders();
-  const { partners } = usePartners();
-  const { pens } = usePens();
+  const { cattleLots, loading: lotsLoading, refresh: refreshLots, deleteCattleLot } = useCattleLotsApi();
+  const { purchaseOrders, loading: ordersLoading, refresh: refreshOrders } = usePurchaseOrdersApi();
+  const { partners } = usePartnersApi();
+  const { pens } = usePensApi();
   const { 
     occupancyData, 
     loading: occupancyLoading, 
-    isConnected, 
-    getOccupancyStats 
-  } = useRealtimePenOccupancy();
+    error: occupancyError,
+    isConnected,
+    totalPens: totalPensOccupied,
+    availablePens: availablePensCount,
+    totalCapacity,
+    totalOccupancy,
+    averageOccupancyRate
+  } = usePenOccupancyApi();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [penFilter, setPenFilter] = useState<string>('all');
   const [selectedLot, setSelectedLot] = useState<CattleLot | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showLotDetail, setShowLotDetail] = useState(false);
   const [showLotEdit, setShowLotEdit] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [lotToDelete, setLotToDelete] = useState<string | null>(null);
+
+  // Escutar eventos globais para refresh
+  useEffect(() => {
+    const handleRefreshAll = () => {
+      console.log('🔄 Recarregando lotes após mudanças...');
+      refreshLots();
+      refreshOrders();
+    };
+
+    const handleLotDeleted = () => {
+      console.log('🗑️ Lote excluído, recarregando lista...');
+      setTimeout(() => {
+        refreshLots();
+        refreshOrders();
+      }, 500);
+    };
+
+    const handleLotUpdated = () => {
+      console.log('✏️ Lote atualizado, recarregando lista...');
+      setTimeout(() => {
+        refreshLots();
+        refreshOrders();
+      }, 500);
+    };
+
+    // Registrar listeners
+    const unsubscribeLotDeleted = eventBus.on(EVENTS.LOT_DELETED, handleLotDeleted);
+    const unsubscribeLotUpdated = eventBus.on(EVENTS.LOT_UPDATED, handleLotUpdated);
+    const unsubscribeOrderDeleted = eventBus.on(EVENTS.ORDER_DELETED, handleRefreshAll);
+    const unsubscribeOrderUpdated = eventBus.on(EVENTS.ORDER_UPDATED, handleRefreshAll);
+    const unsubscribeRefreshAll = eventBus.on(EVENTS.REFRESH_ALL, handleRefreshAll);
+
+    // Cleanup
+    return () => {
+      unsubscribeLotDeleted();
+      unsubscribeLotUpdated();
+      unsubscribeOrderDeleted();
+      unsubscribeOrderUpdated();
+      unsubscribeRefreshAll();
+    };
+  }, [refreshLots, refreshOrders]);
 
   // Dados processados
   const processedLots = useMemo(() => {
     return cattleLots.map(lot => {
       const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
-      const partner = partners.find(p => p.id === order?.partnerId);
+      const partner = partners.find(p => p.id === order?.vendorId);
+      
+      // Calcular métricas derivadas
+      const averageWeight = lot.entryQuantity > 0 ? lot.entryWeight / lot.entryQuantity : 0;
+      const deaths = lot.deathCount || 0;
+      const sales = lot.entryQuantity - lot.currentQuantity - deaths;
+      const costPerHead = lot.currentQuantity > 0 ? lot.totalCost / lot.currentQuantity : 0;
       
       return {
         ...lot,
+        // Propriedades adicionais calculadas
         partnerName: partner?.name || 'N/A',
-        orderDate: order?.orderDate || lot.createdAt,
-        breed: order?.breed || 'Não informado',
-        origin: partner?.city || 'Não informado'
+        orderDate: order?.purchaseDate || lot.createdAt,
+        breed: order?.animalType || 'Não informado',
+        origin: order?.location ? 
+          `${parseLocation(order.location).city} - ${parseLocation(order.location).state}` : 
+          'Não informado',
+        initialQuantity: lot.entryQuantity,
+        averageWeight,
+        deaths,
+        sales,
+        costPerHead
       };
     });
   }, [cattleLots, purchaseOrders, partners]);
@@ -305,9 +379,9 @@ export const CompleteLots: React.FC = () => {
   // Filtros aplicados
   const filteredLots = useMemo(() => {
     return processedLots.filter(lot => {
-      const matchesSearch = lot.lotNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           lot.partnerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           lot.breed.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (lot.lotNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (lot.partnerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (lot.breed || '').toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || lot.status === statusFilter;
       const matchesPen = penFilter === 'all' || lot.penId === penFilter;
@@ -357,18 +431,78 @@ export const CompleteLots: React.FC = () => {
   }, [pens, processedLots]);
 
   const handleLotView = (lot: CattleLot) => {
-    setSelectedLot(lot);
+    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    const partner = partners.find(p => p.id === order?.vendorId);
+    
+    // Preparar dados combinados para o modal de detalhes
+    const combinedData = {
+      ...lot,
+      ...order,
+      lotNumber: lot.lotNumber,
+      orderNumber: order?.orderNumber,
+      vendorName: partner?.name || 'N/A',
+      brokerName: order?.brokerName || null,
+      partnerName: partner?.name || 'N/A',
+      entryQuantity: lot.entryQuantity || lot.initialQuantity,
+      entryWeight: lot.entryWeight || 0,
+      purchasePrice: order?.purchasePrice || 0,
+      acquisitionCost: order?.purchasePrice || 0,
+      freightCost: order?.freightCost || 0,
+      healthCost: 0,
+      feedCost: 0,
+      operationalCost: 0,
+      otherCosts: 0,
+      payerAccountName: order?.payerAccountName || 'N/A'
+    };
+    
+    setSelectedLot(combinedData);
     setShowLotDetail(true);
   };
 
   const handleLotEdit = (lot: CattleLot) => {
-    setSelectedLot(lot);
-    setShowLotEdit(true);
+    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    if (order) {
+      setSelectedOrder(order);
+      setShowLotEdit(true);
+    } else {
+      toast.error('Ordem de compra não encontrada para este lote');
+    }
   };
 
   const handleLotDelete = (lotId: string) => {
-    // Implementar exclusão
-    console.log('Excluir lote:', lotId);
+    setLotToDelete(lotId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!lotToDelete) return;
+    
+    try {
+      const success = await deleteCattleLot(lotToDelete);
+      
+      if (success) {
+        eventBus.emit(EVENTS.LOT_DELETED, lotToDelete);
+        await refreshLots();
+      }
+    } catch (error) {
+      console.error('Erro ao excluir lote:', error);
+    } finally {
+      setShowDeleteConfirm(false);
+      setLotToDelete(null);
+    }
+  };
+
+  const handleEditComplete = () => {
+    setShowLotEdit(false);
+    setSelectedOrder(null);
+    eventBus.emit(EVENTS.REFRESH_ALL);
+  };
+
+  const handleDeleteFromModal = () => {
+    if (selectedLot?.id) {
+      handleLotDelete(selectedLot.id);
+    }
+    setShowLotDetail(false);
   };
 
   const isLoading = lotsLoading || ordersLoading;
@@ -456,7 +590,7 @@ export const CompleteLots: React.FC = () => {
               <Weight className="h-4 w-4 icon-warning" />
             </CardHeader>
             <CardContent>
-              <div className="kpi-value">{metrics.averageWeight.toFixed(0)}kg</div>
+              <div className="kpi-value">{formatWeight(metrics.averageWeight)}</div>
               <p className="kpi-variation text-success">
                 <TrendingUp className="h-3 w-3 inline mr-1" />
                 +5kg/mês
@@ -619,41 +753,34 @@ export const CompleteLots: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {(() => {
-                      const stats = getOccupancyStats();
-                      return (
-                        <>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-success rounded-full"></div>
-                              <span className="text-body-sm">Disponíveis</span>
-                            </div>
-                            <span className="text-body-sm font-medium">{stats.available}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-warning rounded-full"></div>
-                              <span className="text-body-sm">Ocupados Parcialmente</span>
-                            </div>
-                            <span className="text-body-sm font-medium">{stats.partial}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-error rounded-full"></div>
-                              <span className="text-body-sm">Lotados</span>
-                            </div>
-                            <span className="text-body-sm font-medium">{stats.full}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-muted rounded-full"></div>
-                              <span className="text-body-sm">Em Manutenção</span>
-                            </div>
-                            <span className="text-body-sm font-medium">{stats.maintenance}</span>
-                          </div>
-                        </>
-                      );
-                    })()}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-success rounded-full"></div>
+                        <span className="text-body-sm">Disponíveis</span>
+                      </div>
+                      <span className="text-body-sm font-medium">{availablePensCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-warning rounded-full"></div>
+                        <span className="text-body-sm">Ocupados Parcialmente</span>
+                      </div>
+                      <span className="text-body-sm font-medium">{occupancyData.filter(p => p.status === 'partial').length}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-error rounded-full"></div>
+                        <span className="text-body-sm">Lotados</span>
+                      </div>
+                      <span className="text-body-sm font-medium">{occupancyData.filter(p => p.status === 'full').length}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-muted rounded-full"></div>
+                        <span className="text-body-sm">Em Manutenção</span>
+                      </div>
+                      <span className="text-body-sm font-medium">{occupancyData.filter(p => p.status === 'maintenance').length}</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -789,7 +916,7 @@ export const CompleteLots: React.FC = () => {
                             {lot.entryWeight ? `${lot.entryWeight}kg` : 'N/A'}
                           </TableCell>
                           <TableCell className="table-cell">
-                            R$ {(lot.totalCost / 1000).toFixed(0)}k
+                            {formatCurrency(lot.totalCost)}
                           </TableCell>
                           <TableCell className="table-cell">
                             {lot.partnerName}
@@ -959,7 +1086,16 @@ export const CompleteLots: React.FC = () => {
           <TabsContent value="map" className="space-y-4">
             {/* Estatísticas de Ocupação em Tempo Real */}
             <OccupancyStats 
-              stats={getOccupancyStats()} 
+              stats={{
+                total: occupancyData.length,
+                available: availablePensCount,
+                partial: occupancyData.filter(p => p.status === 'partial').length,
+                full: occupancyData.filter(p => p.status === 'full').length,
+                maintenance: occupancyData.filter(p => p.status === 'maintenance').length,
+                totalCapacity: totalCapacity || 0,
+                totalOccupancy: totalOccupancy || 0,
+                overallOccupancyRate: averageOccupancyRate || 0
+              }} 
               isConnected={isConnected} 
             />
 
@@ -1015,8 +1151,8 @@ export const CompleteLots: React.FC = () => {
 
                 {/* Mapa Visual Tradicional (Fallback) */}
                 <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">Visualização Compacta</h3>
-                  <PenMapView pens={penMapData} />
+                  <h3 className="text-lg font-semibold mb-4">Mapa de Currais Integrado</h3>
+                  <PenMapIntegrated />
                 </div>
               </CardContent>
             </Card>
@@ -1038,6 +1174,66 @@ export const CompleteLots: React.FC = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Modais integrados da página de Compras */}
+        
+        {/* Modal de Detalhes do Lote */}
+        <PurchaseDetailsModal 
+          isOpen={showLotDetail}
+          onClose={() => {
+            setShowLotDetail(false);
+            setSelectedLot(null);
+          }}
+          data={selectedLot}
+          onEdit={() => {
+            setShowLotDetail(false);
+            if (selectedLot) {
+              handleLotEdit(selectedLot);
+            }
+          }}
+          onDelete={handleDeleteFromModal}
+        />
+
+        {/* Modal de Edição de Lote/Ordem */}
+        <NewPurchaseOrderForm 
+          isOpen={showLotEdit}
+          onClose={() => {
+            setShowLotEdit(false);
+            setSelectedOrder(null);
+          }}
+          orderData={selectedOrder}
+          onSuccess={handleEditComplete}
+        />
+
+        {/* Confirmação de Exclusão */}
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmar Exclusão</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja excluir este lote? Esta ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setLotToDelete(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmDelete}
+              >
+                Excluir
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </div>
     </TooltipProvider>
   );

@@ -23,7 +23,11 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const response = await partnerApi.getAll({ ...initialFilters, ...filters });
       
       if (response.status === 'success' && response.data) {
-        setPartners(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const items = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setPartners(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar parceiros');
       }
@@ -45,7 +49,11 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const response = await partnerApi.getStats();
       
       if (response.status === 'success' && response.data) {
-        setStats(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const items = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setPartners(items);
       }
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
@@ -63,11 +71,11 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const response = await partnerApi.create(data);
       
       if (response.status === 'success' && response.data) {
-        setPartners(prev => [response.data!, ...prev]);
         toast.success('Parceiro criado com sucesso');
         
-        // Recarregar estatísticas
-        loadStats();
+        // Recarregar a lista completa para garantir sincronização
+        await loadPartners();
+        await loadStats();
         
         return response.data;
       } else {
@@ -82,7 +90,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPartners, loadStats]);
 
   /**
    * Atualiza um parceiro
@@ -95,13 +103,11 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const response = await partnerApi.update(id, data);
       
       if (response.status === 'success' && response.data) {
-        setPartners(prev => prev.map(partner => 
-          partner.id === id ? response.data! : partner
-        ));
         toast.success('Parceiro atualizado com sucesso');
         
-        // Recarregar estatísticas
-        loadStats();
+        // Recarregar a lista completa para garantir sincronização
+        await loadPartners();
+        await loadStats();
         
         return response.data;
       } else {
@@ -116,7 +122,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPartners, loadStats]);
 
   /**
    * Ativa/desativa um parceiro
@@ -150,7 +156,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPartners, loadStats]);
 
   /**
    * Remove um parceiro
@@ -182,7 +188,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [loadStats]);
+  }, [loadPartners, loadStats]);
 
   /**
    * Busca um parceiro por ID
@@ -266,15 +272,46 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
 
   // Carregamento inicial
   useEffect(() => {
-    loadPartners();
-    loadStats();
-  }, [loadPartners, loadStats]);
+    console.log('[usePartnersApi] Montando componente, iniciando carregamento...');
+    
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        
+        // Carregar partners e stats em paralelo
+        const [partnersResponse, statsResponse] = await Promise.all([
+          partnerApi.getAll(initialFilters),
+          partnerApi.getStats()
+        ]);
+        
+        if (partnersResponse.status === 'success' && partnersResponse.data) {
+          const items = Array.isArray(partnersResponse.data) 
+            ? partnersResponse.data 
+            : partnersResponse.data.data || [];
+          setPartners(items);
+        }
+        
+        if (statsResponse.status === 'success' && statsResponse.data) {
+          setStats(statsResponse.data);
+        }
+      } catch (err) {
+        console.error('[usePartnersApi] Erro no carregamento inicial:', err);
+        setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadInitialData();
+  }, []); // Executar apenas na montagem
 
   return {
     partners,
     loading,
     error,
     stats,
+    loadPartners,
+    loadStats,
     createPartner,
     updatePartner,
     togglePartnerStatus,
@@ -284,5 +321,6 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
     getPartnersByStatus,
     getActivePartners,
     refresh,
+    reload: refresh, // Alias para compatibilidade com DebugRegistrations
   };
 };

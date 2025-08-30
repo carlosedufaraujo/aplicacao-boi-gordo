@@ -23,7 +23,11 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
       const response = await expenseApi.getAll({ ...initialFilters, ...filters });
       
       if (response.status === 'success' && response.data) {
-        setExpenses(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const items = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setExpenses(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar despesas');
       }
@@ -45,7 +49,11 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
       const response = await expenseApi.getStats();
       
       if (response.status === 'success' && response.data) {
-        setStats(response.data);
+        // Se response.data for um objeto paginado, extrair o array
+        const items = Array.isArray(response.data) 
+          ? response.data 
+          : response.data.data || [];
+        setExpenses(items);
       }
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
@@ -239,6 +247,16 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
   }, []);
 
   /**
+   * Recarrega os dados
+   */
+  const refresh = useCallback(async (filters?: ExpenseFilters) => {
+    await Promise.all([
+      loadExpenses(filters),
+      loadStats()
+    ]);
+  }, [loadExpenses, loadStats]);
+
+  /**
    * Busca despesas por ordem de compra
    */
   const getExpensesByPurchaseOrder = useCallback(async (purchaseOrderId: string): Promise<Expense[]> => {
@@ -256,19 +274,11 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
     }
   }, []);
 
-  /**
-   * Recarrega os dados
-   */
-  const refresh = useCallback(() => {
-    loadExpenses();
-    loadStats();
-  }, [loadExpenses, loadStats]);
-
-  // Carregamento inicial
+  // Carregamento inicial (SEM DEPENDÊNCIAS para evitar loops)
   useEffect(() => {
     loadExpenses();
     loadStats();
-  }, [loadExpenses, loadStats]);
+  }, []); // ← CORRIGIDO: sem dependências para evitar loops infinitos
 
   return {
     expenses,

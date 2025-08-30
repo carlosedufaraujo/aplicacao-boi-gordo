@@ -130,10 +130,10 @@ export class PartnerRepository extends BaseRepository<Partner> {
         type: partner.type,
       },
       totals: {
-        asVendor: partner.purchaseOrdersAsVendor.reduce((sum, po) => sum + (po.totalValue || 0), 0),
-        asBroker: partner.purchaseOrdersAsBroker.reduce((sum, po) => sum + (po.totalValue || 0), 0),
-        sales: partner.saleRecords.reduce((sum, sale) => sum + (sale.totalValue || 0), 0),
-        contributions: partner.contributions.reduce((sum, contrib) => sum + (contrib.amount || 0), 0),
+        asVendor: partner.purchaseOrdersAsVendor.reduce((sum: number, po: any) => sum + (po.totalValue || 0), 0),
+        asBroker: partner.purchaseOrdersAsBroker.reduce((sum: number, po: any) => sum + (po.totalValue || 0), 0),
+        sales: partner.saleRecords.reduce((sum: number, sale: any) => sum + (sale.totalValue || 0), 0),
+        contributions: partner.contributions.reduce((sum: number, contrib: any) => sum + (contrib.amount || 0), 0),
       },
       counts: {
         purchaseOrdersAsVendor: partner.purchaseOrdersAsVendor.length,

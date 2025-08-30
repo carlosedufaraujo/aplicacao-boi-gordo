@@ -6,7 +6,7 @@ export const expenseValidation = {
     category: Joi.string().required().messages({
       'any.required': 'Categoria é obrigatória',
     }),
-    costCenterId: Joi.string().optional(),
+    costCenterId: Joi.string().allow('', null).optional(),
     description: Joi.string().required().messages({
       'any.required': 'Descrição é obrigatória',
     }),
@@ -17,12 +17,12 @@ export const expenseValidation = {
       'any.required': 'Data de vencimento é obrigatória',
     }),
     impactsCashFlow: Joi.boolean().optional(),
-    lotId: Joi.string().optional(),
-    penId: Joi.string().optional(),
-    vendorId: Joi.string().optional(),
-    payerAccountId: Joi.string().optional(),
-    purchaseOrderId: Joi.string().optional(),
-    notes: Joi.string().max(500).optional(),
+    lotId: Joi.string().allow('', null).optional(),
+    penId: Joi.string().allow('', null).optional(),
+    vendorId: Joi.string().allow('', null).optional(),
+    payerAccountId: Joi.string().allow('', null).optional(),
+    purchaseOrderId: Joi.string().allow('', null).optional(),
+    notes: Joi.string().max(500).allow('', null).optional(),
     allocations: Joi.array().items(
       Joi.object({
         entityType: Joi.string().valid('LOT', 'PEN', 'GLOBAL').required(),

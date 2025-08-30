@@ -6,6 +6,7 @@ import { ExpenseAllocationForm } from '../Forms/ExpenseAllocationForm';
 import { CostAllocationChart } from './CostAllocationChart';
 import { TableWithPagination } from '../Common/TableWithPagination';
 import { format } from 'date-fns';
+import { formatCurrency, formatCompactCurrency } from '@/utils/formatters';
 
 export const CostCenterManagement: React.FC = () => {
   const { 
@@ -478,7 +479,7 @@ export const CostCenterManagement: React.FC = () => {
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-lg font-bold text-b3x-navy-900">
-                R$ {(totalsByType[type] / 1000).toFixed(0)}k
+                {formatCompactCurrency(totalsByType[type] )}
               </div>
               {isTypeSelected ? (
                 <ChevronDown className="w-4 h-4 text-neutral-600" />
@@ -565,7 +566,7 @@ export const CostCenterManagement: React.FC = () => {
             </div>
           </div>
           <div className="text-xl font-bold text-b3x-lime-600">
-            R$ {(totalsByType.acquisition / 1000).toFixed(0)}k
+            {formatCompactCurrency(totalsByType.acquisition )}
           </div>
         </div>
 
@@ -580,7 +581,7 @@ export const CostCenterManagement: React.FC = () => {
             </div>
           </div>
           <div className="text-xl font-bold text-success-600">
-            R$ {(totalsByType.fattening / 1000).toFixed(0)}k
+            {formatCompactCurrency(totalsByType.fattening )}
           </div>
         </div>
 
@@ -595,7 +596,7 @@ export const CostCenterManagement: React.FC = () => {
             </div>
           </div>
           <div className="text-xl font-bold text-info-600">
-            R$ {(totalsByType.administrative / 1000).toFixed(0)}k
+            {formatCompactCurrency(totalsByType.administrative )}
           </div>
         </div>
 
@@ -610,7 +611,7 @@ export const CostCenterManagement: React.FC = () => {
             </div>
           </div>
           <div className="text-xl font-bold text-warning-600">
-            R$ {(totalsByType.financial / 1000).toFixed(0)}k
+            {formatCompactCurrency(totalsByType.financial )}
           </div>
         </div>
       </div>

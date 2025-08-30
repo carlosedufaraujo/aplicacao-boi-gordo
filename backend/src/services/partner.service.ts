@@ -116,7 +116,28 @@ export class PartnerService {
     return this.partnerRepository.delete(id);
   }
 
-  async getStats(id: string) {
+  async getStats() {
+    const partners = await this.partnerRepository.findAll({});
+    const total = partners.data.length;
+    
+    const byType = {
+      VENDOR: partners.data.filter(p => p.type === 'VENDOR').length,
+      BUYER: partners.data.filter(p => p.type === 'BUYER').length,
+      BROKER: partners.data.filter(p => p.type === 'BROKER').length,
+      PARTNER: partners.data.filter(p => p.type === 'PARTNER').length,
+      EMPLOYEE: partners.data.filter(p => p.type === 'EMPLOYEE').length,
+      OTHER: partners.data.filter(p => p.type === 'OTHER').length,
+    };
+
+    return {
+      total,
+      active: partners.data.filter(p => p.isActive).length,
+      inactive: partners.data.filter(p => !p.isActive).length,
+      byType
+    };
+  }
+
+  async getPartnerStats(id: string) {
     const stats = await this.partnerRepository.getPartnerStats(id);
     
     if (!stats) {

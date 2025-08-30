@@ -3,7 +3,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Truck, Upload, AlertTriangle, Plus, DollarSign, Calendar, FileText, Users, Scale, CreditCard } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
+import { toast } from 'sonner';
+import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
+import { usePartnersApi } from '../../hooks/api/usePartnersApi';
+import { useExpensesApi } from '../../hooks/api/useExpensesApi';
+import { usePurchaseOrdersApi } from '../../hooks/api/usePurchaseOrdersApi';
 import { PurchaseOrder, Expense } from '../../types';
 import { PartnerForm } from '../Forms/PartnerForm';
 import { Portal } from '../Common/Portal';
@@ -15,17 +19,12 @@ const cattleLotSchema = z.object({
   quantityDifferenceReason: z.string().optional(),
   freightKm: z.number().min(0, 'Distância não pode ser negativa'),
   freightCostPerKm: z.number().min(0, 'Custo por km não pode ser negativo'),
-  freightType: z.enum(['own', 'third']),
   freightPaymentType: z.enum(['cash', 'installment']).optional(),
   freightPaymentDate: z.date().optional(),
   transportCompanyId: z.string().optional(),
   transportCompany: z.string().optional(),
   entryDate: z.date({
     required_error: "Data de entrada é obrigatória",
-    invalid_type_error: "Data inválida"
-  }),
-  cocoEntryDate: z.date({
-    required_error: "Data de entrada no curral é obrigatória",
     invalid_type_error: "Data inválida"
   }),
   estimatedGmd: z.number().min(0, 'GMD não pode ser negativo'),
@@ -36,24 +35,20 @@ interface ReceptionFormProps {
   isOpen: boolean;
   onClose: () => void;
   order: PurchaseOrder;
+  onSubmit?: (data: any) => void;
 }
 
 export const ReceptionForm: React.FC<ReceptionFormProps> = ({
   isOpen,
   onClose,
-  order
+  order,
+  onSubmit
 }) => {
-  const { 
-    addCattleLot, 
-    partners, 
-    generateLotNumber, 
-    addFinancialAccount, 
-    addNotification, 
-    updateCattleLot, 
-    cattleLots,
-    addExpense,
-    movePurchaseOrderToNextStage
-  } = useAppStore();
+  // Hooks da API
+  const { cattleLots, createCattleLot, updateCattleLot } = useCattleLotsApi();
+  const { partners } = usePartnersApi();
+  const { createExpense } = useExpensesApi();
+  const { updateStage } = usePurchaseOrdersApi();
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
   const [showTransportCompanyForm, setShowTransportCompanyForm] = useState(false);
 
@@ -70,14 +65,13 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
     resolver: zodResolver(cattleLotSchema),
     defaultValues: {
       purchaseOrderId: order.id,
-      entryQuantity: order.quantity,
+      entryQuantity: order.animalCount,
       entryWeight: order.totalWeight,
-      freightType: 'third',
       freightKm: order.freightKm || 0,
       freightCostPerKm: order.freightCostPerKm || 0,
       transportCompanyId: order.transportCompanyId || '',
       freightPaymentType: 'cash',
-      cocoEntryDate: new Date(),
+      entryDate: new Date(),
       estimatedGmd: 1.5
     }
   });
@@ -94,13 +88,13 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
   const weightLossPercentage = order.totalWeight > 0 ? (weightDifference / order.totalWeight) * 100 : 0;
 
   // Verificar diferença na quantidade
-  const quantityDifference = watchedValues.entryQuantity !== order.quantity;
-  const quantityLoss = order.quantity - (watchedValues.entryQuantity || 0);
+  const quantityDifference = watchedValues.entryQuantity !== order.animalCount;
+  const quantityLoss = order.animalCount - (watchedValues.entryQuantity || 0);
 
-  // Filtrar transportadoras (parceiros do tipo 'vendor' que são transportadoras)
-  const transportCompanies = partners.filter(p => p.type === 'vendor' && p.isActive && p.isTransporter);
+  // Filtrar transportadoras (parceiros do tipo FREIGHT_CARRIER)
+  const transportCompanies = partners.filter(p => p.type === 'FREIGHT_CARRIER' && p.isActive);
 
-  const handleFormSubmit = (data: any) => {
+  const handleFormSubmit = async (data: any) => {
     console.log('Form submitted with data:', data);
     
     // VALIDAÇÃO: Se quantidade diferente, motivo é obrigatório
@@ -112,8 +106,8 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
       return;
     }
 
-    // VALIDAÇÃO: Se frete terceiro a prazo, data é obrigatória
-    if (data.freightType === 'third' && data.freightPaymentType === 'installment' && !data.freightPaymentDate) {
+    // VALIDAÇÃO: Se frete a prazo, data é obrigatória
+    if (data.freightPaymentType === 'installment' && !data.freightPaymentDate) {
       setError('freightPaymentDate', {
         type: 'manual',
         message: 'Data de pagamento é obrigatória para frete a prazo'
@@ -123,23 +117,19 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
 
     // Gerar número de lote baseado no código da ordem
     // Usar o mesmo código da ordem de compra para o lote
-    const lotNumber = order.code;
+    const lotNumber = order.orderNumber;
     
     const freightCost = data.freightKm * data.freightCostPerKm;
     
-    // Preparar observações com nota sobre frete próprio se aplicável
+    // Preparar observações
     let finalObservations = data.observations || '';
-    if (data.freightType === 'own' && freightCost > 0) {
-      const freteProprioNote = `FRETE PRÓPRIO: R$ ${freightCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - Será lançado para pagamento quando os animais forem abatidos.`;
-      finalObservations = finalObservations ? `${finalObservations}\n\n${freteProprioNote}` : freteProprioNote;
-    }
 
-    // CORREÇÃO: Buscar e atualizar o lote existente ao invés de criar um novo
+    // CORREÇÃO: Buscar e atualizar o lote existente (criado automaticamente com a ordem)
     const existingLot = cattleLots.find(lot => lot.purchaseOrderId === order.id);
     
     if (existingLot) {
       // Atualizar o lote existente com os dados da recepção
-      updateCattleLot(existingLot.id, {
+      await updateCattleLot(existingLot.id, {
         entryWeight: data.entryWeight,
         entryQuantity: data.entryQuantity,
         quantityDifference: quantityDifference ? quantityLoss : undefined,
@@ -148,147 +138,80 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
         freightCostPerKm: data.freightCostPerKm,
         transportCompany: data.transportCompanyId ? 
           partners.find(p => p.id === data.transportCompanyId)?.name : undefined,
-        entryDate: data.cocoEntryDate || new Date(),
+        entryDate: data.entryDate || new Date(),
         cocoEntryDate: data.cocoEntryDate,
         observations: finalObservations,
         custoAcumulado: {
-          ...existingLot.custoAcumulado,
-          frete: data.freightType === 'own' ? freightCost : 0,
-          total: existingLot.custoAcumulado.aquisicao + 
-                 existingLot.custoAcumulado.sanidade +
-                 existingLot.custoAcumulado.alimentacao +
-                 existingLot.custoAcumulado.operacional +
-                 (data.freightType === 'own' ? freightCost : 0) +
-                 existingLot.custoAcumulado.outros
+          ...(existingLot.custoAcumulado || {
+            aquisicao: existingLot.acquisitionCost || 0,
+            sanidade: existingLot.healthCost || 0,
+            alimentacao: existingLot.feedCost || 0,
+            operacional: existingLot.operationalCost || 0,
+            frete: existingLot.freightCost || 0,
+            outros: existingLot.otherCosts || 0,
+            total: existingLot.totalCost || 0
+          }),
+          frete: 0,
+          total: (existingLot.custoAcumulado?.aquisicao || existingLot.acquisitionCost || 0) + 
+                 (existingLot.custoAcumulado?.sanidade || existingLot.healthCost || 0) +
+                 (existingLot.custoAcumulado?.alimentacao || existingLot.feedCost || 0) +
+                 (existingLot.custoAcumulado?.operacional || existingLot.operationalCost || 0) +
+                 (existingLot.custoAcumulado?.outros || existingLot.otherCosts || 0)
         }
       });
+      
+      toast.success('Lote atualizado com sucesso');
     } else {
-      // Se por algum motivo o lote não existe, criar um novo (fallback)
-      addCattleLot({
-        lotNumber: lotNumber,
-        purchaseOrderId: order.id,
-        entryWeight: data.entryWeight,
-        entryQuantity: data.entryQuantity,
-        quantityDifference: quantityDifference ? quantityLoss : undefined,
-        quantityDifferenceReason: data.quantityDifferenceReason,
-        freightKm: data.freightKm,
-        freightCostPerKm: data.freightCostPerKm,
-        transportCompany: data.transportCompanyId ? 
-          partners.find(p => p.id === data.transportCompanyId)?.name : undefined,
-        entryDate: data.cocoEntryDate || new Date(),
-        cocoEntryDate: data.cocoEntryDate,
-        estimatedGmd: 1.5,
-        deaths: 0,
-        observations: finalObservations,
-        status: 'active',
-        custoAcumulado: {
-          aquisicao: 0,
-          sanidade: 0,
-          alimentacao: 0,
-          operacional: 0,
-          frete: data.freightType === 'own' ? freightCost : 0,
-          outros: 0,
-          total: data.freightType === 'own' ? freightCost : 0
-        }
-      });
+      // Se o lote não existe, mostrar erro pois toda ordem deve ter um lote
+      toast.error('Erro: Lote não encontrado para esta ordem. Por favor, recarregue a página.');
+      console.error('Lote não encontrado para a ordem:', order.id);
+      return;
     }
     
-    // Se frete terceiro, criar conta a pagar
-    if (data.freightType === 'third' && freightCost > 0) {
+    // Se tem frete, criar conta a pagar
+    if (freightCost > 0) {
       // Criar despesa de frete
-      const freightExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'> = {
-        date: new Date(),
-        description: `Frete Terceiro - ${order.code} - ${data.transportCompanyId ? partners.find(p => p.id === data.transportCompanyId)?.name : 'Transportadora'}`,
+      const freightExpense = {
         category: 'freight',
+        description: `Frete - ${order.orderNumber}`,
         totalAmount: freightCost,
-        supplierId: data.transportCompanyId || undefined,
-        invoiceNumber: `FT-${order.code}`,
-        paymentStatus: 'pending',
-        paymentDate: data.freightPaymentType === 'installment' ? data.freightPaymentDate : new Date(),
-        allocations: [], // Será preenchido após criar a despesa
-        attachments: [],
-        impactsCashFlow: true
-      };
-      
-      addExpense(freightExpense);
-      
-      addFinancialAccount({
-        type: 'payable',
-        description: `Frete - ${order.code} - ${data.transportCompanyId ? partners.find(p => p.id === data.transportCompanyId)?.name : 'Transportadora'}`,
-        amount: freightCost,
+        vendorId: data.transportCompanyId,
         dueDate: data.freightPaymentType === 'installment' ? data.freightPaymentDate : new Date(),
-        status: 'pending',
-        relatedEntityType: 'freight',
-        relatedEntityId: order.id,
-        paymentMethod: data.freightPaymentType === 'cash' ? 'À Vista' : 'A Prazo'
-      });
-      
-      // Criar notificação
-      addNotification({
-        title: 'Conta de Frete Criada',
-        message: `Frete de R$ ${freightCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para a ordem ${order.code}`,
-        type: 'info',
-        relatedEntityType: 'purchase_order',
-        relatedEntityId: order.id
-      });
-    } else if (data.freightType === 'own' && freightCost > 0) {
-      // 🆕 NOVO: Para frete próprio, criar despesa pendente
-      const ownFreightExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'> = {
-        date: new Date(),
-        description: `Frete Próprio - ${order.code} - Pagamento após abate`,
-        category: 'freight',
-        totalAmount: freightCost,
-        supplierId: undefined,
-        invoiceNumber: `FP-${order.code}`,
-        paymentStatus: 'pending',
-        paymentDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)), // Data futura
-        allocations: [],
-        attachments: [],
-        impactsCashFlow: true
+        isPaid: false,
+        impactsCashFlow: true,
+        purchaseOrderId: order.id,
+        notes: `Transporte realizado por: ${data.transportCompanyId ? partners.find(p => p.id === data.transportCompanyId)?.name : 'Transportadora'}`
       };
       
-      addExpense(ownFreightExpense);
+      await createExpense(freightExpense);
       
-      // 🆕 NOVO: Criar conta a pagar futura (com status especial)
-      addFinancialAccount({
-        type: 'payable',
-        description: `Frete Próprio (Futuro) - ${order.code} - Aguardando abate`,
-        amount: freightCost,
-        dueDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)), // Data futura provisória
-        status: 'pending',
-        relatedEntityType: 'freight',
-        relatedEntityId: order.id,
-        paymentMethod: 'Frete Próprio',
-        observations: 'ATENÇÃO: Este frete será ativado automaticamente quando os animais forem abatidos'
-      });
-      
-      // Criar notificação
-      addNotification({
-        title: 'Frete Próprio Registrado',
-        message: `Frete próprio de R$ ${freightCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} será lançado quando os animais forem abatidos`,
-        type: 'info',
-        relatedEntityType: 'purchase_order',
-        relatedEntityId: order.id
-      });
+      // TODO: Implementar integração com financial accounts quando a API estiver pronta
+      console.log('Conta de frete criada para a ordem:', order.orderNumber, 'Valor:', freightCost);
     }
 
     // ALTERAÇÃO: NÃO mover para próxima etapa automaticamente
     // Manter na etapa 'reception' para aguardar protocolo sanitário
     
-    // Mover para a próxima etapa (confined)
-    movePurchaseOrderToNextStage(order.id);
+    console.log('Recepção confirmada para ordem:', order.orderNumber);
     
-    // Criar notificação de sucesso
-    addNotification({
-      title: 'Recepção Confirmada',
-      message: `Ordem ${order.code} recebida com sucesso. ${data.entryQuantity} animais confinados.`,
-      type: 'success',
-      relatedEntityType: 'purchase_order',
-      relatedEntityId: order.id
-    });
+    // Emitir eventos para sincronizar outros componentes
+    if (existingLot) {
+      const { eventBus, EVENTS } = await import('@/utils/eventBus');
+      eventBus.emit(EVENTS.LOT_UPDATED, { lotId: existingLot.id });
+      eventBus.emit(EVENTS.REFRESH_FINANCIAL);
+    }
     
     reset();
-    onClose();
+    
+    // Chamar onSubmit se fornecido
+    if (onSubmit) {
+      onSubmit(data);
+    }
+    
+    // Aguardar um pouco para garantir que os dados foram salvos
+    setTimeout(() => {
+      onClose();
+    }, 500);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -315,7 +238,7 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
         <div className="flex items-center justify-between p-4 border-b border-neutral-200 bg-gradient-to-r from-b3x-navy-900 to-b3x-navy-800 text-white rounded-t-xl">
           <div>
             <h2 className="text-lg font-bold">Recepção no Confinamento</h2>
-            <p className="text-b3x-navy-200 text-sm mt-1">Ordem: {order.code}</p>
+            <p className="text-b3x-navy-200 text-sm mt-1">Ordem: {order.orderNumber}</p>
           </div>
           <button
             onClick={onClose}
@@ -336,7 +259,7 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-neutral-50 p-3 rounded-lg text-center">
-                <div className="text-lg font-bold text-b3x-navy-900">{order.quantity}</div>
+                <div className="text-lg font-bold text-b3x-navy-900">{order.animalCount}</div>
                 <div className="text-xs text-neutral-600">Quantidade Comprada</div>
               </div>
               <div className="bg-neutral-50 p-3 rounded-lg text-center">
@@ -351,7 +274,7 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
                 <div className="text-lg font-bold text-success-600">
                   {(() => {
                     // 🆕 CORRIGIDO: Considerar R.C.% no cálculo
-                    const rcPercentage = order.rcPercentage || 50; // Default 50% se não informado
+                    const rcPercentage = order.carcassYield || 50; // Default 50% se não informado
                     const carcassWeight = order.totalWeight * (rcPercentage / 100);
                     const arrobas = carcassWeight / 15;
                     const animalValue = arrobas * order.pricePerArroba;
@@ -414,7 +337,7 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
                   type="number"
                   {...register('entryQuantity', { valueAsNumber: true })}
                   className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent transition-all duration-200"
-                  placeholder={`Quantidade comprada: ${order.quantity}`}
+                  placeholder={`Quantidade comprada: ${order.animalCount}`}
                 />
                 {errors.entryQuantity && (
                   <p className="text-error-500 text-xs mt-1">{errors.entryQuantity.message}</p>
@@ -461,11 +384,11 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
                 </label>
                 <input
                   type="date"
-                  {...register('cocoEntryDate', { valueAsDate: true })}
+                  {...register('entryDate', { valueAsDate: true })}
                   className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent transition-all duration-200"
                 />
-                {errors.cocoEntryDate && (
-                  <p className="text-error-500 text-xs mt-1">{errors.cocoEntryDate.message}</p>
+                {errors.entryDate && (
+                  <p className="text-error-500 text-xs mt-1">{errors.entryDate.message}</p>
                 )}
                 <p className="text-xs text-neutral-500 mt-1">Data em que os animais entraram no confinamento</p>
               </div>
@@ -478,48 +401,6 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
                 Informações de Transporte
               </h4>
               
-              {/* Tipo de Frete */}
-              <div className="mb-3">
-                <label className="block text-xs font-medium text-neutral-700 mb-1">
-                  Tipo de Frete *
-                </label>
-                <div className="flex space-x-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="own"
-                      {...register('freightType')}
-                      className="rounded-full border-neutral-300 text-b3x-lime-600 focus:ring-b3x-lime-500"
-                    />
-                    <span className="ml-2 text-sm text-neutral-700">Frete Próprio</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      value="third"
-                      {...register('freightType')}
-                      className="rounded-full border-neutral-300 text-b3x-lime-600 focus:ring-b3x-lime-500"
-                    />
-                    <span className="ml-2 text-sm text-neutral-700">Frete Terceiro</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Aviso para Frete Próprio */}
-              {watchedValues.freightType === 'own' && (
-                <div className="mb-3 p-2 bg-info-50 border border-info-200 rounded-lg">
-                  <div className="flex items-start space-x-2">
-                    <AlertTriangle className="w-4 h-4 text-info-600 mt-0.5 flex-shrink-0" />
-                    <div className="text-xs text-info-700">
-                      <p className="font-medium">Frete Próprio</p>
-                      <p className="mt-1">
-                        O custo do frete será incluído no custo do lote. Quando os animais forem abatidos, 
-                        será gerado um lançamento para pagamento no dia seguinte.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
@@ -532,11 +413,15 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
                       className="flex-1 px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
                     >
                       <option value="">Selecione a transportadora</option>
-                      {transportCompanies.map(company => (
-                        <option key={company.id} value={company.id}>
-                          {company.name}
-                        </option>
-                      ))}
+                      {transportCompanies.length > 0 ? (
+                        transportCompanies.map(company => (
+                          <option key={company.id} value={company.id}>
+                            {company.name}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" disabled>Nenhuma transportadora cadastrada</option>
+                      )}
                     </select>
                     <button
                       type="button"
@@ -587,8 +472,8 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
                 </div>
               )}
               
-              {/* Condições de Pagamento para Frete Terceiro */}
-              {watchedValues.freightType === 'third' && watchedValues.freightKm > 0 && watchedValues.freightCostPerKm > 0 && (
+              {/* Condições de Pagamento para Frete */}
+              {watchedValues.freightKm > 0 && watchedValues.freightCostPerKm > 0 && (
                 <div className="mt-3 p-2 bg-warning-50 border border-warning-200 rounded-lg">
                   <h5 className="text-xs font-medium text-neutral-700 mb-2 flex items-center">
                     <CreditCard className="w-3 h-3 mr-1 text-warning-600" />
@@ -695,7 +580,6 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
             </button>
             <button
               type="submit"
-              onClick={() => console.log('Button clicked!')}
               className="px-4 py-1.5 bg-gradient-to-r from-b3x-lime-500 to-b3x-lime-600 text-b3x-navy-900 font-medium rounded-lg hover:from-b3x-lime-600 hover:to-b3x-lime-700 transition-all duration-200 shadow-soft flex items-center space-x-2 text-sm"
             >
               <Truck className="w-3 h-3" />
@@ -711,8 +595,11 @@ export const ReceptionForm: React.FC<ReceptionFormProps> = ({
           <PartnerForm
             isOpen={showTransportCompanyForm}
             onClose={() => setShowTransportCompanyForm(false)}
-            type="vendor"
-            isTransporter={true}
+            type="freight"
+            onSubmit={() => {
+              // Fechar o modal e recarregar a lista de transportadoras
+              setShowTransportCompanyForm(false);
+            }}
           />
         </Portal>
       )}

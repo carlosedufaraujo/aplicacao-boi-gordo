@@ -25,6 +25,7 @@ export class ApiClient {
   ): Promise<T> {
     try {
       const token = await this.getAuthToken();
+      const url = `${this.baseURL}${endpoint}`;
       
       const config: RequestInit = {
         headers: {
@@ -35,17 +36,48 @@ export class ApiClient {
         ...options,
       };
 
-      const response = await fetch(`${this.baseURL}${endpoint}`, config);
+      // Debug detalhado
+      console.group(`🌐 API Request: ${options.method || 'GET'} ${endpoint}`);
+      console.log('Full URL:', url);
+      console.log('Headers:', config.headers);
+      console.log('Token available:', !!token);
+      console.log('Token preview:', token ? `${token.substring(0, 20)}...` : 'None');
+      if (config.body) {
+        try {
+          console.log('Body:', JSON.parse(config.body as string));
+        } catch {
+          console.log('Body (raw):', config.body);
+        }
+      }
+      console.groupEnd();
+
+      const response = await fetch(url, config);
 
       if (!response.ok) {
+        console.group(`❌ Backend Error Response`);
+        console.error(`Status: ${response.status} ${response.statusText}`);
+        console.error(`URL: ${url}`);
+        
         const errorData = await response.json().catch(() => ({}));
+        console.error('Error Data:', errorData);
+        console.groupEnd();
+        
         throw new Error(errorData.message || `HTTP Error: ${response.status}`);
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log(`✅ Response for ${endpoint}:`, data);
+      return data;
     } catch (error) {
       // Se backend não estiver disponível, usar Supabase direto como fallback
+      console.group(`❌ Network Error for ${endpoint}`);
       console.warn(`⚠️ Backend indisponível para ${endpoint}, usando Supabase direto`);
+      console.error('Error details:', error);
+      console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('Error message:', error instanceof Error ? error.message : error);
+      console.error('Request URL:', `${this.baseURL}${endpoint}`);
+      console.error('Request method:', options.method || 'GET');
+      console.groupEnd();
       throw error; // Os hooks vão usar dados do Supabase como fallback
     }
   }

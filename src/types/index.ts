@@ -12,9 +12,9 @@ export interface FatteningCycle {
 export interface Partner {
   id: string;
   name: string;
-  type: 'vendor' | 'broker' | 'slaughterhouse' | 'financial';
-  city: string;
-  state: string;
+  type: 'VENDOR' | 'BROKER' | 'BUYER' | 'INVESTOR' | 'SERVICE_PROVIDER' | 'FREIGHT_CARRIER' | 'OTHER';
+  city?: string;
+  state?: string;
   phone?: string;
   email?: string;
   cpfCnpj?: string;
@@ -25,9 +25,11 @@ export interface Partner {
   bankAccount?: string;
   bankAccountType?: 'checking' | 'savings'; // Conta Corrente ou Poupança
   observations?: string;
+  notes?: string;
   isActive: boolean;
-  isTransporter?: boolean; // Novo campo para identificar transportadoras
-  createdAt: Date;
+  isTransporter?: boolean; // Campo para compatibilidade, mas agora usamos type === 'FREIGHT_CARRIER'
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // Interface para Transportadoras
@@ -1291,6 +1293,64 @@ export interface IndirectCostAllocation {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Definição das categorias de despesas
+export const EXPENSE_CATEGORIES = [
+  // Aquisição
+  { category: 'animal_purchase', label: 'Compra de Animais', costCenter: 'acquisition', isRevenue: false },
+  { category: 'commission', label: 'Comissão', costCenter: 'acquisition', isRevenue: false },
+  { category: 'freight', label: 'Frete', costCenter: 'acquisition', isRevenue: false },
+  { category: 'acquisition_other', label: 'Outras - Aquisição', costCenter: 'acquisition', isRevenue: false },
+  
+  // Engorda
+  { category: 'feed', label: 'Alimentação', costCenter: 'fattening', isRevenue: false },
+  { category: 'health_costs', label: 'Custos de Saúde', costCenter: 'fattening', isRevenue: false },
+  { category: 'operational_costs', label: 'Custos Operacionais', costCenter: 'fattening', isRevenue: false },
+  { category: 'fattening_other', label: 'Outras - Engorda', costCenter: 'fattening', isRevenue: false },
+  { category: 'deaths', label: 'Mortes', costCenter: 'fattening', isRevenue: false },
+  { category: 'weight_loss', label: 'Perda de Peso', costCenter: 'fattening', isRevenue: false },
+  
+  // Administrativo
+  { category: 'general_admin', label: 'Administração Geral', costCenter: 'administrative', isRevenue: false },
+  { category: 'marketing', label: 'Marketing', costCenter: 'administrative', isRevenue: false },
+  { category: 'accounting', label: 'Contabilidade', costCenter: 'administrative', isRevenue: false },
+  { category: 'personnel', label: 'Pessoal', costCenter: 'administrative', isRevenue: false },
+  { category: 'office', label: 'Escritório', costCenter: 'administrative', isRevenue: false },
+  { category: 'services', label: 'Serviços', costCenter: 'administrative', isRevenue: false },
+  { category: 'technology', label: 'Tecnologia', costCenter: 'administrative', isRevenue: false },
+  { category: 'admin_other', label: 'Outras - Administrativo', costCenter: 'administrative', isRevenue: false },
+  { category: 'depreciation', label: 'Depreciação', costCenter: 'administrative', isRevenue: false },
+  
+  // Financeiro
+  { category: 'taxes', label: 'Impostos', costCenter: 'financial', isRevenue: false },
+  { category: 'interest', label: 'Juros', costCenter: 'financial', isRevenue: false },
+  { category: 'fees', label: 'Taxas', costCenter: 'financial', isRevenue: false },
+  { category: 'insurance', label: 'Seguro', costCenter: 'financial', isRevenue: false },
+  { category: 'capital_cost', label: 'Custo de Capital', costCenter: 'financial', isRevenue: false },
+  { category: 'financial_management', label: 'Gestão Financeira', costCenter: 'financial', isRevenue: false },
+  { category: 'default', label: 'Inadimplência', costCenter: 'financial', isRevenue: false },
+  { category: 'tax_deductions', label: 'Deduções Fiscais', costCenter: 'financial', isRevenue: false },
+  { category: 'slaughterhouse_advance', label: 'Adiantamento Frigorífico', costCenter: 'financial', isRevenue: false },
+  { category: 'financial_other', label: 'Outras - Financeiro', costCenter: 'financial', isRevenue: false },
+  
+  // Vendas
+  { category: 'sales_commission', label: 'Comissão de Vendas', costCenter: 'sales', isRevenue: false },
+  { category: 'sales_freight', label: 'Frete de Vendas', costCenter: 'sales', isRevenue: false },
+  { category: 'grading_costs', label: 'Custos de Classificação', costCenter: 'sales', isRevenue: false },
+  { category: 'sales_other', label: 'Outras - Vendas', costCenter: 'sales', isRevenue: false },
+  
+  // Receitas
+  { category: 'cattle_sales', label: 'Venda de Gado', costCenter: 'revenue', isRevenue: true },
+  { category: 'service_revenue', label: 'Receita de Serviços', costCenter: 'revenue', isRevenue: true },
+  { category: 'byproduct_sales', label: 'Venda de Subprodutos', costCenter: 'revenue', isRevenue: true },
+  { category: 'other_revenue', label: 'Outras Receitas', costCenter: 'revenue', isRevenue: true },
+  
+  // Aportes e Financiamentos
+  { category: 'partner_contribution', label: 'Aporte de Sócio', costCenter: 'financing', isRevenue: true },
+  { category: 'partner_loan', label: 'Empréstimo de Sócio', costCenter: 'financing', isRevenue: true },
+  { category: 'bank_financing', label: 'Financiamento Bancário', costCenter: 'financing', isRevenue: true },
+  { category: 'external_investor', label: 'Investidor Externo', costCenter: 'financing', isRevenue: true }
+] as const;
 
 // 🆕 NOVA INTERFACE: Template de Rateio
 export interface AllocationTemplate {

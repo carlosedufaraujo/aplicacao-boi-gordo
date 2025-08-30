@@ -77,7 +77,7 @@ export class SaleService {
       revenues: true,
     };
 
-    return this.saleRepository.findAll(where, pagination, include);
+    return this.saleRepository.findAll(where, pagination);
   }
 
   async findById(id: string) {
@@ -179,7 +179,7 @@ export class SaleService {
   }
 
   private async validateLotAvailability(lotId: string, quantity: number) {
-    const lot = await this.prisma.cattleLot.findUnique({
+    const lot = await this.prisma.cattlePurchase.findUnique({
       where: { id: lotId },
       include: {
         sales: true,
@@ -226,8 +226,8 @@ export class SaleService {
     const year = new Date().getFullYear();
     const lastSale = await this.saleRepository.findAll(
       {},
-      { sortBy: 'saleNumber', sortOrder: 'desc', limit: 1 }
-    ).then(results => results.data[0] || null);
+      { page: 1, limit: 1 }
+    ).then(results => results.items?.[0] || null);
 
     let sequence = 1;
     if (lastSale && lastSale.saleNumber.startsWith(`VND${year}`)) {
