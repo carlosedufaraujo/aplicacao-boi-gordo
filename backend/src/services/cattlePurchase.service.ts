@@ -69,7 +69,10 @@ export class CattlePurchaseService {
     let cycleId = data.cycleId;
     if (!cycleId) {
       const activeCycle = await prisma.cycle.findFirst({
-        where: { stage: 'active' }
+        where: { 
+          status: 'ACTIVE',
+          isActive: true 
+        }
       });
       cycleId = activeCycle?.id;
     }
@@ -82,23 +85,43 @@ export class CattlePurchaseService {
                      (data.freightCost || 0) + 
                      (data.commission || 0);
 
-    return await this.repository.create({
-      ...data,
+    // Filtrar campos nulos/undefined para evitar violações de FK
+    const createData: any = {
+      vendorId: data.vendorId,
+      payerAccountId: data.payerAccountId,
       cycleId,
       lotCode,
-      // internalCode removido
+      purchaseDate: data.purchaseDate,
+      animalType: data.animalType,
+      initialQuantity: data.initialQuantity,
+      purchaseWeight: data.purchaseWeight,
+      carcassYield: data.carcassYield,
+      pricePerArroba: data.pricePerArroba,
+      paymentType: data.paymentType,
       purchaseValue,
       totalCost,
       currentQuantity: data.initialQuantity,
       status: 'CONFIRMED' as const,
-      stage: 'confirmed',
       deathCount: 0,
-      averageWeight: data.purchaseWeight / data.initialQuantity,
-      // Adicionar campos de localização
-      city: data.city,
-      state: data.state,
-      farm: data.farm
-    });
+      averageWeight: data.purchaseWeight / data.initialQuantity
+    };
+
+    // Adicionar campos opcionais apenas se existirem
+    if (data.brokerId) createData.brokerId = data.brokerId;
+    if (data.transportCompanyId) createData.transportCompanyId = data.transportCompanyId;
+    if (data.location) createData.location = data.location;
+    if (data.city) createData.city = data.city;
+    if (data.state) createData.state = data.state;
+    if (data.farm) createData.farm = data.farm;
+    if (data.animalAge) createData.animalAge = data.animalAge;
+    if (data.paymentTerms) createData.paymentTerms = data.paymentTerms;
+    if (data.principalDueDate) createData.principalDueDate = data.principalDueDate;
+    if (data.freightCost) createData.freightCost = data.freightCost;
+    if (data.freightDistance) createData.freightDistance = data.freightDistance;
+    if (data.commission) createData.commission = data.commission;
+    if (data.notes) createData.notes = data.notes;
+
+    return await this.repository.create(createData);
   }
 
   async findAll(filters: any = {}, pagination?: any) {
@@ -135,17 +158,20 @@ export class CattlePurchaseService {
 
   async updateStatus(id: string, status: PurchaseStatus) {
     return await this.repository.update(id, { 
-      status,
-      stage: status.toLowerCase()
+      status
     });
   }
 
   async registerReception(id: string, data: RegisterReceptionData) {
     const purchase = await this.findById(id);
     
-    // Validar estágio da compra (usando stage ao invés de status)
-    if (purchase.stage && purchase.stage !== 'confirmed' && purchase.stage !== 'in_transit') {
-      throw new AppError('Apenas compras confirmadas ou em trânsito podem ser recepcionadas', 400);
+    // Verificar se já foi recepcionada
+    if (purchase.status === 'RECEIVED' || purchase.status === 'CONFINED' || purchase.status === 'SOLD') {
+      throw new AppError('Esta compra já foi recepcionada', 400);
+    }
+    
+    if (purchase.status !== 'CONFIRMED') {
+      throw new AppError('Apenas compras confirmadas podem ser recepcionadas', 400);
     }
 
     // Calcular quebra de peso
@@ -179,47 +205,46 @@ export class CattlePurchaseService {
             freightDistance: data.freightDistance || purchase.freightDistance,
             freightCostPerKm: data.freightCostPerKm || purchase.freightCostPerKm,
             freightCost: data.freightValue || purchase.freightCost,
-            transportCompanyId: data.transportCompanyId || purchase.transportCompanyId,
+            // transportCompanyId removido temporariamente - será tratado separadamente se necessário
             expectedGMD: data.estimatedGMD || purchase.expectedGMD,
-            // Removido status - usando apenas stage
-            stage: 'active',
-            stage: 'confined',
+            // Atualizar status para CONFINED quando recepcionado com alocação
+            status: 'CONFINED' as PurchaseStatus,
             averageWeight: data.receivedWeight / data.actualQuantity,
             notes: [
               purchase.notes,
               data.mortalityReason ? `Motivo da mortalidade: ${data.mortalityReason}` : null,
               data.notes
-            ].filter(Boolean).join('\n').trim() || null,
-            confinementDate: new Date()
+            ].filter(Boolean).join('\n').trim() || null
           },
           include: {
             vendor: true,
             broker: true,
-            pens: true
+            penAllocations: {
+              include: { pen: true }
+            }
           }
         });
 
         // Criar alocações de curral
         for (const allocation of data.penAllocations) {
+          // Buscar capacidade do curral para calcular percentageOfPen
+          const pen = await tx.pen.findUnique({
+            where: { id: allocation.penId }
+          });
+          
           await tx.lotPenLink.create({
             data: {
               purchaseId: id,
               penId: allocation.penId,
               quantity: allocation.quantity,
-              entryDate: new Date(),
-              stage: 'active'
+              allocationDate: new Date(),
+              status: 'ACTIVE',
+              percentageOfLot: (allocation.quantity / data.actualQuantity) * 100,
+              percentageOfPen: pen ? (allocation.quantity / pen.capacity) * 100 : 0
             }
           });
 
-          // Atualizar ocupação do curral
-          await tx.pen.update({
-            where: { id: allocation.penId },
-            data: {
-              currentOccupancy: {
-                increment: allocation.quantity
-              }
-            }
-          });
+          // Atualização de ocupação removida - currentOccupancy é calculado dinamicamente
         }
 
         return updatedPurchase;
@@ -236,10 +261,10 @@ export class CattlePurchaseService {
         freightDistance: data.freightDistance || purchase.freightDistance,
         freightCostPerKm: data.freightCostPerKm || purchase.freightCostPerKm,
         freightCost: data.freightValue || purchase.freightCost,
-        transportCompanyId: data.transportCompanyId || purchase.transportCompanyId,
+        // transportCompanyId removido temporariamente
         expectedGMD: data.estimatedGMD || purchase.expectedGMD,
-        // Removido status pois o campo não existe no modelo
-        stage: 'received',
+        // Atualizar status para RECEIVED
+        status: 'RECEIVED' as PurchaseStatus,
         averageWeight: data.receivedWeight / data.actualQuantity,
         notes: [
           purchase.notes,
@@ -253,8 +278,8 @@ export class CattlePurchaseService {
   async markAsConfined(id: string, data: MarkAsConfinedData) {
     const purchase = await this.findById(id);
     
-    if (purchase.stage !== 'received') {
-      throw new AppError('Apenas compras recepcionadas podem ser ativadas', 400);
+    if (purchase.status !== 'RECEIVED') {
+      throw new AppError('Apenas compras recepcionadas podem ser confinadas', 400);
     }
 
     // Validar total de animais alocados
@@ -269,7 +294,7 @@ export class CattlePurchaseService {
       await tx.lotPenLink.updateMany({
         where: {
           purchaseId: id,
-          stage: 'active'
+          status: 'ACTIVE'
         },
         data: {
           status: 'REMOVED',
@@ -285,7 +310,7 @@ export class CattlePurchaseService {
           where: { id: allocation.penId },
           include: {
             lotAllocations: {
-              where: { stage: 'active' }
+              where: { status: 'ACTIVE' }
             }
           }
         });
@@ -310,7 +335,7 @@ export class CattlePurchaseService {
             percentageOfLot: (allocation.quantity / purchase.currentQuantity) * 100,
             percentageOfPen: (allocation.quantity / pen.capacity) * 100,
             allocationDate,
-            stage: 'active'
+            status: 'ACTIVE'
           }
         });
 
@@ -327,8 +352,7 @@ export class CattlePurchaseService {
       const updated = await tx.cattlePurchase.update({
         where: { id },
         data: {
-          stage: 'active' as const,
-          stage: 'active',
+          status: 'CONFINED' as PurchaseStatus,
           notes: data.notes ? `${purchase.notes || ''}\n${data.notes}`.trim() : purchase.notes
         },
         include: {
@@ -337,7 +361,7 @@ export class CattlePurchaseService {
           transportCompany: true,
           payerAccount: true,
           penAllocations: {
-            where: { stage: 'active' },
+            where: { status: 'ACTIVE' },
             include: { pen: true }
           }
         }
@@ -366,16 +390,61 @@ export class CattlePurchaseService {
   async delete(id: string) {
     const purchase = await this.findById(id);
     
-    if (purchase.status === 'ACTIVE') {
-      throw new AppError('Não é possível excluir compra ativa', 400);
+    // Verificar se existem dados relacionados importantes
+    const relatedData = {
+      penAllocations: 0,
+      expenses: 0,
+      revenues: 0
+    };
+    
+    try {
+      // Verificar apenas as tabelas que existem
+      const [penAllocations, expenses, revenues] = await Promise.all([
+        prisma.lotPenLink.count({ where: { purchaseId: id } }),
+        prisma.expense.count({ where: { purchaseId: id } }).catch(() => 0),
+        prisma.revenue.count({ where: { purchaseId: id } }).catch(() => 0)
+      ]);
+      
+      relatedData.penAllocations = penAllocations;
+      relatedData.expenses = expenses;
+      relatedData.revenues = revenues;
+    } catch (error) {
+      console.log('Erro ao verificar dados relacionados:', error);
     }
     
-    // Remover alocações se existirem
-    await prisma.lotPenLink.deleteMany({
-      where: { purchaseId: id }
-    });
+    const hasRelatedData = Object.values(relatedData).some(count => count > 0);
     
-    return await this.repository.delete(id);
+    // Se tem dados relacionados, avisar mas permitir exclusão
+    if (hasRelatedData) {
+      console.log(`⚠️ Excluindo lote ${purchase.lotCode} com dados relacionados:`, relatedData);
+    }
+    
+    // Executar exclusão em cascata usando transação
+    return await prisma.$transaction(async (tx) => {
+      // 1. Remover alocações de currais (sempre existe)
+      await tx.lotPenLink.deleteMany({ where: { purchaseId: id } });
+      
+      // 2. Tentar remover despesas se a tabela existir
+      try {
+        await tx.expense.deleteMany({ where: { purchaseId: id } });
+      } catch (error) {
+        console.log('Tabela expense não existe ou erro ao deletar:', error);
+      }
+      
+      // 3. Tentar remover receitas se a tabela existir
+      try {
+        await tx.revenue.deleteMany({ where: { purchaseId: id } });
+      } catch (error) {
+        console.log('Tabela revenue não existe ou erro ao deletar:', error);
+      }
+      
+      // 4. Finalmente, excluir a compra
+      const deleted = await tx.cattlePurchase.delete({ where: { id } });
+      
+      console.log(`✅ Lote ${purchase.lotCode} excluído com sucesso, incluindo todos os dados relacionados`);
+      
+      return deleted;
+    });
   }
 
   async getStatistics() {

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { apiClient } from '@/services/api/apiClient';
 import { toast } from 'sonner';
 
@@ -82,8 +82,7 @@ export interface CattlePurchase {
   estimatedSlaughterDate?: Date | string;
   
   // Status
-  status: 'NEGOTIATING' | 'CONFIRMED' | 'IN_TRANSIT' | 'RECEIVED' | 'ACTIVE' | 'SOLD' | 'CANCELLED';
-  stage?: string;
+  status: 'CONFIRMED' | 'RECEIVED' | 'CONFINED' | 'SOLD' | 'CANCELLED';
   notes?: string;
   transportMortality?: number;
   
@@ -423,6 +422,39 @@ export function useCattlePurchasesApi() {
     }
   }, []);
 
+  // Marcar como confinado (para compras já recepcionadas)
+  const markAsConfined = useCallback(async (id: string, data: any) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const payload = {
+        penAllocations: data.penAllocations || [],
+        notes: data.notes || data.observations,
+      };
+      
+      console.log('Marcando como confinado:', payload);
+      
+      const response = await apiClient.post(`/cattle-purchases/${id}/confined`, payload);
+      
+      if (response.data) {
+        const updatedPurchase = response.data;
+        setPurchases(prev => prev.map(p => p.id === id ? updatedPurchase : p));
+        toast.success('Lote alocado em currais com sucesso!');
+        return updatedPurchase;
+      } else {
+        throw new Error('Erro ao alocar em currais');
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Erro ao alocar em currais';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Atualizar GMD
   const updateGMD = useCallback(async (id: string, expectedGMD: number, targetWeight: number) => {
     try {
@@ -460,22 +492,53 @@ export function useCattlePurchasesApi() {
       
       const response = await apiClient.delete(`/cattle-purchases/${id}`);
       
-      if (response.status === 204 || response.data?.status === 'success') {
-        setPurchases(prev => prev.filter(p => p.id !== id));
-        toast.success('Compra excluída com sucesso!');
-        return true;
-      } else {
-        throw new Error('Erro ao excluir compra');
+      // Se chegou aqui sem erro, a exclusão foi bem sucedida
+      // (o apiClient já tratou erros HTTP)
+      
+      // Remover da lista local imediatamente
+      setPurchases(prev => prev.filter(p => p.id !== id));
+      
+      // Mostrar mensagem de sucesso
+      const successMessage = response.data?.message || response.message || 'Compra excluída com sucesso!';
+      toast.success(successMessage);
+      
+      // Recarregar lista após exclusão para garantir sincronização
+      try {
+        await loadPurchases();
+      } catch (loadError) {
+        console.log('Erro ao recarregar lista após exclusão:', loadError);
       }
+      
+      // Retornar true para indicar sucesso
+      return true;
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Erro ao excluir compra';
+      // Se for 404, a compra já foi excluída
+      if (err.response?.status === 404) {
+        setPurchases(prev => prev.filter(p => p.id !== id));
+        setError(null);
+        toast.info('Esta compra já foi removida');
+        // Recarregar lista
+        await loadPurchases();
+        return true; // Retornar true pois o objetivo foi alcançado
+      } 
+      
+      // Para outros erros
+      const errorMessage = err.response?.data?.message || err.message || 'Erro ao excluir compra';
       setError(errorMessage);
-      toast.error(errorMessage);
+      
+      // Verificar se é erro de compra ativa
+      if (errorMessage.includes('ativa') || errorMessage.includes('ACTIVE')) {
+        toast.error('Não é possível excluir uma compra ativa. Altere o status primeiro.');
+      } else {
+        toast.error(errorMessage);
+      }
+      
+      // Lançar erro para o componente tratar se necessário
       throw err;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadPurchases]);
 
   // Buscar estatísticas
   const getStatistics = useCallback(async () => {
@@ -500,21 +563,30 @@ export function useCattlePurchasesApi() {
     }
   }, []);
 
+  // Carregar dados ao montar o hook
+  React.useEffect(() => {
+    loadPurchases();
+  }, []);
+
   return {
     // Estado
+    cattlePurchases: purchases, // Alias para manter compatibilidade
     purchases,
     loading,
     error,
     
     // Métodos
+    refresh: loadPurchases, // Alias para manter compatibilidade
     loadPurchases,
     getPurchaseById,
     createPurchase,
     updatePurchase,
     registerReception,
+    markAsConfined,
     updateStatus,
     registerDeath,
     updateGMD,
+    deleteCattlePurchase: deletePurchase, // Alias para manter compatibilidade
     deletePurchase,
     getStatistics,
   };

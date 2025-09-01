@@ -18,6 +18,8 @@ import {
   FileText,
   Download,
   ChevronRight,
+  ChevronDown,
+  ArrowRightLeft,
   Activity,
   Beef,
   Calculator,
@@ -36,7 +38,8 @@ import {
   Target,
   Zap,
   ExternalLink,
-  Wifi
+  Wifi,
+  History
 } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -60,7 +63,6 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -112,13 +114,17 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { useInterventionsApi } from '@/hooks/api/useInterventionsApi';
 
 // Stores e hooks
 import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
 import { usePartnersApi } from '@/hooks/api/usePartnersApi';
 import { usePensApi } from '@/hooks/api/usePensApi';
 import { usePenOccupancyApi } from '@/hooks/api/usePenOccupancyApi';
-import { PenMapIntegrated } from './PenMapIntegrated';
 
 // Modais integrados da página de Compras
 import { PurchaseDetailsModal } from '@/components/Purchases/PurchaseDetailsModal';
@@ -126,12 +132,12 @@ import { EnhancedPurchaseForm } from '@/components/Forms/EnhancedPurchaseForm';
 
 // Novos componentes
 import { PenOccupancyIndicators, OccupancyStats } from './PenOccupancyIndicators';
-import { PenOccupancyHistory } from './PenOccupancyHistory';
+import InterventionHistory from '@/components/Interventions/InterventionHistory';
 
 // Funções utilitárias
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'ACTIVE': return 'status-active';
+    case 'CONFINED': return 'status-active';
     case 'SOLD': return 'status-inactive';
     case 'PENDING': return 'status-pending';
     default: return 'status-inactive';
@@ -140,7 +146,7 @@ const getStatusColor = (status: string) => {
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'ACTIVE': return <CheckCircle className="h-3 w-3" />;
+    case 'CONFINED': return <CheckCircle className="h-3 w-3" />;
     case 'SOLD': return <DollarSign className="h-3 w-3" />;
     case 'PENDING': return <Clock className="h-3 w-3" />;
     default: return <XCircle className="h-3 w-3" />;
@@ -187,7 +193,7 @@ interface CattlePurchase {
   averageWeight: number;
   totalCost: number;
   costPerHead: number;
-  status: 'ACTIVE' | 'SOLD' | 'PENDING';
+  status: 'CONFINED' | 'SOLD' | 'PENDING';
   entryDate: Date;
   projectedSaleDate?: Date;
   penId?: string;
@@ -280,8 +286,18 @@ const PenMapView: React.FC<{ pens: PenMapData[] }> = ({ pens }) => {
 export const CompleteLots: React.FC = () => {
   const { cattlePurchases, loading: lotsLoading, refresh: refreshLots, deleteCattlePurchase } = useCattlePurchasesApi();
   const { cattlePurchases: orders, loading: ordersLoading, refresh: refreshOrders } = useCattlePurchasesApi();
+  
+  console.log('🚀 CompleteLots - cattlePurchases:', cattlePurchases);
+  console.log('🚀 CompleteLots - first purchase:', cattlePurchases?.[0]);
   const { partners } = usePartnersApi();
   const { pens } = usePensApi();
+  const { 
+    createHealthIntervention, 
+    createMortalityRecord, 
+    createPenMovement, 
+    createWeightReading,
+    loading: interventionLoading 
+  } = useInterventionsApi();
   const { 
     occupancyData, 
     loading: occupancyLoading, 
@@ -303,6 +319,13 @@ export const CompleteLots: React.FC = () => {
   const [showLotEdit, setShowLotEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [lotToDelete, setLotToDelete] = useState<string | null>(null);
+  const [selectedPenId, setSelectedPenId] = useState<string | null>(null);
+  const [showPenDetail, setShowPenDetail] = useState(false);
+  const [showInterventionModal, setShowInterventionModal] = useState(false);
+  const [showInterventionHistory, setShowInterventionHistory] = useState(false);
+  const [interventionType, setInterventionType] = useState<'health' | 'mortality' | 'movement' | 'weighing' | null>(null);
+  const [selectedLotId, setSelectedLotId] = useState<string>('');
+  const [selectedPenIdForIntervention, setSelectedPenIdForIntervention] = useState<string>('');
 
   // Escutar eventos globais para refresh
   useEffect(() => {
@@ -345,57 +368,160 @@ export const CompleteLots: React.FC = () => {
     };
   }, [refreshLots, refreshOrders]);
 
-  // Dados processados
+  // Todos os lotes processados (para a tabela)
+  const allProcessedLots = useMemo(() => {
+    if (!cattlePurchases || !Array.isArray(cattlePurchases)) {
+      return [];
+    }
+    
+    console.log('🔍 Processing cattlePurchases:', cattlePurchases.length, 'items');
+    console.log('🔍 First purchase penAllocations:', cattlePurchases[0]?.penAllocations);
+    
+    // Mapear TODOS os lotes
+    return cattlePurchases.map(purchase => {
+      const partner = partners?.find(p => p.id === purchase.vendorId);
+      
+      // Calcular métricas derivadas
+      const averageWeight = purchase.currentQuantity > 0 ? 
+        (purchase.receivedWeight || purchase.purchaseWeight) / purchase.currentQuantity : 0;
+      const deaths = purchase.deathCount || 0;
+      const sales = purchase.initialQuantity - purchase.currentQuantity - deaths;
+      const costPerHead = purchase.currentQuantity > 0 ? purchase.totalCost / purchase.currentQuantity : 0;
+      
+      // Obter todas as alocações de currais
+      const penAllocations = purchase.penAllocations || [];
+      const mainPenAllocation = penAllocations[0];
+      const penId = mainPenAllocation?.penId;
+      const penNumber = mainPenAllocation?.pen?.penNumber;
+      
+      // Criar string com todos os currais alocados
+      const allPensInfo = penAllocations.map(alloc => 
+        `Curral ${alloc.pen?.penNumber || 'N/A'}: ${alloc.quantity} (${alloc.percentageOfLot?.toFixed(1)}%)`
+      ).join(' | ');
+      
+      return {
+        ...purchase,
+        // Mapeamento para compatibilidade com a estrutura de lotes esperada
+        lotNumber: purchase.lotCode,
+        entryQuantity: purchase.initialQuantity,
+        entryWeight: purchase.purchaseWeight,
+        // Propriedades adicionais calculadas
+        partnerName: partner?.name || purchase.vendor?.name || 'N/A',
+        purchaseDate: purchase.purchaseDate || purchase.createdAt,
+        breed: purchase.animalType || 'Não informado',
+        origin: purchase.city && purchase.state ? 
+          `${purchase.city} - ${purchase.state}` : 
+          'Não informado',
+        initialQuantity: purchase.initialQuantity,
+        averageWeight,
+        deaths,
+        sales,
+        costPerHead,
+        penId,
+        penNumber,
+        allPensInfo,
+        penAllocations
+      };
+    });
+  }, [cattlePurchases, partners]);
+
+  // Dados processados apenas confinados (para mapa de currais e métricas)
   const processedLots = useMemo(() => {
     if (!cattlePurchases || !Array.isArray(cattlePurchases)) {
       return [];
     }
     
-    return cattlePurchases.map(lot => {
-      const order = cattlePurchases.find(o => o.id === lot.purchaseId);
-      const partner = partners?.find(p => p.id === order?.vendorId);
-      
-      // Calcular métricas derivadas
-      const averageWeight = lot.entryQuantity > 0 ? lot.entryWeight / lot.entryQuantity : 0;
-      const deaths = lot.deathCount || 0;
-      const sales = lot.entryQuantity - lot.currentQuantity - deaths;
-      const costPerHead = lot.currentQuantity > 0 ? lot.totalCost / lot.currentQuantity : 0;
-      
-      return {
-        ...lot,
-        // Propriedades adicionais calculadas
-        partnerName: partner?.name || 'N/A',
-        purchaseDate: order?.purchaseDate || lot.createdAt,
-        breed: order?.animalType || 'Não informado',
-        origin: order?.location ? 
-          `${parseLocation(order.location).city} - ${parseLocation(order.location).state}` : 
-          'Não informado',
-        initialQuantity: lot.entryQuantity,
-        averageWeight,
-        deaths,
-        sales,
-        costPerHead
-      };
-    });
-  }, [cattlePurchases, cattlePurchases, partners]);
+    // Filtrar apenas compras confinadas (já alocadas)
+    // E reprocessar para ter os mesmos campos
+    return cattlePurchases
+      .filter(purchase => purchase.status === 'CONFINED')
+      .map(purchase => {
+        const partner = partners?.find(p => p.id === purchase.vendorId);
+        
+        // Calcular métricas derivadas
+        const averageWeight = purchase.currentQuantity > 0 ? 
+          (purchase.receivedWeight || purchase.purchaseWeight) / purchase.currentQuantity : 0;
+        const deaths = purchase.deathCount || 0;
+        const sales = purchase.initialQuantity - purchase.currentQuantity - deaths;
+        const costPerHead = purchase.currentQuantity > 0 ? purchase.totalCost / purchase.currentQuantity : 0;
+        
+        // Obter todas as alocações de currais
+        const penAllocations = purchase.penAllocations || [];
+        const mainPenAllocation = penAllocations[0];
+        const penId = mainPenAllocation?.penId;
+        const penNumber = mainPenAllocation?.pen?.penNumber;
+        
+        // Criar string com todos os currais alocados
+        const allPensInfo = penAllocations.map(alloc => 
+          `Curral ${alloc.pen?.penNumber || 'N/A'}: ${alloc.quantity} (${alloc.percentageOfLot?.toFixed(1)}%)`
+        ).join(' | ');
+        
+        return {
+          ...purchase,
+          // Mapeamento para compatibilidade com a estrutura de lotes esperada
+          lotNumber: purchase.lotCode,
+          entryQuantity: purchase.initialQuantity,
+          entryWeight: purchase.purchaseWeight,
+          // Propriedades adicionais calculadas
+          partnerName: partner?.name || purchase.vendor?.name || 'N/A',
+          purchaseDate: purchase.purchaseDate || purchase.createdAt,
+          breed: purchase.animalType || 'Não informado',
+          origin: purchase.city && purchase.state ? 
+            `${purchase.city} - ${purchase.state}` : 
+            'Não informado',
+          initialQuantity: purchase.initialQuantity,
+          averageWeight,
+          deaths,
+          sales,
+          costPerHead,
+          penId,
+          penNumber,
+          allPensInfo,
+          penAllocations
+        };
+      });
+  }, [cattlePurchases, partners]);
 
-  // Filtros aplicados
+  // Filtros aplicados para lotes confinados
   const filteredLots = useMemo(() => {
     return processedLots.filter(lot => {
-      const matchesSearch = (lot.lotNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch = (lot.lotCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (lot.lotNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (lot.partnerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                            (lot.breed || '').toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesStatus = statusFilter === 'all' || lot.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || 
+                           lot.status === statusFilter || 
+                           lot.status === statusFilter;
       const matchesPen = penFilter === 'all' || lot.penId === penFilter;
       
       return matchesSearch && matchesStatus && matchesPen;
     });
   }, [processedLots, searchTerm, statusFilter, penFilter]);
 
+  // Filtros aplicados para TODOS os lotes (tabela)
+  const filteredAllLots = useMemo(() => {
+    console.log('📊 allProcessedLots:', allProcessedLots.length, 'items');
+    console.log('📊 First processed lot:', allProcessedLots[0]);
+    return allProcessedLots.filter(lot => {
+      const matchesSearch = (lot.lotCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (lot.lotNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (lot.partnerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (lot.breed || '').toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || 
+                           lot.status === statusFilter || 
+                           lot.status === statusFilter;
+      const matchesPen = penFilter === 'all' || lot.penId === penFilter;
+      
+      return matchesSearch && matchesStatus && matchesPen;
+    });
+  }, [allProcessedLots, searchTerm, statusFilter, penFilter]);
+
   // Métricas calculadas
   const metrics = useMemo(() => {
-    const activeLots = processedLots.filter(lot => lot.status === 'ACTIVE');
+    // Lotes ativos são aqueles confinados
+    const activeLots = processedLots; // Já filtrados no processedLots
     const totalAnimals = activeLots.reduce((sum, lot) => sum + lot.currentQuantity, 0);
     const totalInvestment = activeLots.reduce((sum, lot) => sum + lot.totalCost, 0);
     const averageWeight = activeLots.length > 0 
@@ -410,10 +536,10 @@ export const CompleteLots: React.FC = () => {
       totalInvestment,
       averageWeight,
       mortalityRate,
-      pendingLots: processedLots.filter(lot => lot.status === 'PENDING').length,
-      soldLots: processedLots.filter(lot => lot.status === 'SOLD').length
+      pendingLots: cattlePurchases?.filter(lot => lot.status === 'CONFIRMED' || lot.status === 'RECEIVED').length || 0,
+      soldLots: cattlePurchases?.filter(lot => lot.status === 'SOLD').length || 0
     };
-  }, [processedLots]);
+  }, [processedLots, cattlePurchases]);
 
   // Dados do mapa de currais
   const penMapData: PenMapData[] = useMemo(() => {
@@ -422,8 +548,21 @@ export const CompleteLots: React.FC = () => {
     }
     
     return pens.map(pen => {
-      const penLots = processedLots.filter(lot => lot.penId === pen.id && lot.status === 'ACTIVE');
-      const currentOccupancy = penLots.reduce((sum, lot) => sum + lot.currentQuantity, 0);
+      // Filtrar lotes alocados neste curral
+      const penLots = processedLots.filter(lot => {
+        // Verificar se o lote tem alocação neste curral
+        return lot.penAllocations?.some(alloc => 
+          alloc.penId === pen.id && alloc.status === 'ACTIVE'
+        );
+      });
+      
+      // Calcular ocupação atual somando as quantidades alocadas
+      const currentOccupancy = penLots.reduce((sum, lot) => {
+        const allocation = lot.penAllocations?.find(alloc => 
+          alloc.penId === pen.id && alloc.status === 'ACTIVE'
+        );
+        return sum + (allocation?.quantity || 0);
+      }, 0);
       
       return {
         id: pen.id,
@@ -512,6 +651,88 @@ export const CompleteLots: React.FC = () => {
     setShowLotDetail(false);
   };
 
+  const handlePenClick = (penId: string) => {
+    setSelectedPenId(penId);
+    setShowPenDetail(true);
+  };
+
+  const handleIntervention = (type: 'health' | 'mortality' | 'movement' | 'weighing') => {
+    setInterventionType(type);
+    setShowInterventionModal(true);
+  };
+
+  const handleSaveIntervention = async () => {
+    if (!interventionType || !selectedPenIdForIntervention) return;
+    
+    try {
+      const form = document.querySelector('#intervention-form') as HTMLFormElement;
+      if (!form) return;
+      
+      const formData = new FormData(form);
+      const data: any = {};
+      
+      formData.forEach((value, key) => {
+        data[key] = value;
+      });
+      
+      // Dados comuns
+      const baseData = {
+        cattlePurchaseId: selectedLotId,
+        penId: selectedPenIdForIntervention
+      };
+      
+      if (interventionType === 'health') {
+        await createHealthIntervention({
+          ...baseData,
+          interventionType: 'vaccine',
+          productName: data['vaccine-type'] || '',
+          dose: parseFloat(data.dose) || 0,
+          applicationDate: new Date(data['application-date']),
+          veterinarian: data.veterinarian || undefined,
+          notes: data.notes || undefined
+        });
+      } else if (interventionType === 'mortality') {
+        await createMortalityRecord({
+          ...baseData,
+          quantity: parseInt(data['death-count']) || 1,
+          deathDate: new Date(data['death-date']),
+          cause: data['death-cause'] as any || 'unknown',
+          notes: data['death-notes'] || undefined
+        });
+      } else if (interventionType === 'movement') {
+        await createPenMovement({
+          ...baseData,
+          fromPenId: selectedPenIdForIntervention,
+          toPenId: data['destination-pen'] || '',
+          quantity: parseInt(data['move-quantity']) || 1,
+          movementDate: new Date(),
+          reason: data['move-reason'] || ''
+        });
+      } else if (interventionType === 'weighing') {
+        await createWeightReading({
+          ...baseData,
+          averageWeight: parseFloat(data['weight-average']) || 0,
+          sampleSize: parseInt(data['weight-sample']) || 1,
+          weighingDate: new Date(data['weight-date']),
+          notes: data['weight-notes'] || undefined
+        });
+      }
+      
+      // Atualizar dados
+      refreshLots();
+      refreshOrders();
+      
+      // Fechar modal
+      setShowInterventionModal(false);
+      setInterventionType(null);
+      setSelectedLotId('');
+      setSelectedPenIdForIntervention('');
+      
+    } catch (error) {
+      console.error('Erro ao salvar intervenção:', error);
+    }
+  };
+
   const isLoading = lotsLoading || ordersLoading;
 
   if (isLoading) {
@@ -542,10 +763,44 @@ export const CompleteLots: React.FC = () => {
               <Download className="h-4 w-4 mr-2" />
               Exportar
             </Button>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Lote
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowInterventionHistory(true)}
+              className="gap-2"
+            >
+              <History className="h-4 w-4" />
+              Histórico
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Nova Intervenção
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Selecione o tipo</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleIntervention('health')}>
+                  <Activity className="mr-2 h-4 w-4" />
+                  Protocolo Sanitário
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleIntervention('mortality')}>
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Registro de Morte
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleIntervention('movement')}>
+                  <ArrowRightLeft className="mr-2 h-4 w-4" />
+                  Movimentação
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleIntervention('weighing')}>
+                  <Weight className="mr-2 h-4 w-4" />
+                  Pesagem
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -672,7 +927,7 @@ export const CompleteLots: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os Status</SelectItem>
-                  <SelectItem value="ACTIVE">Ativo</SelectItem>
+                  <SelectItem value="CONFINED">Confinado</SelectItem>
                   <SelectItem value="PENDING">Pendente</SelectItem>
                   <SelectItem value="SOLD">Vendido</SelectItem>
                 </SelectContent>
@@ -899,29 +1154,30 @@ export const CompleteLots: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredLots.map((lot) => {
+                    {filteredAllLots.map((lot) => {
                       const pen = pens.find(p => p.id === lot.penId);
+                      console.log('🎯 Rendering lot:', lot.lotCode, 'penAllocations:', lot.penAllocations);
                       return (
                         <TableRow key={lot.id}>
                           <TableCell className="table-cell-important">
-                            Lote {lot.lotNumber}
+                            {lot.lotCode}
                           </TableCell>
                           <TableCell>
                             <Badge variant={
-                              lot.status === 'ACTIVE' ? 'default' :
-                              lot.status === 'PENDING' ? 'secondary' :
+                              lot.status === 'CONFINED' ? 'default' :
+                              lot.status === 'CONFIRMED' ? 'secondary' :
                               lot.status === 'SOLD' ? 'outline' : 'destructive'
                             } className="text-caption">
-                              {lot.status === 'ACTIVE' ? 'Ativo' :
-                               lot.status === 'PENDING' ? 'Pendente' :
+                              {lot.status === 'CONFINED' ? 'Confinado' :
+                               lot.status === 'CONFIRMED' ? 'Confirmado' :
                                lot.status === 'SOLD' ? 'Vendido' : lot.status}
                             </Badge>
                           </TableCell>
                           <TableCell className="table-cell">
-                            {lot.currentQuantity}/{lot.entryQuantity}
+                            {lot.currentQuantity}/{lot.initialQuantity}
                           </TableCell>
                           <TableCell className="table-cell">
-                            {lot.entryWeight ? `${lot.entryWeight}kg` : 'N/A'}
+                            {lot.averageWeight ? `${lot.averageWeight.toFixed(1)}kg` : 'N/A'}
                           </TableCell>
                           <TableCell className="table-cell">
                             {lot.weightBreakPercentage ? (
@@ -942,10 +1198,21 @@ export const CompleteLots: React.FC = () => {
                             {lot.partnerName}
                           </TableCell>
                           <TableCell className="table-cell">
-                            {formatSafeDate(lot.entryDate)}
+                            {formatSafeDate(lot.receivedDate || lot.purchaseDate)}
                           </TableCell>
                           <TableCell className="table-cell">
-                            {pen ? `Curral ${pen.penNumber}` : 'Não alocado'}
+                            {lot.penAllocations && lot.penAllocations.length > 0 ? (
+                              <div className="space-y-1">
+                                {lot.penAllocations.map((alloc, idx) => (
+                                  <div key={idx} className="text-xs">
+                                    <span className="font-medium">Curral {alloc.pen?.penNumber}:</span>{' '}
+                                    {alloc.quantity} animais ({alloc.percentageOfLot?.toFixed(1)}%)
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Não alocado</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -1152,44 +1419,27 @@ export const CompleteLots: React.FC = () => {
                 {/* Grid de Indicadores de Ocupação */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {occupancyData.map((occupancy) => (
-                    <PenOccupancyIndicators
+                    <div 
                       key={occupancy.penId}
-                      penNumber={occupancy.penNumber}
-                      capacity={occupancy.capacity}
-                      currentOccupancy={occupancy.currentOccupancy}
-                      occupancyRate={occupancy.occupancyRate}
-                      status={occupancy.status}
-                      activeLots={occupancy.activeLots}
-                      lastUpdated={occupancy.lastUpdated}
-                      isConnected={isConnected}
-                      variant="detailed"
-                      className="cursor-pointer hover:scale-105 transition-transform"
-                      data-pen-id={occupancy.penId}
-                    />
+                      onClick={() => handlePenClick(occupancy.penId)}
+                      className="cursor-pointer"
+                    >
+                      <PenOccupancyIndicators
+                        penNumber={occupancy.penNumber}
+                        capacity={occupancy.capacity}
+                        currentOccupancy={occupancy.currentOccupancy}
+                        occupancyRate={occupancy.occupancyRate}
+                        status={occupancy.status}
+                        activeLots={occupancy.activeLots}
+                        lastUpdated={occupancy.lastUpdated}
+                        isConnected={isConnected}
+                        variant="detailed"
+                        className="hover:scale-105 transition-transform"
+                        data-pen-id={occupancy.penId}
+                      />
+                    </div>
                   ))}
                 </div>
-
-                {/* Mapa Visual Tradicional (Fallback) */}
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">Mapa de Currais Integrado</h3>
-                  <PenMapIntegrated />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Histórico de Ocupação */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Análise Histórica
-                </CardTitle>
-                <CardDescription>
-                  Histórico e tendências de ocupação dos currais
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <PenOccupancyHistory />
               </CardContent>
             </Card>
           </TabsContent>
@@ -1252,6 +1502,463 @@ export const CompleteLots: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Modal de Detalhes do Curral */}
+        <Dialog open={showPenDetail} onOpenChange={setShowPenDetail}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Home className="h-5 w-5" />
+                Detalhes do Curral {pens?.find(p => p.id === selectedPenId)?.penNumber}
+              </DialogTitle>
+              <DialogDescription>
+                Informações sobre o curral e lotes alocados
+              </DialogDescription>
+            </DialogHeader>
+            
+            {(() => {
+              const pen = pens?.find(p => p.id === selectedPenId);
+              const penOccupancy = occupancyData?.find(o => o.penId === selectedPenId);
+              const lotsInPen = allProcessedLots.filter(lot => 
+                lot.penAllocations?.some(alloc => 
+                  alloc.penId === selectedPenId && alloc.status === 'ACTIVE'
+                )
+              );
+              
+              if (!pen || !penOccupancy) {
+                return <div className="text-center py-8 text-muted-foreground">Carregando informações...</div>;
+              }
+              
+              return (
+                <div className="space-y-6">
+                  {/* Informações do Curral */}
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Capacidade Total</p>
+                      <p className="text-xl font-semibold">{pen.capacity} animais</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Ocupação Atual</p>
+                      <p className="text-xl font-semibold">{penOccupancy.currentOccupancy} animais</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Taxa de Ocupação</p>
+                      <div className="flex items-center gap-2">
+                        <Progress value={penOccupancy.occupancyRate} className="flex-1" />
+                        <span className="text-sm font-medium">{penOccupancy.occupancyRate.toFixed(1)}%</span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Status</p>
+                      <Badge variant={
+                        penOccupancy.status === 'available' ? 'outline' :
+                        penOccupancy.status === 'partial' ? 'secondary' :
+                        penOccupancy.status === 'full' ? 'destructive' : 'default'
+                      }>
+                        {penOccupancy.status === 'available' ? 'Disponível' :
+                         penOccupancy.status === 'partial' ? 'Parcialmente Ocupado' :
+                         penOccupancy.status === 'full' ? 'Lotado' : 'Em Manutenção'}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  {/* Lista de Lotes no Curral */}
+                  <div>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Lotes Alocados ({lotsInPen.length})
+                    </h3>
+                    
+                    {lotsInPen.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Nenhum lote alocado neste curral
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {lotsInPen.map((lot) => {
+                          const allocation = lot.penAllocations?.find(a => a.penId === selectedPenId);
+                          return (
+                            <div key={lot.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold">{lot.lotCode}</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {lot.status === 'CONFINED' ? 'Confinado' :
+                                       lot.status === 'CONFIRMED' ? 'Confirmado' : lot.status}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    Fornecedor: {lot.partnerName}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    Entrada: {formatSafeDate(lot.receivedDate || lot.purchaseDate)}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-semibold">{allocation?.quantity || 0} animais</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {allocation?.percentageOfLot?.toFixed(1)}% do lote
+                                  </p>
+                                  {lot.penAllocations && lot.penAllocations.length > 1 && (
+                                    <Badge variant="secondary" className="text-xs mt-1">
+                                      Dividido em {lot.penAllocations.length} currais
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t">
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Peso Médio</p>
+                                  <p className="text-sm font-medium">
+                                    {lot.averageWeight ? `${lot.averageWeight.toFixed(1)} kg` : 'N/A'}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Total no Lote</p>
+                                  <p className="text-sm font-medium">{lot.currentQuantity} animais</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Investimento</p>
+                                  <p className="text-sm font-medium">{formatCurrency(lot.totalCost)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Resumo Financeiro */}
+                  {lotsInPen.length > 0 && (
+                    <div className="p-4 bg-primary/5 rounded-lg">
+                      <h3 className="font-semibold mb-2">Resumo do Curral</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Total de Lotes</p>
+                          <p className="font-semibold">{lotsInPen.length}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Investimento Total</p>
+                          <p className="font-semibold">
+                            {formatCurrency(lotsInPen.reduce((sum, lot) => {
+                              const allocation = lot.penAllocations?.find(a => a.penId === selectedPenId);
+                              const percentage = (allocation?.percentageOfLot || 0) / 100;
+                              return sum + (lot.totalCost * percentage);
+                            }, 0))}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowPenDetail(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Intervenção */}
+        <Dialog open={showInterventionModal} onOpenChange={setShowInterventionModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {interventionType === 'health' && <Activity className="h-5 w-5" />}
+                {interventionType === 'mortality' && <AlertTriangle className="h-5 w-5" />}
+                {interventionType === 'movement' && <ArrowRightLeft className="h-5 w-5" />}
+                {interventionType === 'weighing' && <Weight className="h-5 w-5" />}
+                {interventionType === 'health' && 'Aplicação de Protocolo Sanitário'}
+                {interventionType === 'mortality' && 'Registro de Mortalidade'}
+                {interventionType === 'movement' && 'Movimentação de Animais'}
+                {interventionType === 'weighing' && 'Registro de Pesagem'}
+              </DialogTitle>
+              <DialogDescription>
+                Registre a intervenção nos animais do curral selecionado
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form id="intervention-form" className="space-y-4 py-4">
+              {/* Seleção de Curral */}
+              {/* Seleção de Lote */}
+              <div>
+                <Label htmlFor="lot-select">Selecione o Lote</Label>
+                <Select value={selectedLotId} onValueChange={setSelectedLotId}>
+                  <SelectTrigger id="lot-select">
+                    <SelectValue placeholder="Escolha um lote" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allProcessedLots?.filter(lot => lot.status === 'CONFINED').map(lot => (
+                      <SelectItem key={lot.id} value={lot.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>{lot.lotCode}</span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            {lot.currentQuantity} animais
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Seleção de Curral */}
+              <div>
+                <Label htmlFor="pen-select">Selecione o Curral</Label>
+                <Select value={selectedPenIdForIntervention} onValueChange={setSelectedPenIdForIntervention}>
+                  <SelectTrigger id="pen-select">
+                    <SelectValue placeholder="Escolha um curral" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(() => {
+                      if (!selectedLotId) {
+                        // Se nenhum lote selecionado, mostrar todos os currais com ocupação
+                        return pens?.map(pen => {
+                          const occupancy = occupancyData?.find(o => o.penId === pen.id);
+                          return (
+                            <SelectItem key={pen.id} value={pen.id}>
+                              <div className="flex items-center justify-between w-full">
+                                <span>Curral {pen.penNumber}</span>
+                                <span className="text-sm text-muted-foreground ml-2">
+                                  ({occupancy?.currentOccupancy || 0}/{pen.capacity} animais)
+                                </span>
+                              </div>
+                            </SelectItem>
+                          );
+                        });
+                      } else {
+                        // Se lote selecionado, mostrar apenas currais onde este lote tem alocação
+                        const selectedLot = allProcessedLots?.find(lot => lot.id === selectedLotId);
+                        const lotPens = selectedLot?.penAllocations?.filter(alloc => alloc.status === 'ACTIVE') || [];
+                        
+                        return lotPens.map(allocation => (
+                          <SelectItem key={allocation.penId} value={allocation.penId}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>Curral {allocation.pen?.penNumber}</span>
+                              <span className="text-sm text-muted-foreground ml-2">
+                                ({allocation.quantity} animais do lote)
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ));
+                      }
+                    })()}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Formulário específico para cada tipo de intervenção */}
+              {interventionType === 'health' && (
+                <>
+                  <div>
+                    <Label htmlFor="vaccine-type">Tipo de Vacina/Medicamento</Label>
+                    <Input 
+                      id="vaccine-type" 
+                      name="vaccine-type"
+                      placeholder="Ex: Vacina contra Febre Aftosa"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="dose">Dose (ml)</Label>
+                      <Input 
+                        id="dose" 
+                        name="dose"
+                        type="number" 
+                        placeholder="5"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="application-date">Data de Aplicação</Label>
+                      <Input 
+                        id="application-date" 
+                        name="application-date"
+                        type="date" 
+                        defaultValue={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="veterinarian">Veterinário Responsável</Label>
+                    <Input 
+                      id="veterinarian" 
+                      name="veterinarian"
+                      placeholder="Nome do veterinário"
+                    />
+                  </div>
+                </>
+              )}
+
+              {interventionType === 'mortality' && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="death-count">Quantidade de Mortes</Label>
+                      <Input 
+                        id="death-count" 
+                        type="number" 
+                        placeholder="1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="death-date">Data do Óbito</Label>
+                      <Input 
+                        id="death-date" 
+                        type="date" 
+                        defaultValue={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="death-cause">Causa da Morte</Label>
+                    <Select defaultValue="">
+                      <SelectTrigger id="death-cause">
+                        <SelectValue placeholder="Selecione a causa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="disease">Doença</SelectItem>
+                        <SelectItem value="accident">Acidente</SelectItem>
+                        <SelectItem value="predator">Predador</SelectItem>
+                        <SelectItem value="poisoning">Intoxicação</SelectItem>
+                        <SelectItem value="unknown">Desconhecida</SelectItem>
+                        <SelectItem value="other">Outra</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="death-notes">Observações</Label>
+                    <Textarea 
+                      id="death-notes" 
+                      placeholder="Detalhes adicionais sobre o óbito..."
+                      rows={3}
+                    />
+                  </div>
+                </>
+              )}
+
+              {interventionType === 'movement' && (
+                <>
+                  <div>
+                    <Label htmlFor="destination-pen">Curral de Destino</Label>
+                    <Select defaultValue="">
+                      <SelectTrigger id="destination-pen">
+                        <SelectValue placeholder="Escolha o curral de destino" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pens?.map(pen => {
+                          const occupancy = occupancyData?.find(o => o.penId === pen.id);
+                          const available = pen.capacity - (occupancy?.currentOccupancy || 0);
+                          return (
+                            <SelectItem 
+                              key={pen.id} 
+                              value={pen.id}
+                              disabled={available <= 0}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span>Curral {pen.penNumber}</span>
+                                <span className="text-sm text-muted-foreground ml-2">
+                                  ({available} vagas disponíveis)
+                                </span>
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="move-quantity">Quantidade de Animais</Label>
+                    <Input 
+                      id="move-quantity" 
+                      type="number" 
+                      placeholder="10"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="move-reason">Motivo da Movimentação</Label>
+                    <Input 
+                      id="move-reason" 
+                      placeholder="Ex: Separação por peso"
+                    />
+                  </div>
+                </>
+              )}
+
+              {interventionType === 'weighing' && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="weight-average">Peso Médio (kg)</Label>
+                      <Input 
+                        id="weight-average" 
+                        type="number" 
+                        step="0.1"
+                        placeholder="450.5"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="weight-date">Data da Pesagem</Label>
+                      <Input 
+                        id="weight-date" 
+                        type="date" 
+                        defaultValue={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="weight-sample">Amostra (quantidade pesada)</Label>
+                    <Input 
+                      id="weight-sample" 
+                      type="number" 
+                      placeholder="50"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="weight-notes">Observações</Label>
+                    <Textarea 
+                      id="weight-notes" 
+                      placeholder="Condições da pesagem, observações..."
+                      rows={2}
+                    />
+                  </div>
+                </>
+              )}
+            </form>
+            
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowInterventionModal(false);
+                  setInterventionType(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleSaveIntervention}
+                disabled={interventionLoading}
+              >
+                {interventionLoading ? 'Salvando...' : 'Registrar Intervenção'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Histórico de Intervenções */}
+        {showInterventionHistory && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden">
+              <InterventionHistory onClose={() => setShowInterventionHistory(false)} />
+            </div>
+          </div>
+        )}
 
       </div>
     </TooltipProvider>

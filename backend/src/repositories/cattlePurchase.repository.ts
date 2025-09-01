@@ -25,6 +25,19 @@ export class CattlePurchaseRepository extends BaseRepository<CattlePurchase> {
               name: true,
               type: true
             }
+          },
+          penAllocations: {
+            where: { status: 'ACTIVE' },
+            include: {
+              pen: {
+                select: {
+                  id: true,
+                  penNumber: true,
+                  capacity: true,
+                  status: true
+                }
+              }
+            }
           }
           // payerAccount relação não existe no schema
         }
@@ -65,8 +78,28 @@ export class CattlePurchaseRepository extends BaseRepository<CattlePurchase> {
   }
 
   async findWithRelations(id: string) {
-    // Temporariamente sem includes para evitar erro
-    return await this.findById(id);
+    return await this.prisma.cattlePurchase.findUnique({
+      where: { id },
+      include: {
+        vendor: true,
+        broker: true,
+        transportCompany: true,
+        payerAccount: true,
+        penAllocations: {
+          where: { status: 'ACTIVE' },
+          include: {
+            pen: {
+              select: {
+                id: true,
+                penNumber: true,
+                capacity: true,
+                status: true
+              }
+            }
+          }
+        }
+      }
+    });
   }
 
   async findActive() {

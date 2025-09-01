@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste - Abas da Página de Lotes</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        h1 { color: #333; margin-bottom: 20px; font-size: 24px; }
+        
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
+        .tab { padding: 12px 24px; background: white; border: none; cursor: pointer; font-size: 14px; font-weight: 500; color: #666; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.3s; }
+        .tab:hover { color: #333; background: #f9f9f9; }
+        .tab.active { color: #2196f3; border-bottom-color: #2196f3; background: white; }
+        
+        /* Tab Content */
+        .tab-content { display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tab-content.active { display: block; }
+        
+        /* Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; }
+        .stat-card h3 { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: bold; color: #333; }
+        .stat-card .unit { font-size: 14px; color: #999; margin-left: 4px; }
+        .stat-card .change { font-size: 12px; margin-top: 5px; }
+        .stat-card .change.positive { color: #4caf50; }
+        .stat-card .change.negative { color: #f44336; }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #f5f5f5; padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #e0e0e0; font-size: 14px; }
+        tr:hover { background: #f9f9f9; }
+        
+        /* Badges */
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+        .badge.success { background: #e8f5e9; color: #2e7d32; }
+        .badge.warning { background: #fff3e0; color: #e65100; }
+        .badge.error { background: #ffebee; color: #c62828; }
+        .badge.info { background: #e3f2fd; color: #1565c0; }
+        
+        /* Pen Map */
+        .pen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; margin-top: 20px; }
+        .pen-card { background: white; border: 2px solid #e0e0e0; border-radius: 8px; padding: 15px; transition: all 0.3s; cursor: pointer; }
+        .pen-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .pen-card.available { border-color: #4caf50; }
+        .pen-card.partial { border-color: #ff9800; }
+        .pen-card.full { border-color: #f44336; background: #ffebee; }
+        .pen-card h4 { font-size: 16px; margin-bottom: 8px; }
+        .pen-card .occupancy { font-size: 24px; font-weight: bold; margin: 10px 0; }
+        .pen-card .details { font-size: 12px; color: #666; }
+        
+        /* Progress Bar */
+        .progress { width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin: 10px 0; }
+        .progress-bar { height: 100%; background: #2196f3; transition: width 0.3s; }
+        .progress-bar.high { background: #f44336; }
+        .progress-bar.medium { background: #ff9800; }
+        .progress-bar.low { background: #4caf50; }
+        
+        /* Lists */
+        .lot-list { margin-top: 10px; }
+        .lot-item { font-size: 12px; padding: 4px 0; color: #666; }
+        .lot-item strong { color: #333; }
+        
+        /* Loading */
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .error { background: #ffebee; color: #c62828; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        .success { background: #e8f5e9; color: #2e7d32; padding: 15px; border-radius: 4px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐂 Teste - Visualização de Lotes e Currais</h1>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('overview')">📊 Visão Geral</button>
+            <button class="tab" onclick="showTab('lots')">📦 Tabela de Lotes</button>
+            <button class="tab" onclick="showTab('pens')">🏠 Tabela de Currais</button>
+            <button class="tab" onclick="showTab('map')">🗺️ Mapa de Currais</button>
+        </div>
+        
+        <!-- Visão Geral -->
+        <div id="overview" class="tab-content active">
+            <h2>Visão Geral do Sistema</h2>
+            <div id="overviewContent" class="loading">Carregando...</div>
+        </div>
+        
+        <!-- Tabela de Lotes -->
+        <div id="lots" class="tab-content">
+            <h2>Lotes Confinados</h2>
+            <div id="lotsContent" class="loading">Carregando...</div>
+        </div>
+        
+        <!-- Tabela de Currais -->
+        <div id="pens" class="tab-content">
+            <h2>Status dos Currais</h2>
+            <div id="pensContent" class="loading">Carregando...</div>
+        </div>
+        
+        <!-- Mapa de Currais -->
+        <div id="map" class="tab-content">
+            <h2>Mapa de Ocupação</h2>
+            <div id="mapContent" class="loading">Carregando...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api/v1';
+        
+        // Tab navigation
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            // Load content for the tab
+            switch(tabName) {
+                case 'overview': loadOverview(); break;
+                case 'lots': loadLots(); break;
+                case 'pens': loadPens(); break;
+                case 'map': loadMap(); break;
+            }
+        }
+        
+        // Load Overview
+        async function loadOverview() {
+            const contentDiv = document.getElementById('overviewContent');
+            
+            try {
+                const [pensRes, purchasesRes] = await Promise.all([
+                    fetch(`${API_BASE}/pens`),
+                    fetch(`${API_BASE}/cattle-purchases`)
+                ]);
+                
+                const pensData = await pensRes.json();
+                const purchasesData = await purchasesRes.json();
+                
+                const pens = pensData.data?.items || [];
+                const purchases = purchasesData.items || [];
+                
+                // Calculate statistics
+                const allocatedPurchases = purchases.filter(p => p.stage === 'confined' || p.stage === 'active');
+                const totalAnimals = allocatedPurchases.reduce((sum, p) => sum + p.currentQuantity, 0);
+                const totalInvestment = allocatedPurchases.reduce((sum, p) => sum + p.totalCost, 0);
+                const totalCapacity = pens.reduce((sum, p) => sum + p.capacity, 0);
+                const totalOccupancy = pens.reduce((sum, p) => sum + (p.currentOccupancy || 0), 0);
+                const occupancyRate = totalCapacity > 0 ? (totalOccupancy / totalCapacity * 100) : 0;
+                
+                contentDiv.innerHTML = `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h3>Total de Lotes Confinados</h3>
+                            <div class="value">${allocatedPurchases.length}</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Total de Animais</h3>
+                            <div class="value">${totalAnimals}<span class="unit">cabeças</span></div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Investimento Total</h3>
+                            <div class="value">R$ ${(totalInvestment / 1000).toFixed(1)}<span class="unit">mil</span></div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Taxa de Ocupação</h3>
+                            <div class="value">${occupancyRate.toFixed(1)}<span class="unit">%</span></div>
+                            <div class="progress">
+                                <div class="progress-bar ${occupancyRate > 80 ? 'high' : occupancyRate > 50 ? 'medium' : 'low'}" 
+                                     style="width: ${occupancyRate}%"></div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Capacidade Total</h3>
+                            <div class="value">${totalCapacity}<span class="unit">animais</span></div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Ocupação Atual</h3>
+                            <div class="value">${totalOccupancy}<span class="unit">animais</span></div>
+                            <div class="change ${totalOccupancy > totalCapacity ? 'negative' : 'positive'}">
+                                ${totalOccupancy > totalCapacity ? '⚠️ Superlotação!' : '✅ Dentro da capacidade'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin-top: 30px;">Resumo por Curral</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Curral</th>
+                                <th>Capacidade</th>
+                                <th>Ocupação</th>
+                                <th>Taxa</th>
+                                <th>Lotes</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pens.map(pen => {
+                                const rate = pen.capacity > 0 ? (pen.currentOccupancy / pen.capacity * 100) : 0;
+                                const status = rate === 0 ? 'available' : rate >= 100 ? 'full' : 'partial';
+                                return `
+                                    <tr>
+                                        <td><strong>Curral ${pen.penNumber}</strong></td>
+                                        <td>${pen.capacity}</td>
+                                        <td>${pen.currentOccupancy}</td>
+                                        <td>
+                                            <div class="progress" style="width: 100px; display: inline-block;">
+                                                <div class="progress-bar ${rate > 80 ? 'high' : rate > 50 ? 'medium' : 'low'}" 
+                                                     style="width: ${Math.min(rate, 100)}%"></div>
+                                            </div>
+                                            ${rate.toFixed(1)}%
+                                        </td>
+                                        <td>${pen.activeLots || 0}</td>
+                                        <td>
+                                            <span class="badge ${status === 'available' ? 'success' : status === 'full' ? 'error' : 'warning'}">
+                                                ${status === 'available' ? 'Disponível' : status === 'full' ? 'Lotado' : 'Ocupado'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                contentDiv.innerHTML = `<div class="error">Erro ao carregar visão geral: ${error.message}</div>`;
+            }
+        }
+        
+        // Load Lots Table
+        async function loadLots() {
+            const contentDiv = document.getElementById('lotsContent');
+            
+            try {
+                const response = await fetch(`${API_BASE}/cattle-purchases`);
+                const data = await response.json();
+                
+                const allocatedPurchases = data.items.filter(p => 
+                    p.stage === 'confined' || p.stage === 'active'
+                );
+                
+                if (allocatedPurchases.length === 0) {
+                    contentDiv.innerHTML = '<div class="error">Nenhum lote confinado encontrado</div>';
+                    return;
+                }
+                
+                contentDiv.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Fornecedor</th>
+                                <th>Localização</th>
+                                <th>Quantidade</th>
+                                <th>Peso Médio</th>
+                                <th>Investimento</th>
+                                <th>Currais Alocados</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${allocatedPurchases.map(purchase => {
+                                const penInfo = purchase.penAllocations?.[0];
+                                return `
+                                    <tr>
+                                        <td><strong>${purchase.lotCode}</strong></td>
+                                        <td>${purchase.vendor?.name || 'N/A'}</td>
+                                        <td>${purchase.city || 'N/A'} - ${purchase.state || 'N/A'}</td>
+                                        <td>${purchase.currentQuantity} animais</td>
+                                        <td>${(purchase.averageWeight || 0).toFixed(1)} kg</td>
+                                        <td>R$ ${purchase.totalCost.toLocaleString('pt-BR')}</td>
+                                        <td>
+                                            ${penInfo ? `
+                                                <span class="badge info">Curral ${penInfo.pen?.penNumber}</span>
+                                                <small>(${penInfo.quantity} animais)</small>
+                                            ` : '<span class="badge error">Não alocado</span>'}
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                contentDiv.innerHTML = `<div class="error">Erro ao carregar lotes: ${error.message}</div>`;
+            }
+        }
+        
+        // Load Pens Table
+        async function loadPens() {
+            const contentDiv = document.getElementById('pensContent');
+            
+            try {
+                const response = await fetch(`${API_BASE}/pens`);
+                const data = await response.json();
+                const pens = data.data?.items || [];
+                
+                contentDiv.innerHTML = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Curral</th>
+                                <th>Tipo</th>
+                                <th>Localização</th>
+                                <th>Capacidade</th>
+                                <th>Ocupação Atual</th>
+                                <th>Taxa de Ocupação</th>
+                                <th>Lotes Alocados</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${pens.map(pen => {
+                                const rate = pen.capacity > 0 ? (pen.currentOccupancy / pen.capacity * 100) : 0;
+                                const status = rate === 0 ? 'available' : rate >= 100 ? 'full' : 'partial';
+                                
+                                return `
+                                    <tr>
+                                        <td><strong>Curral ${pen.penNumber}</strong></td>
+                                        <td>${pen.type}</td>
+                                        <td>${pen.location}</td>
+                                        <td>${pen.capacity}</td>
+                                        <td>${pen.currentOccupancy}</td>
+                                        <td>
+                                            <div class="progress" style="width: 100px; display: inline-block; vertical-align: middle;">
+                                                <div class="progress-bar ${rate > 80 ? 'high' : rate > 50 ? 'medium' : 'low'}" 
+                                                     style="width: ${Math.min(rate, 100)}%"></div>
+                                            </div>
+                                            ${rate.toFixed(1)}%
+                                        </td>
+                                        <td>
+                                            ${pen.lotAllocations?.length > 0 ? 
+                                                pen.lotAllocations.map(alloc => 
+                                                    `<div class="lot-item">
+                                                        <strong>${alloc.purchase.lotCode}</strong>: ${alloc.quantity} animais
+                                                    </div>`
+                                                ).join('') : 
+                                                '<span style="color: #999;">Nenhum</span>'
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge ${status === 'available' ? 'success' : status === 'full' ? 'error' : 'warning'}">
+                                                ${status === 'available' ? 'Disponível' : 
+                                                  status === 'full' ? 'Lotado' : 'Parcialmente Ocupado'}
+                                            </span>
+                                            ${rate > 100 ? '<br><span class="badge error">⚠️ SUPERLOTADO</span>' : ''}
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (error) {
+                contentDiv.innerHTML = `<div class="error">Erro ao carregar currais: ${error.message}</div>`;
+            }
+        }
+        
+        // Load Pen Map
+        async function loadMap() {
+            const contentDiv = document.getElementById('mapContent');
+            
+            try {
+                const response = await fetch(`${API_BASE}/pens`);
+                const data = await response.json();
+                const pens = data.data?.items || [];
+                
+                contentDiv.innerHTML = `
+                    <div class="pen-grid">
+                        ${pens.map(pen => {
+                            const rate = pen.capacity > 0 ? (pen.currentOccupancy / pen.capacity * 100) : 0;
+                            const status = rate === 0 ? 'available' : rate >= 100 ? 'full' : 'partial';
+                            
+                            return `
+                                <div class="pen-card ${status}">
+                                    <h4>🏠 Curral ${pen.penNumber}</h4>
+                                    <div class="occupancy">
+                                        ${pen.currentOccupancy}/${pen.capacity}
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar ${rate > 80 ? 'high' : rate > 50 ? 'medium' : 'low'}" 
+                                             style="width: ${Math.min(rate, 100)}%"></div>
+                                    </div>
+                                    <div class="details">
+                                        <div>📍 ${pen.location}</div>
+                                        <div>📊 ${rate.toFixed(1)}% ocupado</div>
+                                        <div>📦 ${pen.activeLots || 0} lote(s)</div>
+                                    </div>
+                                    ${pen.lotAllocations?.length > 0 ? `
+                                        <div class="lot-list">
+                                            ${pen.lotAllocations.map(alloc => 
+                                                `<div class="lot-item">
+                                                    • ${alloc.purchase.lotCode}: ${alloc.quantity}
+                                                </div>`
+                                            ).join('')}
+                                        </div>
+                                    ` : ''}
+                                    ${rate > 100 ? '<div style="color: red; font-weight: bold; margin-top: 10px;">⚠️ SUPERLOTADO!</div>' : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            } catch (error) {
+                contentDiv.innerHTML = `<div class="error">Erro ao carregar mapa: ${error.message}</div>`;
+            }
+        }
+        
+        // Load initial content
+        window.onload = () => {
+            loadOverview();
+        };
+    </script>
+</body>
+</html>

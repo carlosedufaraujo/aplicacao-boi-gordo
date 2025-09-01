@@ -162,8 +162,9 @@ class CattlePurchaseController {
     
     await cattlePurchaseService.delete(id);
     
-    res.status(204).json({
+    res.status(200).json({
       status: 'success',
+      message: 'Compra excluída com sucesso',
       data: null
     });
   });

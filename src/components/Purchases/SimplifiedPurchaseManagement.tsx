@@ -58,7 +58,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EnhancedPurchaseForm } from '../Forms/EnhancedPurchaseForm';
+import { OptimizedPurchaseForm } from '../Forms/OptimizedPurchaseForm';
 import { SimplifiedPurchaseDetails } from './SimplifiedPurchaseDetails';
 import { StatusChangeModal } from '../Modals/StatusChangeModal';
 
@@ -80,10 +80,12 @@ export function SimplifiedPurchaseManagement() {
     purchases, 
     loading, 
     loadPurchases, 
+    createPurchase,
     deletePurchase,
     updateStatus,
     registerDeath,
-    registerReception
+    registerReception,
+    markAsConfined
   } = useCattlePurchasesApi();
   
   const { partners, loadPartners } = usePartnersApi();
@@ -111,31 +113,46 @@ export function SimplifiedPurchaseManagement() {
   // Calcular estatísticas
   const statistics = {
     total: purchases.length,
-    active: purchases.filter(p => p.status === 'ACTIVE').length,
+    active: purchases.filter(p => p.status === 'CONFINED').length,
     totalAnimals: purchases.reduce((sum, p) => sum + p.currentQuantity, 0),
     totalInvestment: purchases.reduce((sum, p) => sum + p.totalCost, 0),
   };
 
   // Funções auxiliares
   const getStatusBadge = (status: string, purchase: CattlePurchase) => {
-    const statusConfig = {
-      CONFIRMED: { label: 'Confirmado', variant: 'default', next: 'RECEIVED' },
-      RECEIVED: { label: 'Recepcionado', variant: 'info', next: 'CONFINED' },
-      CONFINED: { label: 'Confinado', variant: 'success', next: null }
-    };
+    // Priorizar o stage para mostrar o status real
+    let label = 'Confirmado';
+    let variant = 'default';
+    let next = 'RECEIVED';
     
-    const config = statusConfig[status] || statusConfig.CONFIRMED;
+    if (purchase.status === 'CONFINED') {
+      label = 'Confinado';
+      variant = 'success';
+      next = null;
+    } else if (purchase.stage === 'received') {
+      label = 'Recepcionado';
+      variant = 'info';
+      next = 'CONFINED';
+    } else if (purchase.stage === 'in_transit') {
+      label = 'Em Trânsito';
+      variant = 'warning';
+      next = 'RECEIVED';
+    } else if (purchase.stage === 'confirmed') {
+      label = 'Confirmado';
+      variant = 'default';
+      next = 'RECEIVED';
+    }
     
     return (
       <Button
         variant="ghost"
         size="sm"
         className="h-6 px-2 py-0.5"
-        onClick={() => handleStatusClick(purchase, config.next)}
-        disabled={!config.next} // Desabilita se não há próximo status
+        onClick={() => handleStatusClick(purchase, next)}
+        disabled={!next || purchase.status === 'CONFINED'}
       >
-        <Badge variant={config.variant as any} className="cursor-pointer">
-          {config.label}
+        <Badge variant={variant as any} className="cursor-pointer">
+          {label}
         </Badge>
       </Button>
     );
@@ -167,11 +184,24 @@ export function SimplifiedPurchaseManagement() {
     if (!purchaseToDelete) return;
     
     try {
-      await deletePurchase(purchaseToDelete);
+      const success = await deletePurchase(purchaseToDelete);
+      
+      if (success) {
+        // Exclusão bem-sucedida
+        setShowDeleteDialog(false);
+        setPurchaseToDelete(null);
+        setSelectedPurchase(null);
+        setShowDetails(false);
+      }
+    } catch (error: any) {
+      // Apenas logar erros reais (não 404 que já foi tratado no hook)
+      if (error.response?.status !== 404) {
+        console.error('Erro ao excluir:', error);
+      }
+      
+      // Fechar modais em caso de erro também
       setShowDeleteDialog(false);
       setPurchaseToDelete(null);
-    } catch (error) {
-      console.error('Erro ao excluir:', error);
     }
   };
 
@@ -300,7 +330,8 @@ export function SimplifiedPurchaseManagement() {
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="NEGOTIATING">Negociando</SelectItem>
                 <SelectItem value="CONFIRMED">Confirmado</SelectItem>
-                <SelectItem value="IN_TRANSIT">Em Trânsito</SelectItem>
+                <SelectItem value="RECEIVED">Recepcionado</SelectItem>
+                <SelectItem value="CONFINED">Confinado</SelectItem>
                 <SelectItem value="RECEIVED">Recebido</SelectItem>
                 <SelectItem value="ACTIVE">Ativo</SelectItem>
                 <SelectItem value="SOLD">Vendido</SelectItem>
@@ -483,13 +514,13 @@ export function SimplifiedPurchaseManagement() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleQuickStatusUpdate(purchase.id, 'IN_TRANSIT')}
+                                    onClick={() => handleQuickStatusUpdate(purchase.id, 'RECEIVED')}
                                   >
                                     <Truck className="h-3 w-3 mr-2" />
                                     Marcar em Trânsito
                                   </Button>
                                 )}
-                                {purchase.status === 'IN_TRANSIT' && (
+                                {purchase.status === 'RECEIVED' && (
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -498,6 +529,11 @@ export function SimplifiedPurchaseManagement() {
                                     <Package className="h-3 w-3 mr-2" />
                                     Receber e Alocar
                                   </Button>
+                                )}
+                                {purchase.status === 'CONFINED' && (
+                                  <div className="text-sm text-muted-foreground">
+                                    Já recepcionado e confinado
+                                  </div>
                                 )}
                                 {purchase.status === 'RECEIVED' && (
                                   <Button
@@ -522,20 +558,6 @@ export function SimplifiedPurchaseManagement() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Modal de Formulário - Usando o novo EnhancedPurchaseForm */}
-      <EnhancedPurchaseForm
-        open={showForm}
-        onClose={() => {
-          setShowForm(false);
-          setSelectedPurchase(null);
-        }}
-        onSuccess={() => {
-          loadPurchases();
-          setShowForm(false);
-          setSelectedPurchase(null);
-        }}
-      />
 
       {/* Modal de Detalhes */}
       {showDetails && selectedPurchase && (
@@ -563,8 +585,32 @@ export function SimplifiedPurchaseManagement() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Exclusão</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir esta compra? Esta ação não pode ser desfeita.
+            <DialogDescription className="space-y-2">
+              <p>Tem certeza que deseja excluir esta compra?</p>
+              {purchaseToDelete && (() => {
+                const purchase = purchases.find(p => p.id === purchaseToDelete);
+                const isActive = purchase?.status === 'CONFINED' || purchase?.status === 'RECEIVED';
+                
+                if (isActive) {
+                  return (
+                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mt-2">
+                      <p className="text-amber-800 font-medium">⚠️ Atenção: Este lote está ativo!</p>
+                      <p className="text-amber-700 text-sm mt-1">
+                        Ao excluir, serão removidos TODOS os dados relacionados:
+                      </p>
+                      <ul className="text-amber-700 text-sm mt-1 ml-4 list-disc">
+                        <li>Alocações em currais</li>
+                        <li>Registros de saúde e mortalidade</li>
+                        <li>Despesas e receitas relacionadas</li>
+                        <li>Análises de quebra de peso</li>
+                        <li>Histórico completo do lote</li>
+                      </ul>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+              <p className="text-destructive font-semibold">Esta ação não pode ser desfeita!</p>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -581,7 +627,7 @@ export function SimplifiedPurchaseManagement() {
               variant="destructive"
               onClick={handleDelete}
             >
-              Excluir
+              Excluir Permanentemente
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -598,19 +644,28 @@ export function SimplifiedPurchaseManagement() {
           data={statusModalData}
           onConfirm={async (statusData) => {
             try {
+              const purchase = statusModalData.purchase;
+              
               if (statusData.status === 'RECEIVED') {
-                // Chamar API de recepção
-                await registerReception(statusData.purchaseId, {
-                  receivedDate: new Date(statusData.receivedDate),
-                  receivedWeight: statusData.receivedWeight,
-                  receivedQuantity: statusData.actualQuantity,
-                  actualQuantity: statusData.actualQuantity,
-                  unloadingDate: statusData.receivedDate,
-                  transportMortality: statusModalData.purchase.initialQuantity - statusData.actualQuantity,
-                  mortalityReason: statusData.mortalityReason,
-                  observations: statusData.notes,
-                  penAllocations: statusData.penAllocations,
-                });
+                // Se a compra já está recepcionada (stage === 'received'), usar endpoint de confinamento
+                if (purchase.stage === 'received') {
+                  // Alocar em currais (markAsConfined)
+                  await markAsConfined(statusData.purchaseId, {
+                    penAllocations: statusData.penAllocations,
+                    observations: statusData.notes,
+                  });
+                } else {
+                  // Registrar recepção
+                  await registerReception(statusData.purchaseId, {
+                    receivedDate: new Date(statusData.receivedDate),
+                    receivedWeight: statusData.receivedWeight,
+                    actualQuantity: statusData.actualQuantity,
+                    transportMortality: statusModalData.purchase.initialQuantity - statusData.actualQuantity,
+                    mortalityReason: statusData.mortalityReason,
+                    notes: statusData.notes,
+                    penAllocations: statusData.penAllocations,
+                  });
+                }
               } else {
                 // Chamar API de mudança de status simples
                 await updateStatus(statusData.purchaseId, statusData.status);
@@ -626,6 +681,19 @@ export function SimplifiedPurchaseManagement() {
           }}
         />
       )}
+
+      {/* Formulário de Nova Compra */}
+      <OptimizedPurchaseForm
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        onSubmit={async (data) => {
+          await createPurchase(data);
+          await loadPurchases();
+          setShowForm(false);
+        }}
+        partners={partners}
+        payerAccounts={accounts}
+      />
     </div>
   );
 }

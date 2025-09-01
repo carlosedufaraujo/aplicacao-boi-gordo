@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Teste Completo - Tabela de Lotes com Múltiplas Alocações</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        h1 { color: #333; margin-bottom: 20px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white; }
+        .stat-card h3 { font-size: 11px; margin: 0 0 5px 0; opacity: 0.9; text-transform: uppercase; }
+        .stat-card .value { font-size: 28px; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #f5f5f5; padding: 12px; text-align: left; font-size: 11px; color: #666; text-transform: uppercase; font-weight: 600; position: sticky; top: 0; z-index: 10; }
+        td { padding: 12px; border-bottom: 1px solid #e0e0e0; font-size: 13px; vertical-align: top; }
+        tr:hover { background: #f9f9f9; }
+        .badge { display: inline-block; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+        .badge.confirmed { background: #fff3e0; color: #e65100; }
+        .badge.confined { background: #e3f2fd; color: #1565c0; }
+        .badge.active { background: #e8f5e9; color: #2e7d32; }
+        .badge.sold { background: #f3e5f5; color: #6a1b9a; }
+        .badge.multiple { background: #ffebee; color: #c62828; border: 1px solid #ef5350; }
+        .pen-allocation { background: #f5f5f5; padding: 4px 8px; border-radius: 4px; margin: 2px 0; font-size: 11px; display: inline-block; }
+        .pen-allocation.main { background: #e3f2fd; font-weight: 600; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .error { background: #ffebee; color: #c62828; padding: 15px; border-radius: 4px; }
+        .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; background: white; font-size: 13px; }
+        .summary-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .summary-box h2 { margin: 0 0 15px 0; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .summary-item { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 4px; }
+        .allocation-details { display: flex; flex-direction: column; gap: 4px; }
+        .allocation-item { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: #f0f8ff; border-radius: 4px; border-left: 3px solid #2196f3; }
+        .pen-number { font-weight: 600; color: #1565c0; min-width: 60px; }
+        .pen-quantity { color: #333; }
+        .pen-percentage { color: #666; font-size: 11px; }
+        .highlight { background: #fff9c4; padding: 2px 4px; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐂 Tabela Completa de Lotes - Com Múltiplas Alocações</h1>
+        
+        <div id="summary" class="summary-box"></div>
+        
+        <div class="filters">
+            <select id="stageFilter" class="filter" onchange="loadCompleteLots()">
+                <option value="all">Todos os Estágios</option>
+                <option value="confirmed">Confirmados</option>
+                <option value="confined">Confinados</option>
+                <option value="active">Ativos</option>
+                <option value="received">Recebidos</option>
+                <option value="sold">Vendidos</option>
+            </select>
+            
+            <select id="allocationFilter" class="filter" onchange="loadCompleteLots()">
+                <option value="all">Todas as Alocações</option>
+                <option value="single">Alocação Única</option>
+                <option value="multiple">Múltiplas Alocações</option>
+                <option value="none">Sem Alocação</option>
+            </select>
+            
+            <button class="filter" onclick="loadCompleteLots()" style="background: #667eea; color: white; border: none; cursor: pointer;">
+                🔄 Atualizar
+            </button>
+        </div>
+        
+        <div id="stats" class="stats"></div>
+        <div id="lotsTable"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api/v1';
+        
+        async function loadCompleteLots() {
+            const stageFilter = document.getElementById('stageFilter').value;
+            const allocationFilter = document.getElementById('allocationFilter').value;
+            const summaryDiv = document.getElementById('summary');
+            const statsDiv = document.getElementById('stats');
+            const tableDiv = document.getElementById('lotsTable');
+            
+            summaryDiv.innerHTML = '<div class="loading">Carregando resumo...</div>';
+            statsDiv.innerHTML = '<div class="loading">Carregando estatísticas...</div>';
+            tableDiv.innerHTML = '<div class="loading">Carregando lotes...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/cattle-purchases`);
+                const data = await response.json();
+                const allLots = data.items || [];
+                
+                // Análise de alocações
+                const lotsWithMultiple = allLots.filter(lot => 
+                    lot.penAllocations && lot.penAllocations.length > 1
+                );
+                const lotsWithSingle = allLots.filter(lot => 
+                    lot.penAllocations && lot.penAllocations.length === 1
+                );
+                const lotsWithoutAllocation = allLots.filter(lot => 
+                    !lot.penAllocations || lot.penAllocations.length === 0
+                );
+                
+                // Filtrar por estágio
+                let filteredLots = stageFilter === 'all' 
+                    ? allLots 
+                    : allLots.filter(lot => lot.stage === stageFilter);
+                
+                // Filtrar por tipo de alocação
+                if (allocationFilter === 'multiple') {
+                    filteredLots = filteredLots.filter(lot => 
+                        lot.penAllocations && lot.penAllocations.length > 1
+                    );
+                } else if (allocationFilter === 'single') {
+                    filteredLots = filteredLots.filter(lot => 
+                        lot.penAllocations && lot.penAllocations.length === 1
+                    );
+                } else if (allocationFilter === 'none') {
+                    filteredLots = filteredLots.filter(lot => 
+                        !lot.penAllocations || lot.penAllocations.length === 0
+                    );
+                }
+                
+                // Exibir resumo
+                summaryDiv.innerHTML = `
+                    <h2>📊 Análise de Alocações</h2>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <strong>${lotsWithMultiple.length}</strong> lotes em múltiplos currais
+                        </div>
+                        <div class="summary-item">
+                            <strong>${lotsWithSingle.length}</strong> lotes em curral único
+                        </div>
+                        <div class="summary-item">
+                            <strong>${lotsWithoutAllocation.length}</strong> lotes sem alocação
+                        </div>
+                        <div class="summary-item">
+                            <strong>${allLots.length}</strong> lotes totais
+                        </div>
+                    </div>
+                `;
+                
+                // Calcular estatísticas
+                const stats = {
+                    total: filteredLots.length,
+                    totalAnimals: filteredLots.reduce((sum, l) => sum + l.currentQuantity, 0),
+                    totalInvestment: filteredLots.reduce((sum, l) => sum + l.totalCost, 0),
+                    avgAnimalsPerLot: filteredLots.length > 0 
+                        ? Math.round(filteredLots.reduce((sum, l) => sum + l.currentQuantity, 0) / filteredLots.length)
+                        : 0
+                };
+                
+                // Exibir estatísticas
+                statsDiv.innerHTML = `
+                    <div class="stat-card">
+                        <h3>Lotes Filtrados</h3>
+                        <div class="value">${stats.total}</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <h3>Total de Animais</h3>
+                        <div class="value">${stats.totalAnimals.toLocaleString('pt-BR')}</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <h3>Investimento</h3>
+                        <div class="value">R$ ${(stats.totalInvestment / 1000000).toFixed(2)}M</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        <h3>Média/Lote</h3>
+                        <div class="value">${stats.avgAnimalsPerLot} animais</div>
+                    </div>
+                `;
+                
+                // Exibir tabela
+                if (filteredLots.length === 0) {
+                    tableDiv.innerHTML = '<div class="error">Nenhum lote encontrado com os filtros aplicados</div>';
+                    return;
+                }
+                
+                tableDiv.innerHTML = `
+                    <h2>📋 Lista Detalhada (${filteredLots.length} lotes)</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th width="100">Código</th>
+                                <th width="80">Estágio</th>
+                                <th width="150">Fornecedor</th>
+                                <th width="120">Localização</th>
+                                <th width="80">Qtd Atual</th>
+                                <th width="80">Peso Médio</th>
+                                <th width="100">Investimento</th>
+                                <th width="90">Data Compra</th>
+                                <th>Alocação em Currais</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filteredLots.map(lot => {
+                                const stageBadge = getStageStyle(lot.stage);
+                                const hasMultiple = lot.penAllocations && lot.penAllocations.length > 1;
+                                
+                                return `
+                                    <tr>
+                                        <td>
+                                            <strong>${lot.lotCode}</strong>
+                                            ${hasMultiple ? '<span class="badge multiple">MÚLTIPLO</span>' : ''}
+                                        </td>
+                                        <td><span class="badge ${stageBadge.class}">${stageBadge.label}</span></td>
+                                        <td>${lot.vendor?.name || 'N/A'}</td>
+                                        <td>${lot.city || 'N/A'} - ${lot.state || 'N/A'}</td>
+                                        <td><strong>${lot.currentQuantity}</strong>/${lot.initialQuantity}</td>
+                                        <td>${lot.averageWeight ? lot.averageWeight.toFixed(1) + ' kg' : 'N/A'}</td>
+                                        <td>R$ ${lot.totalCost.toLocaleString('pt-BR')}</td>
+                                        <td>${new Date(lot.purchaseDate).toLocaleDateString('pt-BR')}</td>
+                                        <td>
+                                            ${lot.penAllocations && lot.penAllocations.length > 0 ? `
+                                                <div class="allocation-details">
+                                                    ${lot.penAllocations.map((alloc, idx) => `
+                                                        <div class="allocation-item ${idx === 0 ? 'main' : ''}">
+                                                            <span class="pen-number">Curral ${alloc.pen?.penNumber || 'N/A'}</span>
+                                                            <span class="pen-quantity">${alloc.quantity} animais</span>
+                                                            <span class="pen-percentage">(${alloc.percentageOfLot?.toFixed(1)}% do lote)</span>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            ` : '<span style="color: #999;">Não alocado</span>'}
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                    
+                    ${lotsWithMultiple.length > 0 ? `
+                        <div style="margin-top: 30px; padding: 15px; background: #fff3e0; border-radius: 4px;">
+                            <h3 style="color: #e65100; margin: 0 0 10px 0;">⚠️ Lotes com Múltiplas Alocações Detectados</h3>
+                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                ${lotsWithMultiple.slice(0, 5).map(lot => `
+                                    <li>
+                                        <strong>${lot.lotCode}</strong>: 
+                                        ${lot.penAllocations.map(a => 
+                                            `Curral ${a.pen?.penNumber} (${a.quantity} animais)`
+                                        ).join(' + ')}
+                                    </li>
+                                `).join('')}
+                                ${lotsWithMultiple.length > 5 ? `<li>... e mais ${lotsWithMultiple.length - 5} lotes</li>` : ''}
+                            </ul>
+                        </div>
+                    ` : ''}
+                `;
+            } catch (error) {
+                summaryDiv.innerHTML = `<div class="error">Erro ao carregar dados: ${error.message}</div>`;
+                statsDiv.innerHTML = '';
+                tableDiv.innerHTML = '';
+            }
+        }
+        
+        function getStageStyle(stage) {
+            switch(stage) {
+                case 'confirmed': return { class: 'confirmed', label: 'Confirmado' };
+                case 'confined': return { class: 'confined', label: 'Confinado' };
+                case 'active': return { class: 'active', label: 'Ativo' };
+                case 'received': return { class: 'confined', label: 'Recebido' };
+                case 'sold': return { class: 'sold', label: 'Vendido' };
+                default: return { class: '', label: stage || 'N/A' };
+            }
+        }
+        
+        // Carregar dados ao abrir a página
+        window.onload = () => loadCompleteLots();
+    </script>
+</body>
+</html>

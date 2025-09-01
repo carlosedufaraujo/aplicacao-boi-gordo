@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Erros do Console</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .error-log {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success-log {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .info-log {
+            background: #d1ecf1;
+            border: 1px solid #17a2b8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #logs {
+            max-height: 600px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        iframe {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Monitor de Erros do Console - BoviControl</h1>
+        
+        <div>
+            <button onclick="openApp()">Abrir Aplicação</button>
+            <button onclick="clearLogs()">Limpar Logs</button>
+            <button onclick="testBackendConnection()">Testar Conexão Backend</button>
+        </div>
+
+        <div id="logs"></div>
+
+        <iframe id="appFrame" style="display:none;"></iframe>
+    </div>
+
+    <script>
+        const logsDiv = document.getElementById('logs');
+        const appFrame = document.getElementById('appFrame');
+        
+        // Capturar erros globais
+        window.addEventListener('error', function(event) {
+            logError(`Erro Global: ${event.message}\nArquivo: ${event.filename}\nLinha: ${event.lineno}, Coluna: ${event.colno}`);
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            logError(`Promise Rejeitada: ${event.reason}`);
+        });
+
+        // Interceptar console.error
+        const originalError = console.error;
+        console.error = function(...args) {
+            logError(`Console Error: ${args.join(' ')}`);
+            originalError.apply(console, args);
+        };
+
+        // Interceptar console.warn
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            logWarning(`Console Warning: ${args.join(' ')}`);
+            originalWarn.apply(console, args);
+        };
+
+        function logError(message) {
+            const log = document.createElement('div');
+            log.className = 'error-log';
+            log.textContent = `[${new Date().toLocaleTimeString()}] ERROR: ${message}`;
+            logsDiv.appendChild(log);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function logWarning(message) {
+            const log = document.createElement('div');
+            log.className = 'error-log';
+            log.style.background = '#fff3cd';
+            log.textContent = `[${new Date().toLocaleTimeString()}] WARNING: ${message}`;
+            logsDiv.appendChild(log);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function logSuccess(message) {
+            const log = document.createElement('div');
+            log.className = 'success-log';
+            log.textContent = `[${new Date().toLocaleTimeString()}] SUCCESS: ${message}`;
+            logsDiv.appendChild(log);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function logInfo(message) {
+            const log = document.createElement('div');
+            log.className = 'info-log';
+            log.textContent = `[${new Date().toLocaleTimeString()}] INFO: ${message}`;
+            logsDiv.appendChild(log);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function clearLogs() {
+            logsDiv.innerHTML = '';
+            logInfo('Logs limpos');
+        }
+
+        function openApp() {
+            appFrame.style.display = 'block';
+            appFrame.src = 'http://localhost:5173';
+            logInfo('Abrindo aplicação em http://localhost:5173');
+            
+            // Escutar mensagens do iframe
+            window.addEventListener('message', function(event) {
+                if (event.data.type === 'error') {
+                    logError(`Erro no App: ${event.data.message}`);
+                }
+            });
+        }
+
+        async function testBackendConnection() {
+            logInfo('Testando conexão com o backend...');
+            
+            try {
+                // Testar health check
+                const healthResponse = await fetch('http://localhost:3001/health');
+                if (healthResponse.ok) {
+                    const health = await healthResponse.json();
+                    logSuccess(`Health Check OK: ${JSON.stringify(health)}`);
+                } else {
+                    logError(`Health Check falhou: Status ${healthResponse.status}`);
+                }
+            } catch (error) {
+                logError(`Erro ao conectar com backend (health): ${error.message}`);
+            }
+
+            try {
+                // Testar API de currais
+                const pensResponse = await fetch('http://localhost:3001/api/v1/pens');
+                if (pensResponse.ok) {
+                    const result = await pensResponse.json();
+                    const pens = result.data?.items || [];
+                    logSuccess(`API de Currais OK: ${pens.length} currais encontrados`);
+                } else {
+                    logError(`API de Currais falhou: Status ${pensResponse.status}`);
+                }
+            } catch (error) {
+                logError(`Erro ao conectar com API de currais: ${error.message}`);
+            }
+
+            try {
+                // Testar API de compras
+                const purchasesResponse = await fetch('http://localhost:3001/api/v1/cattle-purchases');
+                if (purchasesResponse.ok) {
+                    const result = await purchasesResponse.json();
+                    const purchases = result.data?.items || [];
+                    logSuccess(`API de Compras OK: ${purchases.length} compras encontradas`);
+                } else {
+                    logError(`API de Compras falhou: Status ${purchasesResponse.status}`);
+                }
+            } catch (error) {
+                logError(`Erro ao conectar com API de compras: ${error.message}`);
+            }
+        }
+
+        // Iniciar com teste de conexão
+        window.addEventListener('load', function() {
+            logInfo('Monitor de erros iniciado');
+            setTimeout(testBackendConnection, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -32,6 +32,68 @@ export class PenRepository extends BaseRepository<Pen> {
     );
   }
 
+  // Método findAll específico para incluir ocupação calculada
+  async findAll(where: any = {}, pagination?: any) {
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 100;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      this.prisma.pen.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { penNumber: 'asc' },
+        include: {
+          lotAllocations: {
+            where: { status: 'ACTIVE' },
+            include: {
+              purchase: {
+                select: {
+                  id: true,
+                  lotCode: true,
+                  vendor: {
+                    select: {
+                      name: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }),
+      this.prisma.pen.count({ where })
+    ]);
+
+    // Calcular ocupação para cada curral
+    const itemsWithOccupancy = items.map(pen => {
+      const allocations = (pen as any).lotAllocations || [];
+      const currentOccupancy = allocations.reduce(
+        (sum: number, alloc: any) => sum + (alloc.quantity || 0),
+        0
+      );
+
+      return {
+        ...pen,
+        currentOccupancy,
+        activeLots: allocations.length
+      };
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      items: itemsWithOccupancy,
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1
+    };
+  }
+
   async findAvailable(minCapacity?: number) {
     const where: Prisma.PenWhereInput = {
       status: 'AVAILABLE',

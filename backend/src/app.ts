@@ -24,6 +24,8 @@ import { saleRecordRoutes } from '@/routes/saleRecord.routes';
 import { cycleRoutes } from '@/routes/cycle.routes';
 import { costCenterRoutes } from '@/routes/costCenter.routes';
 import cattlePurchaseRoutes from '@/routes/cattlePurchase.routes';
+import interventionRoutes from '@/routes/intervention.routes';
+import analyticsRoutes from '@/routes/analytics.routes';
 // import reportRoutes from '@/routes/report.routes';
 // import dashboardRoutes from '@/routes/dashboard.routes';
 
@@ -146,11 +148,15 @@ export function createApp(): Application {
   apiRouter.use('/pens', penRoutes);
   apiRouter.use('/sale-records', saleRecordRoutes);
   apiRouter.use('/sales', saleRecordRoutes); // Alias para compatibilidade
+  apiRouter.use('/analytics', analyticsRoutes);
   apiRouter.use('/cycles', cycleRoutes);
   apiRouter.use('/cost-centers', costCenterRoutes);
   
   // Rota unificada para compras de gado (substitui purchase-orders e cattle-lots)
   apiRouter.use('/cattle-purchases', cattlePurchaseRoutes);
+  
+  // Rotas de intervenções
+  apiRouter.use('/interventions', interventionRoutes);
 
   // Monta as rotas no prefixo da API
   app.use(env.API_PREFIX, apiRouter);
