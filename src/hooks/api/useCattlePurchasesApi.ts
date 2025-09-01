@@ -328,9 +328,14 @@ export function useCattlePurchasesApi() {
       setError(null);
       
       // Preparar payload conforme esperado pela API
+      // A validação espera: receivedDate, receivedWeight, actualQuantity
       const payload = {
-        receivedWeight: data.receivedWeight,
-        receivedQuantity: data.receivedQuantity || data.actualQuantity,
+        receivedDate: data.receivedDate instanceof Date
+          ? data.receivedDate.toISOString()
+          : data.receivedDate,
+        receivedWeight: Number(data.receivedWeight) || 0,
+        actualQuantity: Number(data.actualQuantity) || 0,
+        receivedQuantity: Number(data.receivedQuantity || data.actualQuantity) || 0,
         unloadingDate: data.unloadingDate || (data.receivedDate instanceof Date
           ? data.receivedDate.toISOString()
           : data.receivedDate),
@@ -338,6 +343,8 @@ export function useCattlePurchasesApi() {
         observations: data.observations,
         penAllocations: data.penAllocations || [],
       };
+      
+      console.log('Payload sendo enviado para API:', payload);
       
       const response = await apiClient.post(`/cattle-purchases/${id}/reception`, payload);
       

@@ -69,7 +69,7 @@ export class CattlePurchaseService {
     let cycleId = data.cycleId;
     if (!cycleId) {
       const activeCycle = await prisma.cycle.findFirst({
-        where: { status: 'ACTIVE' }
+        where: { stage: 'active' }
       });
       cycleId = activeCycle?.id;
     }
@@ -143,7 +143,8 @@ export class CattlePurchaseService {
   async registerReception(id: string, data: RegisterReceptionData) {
     const purchase = await this.findById(id);
     
-    if (purchase.status !== 'CONFIRMED' && purchase.status !== 'IN_TRANSIT') {
+    // Validar estágio da compra (usando stage ao invés de status)
+    if (purchase.stage && purchase.stage !== 'confirmed' && purchase.stage !== 'in_transit') {
       throw new AppError('Apenas compras confirmadas ou em trânsito podem ser recepcionadas', 400);
     }
 
@@ -180,7 +181,8 @@ export class CattlePurchaseService {
             freightCost: data.freightValue || purchase.freightCost,
             transportCompanyId: data.transportCompanyId || purchase.transportCompanyId,
             expectedGMD: data.estimatedGMD || purchase.expectedGMD,
-            status: 'ACTIVE' as const,
+            // Removido status - usando apenas stage
+            stage: 'active',
             stage: 'confined',
             averageWeight: data.receivedWeight / data.actualQuantity,
             notes: [
@@ -205,7 +207,7 @@ export class CattlePurchaseService {
               penId: allocation.penId,
               quantity: allocation.quantity,
               entryDate: new Date(),
-              status: 'ACTIVE'
+              stage: 'active'
             }
           });
 
@@ -236,7 +238,7 @@ export class CattlePurchaseService {
         freightCost: data.freightValue || purchase.freightCost,
         transportCompanyId: data.transportCompanyId || purchase.transportCompanyId,
         expectedGMD: data.estimatedGMD || purchase.expectedGMD,
-        status: 'RECEIVED' as const,
+        // Removido status pois o campo não existe no modelo
         stage: 'received',
         averageWeight: data.receivedWeight / data.actualQuantity,
         notes: [
@@ -251,7 +253,7 @@ export class CattlePurchaseService {
   async markAsConfined(id: string, data: MarkAsConfinedData) {
     const purchase = await this.findById(id);
     
-    if (purchase.status !== 'RECEIVED') {
+    if (purchase.stage !== 'received') {
       throw new AppError('Apenas compras recepcionadas podem ser ativadas', 400);
     }
 
@@ -267,7 +269,7 @@ export class CattlePurchaseService {
       await tx.lotPenLink.updateMany({
         where: {
           purchaseId: id,
-          status: 'ACTIVE'
+          stage: 'active'
         },
         data: {
           status: 'REMOVED',
@@ -283,7 +285,7 @@ export class CattlePurchaseService {
           where: { id: allocation.penId },
           include: {
             lotAllocations: {
-              where: { status: 'ACTIVE' }
+              where: { stage: 'active' }
             }
           }
         });
@@ -308,7 +310,7 @@ export class CattlePurchaseService {
             percentageOfLot: (allocation.quantity / purchase.currentQuantity) * 100,
             percentageOfPen: (allocation.quantity / pen.capacity) * 100,
             allocationDate,
-            status: 'ACTIVE'
+            stage: 'active'
           }
         });
 
@@ -325,7 +327,7 @@ export class CattlePurchaseService {
       const updated = await tx.cattlePurchase.update({
         where: { id },
         data: {
-          status: 'ACTIVE' as const,
+          stage: 'active' as const,
           stage: 'active',
           notes: data.notes ? `${purchase.notes || ''}\n${data.notes}`.trim() : purchase.notes
         },
@@ -335,7 +337,7 @@ export class CattlePurchaseService {
           transportCompany: true,
           payerAccount: true,
           penAllocations: {
-            where: { status: 'ACTIVE' },
+            where: { stage: 'active' },
             include: { pen: true }
           }
         }
