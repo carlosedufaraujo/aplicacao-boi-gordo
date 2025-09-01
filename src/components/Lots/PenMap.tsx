@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../stores/useAppStore';
 import { PenRegistrationForm } from '../Forms/PenRegistrationForm';
-import { PenAllocationForm } from '../Forms/PenAllocationForm';
+import { PenAllocationForm } from './PenAllocationForm';
 import { PenMovementModal } from './PenMovementModal';
 import { Plus, Edit, Trash2, Home, ArrowRightLeft, Scale, Heart, ArrowRight } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -9,10 +9,10 @@ import { Portal } from '../Common/Portal';
 import { WeightReadingForm } from '../Forms/WeightReadingForm';
 import { HealthRecordForm } from '../Forms/HealthRecordForm';
 import { LotMovementForm } from '../Forms/LotMovementForm';
+import { usePensApi } from '../../hooks/api/usePensApi';
 
 export const PenMap: React.FC = () => {
   const { 
-    penStatuses, 
     penRegistrations,
     penAllocations,
     cattlePurchases,
@@ -21,6 +21,8 @@ export const PenMap: React.FC = () => {
     deletePenRegistration,
     updatePenRegistration
   } = useAppStore();
+  
+  const { pens, loading: pensLoading, refresh: refreshPens } = usePensApi();
   
   const [selectedPen, setSelectedPen] = useState<string | null>(null);
   const [showPenForm, setShowPenForm] = useState(false);
@@ -34,11 +36,11 @@ export const PenMap: React.FC = () => {
 
   const totalAnimals = getTotalConfinedAnimals();
   const unallocatedAnimals = getUnallocatedAnimals();
-  const occupiedPens = penStatuses.filter(pen => pen.status === 'occupied').length;
+  const occupiedPens = pens.filter(pen => pen.currentOccupancy > 0).length;
 
   const handlePenClick = (penNumber: string) => {
-    const pen = penStatuses.find(p => p.penNumber === penNumber);
-    if (pen && pen.status === 'occupied') {
+    const pen = pens.find(p => p.penNumber === penNumber);
+    if (pen && pen.currentOccupancy > 0) {
       setSelectedPen(penNumber);
     } else {
       if (unallocatedAnimals > 0) {
@@ -74,26 +76,32 @@ export const PenMap: React.FC = () => {
   };
 
   const getPenInfo = (penNumber: string) => {
-    return penStatuses.find(pen => pen.penNumber === penNumber);
+    return pens.find(pen => pen.penNumber === penNumber);
   };
 
   const getPenStatusColor = (pen: any) => {
+    if (pen.currentOccupancy > 0) {
+      return 'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200';
+    }
+    
     switch (pen.status) {
-      case 'occupied':
-        return 'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200';
-      case 'maintenance':
+      case 'MAINTENANCE':
         return 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200';
-      case 'quarantine':
+      case 'INACTIVE':
         return 'bg-rose-100 border-rose-300 text-rose-800 hover:bg-rose-200';
       default:
         return 'bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50';
     }
   };
 
+  // Atualizar currais quando o componente montar
+  useEffect(() => {
+    refreshPens();
+  }, []);
+  
   // Group pens by sector for better organization
-  const pensBySector = penStatuses.reduce((acc, pen) => {
-    const penReg = penRegistrations.find(p => p.penNumber === pen.penNumber);
-    const sector = penReg?.location || 'Sem Setor';
+  const pensBySector = pens.reduce((acc, pen) => {
+    const sector = pen.location || 'Sem Setor';
     
     if (!acc[sector]) {
       acc[sector] = [];

@@ -37,6 +37,7 @@ const Login02 = lazy(() => import('@/pages/Login02').then(module => ({ default: 
 // Componente de teste da integração API
 const ApiIntegrationTest = lazy(() => import('@/components/Test/ApiIntegrationTest').then(module => ({ default: module.ApiIntegrationTest })));
 const TestCycles = lazy(() => import('@/pages/TestCycles').then(module => ({ default: module.TestCycles })));
+const TestPens = lazy(() => import('@/pages/TestPens').then(module => ({ default: module.TestPens })));
 
 // ============================================================================
 // COMPONENTE DE LOADING
@@ -114,6 +115,8 @@ const AppContent: React.FC = () => {
         return <ApiIntegrationTest />;
       case 'test-cycles':
         return <TestCycles />;
+      case 'test-pens':
+        return <TestPens />;
       default:
         return (
           <div className="flex items-center justify-center h-64">

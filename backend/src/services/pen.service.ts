@@ -73,7 +73,24 @@ export class PenService {
       },
     };
 
-    return this.penRepository.findAll(where, pagination);
+    const result = await this.penRepository.findAll(where, pagination);
+    
+    // Adicionar currentOccupancy a cada pen
+    if (result.items) {
+      result.items = result.items.map((pen: any) => {
+        const currentOccupancy = pen.lotAllocations?.reduce(
+          (sum: number, alloc: any) => sum + (alloc.quantity || 0), 
+          0
+        ) || 0;
+        
+        return {
+          ...pen,
+          currentOccupancy
+        };
+      });
+    }
+    
+    return result;
   }
 
   async findById(id: string) {
