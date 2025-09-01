@@ -6,6 +6,20 @@ const partnerService = new PartnerService();
 
 export class PartnerController {
   /**
+   * GET /partners/:id/debug
+   * Debug detalhado de um parceiro específico
+   */
+  async debug(req: Request, res: Response): Promise<void> {
+    const { id } = req.params;
+    
+    const debugInfo = await partnerService.getDebugInfo(id);
+    
+    res.json({
+      status: 'success',
+      data: debugInfo,
+    });
+  }
+  /**
    * GET /partners
    * Lista todos os parceiros com filtros
    */
@@ -19,10 +33,10 @@ export class PartnerController {
     };
 
     const pagination = {
-      page: page ? parseInt(page as string) : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
-      sortBy: sortBy as string,
-      sortOrder: sortOrder as 'asc' | 'desc',
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 10,
+      sortBy: sortBy as string || 'createdAt',
+      sortOrder: sortOrder as 'asc' | 'desc' || 'desc',
     };
 
     const result = await partnerService.findAll(filters, pagination);
@@ -52,7 +66,7 @@ export class PartnerController {
    * GET /partners/stats
    * Retorna estatísticas gerais
    */
-  async stats(req: Request, res: Response): Promise<void> {
+  async stats(_req: Request, res: Response): Promise<void> {
     const stats = await partnerService.getStats();
 
     res.json({

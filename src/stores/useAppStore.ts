@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { 
-  FatteningCycle, Partner, PurchaseOrder, CattleLot, WeightReading, 
+  FatteningCycle, Partner, CattlePurchase, CattlePurchase, WeightReading, 
   HealthRecord, FeedCost, LotMovement, SaleSimulation, FinancialAccount,
   KPI, PenStatus, Debt, ZootechnicalPerformance, BankStatement, 
   FinancialReconciliation, CostCenter, CostAllocation, Expense, 
@@ -37,9 +37,9 @@ interface AppState {
   // Dados
   cycles: FatteningCycle[];
   partners: Partner[];
-  purchaseOrders: PurchaseOrder[];
-  cattleLots: CattleLot[];
-  weightReadings: WeightReading[];
+  cattlePurchases: CattlePurchase[];
+  cattlePurchases: CattlePurchase[];
+  currentWeightReadings: WeightReading[];
   healthRecords: HealthRecord[];
   feedCosts: FeedCost[];
   lotMovements: LotMovement[];
@@ -99,7 +99,7 @@ interface AppState {
   updateCycle: (id: string, data: Partial<FatteningCycle>) => void;
   deleteCycle: (id: string) => void;
   setCycles: (cycles: FatteningCycle[]) => void;
-  setCattleLots: (lots: CattleLot[]) => void;
+  setCattlePurchases: (lots: CattlePurchase[]) => void;
   setPartners: (partners: Partner[]) => void;
   setExpenses: (expenses: Expense[]) => void;
   setRevenues: (revenues: any[]) => void;
@@ -113,17 +113,17 @@ interface AppState {
   deletePartner: (id: string) => void;
   
   // Ações - Ordens de Compra
-  addPurchaseOrder: (order: Omit<PurchaseOrder, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updatePurchaseOrder: (id: string, data: Partial<PurchaseOrder>) => void;
-  deletePurchaseOrder: (id: string) => void;
-  movePurchaseOrderToNextStage: (id: string) => void;
-  movePurchaseOrderToPreviousStage: (id: string) => void;
-  generatePurchaseOrderCode: () => string;
+  addCattlePurchase: (order: Omit<CattlePurchase, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateCattlePurchase: (id: string, data: Partial<CattlePurchase>) => void;
+  deleteCattlePurchase: (id: string) => void;
+  moveCattlePurchaseToNextStage: (id: string) => void;
+  moveCattlePurchaseToPreviousStage: (id: string) => void;
+  generateCattlePurchaseCode: () => string;
   
   // Ações - Lotes
-  addCattleLot: (lot: Omit<CattleLot, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateCattleLot: (id: string, data: Partial<CattleLot>) => void;
-  deleteCattleLot: (id: string) => void;
+  addCattlePurchase: (lot: Omit<CattlePurchase, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateCattlePurchase: (id: string, data: Partial<CattlePurchase>) => void;
+  deleteCattlePurchase: (id: string) => void;
   generateLotNumber: () => string;
   
   // Ações - Pesagens
@@ -180,9 +180,9 @@ interface AppState {
   moveSaleDesignationToNextStage: (id: string) => void;
   
   // Consultas - Modelo Operacional
-  getLotesInCurral: (curralId: string) => { lote: CattleLot; link: LoteCurralLink }[];
+  getLotesInCurral: (curralId: string) => { lote: CattlePurchase; link: LoteCurralLink }[];
   getCurraisOfLote: (loteId: string) => { curral: PenRegistration; link: LoteCurralLink }[];
-  calculateLotCostsByCategory: (loteId: string) => CattleLot['custoAcumulado'];
+  calculateLotCostsByCategory: (loteId: string) => CattlePurchase['custoAcumulado'];
   
   // Ações - Dívidas
   addDebt: (debt: Omit<Debt, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -251,7 +251,7 @@ interface AppState {
   getAvailablePens: () => PenStatus[];
 
   // 🆕 NOVO: Função helper para calcular arrobas de carcaça
-  calculateCarcassArrobas: (order: PurchaseOrder) => number;
+  calculateCarcassArrobas: (order: CattlePurchase) => number;
   
   // 🆕 AÇÕES DO DRC
   // Ações - DRC/Fluxo de Caixa
@@ -272,7 +272,7 @@ interface AppState {
   addNonCashExpense: (expense: Omit<NonCashExpense, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateNonCashExpense: (id: string, data: Partial<NonCashExpense>) => void;
   deleteNonCashExpense: (id: string) => void;
-  recordMortality: (lotId: string, quantity: number, cause: 'disease' | 'accident' | 'stress' | 'unknown', notes?: string) => void;
+  recordMortality: (lotId: string, currentQuantity: number, cause: 'disease' | 'accident' | 'stress' | 'unknown', notes?: string) => void;
   recordWeightLoss: (lotId: string, expectedWeight: number, actualWeight: number, notes?: string) => void;
   
   // 🆕 AÇÕES DO DRE
@@ -376,9 +376,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Dados iniciais
   cycles: [],
   partners: [],
-  purchaseOrders: [],
-  cattleLots: [],
-  weightReadings: [],
+  cattlePurchases: [],
+  cattlePurchases: [],
+  currentWeightReadings: [],
   healthRecords: [],
   feedCosts: [],
   lotMovements: [],
@@ -467,13 +467,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     cycles: state.cycles.filter(cycle => cycle.id !== id)
   })),
   setCycles: (cycles) => set({ cycles }),
-  setCattleLots: (cattleLots) => set({ cattleLots }),
+  setCattlePurchases: (cattlePurchases) => set({ cattlePurchases }),
   setPartners: (partners) => set({ partners }),
   setExpenses: (expenses) => set({ expenses }),
   setRevenues: (revenues) => set({ revenues }),
   setPenRegistrations: (penRegistrations) => set({ penRegistrations }),
   setHealthRecords: (healthRecords) => set({ healthRecords }),
-  setWeightReadings: (weightReadings) => set({ weightReadings }),
+  setWeightReadings: (currentWeightReadings) => set({ currentWeightReadings }),
   
   // Ações - Parceiros
   addPartner: (partner) => set((state) => ({
@@ -491,7 +491,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   })),
   
   // Ações - Ordens de Compra
-  addPurchaseOrder: (order) => set((state) => {
+  addCattlePurchase: (order) => set((state) => {
     const orderId = uuidv4();
     const orderWithId = { 
       ...order, 
@@ -507,12 +507,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     const animalValue = arrobas * order.pricePerArroba;
     
     // 🆕 NOVO: Criar lote automaticamente ao criar a ordem
-    const newLot: CattleLot = {
+    const newLot: CattlePurchase = {
       id: uuidv4(),
       lotNumber: order.code,
-      purchaseOrderId: orderId,
+      purchaseId: orderId,
       entryWeight: order.totalWeight,
-      entryQuantity: order.quantity,
+      entryQuantity: order.currentQuantity,
       freightKm: 0,
       freightCostPerKm: 0,
       entryDate: new Date(),
@@ -541,7 +541,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const mainAccount: FinancialAccount = {
       id: uuidv4(),
       type: 'payable',
-      description: `Compra de gado - ${order.code} - ${order.quantity} animais`,
+      description: `Compra de gado - ${order.code} - ${order.currentQuantity} animais`,
       amount: animalValue,
       dueDate: order.paymentDate || new Date(),
       status: 'pending',
@@ -557,7 +557,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       date: order.date,
       description: `Aquisição de gado - ${order.code}`,
       category: 'animal_purchase',
-      totalAmount: animalValue,
+      purchaseValue: animalValue,
       supplierId: order.vendorId,
       dueDate: order.paymentDate || order.date,
       paymentDate: undefined,
@@ -590,7 +590,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         date: order.date,
         description: `Comissão - ${order.code}`,
         category: 'commission',
-        totalAmount: order.commission,
+        purchaseValue: order.commission,
         supplierId: order.brokerId,
         dueDate: order.commissionPaymentDate || order.paymentDate || order.date,
         paymentDate: undefined,
@@ -624,7 +624,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         date: order.date,
         description: `${order.otherCostsDescription || 'Outros custos'} - ${order.code}`,
         category: 'acquisition_other',
-        totalAmount: order.otherCosts,
+        purchaseValue: order.otherCosts,
         dueDate: order.otherCostsPaymentDate || order.paymentDate || order.date,
         paymentDate: undefined,
         isPaid: false, // Começa como previsto
@@ -649,21 +649,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
     
     return {
-      purchaseOrders: [...state.purchaseOrders, orderWithId],
-      cattleLots: [...state.cattleLots, newLot],
+      cattlePurchases: [...state.cattlePurchases, orderWithId],
+      cattlePurchases: [...state.cattlePurchases, newLot],
       financialAccounts: [...state.financialAccounts, ...newAccounts],
       expenses: [...state.expenses, ...newExpenses],
       notifications: [...state.notifications, notification]
     };
   }),
-  updatePurchaseOrder: (id, data) => set((state) => ({
-    purchaseOrders: state.purchaseOrders.map(order => 
+  updateCattlePurchase: (id, data) => set((state) => ({
+    cattlePurchases: state.cattlePurchases.map(order => 
       order.id === id ? { ...order, ...data, updatedAt: new Date() } : order
     )
   })),
-  deletePurchaseOrder: (id) => set((state) => {
+  deleteCattlePurchase: (id) => set((state) => {
     // Encontrar o lote associado à ordem
-    const relatedLot = state.cattleLots.find(lot => lot.purchaseOrderId === id);
+    const relatedLot = state.cattlePurchases.find(lot => lot.purchaseId === id);
     
     // Remover lote e suas alocações
     const updatedLoteCurralLinks = relatedLot 
@@ -676,7 +676,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     );
     
     // Remover despesas relacionadas à ordem
-    const order = state.purchaseOrders.find(o => o.id === id);
+    const order = state.cattlePurchases.find(o => o.id === id);
     const updatedExpenses = order 
       ? state.expenses.filter(expense => !expense.description?.includes(order.code))
       : state.expenses;
@@ -728,10 +728,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
     
     return {
-      purchaseOrders: state.purchaseOrders.filter(order => order.id !== id),
-      cattleLots: relatedLot 
-        ? state.cattleLots.filter(lot => lot.id !== relatedLot.id)
-        : state.cattleLots,
+      cattlePurchases: state.cattlePurchases.filter(order => order.id !== id),
+      cattlePurchases: relatedLot 
+        ? state.cattlePurchases.filter(lot => lot.id !== relatedLot.id)
+        : state.cattlePurchases,
       loteCurralLinks: updatedLoteCurralLinks,
       financialAccounts: updatedFinancialAccounts,
       expenses: updatedExpenses,
@@ -744,11 +744,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       notifications: [...state.notifications, notification]
     };
   }),
-  movePurchaseOrderToNextStage: (id) => set((state) => {
-    const order = state.purchaseOrders.find(o => o.id === id);
+  moveCattlePurchaseToNextStage: (id) => set((state) => {
+    const order = state.cattlePurchases.find(o => o.id === id);
     if (!order) return state;
     
-    let nextStatus: PurchaseOrder['status'] = 'order';
+    let nextStatus: CattlePurchase['status'] = 'order';
     let updatedState = { ...state };
     
     switch (order.status) {
@@ -802,7 +802,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             date: new Date(),
             description: `Frete - ${order.code} - ${order.freightKm || 0} km`,
             category: 'freight',
-            totalAmount: freightCost,
+            purchaseValue: freightCost,
             supplierId: order.transportCompanyId,
             dueDate: order.paymentDate || new Date(),
             paymentDate: undefined,
@@ -815,9 +815,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           updatedState.expenses = [...updatedState.expenses, freightExpense];
           
           // Atualizar custo do lote com o frete
-          const lot = updatedState.cattleLots.find(l => l.purchaseOrderId === order.id);
+          const lot = updatedState.cattlePurchases.find(l => l.purchaseId === order.id);
           if (lot) {
-            updatedState.cattleLots = updatedState.cattleLots.map(l => 
+            updatedState.cattlePurchases = updatedState.cattlePurchases.map(l => 
               l.id === lot.id 
                 ? {
                     ...l,
@@ -854,17 +854,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         return state;
     }
     
-    updatedState.purchaseOrders = updatedState.purchaseOrders.map(o => 
+    updatedState.cattlePurchases = updatedState.cattlePurchases.map(o => 
       o.id === id ? { ...o, status: nextStatus, updatedAt: new Date() } : o
     );
     
     return updatedState;
   }),
-  movePurchaseOrderToPreviousStage: (id) => set((state) => {
-    const order = state.purchaseOrders.find(o => o.id === id);
+  moveCattlePurchaseToPreviousStage: (id) => set((state) => {
+    const order = state.cattlePurchases.find(o => o.id === id);
     if (!order) return state;
     
-    let prevStatus: PurchaseOrder['status'] = 'order';
+    let prevStatus: CattlePurchase['status'] = 'order';
     
     switch (order.status) {
       case 'payment_validation':
@@ -881,19 +881,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     
     return {
-      purchaseOrders: state.purchaseOrders.map(o => 
+      cattlePurchases: state.cattlePurchases.map(o => 
         o.id === id ? { ...o, status: prevStatus, updatedAt: new Date() } : o
       )
     };
   }),
-  generatePurchaseOrderCode: () => {
-    const { purchaseOrders } = get();
-    const orderCount = purchaseOrders.length + 1;
+  generateCattlePurchaseCode: () => {
+    const { cattlePurchases } = get();
+    const orderCount = cattlePurchases.length + 1;
     return `X${orderCount.toString().padStart(4, '0')}`;
   },
   
   // Ações - Lotes
-  addCattleLot: (lot) => set((state) => {
+  addCattlePurchase: (lot) => set((state) => {
     const newLot = { 
       ...lot, 
       id: uuidv4(), 
@@ -911,56 +911,56 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
     
     return {
-      cattleLots: [...state.cattleLots, newLot]
+      cattlePurchases: [...state.cattlePurchases, newLot]
     };
   }),
-  updateCattleLot: (id, data) => set((state) => {
+  updateCattlePurchase: (id, data) => set((state) => {
     // Encontrar o lote atual
-    const currentLot = state.cattleLots.find(lot => lot.id === id);
+    const currentLot = state.cattlePurchases.find(lot => lot.id === id);
     if (!currentLot) return state;
     
     // Criar o lote atualizado
     const updatedLot = { ...currentLot, ...data, updatedAt: new Date() };
     
     // Atualizar a lista de lotes
-    const updatedLots = state.cattleLots.map(lot => 
+    const updatedLots = state.cattlePurchases.map(lot => 
       lot.id === id ? updatedLot : lot
     );
     
     return {
-      cattleLots: updatedLots
+      cattlePurchases: updatedLots
     };
   }),
-  deleteCattleLot: (id) => set((state) => {
+  deleteCattlePurchase: (id) => set((state) => {
     // Encontrar o lote a ser excluído
-    const lotToDelete = state.cattleLots.find(lot => lot.id === id);
+    const lotToDelete = state.cattlePurchases.find(lot => lot.id === id);
     if (!lotToDelete) return state;
     
     // Remover alocações do lote
     const updatedPenAllocations = state.penAllocations.filter(alloc => alloc.lotId !== id);
     
     return {
-      cattleLots: state.cattleLots.filter(lot => lot.id !== id),
+      cattlePurchases: state.cattlePurchases.filter(lot => lot.id !== id),
       penAllocations: updatedPenAllocations
     };
   }),
   generateLotNumber: () => {
-    const { purchaseOrders } = get();
-    const orderCount = purchaseOrders.length + 1;
+    const { cattlePurchases } = get();
+    const orderCount = cattlePurchases.length + 1;
     return `X${orderCount.toString().padStart(4, '0')}`;
   },
   
   // Ações - Pesagens
   addWeightReading: (reading) => set((state) => ({
-    weightReadings: [...state.weightReadings, { ...reading, id: uuidv4(), createdAt: new Date() }]
+    currentWeightReadings: [...state.currentWeightReadings, { ...reading, id: uuidv4(), createdAt: new Date() }]
   })),
   updateWeightReading: (id, data) => set((state) => ({
-    weightReadings: state.weightReadings.map(reading => 
+    currentWeightReadings: state.currentWeightReadings.map(reading => 
       reading.id === id ? { ...reading, ...data } : reading
     )
   })),
   deleteWeightReading: (id) => set((state) => ({
-    weightReadings: state.weightReadings.filter(reading => reading.id !== id)
+    currentWeightReadings: state.currentWeightReadings.filter(reading => reading.id !== id)
   })),
   
   // Ações - Protocolos Sanitários
@@ -971,7 +971,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const financialAccount: FinancialAccount = {
       id: uuidv4(),
       type: 'payable',
-      description: `Protocolo Sanitário - ${record.protocol} - Lote ${state.cattleLots.find(l => l.id === record.lotId)?.lotNumber || record.lotId}`,
+      description: `Protocolo Sanitário - ${record.protocol} - Lote ${state.cattlePurchases.find(l => l.id === record.lotId)?.lotNumber || record.lotId}`,
       amount: record.cost,
       dueDate: new Date(), // Pagamento imediato para protocolos
       status: 'pending',
@@ -986,7 +986,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       date: record.date,
       description: `Protocolo Sanitário - ${record.protocol}`,
       category: 'health_costs',
-      totalAmount: record.cost,
+      purchaseValue: record.cost,
       supplierId: record.supplier,
       dueDate: new Date(), // Pagamento imediato para protocolos
       paymentDate: undefined,
@@ -1026,7 +1026,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     
     // Atualizar custos acumulados nos lotes
-    const updatedLots = state.cattleLots.map(lot => {
+    const updatedLots = state.cattlePurchases.map(lot => {
       const alocacoesDoLote = costAllocations.filter(alloc => alloc.loteId === lot.id);
       if (alocacoesDoLote.length === 0) return lot;
       
@@ -1066,7 +1066,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       financialAccounts: [...state.financialAccounts, financialAccount],
       expenses: [...state.expenses, healthExpense],
       costProportionalAllocations: [...state.costProportionalAllocations, ...costAllocations],
-      cattleLots: updatedLots,
+      cattlePurchases: updatedLots,
       notifications: [...state.notifications, notification]
     };
   }),
@@ -1087,7 +1087,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const financialAccount: FinancialAccount = {
       id: uuidv4(),
       type: 'payable',
-      description: `Alimentação - ${cost.feedType} - Lote ${state.cattleLots.find(l => l.id === cost.lotId)?.lotNumber || cost.lotId}`,
+      description: `Alimentação - ${cost.feedType} - Lote ${state.cattlePurchases.find(l => l.id === cost.lotId)?.lotNumber || cost.lotId}`,
       amount: cost.totalCost,
       dueDate: new Date(), // Pagamento imediato para alimentação
       status: 'pending',
@@ -1100,9 +1100,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     const feedExpense: Expense = {
       id: uuidv4(),
       date: cost.date,
-      description: `Alimentação - ${cost.feedType} - ${cost.quantity}kg`,
+      description: `Alimentação - ${cost.feedType} - ${cost.currentQuantity}kg`,
       category: 'feed',
-      totalAmount: cost.totalCost,
+      purchaseValue: cost.totalCost,
       supplierId: cost.supplier,
       dueDate: new Date(), // Pagamento imediato para alimentação
       paymentDate: undefined,
@@ -1142,7 +1142,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     
     // Atualizar custos acumulados nos lotes
-    const updatedLots = state.cattleLots.map(lot => {
+    const updatedLots = state.cattlePurchases.map(lot => {
       const alocacoesDoLote = costAllocations.filter(alloc => alloc.loteId === lot.id);
       if (alocacoesDoLote.length === 0) return lot;
       
@@ -1170,7 +1170,7 @@ export const useAppStore = create<AppState>((set, get) => ({
        financialAccounts: [...state.financialAccounts, financialAccount],
        expenses: [...state.expenses, feedExpense],
        costProportionalAllocations: [...state.costProportionalAllocations, ...costAllocations],
-       cattleLots: updatedLots
+       cattlePurchases: updatedLots
      };
    }),
   updateFeedCost: (id, data) => set((state) => ({
@@ -1195,8 +1195,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (fromPenIndex >= 0) {
         updatedPenStatuses[fromPenIndex] = {
           ...updatedPenStatuses[fromPenIndex],
-          currentAnimals: Math.max(0, updatedPenStatuses[fromPenIndex].currentAnimals - movement.quantity),
-          status: updatedPenStatuses[fromPenIndex].currentAnimals - movement.quantity > 0 ? 'occupied' : 'available'
+          currentAnimals: Math.max(0, updatedPenStatuses[fromPenIndex].currentAnimals - movement.currentQuantity),
+          status: updatedPenStatuses[fromPenIndex].currentAnimals - movement.currentQuantity > 0 ? 'occupied' : 'available'
         };
       }
     }
@@ -1206,20 +1206,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (toPenIndex >= 0) {
       updatedPenStatuses[toPenIndex] = {
         ...updatedPenStatuses[toPenIndex],
-        currentAnimals: updatedPenStatuses[toPenIndex].currentAnimals + movement.quantity,
+        currentAnimals: updatedPenStatuses[toPenIndex].currentAnimals + movement.currentQuantity,
         status: 'occupied'
       };
     }
     
     // Atualizar o curral do lote
-    const updatedLots = state.cattleLots.map(lot => 
+    const updatedLots = state.cattlePurchases.map(lot => 
       lot.id === movement.lotId ? { ...lot, penNumber: movement.toPen } : lot
     );
     
     return {
       lotMovements: [...state.lotMovements, newMovement],
       penStatuses: updatedPenStatuses,
-      cattleLots: updatedLots
+      cattlePurchases: updatedLots
     };
   }),
   updateLotMovement: (id, data) => set((state) => ({
@@ -1246,12 +1246,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   // Ações - KPIs
   updateKPIs: () => set((state) => {
-    const totalAnimals = state.cattleLots.reduce((sum, lot) => sum + lot.entryQuantity, 0);
-    const totalDeaths = state.cattleLots.reduce((sum, lot) => sum + lot.deaths, 0);
+    const totalAnimals = state.cattlePurchases.reduce((sum, lot) => sum + lot.entryQuantity, 0);
+    const totalDeaths = state.cattlePurchases.reduce((sum, lot) => sum + lot.deaths, 0);
     const mortalityRate = totalAnimals > 0 ? (totalDeaths / totalAnimals) * 100 : 0;
     
     // Calcular média de dias em confinamento
-    const activeLots = state.cattleLots.filter(lot => lot.status === 'active');
+    const activeLots = state.cattlePurchases.filter(lot => lot.status === 'active');
     let avgDaysInConfinement = 0;
     
     if (activeLots.length > 0) {
@@ -1267,11 +1267,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     if (activeLots.length > 0) {
       const totalWeightLoss = activeLots.reduce((sum, lot) => {
-        const order = state.purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+        const order = state.cattlePurchases.find(o => o.id === lot.purchaseId);
         if (!order) return sum;
         
-        const weightLoss = ((order.totalWeight - lot.entryWeight) / order.totalWeight) * 100;
-        return sum + weightLoss;
+        const currentWeightLoss = ((order.totalWeight - lot.entryWeight) / order.totalWeight) * 100;
+        return sum + currentWeightLoss;
       }, 0);
       avgWeightLoss = totalWeightLoss / activeLots.length;
     }
@@ -1383,7 +1383,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       pen.penNumber === allocation.penNumber 
         ? { 
             ...pen, 
-            currentAnimals: pen.currentAnimals + allocation.quantity,
+            currentAnimals: pen.currentAnimals + allocation.currentQuantity,
             status: 'occupied' as PenStatus['status']
           }
         : pen
@@ -1398,8 +1398,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     );
     
     // Recalcular animais nos currais se a quantidade mudou
-    if (data.quantity) {
-      const difference = (data.quantity || 0) - currentAllocation.quantity;
+    if (data.currentQuantity) {
+      const difference = (data.currentQuantity || 0) - currentAllocation.currentQuantity;
       const updatedPenStatuses = state.penStatuses.map(pen => 
         pen.penNumber === currentAllocation.penNumber
           ? { 
@@ -1430,8 +1430,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         pen.penNumber === allocation.penNumber
           ? { 
               ...pen, 
-              currentAnimals: Math.max(0, pen.currentAnimals - allocation.quantity),
-              status: (pen.currentAnimals - allocation.quantity > 0 ? 'occupied' : 'available') as PenStatus['status']
+              currentAnimals: Math.max(0, pen.currentAnimals - allocation.currentQuantity),
+              status: (pen.currentAnimals - allocation.currentQuantity > 0 ? 'occupied' : 'available') as PenStatus['status']
             }
           : pen
       )
@@ -1491,7 +1491,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
   }),
   allocateLotToPens: (loteId, allocations) => set((state) => {
-    const lot = state.cattleLots.find(l => l.id === loteId);
+    const lot = state.cattlePurchases.find(l => l.id === loteId);
     if (!lot) return state;
     
     const totalAllocated = allocations.reduce((sum, alloc) => sum + alloc.quantidade, 0);
@@ -1528,7 +1528,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     
     // Atualizar alocações atuais do lote
-    const updatedLots = state.cattleLots.map(l => 
+    const updatedLots = state.cattlePurchases.map(l => 
       l.id === loteId
         ? {
             ...l,
@@ -1545,7 +1545,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     return {
       loteCurralLinks: [...state.loteCurralLinks, ...newLinks],
       penStatuses: updatedPenStatuses,
-      cattleLots: updatedLots
+      cattlePurchases: updatedLots
     };
   }),
   
@@ -1575,7 +1575,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
     
     // Atualizar custos acumulados nos lotes
-    const updatedLots = state.cattleLots.map(lot => {
+    const updatedLots = state.cattlePurchases.map(lot => {
       const alocacoesDoLote = newAllocations.filter(alloc => alloc.loteId === lot.id);
       if (alocacoesDoLote.length === 0) return lot;
       
@@ -1615,7 +1615,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     return {
       costProportionalAllocations: [...state.costProportionalAllocations, ...newAllocations],
-      cattleLots: updatedLots
+      cattlePurchases: updatedLots
     };
   }),
   getCostAllocationsByLot: (loteId) => {
@@ -1662,11 +1662,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   // Consultas - Modelo Operacional
   getLotesInCurral: (curralId) => {
-    const { cattleLots, loteCurralLinks } = get();
+    const { cattlePurchases, loteCurralLinks } = get();
     return loteCurralLinks
       .filter(link => link.curralId === curralId && link.status === 'active')
       .map(link => {
-        const lote = cattleLots.find(lot => lot.id === link.loteId);
+        const lote = cattlePurchases.find(lot => lot.id === link.loteId);
         return {
           lote: lote!,
           link
@@ -1688,9 +1688,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       .filter(item => item.curral);
   },
   calculateLotCostsByCategory: (loteId) => {
-    const { cattleLots, purchaseOrders, costProportionalAllocations } = get();
+    const { cattlePurchases, costProportionalAllocations } = get();
     
-    const lot = cattleLots.find(l => l.id === loteId);
+    const lot = cattlePurchases.find(l => l.id === loteId);
     if (!lot) {
       return {
         aquisicao: 0,
@@ -1704,7 +1704,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     
     // Custo de aquisição
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    const order = cattlePurchases.find(o => o.id === lot.purchaseId);
     let acquisitionCost = 0;
     
     if (order) {
@@ -1913,15 +1913,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     const newRecord = { ...record, id: uuidv4(), createdAt: new Date() };
     
     // Marcar o lote como vendido
-    const updatedLots = state.cattleLots.map(lot => 
+    const updatedLots = state.cattlePurchases.map(lot => 
       lot.id === record.lotId 
-        ? { ...lot, status: 'slaughtered' as CattleLot['status'], updatedAt: new Date() }
+        ? { ...lot, status: 'slaughtered' as CattlePurchase['status'], updatedAt: new Date() }
         : lot
     );
     
     return {
       saleRecords: [...state.saleRecords, newRecord],
-      cattleLots: updatedLots
+      cattlePurchases: updatedLots
     };
   }),
   updateSaleRecord: (id, data) => set((state) => {
@@ -1930,9 +1930,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     // Se o status de conciliação mudou, atualizar o lote
     if (data.reconciled !== undefined && data.reconciled !== currentRecord.reconciled) {
-      const updatedLots = state.cattleLots.map(lot => 
+      const updatedLots = state.cattlePurchases.map(lot => 
         lot.id === currentRecord.lotId 
-          ? { ...lot, status: 'sold' as CattleLot['status'], updatedAt: new Date() }
+          ? { ...lot, status: 'sold' as CattlePurchase['status'], updatedAt: new Date() }
           : lot
       );
       
@@ -1940,7 +1940,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         saleRecords: state.saleRecords.map(record => 
           record.id === id ? { ...record, ...data } : record
         ),
-        cattleLots: updatedLots
+        cattlePurchases: updatedLots
       };
     }
     
@@ -1955,13 +1955,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!record) return state;
     
     // Restaurar o status do lote para 'active'
-    const updatedLots = state.cattleLots.map(lot => 
-      lot.id === record.lotId ? { ...lot, status: 'active' as CattleLot['status'] } : lot
+    const updatedLots = state.cattlePurchases.map(lot => 
+      lot.id === record.lotId ? { ...lot, status: 'active' as CattlePurchase['status'] } : lot
     );
     
     return {
       saleRecords: state.saleRecords.filter(r => r.id !== id),
-      cattleLots: updatedLots
+      cattlePurchases: updatedLots
     };
   }),
   
@@ -1996,13 +1996,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   // Funções de Utilidade
   calculateLotCosts: (lotId) => {
-    const { cattleLots, purchaseOrders, healthRecords, feedCosts } = get();
+    const { cattlePurchases, healthRecords, feedCosts } = get();
     
-    const lot = cattleLots.find(l => l.id === lotId);
+    const lot = cattlePurchases.find(l => l.id === lotId);
     if (!lot) return 0;
     
     // Custo de aquisição
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    const order = cattlePurchases.find(o => o.id === lot.purchaseId);
     let acquisitionCost = 0;
     
     if (order) {
@@ -2029,9 +2029,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     return acquisitionCost + healthCosts + feedingCosts + freightCost;
   },
   calculateLotProfit: (lotId, pricePerArroba) => {
-    const { cattleLots, purchaseOrders, healthRecords, feedCosts } = get();
+    const { cattlePurchases, healthRecords, feedCosts } = get();
     
-    const lot = cattleLots.find(l => l.id === lotId);
+    const lot = cattlePurchases.find(l => l.id === lotId);
     if (!lot) {
       return {
         lotId,
@@ -2065,7 +2065,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const grossRevenue = (estimatedWeight / 15) * pricePerArroba;
     
     // Custo de aquisição
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    const order = cattlePurchases.find(o => o.id === lot.purchaseId);
     let acquisitionCost = 0;
     
     if (order) {
@@ -2127,9 +2127,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
   },
   calculateZootechnicalPerformance: (lotId) => {
-    const { cattleLots, weightReadings, healthRecords } = get();
+    const { cattlePurchases, currentWeightReadings, healthRecords } = get();
     
-    const lot = cattleLots.find(l => l.id === lotId);
+    const lot = cattlePurchases.find(l => l.id === lotId);
     if (!lot) {
       return {
         lotId,
@@ -2181,21 +2181,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
   },
   getTotalConfinedAnimals: () => {
-    const { cattleLots } = get();
-    return cattleLots
+    const { cattlePurchases } = get();
+    return cattlePurchases
       .filter(lot => lot.status === 'active')
       .reduce((sum, lot) => sum + lot.entryQuantity, 0);
   },
   getUnallocatedAnimals: () => {
-    const { cattleLots, penAllocations } = get();
+    const { cattlePurchases, penAllocations } = get();
     
     // Total de animais em lotes ativos
-    const totalAnimals = cattleLots
+    const totalAnimals = cattlePurchases
       .filter(lot => lot.status === 'active')
       .reduce((sum, lot) => sum + lot.entryQuantity, 0);
     
     // Total de animais alocados em currais
-    const allocatedAnimals = penAllocations.reduce((sum, allocation) => sum + allocation.quantity, 0);
+    const allocatedAnimals = penAllocations.reduce((sum, allocation) => sum + allocation.currentQuantity, 0);
     
     return totalAnimals - allocatedAnimals;
   },
@@ -2392,7 +2392,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       .reduce((sum, a) => sum + a.amount, 0);
     
     // Calcular valor do inventário (animais)
-    const inventory = state.cattleLots
+    const inventory = state.cattlePurchases
       .filter(lot => lot.status === 'active')
       .reduce((sum, lot) => sum + lot.custoAcumulado.total, 0);
     
@@ -2435,7 +2435,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       date: expense.date,
       description: expense.description,
       category: expense.type === 'mortality' ? 'deaths' : 'financial_other',
-      totalAmount: expense.monetaryValue,
+      purchaseValue: expense.monetaryValue,
       dueDate: expense.date, // Lançamento não-caixa, vencimento é a mesma data
       paymentDate: expense.date, // Já "realizado" pois não impacta caixa
       isPaid: true, // Sempre true para lançamentos não-caixa
@@ -2447,12 +2447,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
     
     // Se for mortalidade, atualizar o lote
-    if (expense.type === 'mortality' && expense.quantity !== undefined) {
-      const updatedLots = state.cattleLots.map(lot => 
+    if (expense.type === 'mortality' && expense.currentQuantity !== undefined) {
+      const updatedLots = state.cattlePurchases.map(lot => 
         lot.id === expense.relatedEntityId
           ? { 
               ...lot, 
-              deaths: (lot.deaths || 0) + expense.quantity!,
+              deaths: (lot.deaths || 0) + expense.currentQuantity!,
               updatedAt: new Date()
             }
           : lot
@@ -2461,7 +2461,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       return {
         nonCashExpenses: [...state.nonCashExpenses, newExpense],
         expenses: [...state.expenses, correspondingExpense],
-        cattleLots: updatedLots
+        cattlePurchases: updatedLots
       };
     }
     
@@ -2484,25 +2484,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     expenses: state.expenses.filter(expense => expense.nonCashExpenseId !== id)
   })),
   
-  recordMortality: (lotId, quantity, cause, notes) => {
+  recordMortality: (lotId, currentQuantity, cause, notes) => {
     const state = get();
-    const lot = state.cattleLots.find(l => l.id === lotId);
+    const lot = state.cattlePurchases.find(l => l.id === lotId);
     if (!lot) return;
     
-    const order = state.purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    const order = state.cattlePurchases.find(o => o.id === lot.purchaseId);
     if (!order) return;
     
     // Calcular valor monetário da perda (baseado no custo médio por animal)
     const costPerAnimal = lot.custoAcumulado.total / lot.entryQuantity;
-    const monetaryValue = costPerAnimal * quantity;
+    const monetaryValue = costPerAnimal * currentQuantity;
     
     const mortalityExpense: Omit<NonCashExpense, 'id' | 'createdAt' | 'updatedAt'> = {
       date: new Date(),
       type: 'mortality',
-      description: `Mortalidade de ${quantity} animais - Lote ${lot.lotNumber}`,
+      description: `Mortalidade de ${currentQuantity} animais - Lote ${lot.lotNumber}`,
       relatedEntityType: 'cattle_lot',
       relatedEntityId: lotId,
-      quantity,
+      currentQuantity,
       monetaryValue,
       mortalityDetails: {
         cause,
@@ -2519,28 +2519,28 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   recordWeightLoss: (lotId, expectedWeight, actualWeight, notes) => {
     const state = get();
-    const lot = state.cattleLots.find(l => l.id === lotId);
+    const lot = state.cattlePurchases.find(l => l.id === lotId);
     if (!lot) return;
     
-    const weightLoss = expectedWeight - actualWeight;
-    const lossPercentage = (weightLoss / expectedWeight) * 100;
+    const currentWeightLoss = expectedWeight - actualWeight;
+    const lossPercentage = (currentWeightLoss / expectedWeight) * 100;
     
     // Calcular valor monetário da perda (baseado no preço médio de compra)
-    const order = state.purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    const order = state.cattlePurchases.find(o => o.id === lot.purchaseId);
     if (!order) return;
     
     const pricePerKg = (order.pricePerArroba / 15) * (order.rcPercentage || 50) / 100;
-    const monetaryValue = weightLoss * pricePerKg;
+    const monetaryValue = currentWeightLoss * pricePerKg;
     
-    const weightLossExpense: Omit<NonCashExpense, 'id' | 'createdAt' | 'updatedAt'> = {
+    const currentWeightLossExpense: Omit<NonCashExpense, 'id' | 'createdAt' | 'updatedAt'> = {
       date: new Date(),
-      type: 'weight_loss',
+      type: 'currentWeight_loss',
       description: `Quebra de peso - Lote ${lot.lotNumber}`,
       relatedEntityType: 'cattle_lot',
       relatedEntityId: lotId,
-      weightLoss,
+      currentWeightLoss,
       monetaryValue,
-      weightLossDetails: {
+      currentWeightLossDetails: {
         expectedWeight,
         actualWeight,
         lossPercentage
@@ -2551,7 +2551,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       notes
     };
     
-    get().addNonCashExpense(weightLossExpense);
+    get().addNonCashExpense(currentWeightLossExpense);
   },
   
   // 🆕 IMPLEMENTAÇÃO DO DRE
@@ -2559,23 +2559,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     const state = get();
     const { entityType, entityId, periodStart, periodEnd, includeProjections, pricePerArroba } = params;
     
-    let entities: { lot?: CattleLot; pen?: string }[] = [];
+    let entities: { lot?: CattlePurchase; pen?: string }[] = [];
     
     // Determinar entidades para o DRE
     if (entityType === 'lot' && entityId) {
-      const lot = state.cattleLots.find(l => l.id === entityId);
+      const lot = state.cattlePurchases.find(l => l.id === entityId);
       if (!lot) return null;
       entities = [{ lot }];
     } else if (entityType === 'pen' && entityId) {
       // Buscar todos os lotes no curral
       const lotsInPen = state.loteCurralLinks
         .filter(link => link.curralId === entityId && link.status === 'active')
-        .map(link => state.cattleLots.find(l => l.id === link.loteId))
-        .filter(Boolean) as CattleLot[];
+        .map(link => state.cattlePurchases.find(l => l.id === link.loteId))
+        .filter(Boolean) as CattlePurchase[];
       entities = lotsInPen.map(lot => ({ lot, pen: entityId }));
     } else if (entityType === 'global') {
       // Todos os lotes ativos
-      entities = state.cattleLots
+      entities = state.cattlePurchases
         .filter(lot => lot.status === 'active' || lot.status === 'sold')
         .map(lot => ({ lot }));
     }
@@ -2588,7 +2588,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       entityType,
       entityId: entityId || 'global',
       entityName: entityType === 'global' ? 'Global' : 
-                  entityType === 'lot' ? state.cattleLots.find(l => l.id === entityId)?.lotNumber || entityId :
+                  entityType === 'lot' ? state.cattlePurchases.find(l => l.id === entityId)?.lotNumber || entityId :
                   `Curral ${entityId}`,
       periodStart,
       periodEnd,
@@ -2599,7 +2599,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         health: 0,
         freight: 0,
         mortality: 0,
-        weightLoss: 0,
+        currentWeightLoss: 0,
         total: 0
       },
       grossProfit: 0,
@@ -2664,7 +2664,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (saleRecord && saleRecord.saleDate >= periodStart && saleRecord.saleDate <= periodEnd) {
           dre.revenue.grossSales += saleRecord.grossRevenue;
           // Calcular arrobas baseado no peso total e RC%
-          const rcPercentage = state.purchaseOrders.find(o => o.id === lot.purchaseOrderId)?.rcPercentage || 50;
+          const rcPercentage = state.cattlePurchases.find(o => o.id === lot.purchaseId)?.rcPercentage || 50;
           const carcassWeight = saleRecord.totalWeight * (rcPercentage / 100);
           const arrobas = carcassWeight / 15;
           totalArrobas += arrobas;
@@ -2673,7 +2673,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         // Projetar vendas
         const daysInConfinement = Math.floor((new Date().getTime() - ensureDate(lot.entryDate).getTime()) / (1000 * 60 * 60 * 24));
         const currentWeight = lot.entryWeight + (lot.estimatedGmd * lot.entryQuantity * daysInConfinement);
-        const rcPercentage = state.purchaseOrders.find(o => o.id === lot.purchaseOrderId)?.rcPercentage || 50;
+        const rcPercentage = state.cattlePurchases.find(o => o.id === lot.purchaseId)?.rcPercentage || 50;
         const carcassWeight = currentWeight * (rcPercentage / 100);
         const arrobas = carcassWeight / 15;
         
@@ -2698,8 +2698,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       nonCashExpenses.forEach(expense => {
         if (expense.type === 'mortality') {
           dre.costOfGoodsSold.mortality += expense.monetaryValue;
-        } else if (expense.type === 'weight_loss') {
-          dre.costOfGoodsSold.weightLoss += expense.monetaryValue;
+        } else if (expense.type === 'currentWeight_loss') {
+          dre.costOfGoodsSold.currentWeightLoss += expense.monetaryValue;
         }
       });
       
@@ -2718,19 +2718,19 @@ export const useAppStore = create<AppState>((set, get) => ({
           case 'personnel':
           case 'office':
           case 'admin_other':
-            dre.operatingExpenses.administrative += expense.totalAmount;
+            dre.operatingExpenses.administrative += expense.purchaseValue;
             break;
           case 'marketing':
-            dre.operatingExpenses.sales += expense.totalAmount;
+            dre.operatingExpenses.sales += expense.purchaseValue;
             break;
           case 'interest':
           case 'fees':
           case 'financial_management':
           case 'financial_other':
-            dre.operatingExpenses.financial += expense.totalAmount;
+            dre.operatingExpenses.financial += expense.purchaseValue;
             break;
           default:
-            dre.operatingExpenses.other += expense.totalAmount;
+            dre.operatingExpenses.other += expense.purchaseValue;
             break;
         }
       });
@@ -2749,7 +2749,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       dre.costOfGoodsSold.health +
       dre.costOfGoodsSold.freight +
       dre.costOfGoodsSold.mortality +
-      dre.costOfGoodsSold.weightLoss;
+      dre.costOfGoodsSold.currentWeightLoss;
     
     dre.grossProfit = dre.revenue.netSales - dre.costOfGoodsSold.total;
     dre.grossMargin = dre.revenue.netSales > 0 ? (dre.grossProfit / dre.revenue.netSales) * 100 : 0;
@@ -2836,7 +2836,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (dre) {
         let name = '';
         if (entityType === 'lot') {
-          const lot = state.cattleLots.find(l => l.id === entityId);
+          const lot = state.cattlePurchases.find(l => l.id === entityId);
           name = lot?.lotNumber || entityId;
         } else {
           name = `Curral ${entityId}`;
@@ -2898,10 +2898,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   // 🆕 IMPLEMENTAÇÃO DE RATEIO DE CUSTOS INDIRETOS
   generateIndirectCostAllocation: (params) => {
     const state = get();
-    const { costType, period, totalAmount, allocationMethod, includeInactiveLots = false } = params;
+    const { costType, period, purchaseValue, allocationMethod, includeInactiveLots = false } = params;
     
     // Buscar entidades ativas
-    const activeLots = state.cattleLots.filter(lot => 
+    const activeLots = state.cattlePurchases.filter(lot => 
       includeInactiveLots ? true : lot.status === 'active'
     );
     
@@ -2930,7 +2930,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           base = days * (lot.entryQuantity - (lot.deaths || 0));
           break;
           
-        case 'by_weight':
+        case 'by_currentWeight':
           base = lot.entryWeight;
           break;
       }
@@ -2945,7 +2945,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const allocations = activeLots.map(lot => {
       const base = entityBases.get(lot.id) || 0;
       const percentage = (base / totalBase) * 100;
-      const allocatedAmount = (totalAmount * percentage) / 100;
+      const allocatedAmount = (purchaseValue * percentage) / 100;
       
       return {
         entityType: 'lot' as const,
@@ -2954,7 +2954,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         heads: lot.entryQuantity - (lot.deaths || 0),
         value: state.calculateLotCostsByCategory(lot.id).total,
         days: Math.floor((new Date().getTime() - ensureDate(lot.entryDate).getTime()) / (1000 * 60 * 60 * 24)),
-        weight: lot.entryWeight,
+        currentWeight: lot.entryWeight,
         percentage,
         allocatedAmount
       };
@@ -2969,14 +2969,14 @@ export const useAppStore = create<AppState>((set, get) => ({
                               costType === 'marketing' ? 'de Marketing' : 'Outros'}`,
       description: `Rateio automático pelo método ${allocationMethod}`,
       period,
-      totalAmount,
+      purchaseValue,
       costType,
       allocationMethod,
       allocationBasis: {
         totalHeads: allocationMethod === 'by_heads' ? totalBase : undefined,
         totalValue: allocationMethod === 'by_value' ? totalBase : undefined,
         totalDays: allocationMethod === 'by_days' ? totalBase : undefined,
-        totalWeight: allocationMethod === 'by_weight' ? totalBase : undefined
+        totalWeight: allocationMethod === 'by_currentWeight' ? totalBase : undefined
       },
       allocations,
       status: 'draft',
@@ -3018,7 +3018,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 allocation.costType === 'financial' ? 'financial_management' :
                 allocation.costType === 'marketing' ? 'marketing' : 
                 'admin_other',
-      totalAmount: alloc.allocatedAmount,
+      purchaseValue: alloc.allocatedAmount,
       dueDate: allocation.period.endDate, // Vencimento é a data do período
       paymentDate: allocation.period.endDate, // Já pago quando aplicado
       isPaid: true, // Rateio aplicado já é considerado pago
@@ -3092,7 +3092,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     let heads = 0;
     
     if (entityType === 'lot') {
-      const lot = state.cattleLots.find(l => l.id === entityId);
+      const lot = state.cattlePurchases.find(l => l.id === entityId);
       if (lot) {
         entityName = lot.lotNumber;
         heads = lot.entryQuantity - (lot.deaths || 0);
@@ -3105,7 +3105,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       entityType,
       entityId: entityId || 'global',
       entityName: entityType === 'global' ? 'Global' : 
-                  entityType === 'lot' ? state.cattleLots.find(l => l.id === entityId)?.lotNumber || entityId :
+                  entityType === 'lot' ? state.cattlePurchases.find(l => l.id === entityId)?.lotNumber || entityId :
                   `Curral ${entityId || ''}`,
       period: { startDate: periodStart, endDate: periodEnd },
       costs,
@@ -3172,9 +3172,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     // Limpar todos os dados transacionais
     cycles: [],
     partners: [],
-    purchaseOrders: [],
-    cattleLots: [],
-    weightReadings: [],
+    cattlePurchases: [],
+    cattlePurchases: [],
+    currentWeightReadings: [],
     healthRecords: [],
     feedCosts: [],
     lotMovements: [],

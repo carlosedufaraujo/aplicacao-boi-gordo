@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { payerAccountApi, PayerAccount, CreatePayerAccountData, UpdatePayerAccountData, PayerAccountFilters, PayerAccountStats } from '@/services/api/payerAccountApi';
 import { toast } from 'sonner';
+import { showErrorNotification, showSuccessNotification } from '@/utils/errorHandler';
 
 /**
  * Hook para gerenciar PayerAccounts via API Backend
@@ -26,7 +27,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
         // Se response.data for um objeto paginado, extrair o array
         const items = Array.isArray(response.data) 
           ? response.data 
-          : response.data.data || [];
+          : response.data.items || [];
         setPayerAccounts(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar contas pagadoras');
@@ -35,7 +36,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao carregar contas pagadoras:', err);
-      toast.error('Erro ao carregar contas pagadoras');
+      showErrorNotification(err, 'Erro ao carregar contas pagadoras');
     } finally {
       setLoading(false);
     }
@@ -52,7 +53,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
         // Se response.data for um objeto paginado, extrair o array
         const items = Array.isArray(response.data) 
           ? response.data 
-          : response.data.data || [];
+          : response.data.items || [];
         setPayerAccounts(items);
       }
     } catch (err) {
@@ -71,7 +72,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const response = await payerAccountApi.create(data);
       
       if (response.status === 'success' && response.data) {
-        toast.success('Conta pagadora criada com sucesso');
+        showSuccessNotification('Conta pagadora criada com sucesso');
         
         // Recarregar a lista completa para garantir sincronização
         await loadPayerAccounts();
@@ -85,7 +86,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao criar conta pagadora:', err);
-      toast.error('Erro ao criar conta pagadora');
+      showErrorNotification(err, 'Erro ao criar conta pagadora');
       return null;
     } finally {
       setLoading(false);
@@ -103,7 +104,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const response = await payerAccountApi.update(id, data);
       
       if (response.status === 'success' && response.data) {
-        toast.success('Conta pagadora atualizada com sucesso');
+        showSuccessNotification('Conta pagadora atualizada com sucesso');
         
         // Recarregar a lista completa para garantir sincronização
         await loadPayerAccounts();
@@ -117,7 +118,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao atualizar conta pagadora:', err);
-      toast.error('Erro ao atualizar conta pagadora');
+      showErrorNotification(err, 'Erro ao atualizar conta pagadora');
       return null;
     } finally {
       setLoading(false);
@@ -138,7 +139,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
         setPayerAccounts(prev => prev.map(account => 
           account.id === id ? response.data! : account
         ));
-        toast.success('Saldo atualizado com sucesso');
+        showSuccessNotification('Saldo atualizado com sucesso');
         
         // Recarregar estatísticas
         loadStats();
@@ -151,7 +152,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao atualizar saldo:', err);
-      toast.error('Erro ao atualizar saldo');
+      showErrorNotification(err, 'Erro ao atualizar saldo');
       return null;
     } finally {
       setLoading(false);
@@ -172,7 +173,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
         setPayerAccounts(prev => prev.map(account => 
           account.id === id ? response.data! : account
         ));
-        toast.success(`Conta ${isActive ? 'ativada' : 'desativada'} com sucesso`);
+        showSuccessNotification(`Conta ${isActive ? 'ativada' : 'desativada'} com sucesso`);
         
         // Recarregar estatísticas
         loadStats();
@@ -185,7 +186,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao alterar status da conta:', err);
-      toast.error('Erro ao alterar status da conta');
+      showErrorNotification(err, 'Erro ao alterar status');
       return null;
     } finally {
       setLoading(false);
@@ -204,7 +205,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       
       if (response.status === 'success') {
         setPayerAccounts(prev => prev.filter(account => account.id !== id));
-        toast.success('Conta pagadora removida com sucesso');
+        showSuccessNotification('Conta pagadora removida com sucesso');
         
         // Recarregar estatísticas
         loadStats();
@@ -217,7 +218,7 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao remover conta pagadora:', err);
-      toast.error('Erro ao remover conta pagadora');
+      showErrorNotification(err, 'Erro ao remover conta pagadora');
       return false;
     } finally {
       setLoading(false);
@@ -319,13 +320,15 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
         ]);
         
         if (accountsResponse.status === 'success' && accountsResponse.data) {
+          console.log('[usePayerAccountsApi.ts] Initial load - Response data:', accountsResponse.data);
           const items = Array.isArray(accountsResponse.data) 
             ? accountsResponse.data 
-            : accountsResponse.data.data || [];
+            : accountsResponse.data.items || [];
           setPayerAccounts(items);
         }
         
         if (statsResponse.status === 'success' && statsResponse.data) {
+          console.log('[usePayerAccountsApi.ts] Initial load - Response data:', statsResponse.data);
           setStats(statsResponse.data);
         }
       } catch (err) {

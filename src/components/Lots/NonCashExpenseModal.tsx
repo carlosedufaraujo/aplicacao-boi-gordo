@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { X, AlertTriangle, TrendingDown } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
-import { CattleLot } from '../../types';
+import { CattlePurchase } from '../../types';
 import { formatWeight } from '@/utils/formatters';
 
 interface NonCashExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  lot: CattleLot;
+  lot: CattlePurchase;
 }
 
 export const NonCashExpenseModal: React.FC<NonCashExpenseModalProps> = ({ isOpen, onClose, lot }) => {
   const { recordMortality, recordWeightLoss, addNotification } = useAppStore();
-  const [expenseType, setExpenseType] = useState<'mortality' | 'weight_loss'>('mortality');
+  const [expenseType, setExpenseType] = useState<'mortality' | 'currentWeight_loss'>('mortality');
   
   // Estados para mortalidade
   const [mortalityQuantity, setMortalityQuantity] = useState(1);
@@ -22,7 +22,7 @@ export const NonCashExpenseModal: React.FC<NonCashExpenseModalProps> = ({ isOpen
   // Estados para quebra de peso
   const [expectedWeight, setExpectedWeight] = useState(lot.entryWeight);
   const [actualWeight, setActualWeight] = useState(lot.entryWeight);
-  const [weightLossNotes, setWeightLossNotes] = useState('');
+  const [currentWeightLossNotes, setWeightLossNotes] = useState('');
 
   const handleSubmit = () => {
     if (expenseType === 'mortality') {
@@ -36,16 +36,16 @@ export const NonCashExpenseModal: React.FC<NonCashExpenseModalProps> = ({ isOpen
         relatedEntityType: 'cattle_lot',
         relatedEntityId: lot.id
       });
-    } else {formatWeight(
+    } else {
       recordWeightLoss(lot.id, expectedWeight, actualWeight, weightLossNotes);
       
-      const weightLoss = expectedWeight - actualWeight;
-      const lossPercentage = (weightLoss / expectedWeight) * 100;
+      const currentWeightLoss = expectedWeight - actualWeight;
+      const lossPercentage = (currentWeightLoss / expectedWeight) * 100;
       
       // Adicionar notificação
       addNotification({
         title: 'Quebra de Peso Registrada',
-        message: `Quebra de ${weightLoss)} (${lossPercentage.toFixed(1)}%) registrada no lote ${lot.lotNumber}`,
+        message: `Quebra de ${currentWeightLoss}kg (${lossPercentage.toFixed(1)}%) registrada no lote ${lot.lotNumber}`,
         type: 'info',
         relatedEntityType: 'cattle_lot',
         relatedEntityId: lot.id
@@ -168,7 +168,7 @@ export const NonCashExpenseModal: React.FC<NonCashExpenseModalProps> = ({ isOpen
         )}
 
         {/* Formulário de Quebra de Peso */}
-        {expenseType === 'weight_loss' && (
+        {expenseType === 'currentWeight_loss' && (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-neutral-700 mb-1">
@@ -209,7 +209,7 @@ export const NonCashExpenseModal: React.FC<NonCashExpenseModalProps> = ({ isOpen
               </label>
               <textarea
                 rows={3}
-                value={weightLossNotes}
+                value={currentWeightLossNotes}
                 onChange={(e) => setWeightLossNotes(e.target.value)}
                 placeholder="Motivo da quebra de peso..."
                 className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
@@ -238,7 +238,7 @@ export const NonCashExpenseModal: React.FC<NonCashExpenseModalProps> = ({ isOpen
             onClick={handleSubmit}
             disabled={
               (expenseType === 'mortality' && mortalityQuantity <= 0) ||
-              (expenseType === 'weight_loss' && actualWeight >= expectedWeight)
+              (expenseType === 'currentWeight_loss' && actualWeight >= expectedWeight)
             }
             className="px-4 py-2 bg-b3x-lime-500 text-b3x-navy-900 font-medium rounded-lg hover:bg-b3x-lime-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >

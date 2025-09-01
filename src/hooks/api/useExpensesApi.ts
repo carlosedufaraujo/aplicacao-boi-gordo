@@ -26,7 +26,7 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
         // Se response.data for um objeto paginado, extrair o array
         const items = Array.isArray(response.data) 
           ? response.data 
-          : response.data.data || [];
+          : response.data.items || [];
         setExpenses(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar despesas');
@@ -52,7 +52,7 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
         // Se response.data for um objeto paginado, extrair o array
         const items = Array.isArray(response.data) 
           ? response.data 
-          : response.data.data || [];
+          : response.data.items || [];
         setExpenses(items);
       }
     } catch (err) {
@@ -259,9 +259,9 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
   /**
    * Busca despesas por ordem de compra
    */
-  const getExpensesByPurchaseOrder = useCallback(async (purchaseOrderId: string): Promise<Expense[]> => {
+  const getExpensesByCattlePurchase = useCallback(async (purchaseId: string): Promise<Expense[]> => {
     try {
-      const response = await expenseApi.getByPurchaseOrder(purchaseOrderId);
+      const response = await expenseApi.getByCattlePurchase(purchaseId);
       
       if (response.status === 'success' && response.data) {
         return response.data;
@@ -292,7 +292,7 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
     getExpenseById,
     getExpensesByStatus,
     getExpensesByCategory,
-    getExpensesByPurchaseOrder,
+    getExpensesByCattlePurchase,
     refresh,
   };
 };

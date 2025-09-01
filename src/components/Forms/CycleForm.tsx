@@ -2,7 +2,8 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Calendar, FileText, DollarSign } from 'lucide-react';
+import { X, FileText, DollarSign } from 'lucide-react';
+import { DatePickerField } from '@/components/Common/DatePickerField';
 import { useAppStore } from '../../stores/useAppStore';
 import { FatteningCycle } from '../../types';
 
@@ -38,12 +39,7 @@ export const CycleForm: React.FC<CycleFormProps> = ({
   const { addCycle, updateCycle } = useAppStore();
   const isEditing = !!initialData;
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset
-  } = useForm<CycleFormData>({
+  const form = useForm<CycleFormData>({
     resolver: zodResolver(cycleSchema),
     defaultValues: initialData ? {
       ...initialData,
@@ -61,7 +57,7 @@ export const CycleForm: React.FC<CycleFormProps> = ({
     } else {
       addCycle(data);
     }
-    reset();
+    form.reset();
     onClose();
   };
 
@@ -92,14 +88,14 @@ export const CycleForm: React.FC<CycleFormProps> = ({
             <div className="relative">
               <input
                 type="text"
-                {...register('name')}
+                {...form.form.register('name')}
                 className="w-full pl-8 pr-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
                 placeholder="Ex: Ciclo 2024-01"
               />
               <FileText className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             </div>
-            {errors.name && (
-              <p className="text-error-500 text-xs mt-1">{errors.name.message}</p>
+            {form.formState.errors.name && (
+              <p className="text-error-500 text-xs mt-1">{form.formState.errors.name.message}</p>
             )}
           </div>
 
@@ -109,53 +105,35 @@ export const CycleForm: React.FC<CycleFormProps> = ({
               Status *
             </label>
             <select
-              {...register('status')}
+              {...form.register('status')}
               className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
             >
               <option value="planned">Planejado</option>
               <option value="active">Ativo</option>
               <option value="completed">Concluído</option>
             </select>
-            {errors.status && (
-              <p className="text-error-500 text-xs mt-1">{errors.status.message}</p>
+            {form.formState.errors.status && (
+              <p className="text-error-500 text-xs mt-1">{form.formState.errors.status.message}</p>
             )}
           </div>
 
           {/* Datas */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-neutral-700 mb-1">
-                Data de Início *
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  {...register('startDate', { valueAsDate: true })}
-                  className="w-full pl-8 pr-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-                />
-                <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              </div>
-              {errors.startDate && (
-                <p className="text-error-500 text-xs mt-1">{errors.startDate.message}</p>
-              )}
-            </div>
+            <DatePickerField
+              control={form.control}
+              name="startDate"
+              label="Data de Início"
+              placeholder="Selecione a data de início"
+              required
+            />
 
-            <div>
-              <label className="block text-xs font-medium text-neutral-700 mb-1">
-                Data de Término
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  {...register('endDate', { valueAsDate: true })}
-                  className="w-full pl-8 pr-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-                />
-                <Calendar className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              </div>
-              {errors.endDate && (
-                <p className="text-error-500 text-xs mt-1">{errors.endDate.message}</p>
-              )}
-            </div>
+            <DatePickerField
+              control={form.control}
+              name="endDate"
+              label="Data de Término"
+              placeholder="Selecione a data de término"
+              minDate={form.watch('startDate')}
+            />
           </div>
 
           {/* Orçamento e Meta de Animais */}
@@ -168,14 +146,14 @@ export const CycleForm: React.FC<CycleFormProps> = ({
                 <input
                   type="number"
                   step="0.01"
-                  {...register('budget', { valueAsNumber: true })}
+                  {...form.register('budget', { valueAsNumber: true })}
                   className="w-full pl-8 pr-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
                   placeholder="0,00"
                 />
                 <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
               </div>
-              {errors.budget && (
-                <p className="text-error-500 text-xs mt-1">{errors.budget.message}</p>
+              {form.formState.errors.budget && (
+                <p className="text-error-500 text-xs mt-1">{form.formState.errors.budget.message}</p>
               )}
             </div>
 
@@ -185,12 +163,12 @@ export const CycleForm: React.FC<CycleFormProps> = ({
               </label>
               <input
                 type="number"
-                {...register('targetAnimals', { valueAsNumber: true })}
+                {...form.register('targetAnimals', { valueAsNumber: true })}
                 className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
                 placeholder="0"
               />
-              {errors.targetAnimals && (
-                <p className="text-error-500 text-xs mt-1">{errors.targetAnimals.message}</p>
+              {form.formState.errors.targetAnimals && (
+                <p className="text-error-500 text-xs mt-1">{form.formState.errors.targetAnimals.message}</p>
               )}
             </div>
           </div>
@@ -201,7 +179,7 @@ export const CycleForm: React.FC<CycleFormProps> = ({
               Descrição
             </label>
             <textarea
-              {...register('description')}
+              {...form.register('description')}
               rows={3}
               className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent resize-none"
               placeholder="Observações sobre o ciclo..."

@@ -6,11 +6,11 @@
  * import { ModernPipeline, ModernLots, ... } from '@/components/ModernComponents';
  */
 
-// Pipeline de Compras - Modernizado
-export { ModernPipeline } from './Pipeline/ModernPipeline';
+// Compras - Modernizado
+// export { ModernPurchases } from './Purchases/ModernPurchases';
 
-// Pipeline de Vendas - A ser criado
-// export { ModernSalesPipeline } from './SalesPipeline/ModernSalesPipeline';
+// Vendas - A ser criado
+// export { ModernSales } from './Sales/ModernSales';
 
 // Gestão de Lotes - A ser criado
 // export { ModernLots } from './Lots/ModernLots';

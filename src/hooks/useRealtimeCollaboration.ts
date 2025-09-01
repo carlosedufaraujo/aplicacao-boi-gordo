@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useSupabase } from '@/providers/SupabaseProvider';
+import { useBackend } from '@/providers/BackendProvider';
 import { KanbanTask } from '@/components/ui/kanban';
+import { socketService } from '@/services/socket';
 
 interface CollaboratorPresence {
   userId: string;
@@ -29,12 +30,11 @@ export function useRealtimeCollaboration({
   boardId,
   enabled = true
 }: UseRealtimeCollaborationProps) {
-  const { supabase, user } = useSupabase();
+  const { user } = useBackend();
   const [collaborators, setCollaborators] = useState<CollaboratorPresence[]>([]);
   const [recentEvents, setRecentEvents] = useState<RealtimeEvent[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const channelRef = useRef<any>(null);
-  const presenceRef = useRef<any>(null);
+  const collaboratorMapRef = useRef<Map<string, CollaboratorPresence>>(new Map());
 
   // Cores para colaboradores
   const collaboratorColors = [
@@ -50,40 +50,38 @@ export function useRealtimeCollaboration({
 
   // Enviar evento de presença
   const updatePresence = useCallback(async (updates: Partial<CollaboratorPresence>) => {
-    if (!channelRef.current || !user) return;
+    if (!socketService.isConnected() || !user) return;
 
     const presence = {
       userId: user.id,
-      userName: user.user_metadata?.name || user.email || 'Usuário',
-      userAvatar: user.user_metadata?.avatar_url,
+      userName: user.name || user.email || 'Usuário',
+      userAvatar: user.avatar,
       lastSeen: new Date(),
       color: getCollaboratorColor(user.id),
       ...updates,
     };
 
-    await channelRef.current.track(presence);
-  }, [user, getCollaboratorColor]);
+    // Enviar atualização de presença via socket
+    socketService.sendSelection(boardId, presence);
+  }, [user, boardId, getCollaboratorColor]);
 
   // Enviar evento de colaboração
   const sendEvent = useCallback(async (event: Omit<RealtimeEvent, 'userId' | 'userName' | 'timestamp'>) => {
-    if (!channelRef.current || !user) return;
+    if (!socketService.isConnected() || !user) return;
 
     const fullEvent: RealtimeEvent = {
       ...event,
       userId: user.id,
-      userName: user.user_metadata?.name || user.email || 'Usuário',
+      userName: user.name || user.email || 'Usuário',
       timestamp: new Date(),
     };
 
-    await channelRef.current.send({
-      type: 'broadcast',
-      event: 'collaboration_event',
-      payload: fullEvent,
-    });
+    // Enviar evento via socket
+    socketService.updateKanban(boardId, fullEvent);
 
     // Adicionar aos eventos recentes localmente
     setRecentEvents(prev => [...prev.slice(-19), fullEvent]);
-  }, [user]);
+  }, [user, boardId]);
 
   // Notificar movimento de tarefa
   const notifyTaskMoved = useCallback(async (
@@ -124,8 +122,10 @@ export function useRealtimeCollaboration({
 
   // Atualizar posição do cursor
   const updateCursor = useCallback(async (x: number, y: number) => {
-    await updatePresence({ cursor: { x, y } });
-  }, [updatePresence]);
+    if (!socketService.isConnected()) return;
+    
+    socketService.sendCursorPosition(boardId, { x, y });
+  }, [boardId]);
 
   // Selecionar tarefa
   const selectTask = useCallback(async (taskId?: string) => {
@@ -139,92 +139,101 @@ export function useRealtimeCollaboration({
     }
   }, [updatePresence, sendEvent]);
 
-  // Configurar canal de tempo real
+  // Configurar conexão Socket.io
   useEffect(() => {
-    if (!supabase || !user || !enabled) return;
+    if (!user || !enabled) return;
 
-    const channel = supabase.channel(`kanban_board_${boardId}`, {
-      config: {
-        presence: {
-          key: user.id,
-        },
-      },
-    });
+    // Conectar ao socket se necessário
+    const token = localStorage.getItem('authToken');
+    if (token && !socketService.isConnected()) {
+      socketService.connect(token);
+    }
 
-    channelRef.current = channel;
+    // Handler para atualizações do Kanban
+    const handleKanbanUpdate = (data: any) => {
+      // Não processar eventos próprios
+      if (data.userId === user.id) return;
 
-    // Configurar presença
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const presenceState = channel.presenceState();
-        const collaboratorsList: CollaboratorPresence[] = [];
-
-        Object.entries(presenceState).forEach(([userId, presences]) => {
-          if (userId !== user.id && presences.length > 0) {
-            const presence = presences[0] as CollaboratorPresence;
-            collaboratorsList.push(presence);
-          }
-        });
-
-        setCollaborators(collaboratorsList);
-        setIsConnected(true);
-      })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        if (key !== user.id) {
-          console.log('👋 Colaborador entrou:', newPresences[0]?.userName);
-        }
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        if (key !== user.id) {
-          console.log('👋 Colaborador saiu:', leftPresences[0]?.userName);
-        }
-      })
-      .on('broadcast', { event: 'collaboration_event' }, ({ payload }) => {
-        const event = payload as RealtimeEvent;
-        
-        // Não processar eventos próprios
-        if (event.userId === user.id) return;
+      // Processar como evento de colaboração
+      if (data.type && data.userName) {
+        const event: RealtimeEvent = {
+          type: data.type,
+          userId: data.userId,
+          userName: data.userName,
+          timestamp: new Date(data.timestamp || Date.now()),
+          data: data.data || data,
+        };
 
         setRecentEvents(prev => [...prev.slice(-19), event]);
 
         // Log dos eventos para debug
         switch (event.type) {
           case 'task_moved':
-            console.log(`📦 ${event.userName} moveu "${event.data.taskTitle}" de ${event.data.fromColumn} para ${event.data.toColumn}`);
+            console.log(`📦 ${event.userName} moveu tarefa`);
             break;
           case 'task_created':
-            console.log(`✨ ${event.userName} criou a tarefa "${event.data.task.title}"`);
+            console.log(`✨ ${event.userName} criou tarefa`);
             break;
           case 'task_updated':
-            console.log(`✏️ ${event.userName} atualizou a tarefa "${event.data.task.title}"`);
+            console.log(`✏️ ${event.userName} atualizou tarefa`);
             break;
           case 'task_deleted':
-            console.log(`🗑️ ${event.userName} excluiu a tarefa "${event.data.taskTitle}"`);
-            break;
-          case 'task_selected':
-            console.log(`👆 ${event.userName} selecionou uma tarefa`);
+            console.log(`🗑️ ${event.userName} excluiu tarefa`);
             break;
         }
-      });
-
-    // Subscrever ao canal
-    channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log('🔗 Conectado ao canal de colaboração');
-        
-        // Enviar presença inicial
-        await updatePresence({});
       }
-    });
+    };
+
+    // Handler para atualizações de cursor
+    const handleCursorUpdate = (data: any) => {
+      if (data.userId === user.id) return;
+
+      const presence: CollaboratorPresence = {
+        userId: data.userId,
+        userName: data.userName || 'Usuário',
+        userAvatar: data.userAvatar,
+        cursor: data.position,
+        lastSeen: new Date(),
+        color: getCollaboratorColor(data.userId),
+      };
+
+      // Atualizar mapa de colaboradores
+      collaboratorMapRef.current.set(data.userId, presence);
+      setCollaborators(Array.from(collaboratorMapRef.current.values()));
+    };
+
+    // Handler para atualizações de seleção
+    const handleSelectionUpdate = (data: any) => {
+      if (data.userId === user.id) return;
+
+      const existing = collaboratorMapRef.current.get(data.userId);
+      if (existing) {
+        existing.selectedTask = data.selection?.selectedTask;
+        collaboratorMapRef.current.set(data.userId, existing);
+        setCollaborators(Array.from(collaboratorMapRef.current.values()));
+      }
+    };
+
+    // Inscrever-se nos eventos
+    socketService.subscribeKanban(boardId, handleKanbanUpdate);
+    socketService.onCursorUpdate(handleCursorUpdate);
+    socketService.onSelectionUpdate(handleSelectionUpdate);
+
+    setIsConnected(true);
+    console.log('🔗 Conectado à colaboração em tempo real');
+
+    // Enviar presença inicial
+    updatePresence({});
 
     // Cleanup
     return () => {
-      console.log('🔌 Desconectando do canal de colaboração');
-      channel.unsubscribe();
+      console.log('🔌 Desconectando da colaboração');
+      socketService.unsubscribeKanban(boardId);
       setIsConnected(false);
       setCollaborators([]);
+      collaboratorMapRef.current.clear();
     };
-  }, [supabase, user, boardId, enabled, updatePresence]);
+  }, [user, boardId, enabled, updatePresence, getCollaboratorColor]);
 
   // Atualizar presença periodicamente
   useEffect(() => {
@@ -241,14 +250,14 @@ export function useRealtimeCollaboration({
   useEffect(() => {
     if (!enabled || !isConnected) return;
 
-    let throttleTimeout: NodeJS.Timeout;
+    let throttleTimeout: NodeJS.Timeout | null = null;
 
     const handleMouseMove = (e: MouseEvent) => {
       if (throttleTimeout) return;
 
       throttleTimeout = setTimeout(() => {
         updateCursor(e.clientX, e.clientY);
-        throttleTimeout = null as any;
+        throttleTimeout = null;
       }, 100); // Throttle para 100ms
     };
 

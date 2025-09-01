@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Login</title>
+</head>
+<body>
+    <h1>Teste de Login - Backend API</h1>
+    <button onclick="testLogin()">Testar Login</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testLogin() {
+            const resultEl = document.getElementById('result');
+            
+            try {
+                resultEl.textContent = 'Testando conexão...\n';
+                
+                const response = await fetch('http://localhost:3001/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@boigordo.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultEl.textContent = 'LOGIN SUCESSO!\n' + JSON.stringify(data, null, 2);
+                } else {
+                    resultEl.textContent = 'ERRO NO LOGIN:\n' + JSON.stringify(data, null, 2);
+                }
+                
+            } catch (error) {
+                resultEl.textContent = 'ERRO DE CONEXÃO:\n' + error.toString();
+            }
+        }
+    </script>
+</body>
+</html>

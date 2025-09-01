@@ -65,8 +65,8 @@ export const useApiData = (dataType: string, filters?: any) => {
           case 'cycles':
             result = await api.cadastros.cycles.getAll();
             break;
-          case 'purchaseOrders':
-            result = await api.pipeline.purchaseOrders.getAll(filters);
+          case 'cattlePurchases':
+            result = await api.pipeline.cattlePurchases.getAll(filters);
             break;
           case 'lots':
             result = await api.lots.lots.getAll(filters);
@@ -111,8 +111,8 @@ export const useApiData = (dataType: string, filters?: any) => {
           case 'cycles':
             result = await api.cadastros.cycles.getAll();
             break;
-          case 'purchaseOrders':
-            result = await api.pipeline.purchaseOrders.getAll(filters);
+          case 'cattlePurchases':
+            result = await api.pipeline.cattlePurchases.getAll(filters);
             break;
           case 'lots':
             result = await api.lots.lots.getAll(filters);

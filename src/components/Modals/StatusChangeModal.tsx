@@ -12,12 +12,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Calendar, Weight, Users, MapPin, Check } from 'lucide-react';
+import { AlertCircle, Calendar, Weight, Users, MapPin, Check, Home, Package } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { usePensApi } from '@/hooks/api/usePensApi';
-import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 
 interface StatusChangeModalProps {
   isOpen: boolean;
@@ -32,33 +35,24 @@ interface StatusChangeModalProps {
 
 export function StatusChangeModal({ isOpen, onClose, data, onConfirm }: StatusChangeModalProps) {
   const [loading, setLoading] = useState(false);
-  const [availablePens, setAvailablePens] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('reception');
+  const { pens, loading: loadingPens } = usePensApi();
   const [selectedPens, setSelectedPens] = useState<Map<string, number>>(new Map());
-  const { fetchPens } = usePensApi();
+  
   const [formData, setFormData] = useState<any>({
     receivedDate: new Date().toISOString().split('T')[0],
     receivedWeight: data?.purchase?.purchaseWeight || 0,
     actualQuantity: data?.purchase?.initialQuantity || 0,
+    mortalityReason: '',
     notes: '',
     penAllocations: [],
   });
 
-  useEffect(() => {
-    if (data?.nextStatus === 'CONFINED') {
-      loadAvailablePens();
-    }
-  }, [data?.nextStatus]);
-
-  const loadAvailablePens = async () => {
-    try {
-      const pens = await fetchPens({ status: 'AVAILABLE', isActive: true });
-      setAvailablePens(pens.items.filter((pen: any) => 
-        pen.capacity - (pen.occupation?.totalOccupied || 0) > 0
-      ));
-    } catch (error) {
-      console.error('Erro ao carregar currais:', error);
-    }
-  };
+  // Filtrar apenas currais disponíveis
+  const availablePens = pens.filter(pen => 
+    pen.status === 'ACTIVE' && 
+    pen.currentOccupancy < pen.capacity
+  );
 
   const handlePenSelection = (penId: string, quantity: number) => {
     const newSelection = new Map(selectedPens);
@@ -76,27 +70,170 @@ export function StatusChangeModal({ isOpen, onClose, data, onConfirm }: StatusCh
     return total;
   };
 
-  const getModalContent = () => {
-    if (!data) return null;
+  const getRemainingToAllocate = () => {
+    return formData.actualQuantity - getTotalAllocated();
+  };
 
-    switch (data.nextStatus) {
-      case 'RECEIVED':
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle>Registrar Recepção do Lote</DialogTitle>
-              <DialogDescription>
-                Confirme os dados da recepção do lote {data.purchase.lotCode}
-              </DialogDescription>
-            </DialogHeader>
+  const handleAutoAllocate = () => {
+    const newSelection = new Map<string, number>();
+    let remaining = formData.actualQuantity;
 
-            <div className="space-y-4 py-4">
+    // Ordenar currais por capacidade disponível
+    const sortedPens = [...availablePens].sort((a, b) => {
+      const availA = a.capacity - a.currentOccupancy;
+      const availB = b.capacity - b.currentOccupancy;
+      return availB - availA;
+    });
+
+    for (const pen of sortedPens) {
+      if (remaining <= 0) break;
+      
+      const available = pen.capacity - pen.currentOccupancy;
+      const toAllocate = Math.min(available, remaining);
+      
+      if (toAllocate > 0) {
+        newSelection.set(pen.id, toAllocate);
+        remaining -= toAllocate;
+      }
+    }
+
+    setSelectedPens(newSelection);
+    
+    if (remaining > 0) {
+      toast.error(`Não há espaço suficiente nos currais. Faltam ${remaining} animais para alocar.`);
+    } else {
+      toast.success('Animais distribuídos automaticamente!');
+    }
+  };
+
+  const validateReception = () => {
+    const errors = [];
+    
+    if (!formData.receivedDate) {
+      errors.push('Data de recepção é obrigatória');
+    }
+    
+    if (formData.receivedWeight <= 0) {
+      errors.push('Peso recebido deve ser maior que zero');
+    }
+    
+    if (formData.actualQuantity <= 0) {
+      errors.push('Quantidade recebida deve ser maior que zero');
+    }
+    
+    if (formData.actualQuantity > data.purchase.initialQuantity) {
+      errors.push('Quantidade recebida não pode ser maior que a comprada');
+    }
+    
+    if (formData.actualQuantity < data.purchase.initialQuantity && !formData.mortalityReason) {
+      errors.push('Informe o motivo da diferença na quantidade');
+    }
+    
+    return errors;
+  };
+
+  const validateAllocation = () => {
+    const errors = [];
+    
+    if (selectedPens.size === 0) {
+      errors.push('Selecione pelo menos um curral');
+    }
+    
+    const totalAllocated = getTotalAllocated();
+    if (totalAllocated !== formData.actualQuantity) {
+      errors.push(`Quantidade alocada (${totalAllocated}) deve ser igual à quantidade recebida (${formData.actualQuantity})`);
+    }
+    
+    return errors;
+  };
+
+  const handleSubmit = async () => {
+    // Validar aba de recepção
+    const receptionErrors = validateReception();
+    if (receptionErrors.length > 0) {
+      setActiveTab('reception');
+      toast.error(receptionErrors[0]);
+      return;
+    }
+
+    // Validar aba de alocação
+    const allocationErrors = validateAllocation();
+    if (allocationErrors.length > 0) {
+      setActiveTab('allocation');
+      toast.error(allocationErrors[0]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Preparar dados para envio
+      const penIds = Array.from(selectedPens.keys());
+      const penAllocations = Array.from(selectedPens.entries()).map(([penId, quantity]) => ({
+        penId,
+        quantity
+      }));
+
+      await onConfirm({
+        status: 'RECEIVED',
+        purchaseId: data.purchase.id,
+        receivedDate: formData.receivedDate,
+        receivedWeight: formData.receivedWeight,
+        actualQuantity: formData.actualQuantity,
+        transportMortality: data.purchase.initialQuantity - formData.actualQuantity,
+        mortalityReason: formData.mortalityReason,
+        notes: formData.notes,
+        penIds,
+        penAllocations
+      });
+
+      onClose();
+    } catch (error) {
+      console.error('Erro ao processar recepção:', error);
+      toast.error('Erro ao processar recepção. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!data || data.nextStatus !== 'RECEIVED') {
+    return null;
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Recepção e Alocação do Lote</DialogTitle>
+          <DialogDescription>
+            Registre a recepção do lote {data.purchase.lotCode} e aloque os animais nos currais
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="reception" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Dados da Recepção
+            </TabsTrigger>
+            <TabsTrigger value="allocation" className="flex items-center gap-2">
+              <Home className="h-4 w-4" />
+              Alocação em Currais
+              {getTotalAllocated() > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  {getTotalAllocated()}/{formData.actualQuantity}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="overflow-y-auto flex-1 px-1">
+            <TabsContent value="reception" className="space-y-4 mt-4">
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Peso de compra: {data.purchase.purchaseWeight.toLocaleString('pt-BR')} kg
-                  <br />
-                  Quantidade comprada: {data.purchase.initialQuantity} cabeças
+                  <strong>Dados da Compra:</strong><br />
+                  Peso: {data.purchase.purchaseWeight.toLocaleString('pt-BR')} kg | 
+                  Quantidade: {data.purchase.initialQuantity} cabeças
                 </AlertDescription>
               </Alert>
 
@@ -142,7 +279,7 @@ export function StatusChangeModal({ isOpen, onClose, data, onConfirm }: StatusCh
                     id="actualQuantity"
                     type="number"
                     value={formData.actualQuantity}
-                    onChange={(e) => setFormData({ ...formData, actualQuantity: parseInt(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, actualQuantity: parseInt(e.target.value) || 0 })}
                   />
                   {formData.actualQuantity < data.purchase.initialQuantity && (
                     <p className="text-xs text-destructive mt-1">
@@ -151,23 +288,25 @@ export function StatusChangeModal({ isOpen, onClose, data, onConfirm }: StatusCh
                   )}
                 </div>
 
-                <div>
-                  <Label htmlFor="mortality">Motivo da Diferença</Label>
-                  <Select
-                    value={formData.mortalityReason}
-                    onValueChange={(value) => setFormData({ ...formData, mortalityReason: value })}
-                    disabled={formData.actualQuantity >= data.purchase.initialQuantity}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MORTE">Morte no transporte</SelectItem>
-                      <SelectItem value="ERRO_COMPRA">Erro na compra</SelectItem>
-                      <SelectItem value="ERRO_CARREGAMENTO">Erro no carregamento</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {formData.actualQuantity < data.purchase.initialQuantity && (
+                  <div>
+                    <Label htmlFor="mortality">Motivo da Diferença</Label>
+                    <Select
+                      value={formData.mortalityReason}
+                      onValueChange={(value) => setFormData({ ...formData, mortalityReason: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MORTE_TRANSPORTE">Morte no transporte</SelectItem>
+                        <SelectItem value="ERRO_CONTAGEM">Erro na contagem</SelectItem>
+                        <SelectItem value="REFUGO">Animais refugados</SelectItem>
+                        <SelectItem value="OUTRO">Outro motivo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -180,163 +319,149 @@ export function StatusChangeModal({ isOpen, onClose, data, onConfirm }: StatusCh
                   rows={3}
                 />
               </div>
-            </div>
-          </>
-        );
+            </TabsContent>
 
-      case 'CONFINED':
-        return (
-          <>
-            <DialogHeader>
-              <DialogTitle>Confirmar Confinamento</DialogTitle>
-              <DialogDescription>
-                Confirme o confinamento do lote {data.purchase.lotCode}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4">
+            <TabsContent value="allocation" className="space-y-4 mt-4">
               <Alert>
-                <AlertCircle className="h-4 w-4" />
+                <Home className="h-4 w-4" />
                 <AlertDescription>
-                  Peso atual: {(data.purchase.receivedWeight || data.purchase.purchaseWeight).toLocaleString('pt-BR')} kg
-                  <br />
-                  Quantidade atual: {data.purchase.currentQuantity} cabeças
+                  Distribua <strong>{formData.actualQuantity} animais</strong> entre os currais disponíveis.
+                  {getRemainingToAllocate() > 0 && (
+                    <span className="text-destructive ml-1">
+                      Faltam {getRemainingToAllocate()} para alocar.
+                    </span>
+                  )}
+                  {getRemainingToAllocate() === 0 && getTotalAllocated() > 0 && (
+                    <span className="text-green-600 ml-1">
+                      ✓ Todos alocados!
+                    </span>
+                  )}
                 </AlertDescription>
               </Alert>
 
-              <div>
-                <Label>
-                  <MapPin className="inline-block w-4 h-4 mr-1" />
-                  Selecionar Currais
-                </Label>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Distribua os {data.purchase.currentQuantity} animais entre os currais disponíveis
-                </p>
-                
-                <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-3">
-                  {availablePens.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      Nenhum curral disponível
-                    </p>
-                  ) : (
-                    availablePens.map((pen: any) => {
-                      const availableSpace = pen.capacity - (pen.occupation?.totalOccupied || 0);
-                      const isSelected = selectedPens.has(pen.id);
-                      const selectedQuantity = selectedPens.get(pen.id) || 0;
-                      
-                      return (
-                        <div key={pen.id} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50">
+              <div className="flex justify-between items-center mb-2">
+                <Label>Selecionar Currais</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAutoAllocate}
+                  disabled={formData.actualQuantity <= 0}
+                >
+                  Distribuir Automaticamente
+                </Button>
+              </div>
+
+              <div className="border rounded-lg divide-y max-h-96 overflow-y-auto">
+                {loadingPens ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Carregando currais...
+                  </div>
+                ) : availablePens.length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    Nenhum curral disponível
+                  </div>
+                ) : (
+                  availablePens.map((pen) => {
+                    const availableSpace = pen.capacity - pen.currentOccupancy;
+                    const isSelected = selectedPens.has(pen.id);
+                    const selectedQuantity = selectedPens.get(pen.id) || 0;
+                    
+                    return (
+                      <div key={pen.id} className="p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <Checkbox
                               checked={isSelected}
                               onCheckedChange={(checked) => {
                                 if (checked) {
-                                  handlePenSelection(pen.id, Math.min(availableSpace, data.purchase.currentQuantity - getTotalAllocated()));
+                                  const toAllocate = Math.min(
+                                    availableSpace, 
+                                    getRemainingToAllocate() + selectedQuantity
+                                  );
+                                  handlePenSelection(pen.id, toAllocate);
                                 } else {
                                   handlePenSelection(pen.id, 0);
                                 }
                               }}
                             />
                             <div>
-                              <p className="font-medium">Curral {pen.penNumber}</p>
+                              <p className="font-medium">
+                                Curral {pen.penNumber}
+                                <Badge variant="outline" className="ml-2">
+                                  {pen.type === 'CONFINEMENT' ? 'Confinamento' : 
+                                   pen.type === 'PASTURE' ? 'Pasto' :
+                                   pen.type === 'QUARANTINE' ? 'Quarentena' : 'Hospital'}
+                                </Badge>
+                              </p>
                               <p className="text-sm text-muted-foreground">
-                                Espaço disponível: {availableSpace} de {pen.capacity} cabeças
+                                {pen.location} • Disponível: {availableSpace} de {pen.capacity} vagas
                               </p>
                             </div>
                           </div>
                           
                           {isSelected && (
-                            <Input
-                              type="number"
-                              value={selectedQuantity}
-                              onChange={(e) => handlePenSelection(pen.id, parseInt(e.target.value) || 0)}
-                              min={0}
-                              max={Math.min(availableSpace, data.purchase.currentQuantity)}
-                              className="w-24"
-                            />
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                className="w-24"
+                                value={selectedQuantity}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 0;
+                                  const maxValue = Math.min(
+                                    availableSpace,
+                                    getRemainingToAllocate() + selectedQuantity
+                                  );
+                                  handlePenSelection(pen.id, Math.min(value, maxValue));
+                                }}
+                                min={0}
+                                max={availableSpace}
+                              />
+                              <span className="text-sm text-muted-foreground">animais</span>
+                            </div>
                           )}
                         </div>
-                      );
-                    })
-                  )}
-                </div>
-                
-                {getTotalAllocated() > 0 && (
-                  <div className="mt-3 p-3 bg-muted rounded-lg">
-                    <p className="text-sm font-medium">
-                      Total alocado: {getTotalAllocated()} de {data.purchase.currentQuantity} cabeças
-                    </p>
-                    {getTotalAllocated() < data.purchase.currentQuantity && (
-                      <p className="text-sm text-destructive mt-1">
-                        Faltam alocar {data.purchase.currentQuantity - getTotalAllocated()} cabeças
-                      </p>
-                    )}
-                  </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
-              <div>
-                <Label htmlFor="notes">Observações</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Observações sobre o confinamento..."
-                  rows={3}
-                />
-              </div>
-            </div>
-          </>
-        );
+              {selectedPens.size > 0 && (
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <h4 className="font-medium mb-2">Resumo da Alocação:</h4>
+                  <div className="space-y-1 text-sm">
+                    {Array.from(selectedPens.entries()).map(([penId, quantity]) => {
+                      const pen = availablePens.find(p => p.id === penId);
+                      return (
+                        <div key={penId} className="flex justify-between">
+                          <span>Curral {pen?.penNumber}:</span>
+                          <span className="font-medium">{quantity} animais</span>
+                        </div>
+                      );
+                    })}
+                    <div className="border-t pt-1 mt-2 flex justify-between font-medium">
+                      <span>Total Alocado:</span>
+                      <span className={getTotalAllocated() === formData.actualQuantity ? 'text-green-600' : 'text-destructive'}>
+                        {getTotalAllocated()} / {formData.actualQuantity}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+          </div>
+        </Tabs>
 
-      default:
-        return null;
-    }
-  };
-
-  const handleConfirm = async () => {
-    // Validate pen allocations for CONFINED status
-    if (data.nextStatus === 'CONFINED') {
-      const totalAllocated = getTotalAllocated();
-      if (totalAllocated !== data.purchase.currentQuantity) {
-        alert(`Você deve alocar todos os ${data.purchase.currentQuantity} animais. Atualmente alocados: ${totalAllocated}`);
-        return;
-      }
-    }
-
-    setLoading(true);
-    try {
-      const penAllocations = data.nextStatus === 'CONFINED' 
-        ? Array.from(selectedPens.entries()).map(([penId, quantity]) => ({
-            penId,
-            quantity
-          }))
-        : undefined;
-
-      await onConfirm({
-        ...formData,
-        status: data.nextStatus,
-        purchaseId: data.purchase.id,
-        penAllocations,
-      });
-      onClose();
-    } catch (error) {
-      console.error('Erro ao mudar status:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        {getModalContent()}
-        <DialogFooter>
+        <DialogFooter className="mt-4">
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleConfirm} disabled={loading}>
-            {loading ? 'Processando...' : 'Confirmar'}
+          <Button 
+            onClick={handleSubmit} 
+            disabled={loading || getTotalAllocated() !== formData.actualQuantity}
+          >
+            {loading ? 'Processando...' : 'Confirmar Recepção e Alocação'}
           </Button>
         </DialogFooter>
       </DialogContent>

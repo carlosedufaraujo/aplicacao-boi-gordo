@@ -26,7 +26,7 @@ interface IntegrationReport {
   partiallyIntegratedOrders: number;
   nonIntegratedOrders: number;
   details: Array<{
-    orderNumber: string;
+    lotCode: string;
     orderId: string;
     totalValue: number;
     status: string;
@@ -264,7 +264,7 @@ export const RetroactiveIntegrationTool: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div>
-                            <p className="font-semibold">{order.orderNumber}</p>
+                            <p className="font-semibold">{order.lotCode}</p>
                             <p className="text-sm text-muted-foreground">
                               R$ {order.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </p>

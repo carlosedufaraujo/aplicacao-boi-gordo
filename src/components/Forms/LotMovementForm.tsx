@@ -11,7 +11,7 @@ const lotMovementSchema = z.object({
   penNumber: z.string().min(1, 'Selecione um curral'),
   fromPen: z.string().optional(),
   toPen: z.string().min(1, 'Curral de destino é obrigatório'),
-  quantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
+  currentQuantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
   reason: z.string().min(1, 'Motivo é obrigatório'),
   observations: z.string().optional(),
 });
@@ -27,7 +27,7 @@ export const LotMovementForm: React.FC<LotMovementFormProps> = ({
   onClose,
   lotId
 }) => {
-  const { cattleLots, penAllocations, penStatuses, addLotMovement, getAvailablePens } = useAppStore();
+  const { cattlePurchases, penAllocations, penStatuses, addLotMovement, getAvailablePens } = useAppStore();
 
   const {
     register,
@@ -41,25 +41,25 @@ export const LotMovementForm: React.FC<LotMovementFormProps> = ({
     defaultValues: {
       lotId: lotId || '',
       penNumber: '',
-      quantity: 1
+      currentQuantity: 1
     }
   });
 
   const selectedLotId = watch('lotId');
   const selectedPenNumber = watch('penNumber');
-  const selectedLot = cattleLots.find(lot => lot.id === selectedLotId);
+  const selectedLot = cattlePurchases.find(lot => lot.id === selectedLotId);
   const availablePens = getAvailablePens();
 
   // Quando o lotId é fornecido diretamente, preencher o penNumber automaticamente
   React.useEffect(() => {
     if (lotId) {
-      const lot = cattleLots.find(l => l.id === lotId);
+      const lot = cattlePurchases.find(l => l.id === lotId);
       if (lot && lot.penNumber) {
         setValue('penNumber', lot.penNumber);
         setValue('fromPen', lot.penNumber);
       }
     }
-  }, [lotId, cattleLots, setValue]);
+  }, [lotId, cattlePurchases, setValue]);
   
   // Quando o penNumber muda, filtrar os lotes disponíveis e atualizar fromPen
   const lotsInSelectedPen = React.useMemo(() => {
@@ -70,10 +70,10 @@ export const LotMovementForm: React.FC<LotMovementFormProps> = ({
     
     // Mapear para os lotes correspondentes
     return allocations.map(alloc => {
-      const lot = cattleLots.find(l => l.id === alloc.lotId);
+      const lot = cattlePurchases.find(l => l.id === alloc.lotId);
       return lot;
     }).filter(Boolean);
-  }, [selectedPenNumber, penAllocations, cattleLots]);
+  }, [selectedPenNumber, penAllocations, cattlePurchases]);
   
   // Se houver apenas um lote no curral, selecioná-lo automaticamente
   React.useEffect(() => {
@@ -85,13 +85,13 @@ export const LotMovementForm: React.FC<LotMovementFormProps> = ({
   // Quando o lote é selecionado, atualizar a quantidade máxima e o curral de origem
   React.useEffect(() => {
     if (selectedLotId) {
-      const lot = cattleLots.find(l => l.id === selectedLotId);
+      const lot = cattlePurchases.find(l => l.id === selectedLotId);
       if (lot) {
         setValue('fromPen', lot.penNumber);
-        setValue('quantity', lot.entryQuantity - lot.deaths);
+        setValue('currentQuantity', lot.entryQuantity - lot.deaths);
       }
     }
-  }, [selectedLotId, cattleLots, setValue]);
+  }, [selectedLotId, cattlePurchases, setValue]);
 
   const handleFormSubmit = (data: LotMovementFormData) => {
     // Garantir que fromPen esteja definido
@@ -234,13 +234,13 @@ export const LotMovementForm: React.FC<LotMovementFormProps> = ({
                   </label>
                   <input
                     type="number"
-                    {...register('quantity', { valueAsNumber: true })}
+                    {...register('currentQuantity', { valueAsNumber: true })}
                     max={selectedLot.entryQuantity - selectedLot.deaths}
                     className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                     placeholder={`Máximo: ${selectedLot.entryQuantity - selectedLot.deaths}`}
                   />
-                  {errors.quantity && (
-                    <p className="text-error-500 text-xs mt-1">{errors.quantity.message}</p>
+                  {errors.currentQuantity && (
+                    <p className="text-error-500 text-xs mt-1">{errors.currentQuantity.message}</p>
                   )}
                 </div>
 

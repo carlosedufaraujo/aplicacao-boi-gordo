@@ -7,20 +7,20 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Eye } from "lucide-react";
 
 export const PurchaseByStateChart: React.FC = () => {
-  const { purchaseOrders } = useAppStore();
+  const { cattlePurchases } = useAppStore();
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [drillDownLevel, setDrillDownLevel] = useState<'state' | 'details'>('state');
 
   // Agrupar compras por estado
   const data = React.useMemo(() => {
-    const stateMap = new Map<string, { quantity: number, value: number }>();
+    const stateMap = new Map<string, { currentQuantity: number, value: number }>();
     
-    purchaseOrders.forEach(order => {
+    cattlePurchases.forEach(order => {
       const state = order.state;
-      const current = stateMap.get(state) || { quantity: 0, value: 0 };
+      const current = stateMap.get(state) || { currentQuantity: 0, value: 0 };
       
       stateMap.set(state, {
-        quantity: current.quantity + order.quantity,
+        currentQuantity: current.currentQuantity + order.currentQuantity,
         value: current.value + ((order.totalWeight / 15) * order.pricePerArroba)
       });
     });
@@ -29,11 +29,11 @@ export const PurchaseByStateChart: React.FC = () => {
     return Array.from(stateMap.entries())
       .map(([state, data]) => ({
         state,
-        quantity: data.quantity,
+        currentQuantity: data.currentQuantity,
         value: data.value
       }))
-      .sort((a, b) => b.quantity - a.quantity);
-  }, [purchaseOrders]);
+      .sort((a, b) => b.currentQuantity - a.currentQuantity);
+  }, [cattlePurchases]);
 
   // Usar dados reais ou array vazio
   const chartData = data;
@@ -42,20 +42,20 @@ export const PurchaseByStateChart: React.FC = () => {
   const detailData = React.useMemo(() => {
     if (!selectedState) return [];
     
-    return purchaseOrders
+    return cattlePurchases
       .filter(order => order.state === selectedState)
       .map(order => ({
         id: order.id,
         broker: order.brokerId || 'Direto',
-        quantity: order.quantity,
+        currentQuantity: order.currentQuantity,
         value: (order.totalWeight / 15) * order.pricePerArroba,
         date: order.date
       }))
       .slice(0, 10); // Limitar a 10 itens
-  }, [purchaseOrders, selectedState]);
+  }, [cattlePurchases, selectedState]);
 
   const chartConfig = {
-    quantity: {
+    currentQuantity: {
       label: "Quantidade",
       color: "hsl(var(--chart-1))",
     },
@@ -138,8 +138,8 @@ export const PurchaseByStateChart: React.FC = () => {
                   />}
                 />
                 <Bar 
-                  dataKey="quantity" 
-                  fill="var(--color-quantity)"
+                  dataKey="currentQuantity" 
+                  fill="var(--color-currentQuantity)"
                   radius={[0, 4, 4, 0]}
                   animationDuration={1200}
                   animationBegin={200}
@@ -173,7 +173,7 @@ export const PurchaseByStateChart: React.FC = () => {
                     <div>
                       <div className="font-medium">Ordem #{order.id}</div>
                       <div className="text-sm text-muted-foreground">
-                        Corretor: {order.broker} • {order.quantity} animais
+                        Corretor: {order.broker} • {order.currentQuantity} animais
                       </div>
                     </div>
                     <div className="text-right">
@@ -201,7 +201,7 @@ export const PurchaseByStateChart: React.FC = () => {
         {drillDownLevel === 'state' && (
           <div className="mt-4 text-center">
             <div className="text-lg font-bold">
-              {chartData.reduce((sum, item) => sum + item.quantity, 0)} animais
+              {chartData.reduce((sum, item) => sum + item.currentQuantity, 0)} animais
             </div>
             <div className="text-sm text-muted-foreground">
               Total de animais comprados

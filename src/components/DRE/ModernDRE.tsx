@@ -48,7 +48,7 @@ import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } f
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart, ComposedChart } from 'recharts';
-import { useExpenses, useRevenues, useCattleLots, useSaleRecords } from '../../hooks/useSupabaseData';
+import { useExpenses, useRevenues, useCattlePurchases, useSaleRecords } from '../../hooks/useSupabaseData';
 
 interface DREItem {
   id: string;
@@ -84,7 +84,7 @@ export const ModernDRE: React.FC = () => {
   // Hooks da Nova Arquitetura API
   const { expenses, loading: expensesLoading } = useExpensesApi();
   const { revenues, loading: revenuesLoading } = useRevenuesApi();
-  const { cattleLots, loading: lotsLoading } = useCattleLotsApi();
+  const { cattlePurchases, loading: lotsLoading } = useCattlePurchasesApi();
   const { saleRecords, loading: salesLoading } = useSaleRecordsApi();
 
   // Dados mockados do DRE

@@ -14,7 +14,7 @@ const expenseSchema = z.object({
     // Aquisição
     'animal_purchase', 'commission', 'freight', 'acquisition_other',
     // Engorda
-    'feed', 'health_costs', 'operational_costs', 'fattening_other', 'deaths', 'weight_loss',
+    'feed', 'health_costs', 'operational_costs', 'fattening_other', 'deaths', 'currentWeight_loss',
     // Administrativo
     'general_admin', 'marketing', 'accounting', 'personnel', 'office', 'services', 'technology', 'admin_other', 'depreciation',
     // Financeiro
@@ -26,7 +26,7 @@ const expenseSchema = z.object({
     // Aportes e Financiamentos
     'partner_contribution', 'partner_loan', 'bank_financing', 'external_investor'
   ]),
-  totalAmount: z.number().positive('Valor deve ser positivo'),
+  purchaseValue: z.number().positive('Valor deve ser positivo'),
   supplierId: z.string().optional(),
   invoiceNumber: z.string().optional(),
   dueDate: z.date(),
@@ -48,7 +48,7 @@ interface ExpenseFormProps {
 }
 
 export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, expense }) => {
-  const { partners, cattleLots, costCenters, addExpense, updateExpense } = useAppStore();
+  const { partners, cattlePurchases, costCenters, addExpense, updateExpense } = useAppStore();
   const [showAllocations, setShowAllocations] = useState(false);
   
   const {
@@ -71,7 +71,7 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, expen
 
   const selectedCategory = watch('category');
   const allocationType = watch('allocationType');
-  const totalAmount = watch('totalAmount');
+  const purchaseValue = watch('purchaseValue');
 
   // Agrupar categorias por centro de custo
   const categoriesByCenter = EXPENSE_CATEGORIES.reduce((acc, cat) => {
@@ -189,12 +189,12 @@ export const ExpenseForm: React.FC<ExpenseFormProps> = ({ isOpen, onClose, expen
                 <input
                   type="number"
                   step="0.01"
-                  {...register('totalAmount', { valueAsNumber: true })}
+                  {...register('purchaseValue', { valueAsNumber: true })}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="0,00"
                 />
-                {errors.totalAmount && (
-                  <p className="text-red-500 text-xs mt-1">{errors.totalAmount.message}</p>
+                {errors.purchaseValue && (
+                  <p className="text-red-500 text-xs mt-1">{errors.purchaseValue.message}</p>
                 )}
               </div>
 

@@ -127,7 +127,7 @@ export const ModernFinancialCenter: React.FC = () => {
       description: expense.description,
       category: expense.category,
       type: 'expense' as const,
-      amount: expense.totalAmount,
+      amount: expense.purchaseValue,
       status: expense.isPaid ? 'paid' as const : 
               (new Date(expense.dueDate) < new Date() ? 'overdue' as const : 'pending' as const),
       account: payerAccounts.find(acc => acc.id === expense.payerAccountId)?.accountName || 'Conta não identificada',
@@ -141,7 +141,7 @@ export const ModernFinancialCenter: React.FC = () => {
       description: revenue.description,
       category: revenue.category,
       type: 'revenue' as const,
-      amount: revenue.totalAmount,
+      amount: revenue.purchaseValue,
       status: revenue.isReceived ? 'paid' as const : 
               (new Date(revenue.dueDate) < new Date() ? 'overdue' as const : 'pending' as const),
       account: payerAccounts.find(acc => acc.id === revenue.payerAccountId)?.accountName || 'Conta não identificada',
@@ -157,11 +157,11 @@ export const ModernFinancialCenter: React.FC = () => {
     return costCenters.map(center => {
       const actualExpenses = expenses
         .filter(expense => expense.costCenterId === center.id)
-        .reduce((sum, expense) => sum + expense.totalAmount, 0);
+        .reduce((sum, expense) => sum + expense.purchaseValue, 0);
       
       const actualRevenues = revenues
         .filter(revenue => revenue.costCenterId === center.id)
-        .reduce((sum, revenue) => sum + revenue.totalAmount, 0);
+        .reduce((sum, revenue) => sum + revenue.purchaseValue, 0);
       
       const actual = center.type === 'REVENUE' ? actualRevenues : actualExpenses;
       const planned = center.budget || 0;
@@ -211,14 +211,14 @@ export const ModernFinancialCenter: React.FC = () => {
           const rDate = new Date(r.dueDate);
           return rDate >= monthStart && rDate <= monthEnd;
         })
-        .reduce((sum, r) => sum + r.totalAmount, 0);
+        .reduce((sum, r) => sum + r.purchaseValue, 0);
       
       const monthExpenses = expenses
         .filter(e => {
           const eDate = new Date(e.dueDate);
           return eDate >= monthStart && eDate <= monthEnd;
         })
-        .reduce((sum, e) => sum + e.totalAmount, 0);
+        .reduce((sum, e) => sum + e.purchaseValue, 0);
       
       months.push({
         month: format(date, 'MMM', { locale: ptBR }),
@@ -232,7 +232,7 @@ export const ModernFinancialCenter: React.FC = () => {
 
   const expensesByCategory = useMemo(() => {
     const categoryTotals = expenses.reduce((acc, expense) => {
-      acc[expense.category] = (acc[expense.category] || 0) + expense.totalAmount;
+      acc[expense.category] = (acc[expense.category] || 0) + expense.purchaseValue;
       return acc;
     }, {} as Record<string, number>);
 
@@ -259,10 +259,10 @@ export const ModernFinancialCenter: React.FC = () => {
 
   // Métricas calculadas
   const metrics = useMemo(() => {
-    const totalRevenues = revenues.reduce((sum, r) => sum + r.totalAmount, 0);
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.totalAmount, 0);
+    const totalRevenues = revenues.reduce((sum, r) => sum + r.purchaseValue, 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.purchaseValue, 0);
     const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
-    const pendingPayments = expenses.filter(e => !e.isPaid).reduce((sum, e) => sum + e.totalAmount, 0);
+    const pendingPayments = expenses.filter(e => !e.isPaid).reduce((sum, e) => sum + e.purchaseValue, 0);
     
     return {
       totalRevenues,

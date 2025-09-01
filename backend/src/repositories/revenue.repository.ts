@@ -1,6 +1,6 @@
 import { Revenue, Prisma } from '@prisma/client';
 import { BaseRepository } from './base.repository';
-import { prisma } from '@/config/database';
+// import { prisma } from '@/config/database';
 
 export class RevenueRepository extends BaseRepository<Revenue> {
   constructor() {

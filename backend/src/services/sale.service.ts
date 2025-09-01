@@ -11,7 +11,7 @@ interface CreateSaleData {
   totalWeight: number;
   saleDate: Date;
   paymentType: 'CASH' | 'INSTALLMENT' | 'FORWARD';
-  paymentDueDate?: Date;
+  paymentDate?: Date;
   slaughterHouse?: string;
   notes?: string;
 }
@@ -51,16 +51,16 @@ export class SaleService {
     }
 
     if (filters.lotId) {
-      where.lotId = filters.lotId;
+      where.purchaseId = filters.lotId;
     }
 
     if (filters.startDate || filters.endDate) {
-      where.saleDate = {};
+      where.createdAt = {};
       if (filters.startDate) {
-        where.saleDate.gte = filters.startDate;
+        where.createdAt.gte = filters.startDate;
       }
       if (filters.endDate) {
-        where.saleDate.lte = filters.endDate;
+        where.createdAt.lte = filters.endDate;
       }
     }
 
@@ -194,11 +194,11 @@ export class SaleService {
       throw new ValidationError('Lote não está ativo para vendas');
     }
 
-    const soldQuantity = lot.sales
+    const soldQuantity = lot.saleRecords
       .filter((s: any) => s.status !== 'CANCELLED')
       .reduce((sum: any, s: any) => sum + s.quantity, 0);
 
-    const available = lot.quantity - soldQuantity;
+    const available = lot.currentQuantity - soldQuantity;
 
     if (quantity > available) {
       throw new ValidationError(`Quantidade disponível insuficiente. Disponível: ${available}`);

@@ -174,8 +174,8 @@ export class ReportService {
           margin: sorted[sorted.length - 1].results.margin,
         },
         average: {
-          roi: results.reduce((sum, r) => sum + r.results.roi, 0) / results.length,
-          margin: results.reduce((sum, r) => sum + r.results.margin, 0) / results.length,
+          roi: results.reduce((sum: number, r) => sum + r.results.roi, 0) / results.length,
+          margin: results.reduce((sum: number, r) => sum + r.results.margin, 0) / results.length,
         },
       },
     };

@@ -8,7 +8,7 @@ import {
   RefreshCw,
   AlertCircle
 } from 'lucide-react';
-import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
+import { useCattlePurchasesApi } from '../../hooks/api/useCattlePurchasesApi';
 import { DREViewer } from './DREViewer';
 import { DREFilters } from './DREFilters';
 import { DREComparison } from './DREComparison';
@@ -17,7 +17,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const DREPage: React.FC = () => {
-  const { cattleLots } = useCattleLotsApi();
+  const { cattlePurchases } = useCattlePurchasesApi();
   
   // TODO: Implementar generateDREStatement, saveDREStatement, dreStatements com API
   const generateDREStatement = (params: any) => {
@@ -41,10 +41,10 @@ export const DREPage: React.FC = () => {
 
   // Selecionar o primeiro lote disponível ao carregar (apenas se não for global)
   useEffect(() => {
-    if (selectedEntityType === 'lot' && cattleLots.length > 0 && !selectedEntityId) {
-      setSelectedEntityId(cattleLots[0].id);
+    if (selectedEntityType === 'lot' && cattlePurchases.length > 0 && !selectedEntityId) {
+      setSelectedEntityId(cattlePurchases[0].id);
     }
-  }, [cattleLots, selectedEntityId, selectedEntityType]);
+  }, [cattlePurchases, selectedEntityId, selectedEntityType]);
 
   const handleGenerateDRE = () => {
     if (selectedEntityType !== 'global' && !selectedEntityId) {
@@ -91,7 +91,7 @@ Alimentação,${currentDRE.costOfGoodsSold.feed}
 Sanidade,${currentDRE.costOfGoodsSold.health}
 Frete,${currentDRE.costOfGoodsSold.freight}
 Mortalidade,${currentDRE.costOfGoodsSold.mortality}
-Quebra de Peso,${currentDRE.costOfGoodsSold.weightLoss}
+Quebra de Peso,${currentDRE.costOfGoodsSold.currentWeightLoss}
 (-) Total CPV,${currentDRE.costOfGoodsSold.total}
 
 (=) LUCRO BRUTO,${currentDRE.grossProfit}
@@ -199,7 +199,7 @@ Lucro Diário,${currentDRE.metrics.dailyProfit}
       </div>
 
       {/* Conteúdo Principal */}
-      {cattleLots.length === 0 ? (
+      {cattlePurchases.length === 0 ? (
         <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-12 text-center">
           <div className="w-16 h-16 bg-neutral-100 rounded-full mx-auto mb-4 flex items-center justify-center">
             <AlertCircle className="w-8 h-8 text-neutral-400" />

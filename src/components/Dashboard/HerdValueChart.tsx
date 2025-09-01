@@ -15,7 +15,7 @@ interface HerdValueChartProps {
 }
 
 export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, setMarketPrice }) => {
-  const { cattleLots, purchaseOrders } = useAppStore();
+  const { cattlePurchases } = useAppStore();
   const [periodFilter, setPeriodFilter] = useState('30'); // 30, 60, 90 dias
   const [showTrend, setShowTrend] = useState(true);
 
@@ -26,7 +26,7 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
     const days = parseInt(periodFilter);
 
     // Filtrar apenas lotes ativos
-    const activeLots = cattleLots.filter(lot => lot.status === 'active');
+    const activeLots = cattlePurchases.filter(lot => lot.status === 'active');
     
     // Se não houver lotes ativos, retornar array vazio
     if (activeLots.length === 0) {
@@ -40,7 +40,7 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
       // Calcular valor alocado (soma do valor de compra de todos os lotes)
       let allocatedValue = 0;
       activeLots.forEach(lot => {
-        const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+        const order = cattlePurchases.find(o => o.id === lot.purchaseId);
         if (order) {
           // Verificar se o lote já existia nesta data
           if (lot.entryDate <= date) {
@@ -71,7 +71,7 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
     }
 
     return result;
-  }, [cattleLots, purchaseOrders, marketPrice, periodFilter]);
+  }, [cattlePurchases, cattlePurchases, marketPrice, periodFilter]);
 
   const chartConfig = {
     allocated: {

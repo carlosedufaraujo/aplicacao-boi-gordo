@@ -13,7 +13,7 @@ export class RetroactiveIntegrationService {
     
     try {
       // 1. Buscar todas as ordens de compra
-      const allOrders = await dataService.getAllPurchaseOrders();
+      const allOrders = await dataService.getAllCattlePurchases();
       console.log(`📋 Encontradas ${allOrders.length} ordens de compra no sistema`);
       
       // 2. Identificar ordens sem integração
@@ -44,25 +44,25 @@ export class RetroactiveIntegrationService {
       
       for (const { order, missingIntegrations } of ordersWithoutIntegration) {
         try {
-          console.log(`\n🔄 Integrando ordem ${order.orderNumber}...`);
+          console.log(`\n🔄 Integrando ordem ${order.lotCode}...`);
           
           if (missingIntegrations.lot && missingIntegrations.expenses) {
             // Integração completa
             await LotIntegrationService.integrateNewLot(order);
-            console.log(`✅ Integração completa realizada para ordem ${order.orderNumber}`);
+            console.log(`✅ Integração completa realizada para ordem ${order.lotCode}`);
           } else if (missingIntegrations.lot) {
             // Apenas criar lote
             await this.createLotForOrder(order);
-            console.log(`✅ Lote criado para ordem ${order.orderNumber}`);
+            console.log(`✅ Lote criado para ordem ${order.lotCode}`);
           } else if (missingIntegrations.expenses) {
             // Apenas criar despesas
             await this.createExpensesForOrder(order);
-            console.log(`✅ Despesas criadas para ordem ${order.orderNumber}`);
+            console.log(`✅ Despesas criadas para ordem ${order.lotCode}`);
           }
           
           successCount++;
         } catch (error) {
-          console.error(`❌ Erro ao integrar ordem ${order.orderNumber}:`, error);
+          console.error(`❌ Erro ao integrar ordem ${order.lotCode}:`, error);
           errorCount++;
         }
       }
@@ -83,7 +83,7 @@ export class RetroactiveIntegrationService {
    */
   private static async checkIfOrderHasLot(orderId: string): Promise<boolean> {
     try {
-      const lot = await dataService.getCattleLotByPurchaseOrderId(orderId);
+      const lot = await dataService.getCattlePurchaseByCattlePurchaseId(orderId);
       return lot !== null;
     } catch (error) {
       console.error(`Erro ao verificar lote para ordem ${orderId}:`, error);
@@ -96,7 +96,7 @@ export class RetroactiveIntegrationService {
    */
   private static async checkIfOrderHasExpenses(orderId: string): Promise<boolean> {
     try {
-      const expenses = await dataService.getExpensesByPurchaseOrderId(orderId);
+      const expenses = await dataService.getExpensesByCattlePurchaseId(orderId);
       return expenses && expenses.length > 0;
     } catch (error) {
       console.error(`Erro ao verificar despesas para ordem ${orderId}:`, error);
@@ -109,8 +109,8 @@ export class RetroactiveIntegrationService {
    */
   private static async createLotForOrder(order: any): Promise<void> {
     const cattleLotData = {
-      lotNumber: order.orderNumber,
-      purchaseOrderId: order.id,
+      lotNumber: order.lotCode,
+      purchaseId: order.id,
       entryDate: order.arrivalDate || order.purchaseDate,
       entryWeight: order.totalWeight || 0,
       entryQuantity: order.animalCount || 0,
@@ -126,7 +126,7 @@ export class RetroactiveIntegrationService {
       status: 'ACTIVE'
     };
     
-    await dataService.createCattleLot(cattleLotData);
+    await dataService.createCattlePurchase(cattleLotData);
   }
   
   /**
@@ -138,13 +138,13 @@ export class RetroactiveIntegrationService {
     // Despesa principal - Compra de animais
     if (order.totalValue > 0) {
       expenses.push({
-        description: `Compra de Gado - Lote ${order.orderNumber}`,
-        totalAmount: order.totalValue,
+        description: `Compra de Gado - Lote ${order.lotCode}`,
+        purchaseValue: order.totalValue,
         category: 'animal_purchase',
         dueDate: order.paymentDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 dias
         isPaid: false,
         impactsCashFlow: true,
-        purchaseOrderId: order.id,
+        purchaseId: order.id,
         userId: order.userId || 'system',
         notes: `Despesa criada automaticamente via integração retroativa`
       });
@@ -153,13 +153,13 @@ export class RetroactiveIntegrationService {
     // Frete (se houver)
     if (order.freightCost && order.freightCost > 0) {
       expenses.push({
-        description: `Frete - Lote ${order.orderNumber}`,
-        totalAmount: order.freightCost,
+        description: `Frete - Lote ${order.lotCode}`,
+        purchaseValue: order.freightCost,
         category: 'freight',
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
         isPaid: false,
         impactsCashFlow: true,
-        purchaseOrderId: order.id,
+        purchaseId: order.id,
         userId: order.userId || 'system',
         notes: `Despesa criada automaticamente via integração retroativa`
       });
@@ -178,7 +178,7 @@ export class RetroactiveIntegrationService {
     console.log('📊 Gerando relatório de integrações...');
     
     try {
-      const allOrders = await dataService.getAllPurchaseOrders();
+      const allOrders = await dataService.getAllCattlePurchases();
       const report = {
         totalOrders: allOrders.length,
         integratedOrders: 0,
@@ -199,7 +199,7 @@ export class RetroactiveIntegrationService {
         else report.nonIntegratedOrders++;
         
         report.details.push({
-          orderNumber: order.orderNumber,
+          lotCode: order.lotCode,
           orderId: order.id,
           totalValue: order.totalValue,
           status: order.status,

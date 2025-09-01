@@ -22,7 +22,7 @@ import {
   Calculator
 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
-import { useCattleLotsApi } from '@/hooks/api/useCattleLotsApi';
+import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
 
 // Componentes shadcn/ui
 import {
@@ -66,7 +66,7 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
   onEdit,
   onDelete
 }) => {
-  const { updateGMD } = useCattleLotsApi();
+  const { updateGMD } = useCattlePurchasesApi();
   const [showGMDModal, setShowGMDModal] = useState(false);
   const [gmdData, setGmdData] = useState({
     expectedGMD: data?.expectedGMD || 1.2,
@@ -128,8 +128,8 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
 
   // Calcular peso estimado e dias para abate
   metrics.estimatedWeight = metrics.currentWeight + (metrics.daysInConfinement * metrics.expectedGMD);
-  const weightToGain = metrics.targetWeight - metrics.currentWeight;
-  metrics.daysToTarget = metrics.expectedGMD > 0 ? Math.ceil(weightToGain / metrics.expectedGMD) : 0;
+  const currentWeightToGain = metrics.targetWeight - metrics.currentWeight;
+  metrics.daysToTarget = metrics.expectedGMD > 0 ? Math.ceil(currentWeightToGain / metrics.expectedGMD) : 0;
   
   if (metrics.daysToTarget > 0) {
     metrics.estimatedSlaughterDate = new Date();
@@ -144,7 +144,7 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle className="text-2xl">
-                {data.lotNumber} - {data.orderNumber}
+                {data.lotNumber} - {data.lotCode}
               </DialogTitle>
               <DialogDescription className="mt-2">
                 Detalhes completos da compra e lote
@@ -744,7 +744,7 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
                             {format(new Date(data.purchaseDate), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
                           </p>
                           <p className="text-sm mt-1">
-                            Ordem {data.orderNumber} criada
+                            Ordem {data.lotCode} criada
                           </p>
                         </div>
                       </div>

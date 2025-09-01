@@ -134,7 +134,7 @@ export class ReportRepository {
         partner: true,
         payerAccount: true,
       },
-      orderBy: { date: 'asc' },
+      orderBy: { createdAt: 'asc' },
     });
 
     // Agrupa por dia
@@ -143,7 +143,7 @@ export class ReportRepository {
     // Calcula totais
     const totalInflow = revenues.reduce((sum: number, r: any) => sum + (r.isReceived ? r.totalAmount : 0), 0) +
                        contributions.reduce((sum: number, c: any) => sum + c.amount, 0);
-    const totalOutflow = expenses.reduce((sum, e) => sum + (e.isPaid ? e.totalAmount : 0), 0);
+    const totalOutflow = expenses.reduce((sum: number, e) => sum + (e.isPaid ? e.totalAmount : 0), 0);
     const netFlow = totalInflow - totalOutflow;
 
     return {
@@ -157,8 +157,8 @@ export class ReportRepository {
         totalInflow,
         totalOutflow,
         netFlow,
-        pendingInflow: revenues.reduce((sum, r) => sum + (!r.isReceived ? r.totalAmount : 0), 0),
-        pendingOutflow: expenses.reduce((sum, e) => sum + (!e.isPaid ? e.totalAmount : 0), 0),
+        pendingInflow: revenues.reduce((sum: number, r) => sum + (!r.isReceived ? r.totalAmount : 0), 0),
+        pendingOutflow: expenses.reduce((sum: number, e) => sum + (!e.isPaid ? e.totalAmount : 0), 0),
       },
     };
   }
@@ -172,11 +172,7 @@ export class ReportRepository {
     const lots = await prisma.cattlePurchase.findMany({
       where,
       include: {
-        purchaseOrder: {
-          include: {
-            vendor: true,
-          },
-        },
+        vendor: true,
         saleRecords: {
           include: {
             buyer: true,
@@ -202,18 +198,18 @@ export class ReportRepository {
         .reduce((sum: number, s: any) => sum + s.quantity, 0);
       
       const avgSalePrice = soldQuantity > 0 ? totalSales / soldQuantity : 0;
-      const avgPurchasePrice = lot.quantity > 0 ? lot.purchaseCost / lot.quantity : 0;
+      const avgPurchasePrice = lot.currentQuantity > 0 ? lot.purchaseCost / lot.currentQuantity : 0;
 
       return {
         lot: {
           id: lot.id,
-          lotNumber: lot.lotNumber,
+          lotNumber: lot.lotCode,
           status: lot.status,
           entryDate: lot.entryDate,
         },
-        vendor: lot.cattlePurchase.vendor,
+        vendor: lot.vendor,
         quantities: {
-          initial: lot.quantity,
+          initial: lot.currentQuantity,
           current: lot.remainingQuantity,
           sold: soldQuantity,
           deaths: lot.deathCount,
@@ -229,13 +225,13 @@ export class ReportRepository {
         averages: {
           purchasePrice: avgPurchasePrice,
           salePrice: avgSalePrice,
-          costPerHead: lot.quantity > 0 ? lot.totalCost / lot.quantity : 0,
+          costPerHead: lot.currentQuantity > 0 ? lot.totalCost / lot.currentQuantity : 0,
           profitPerHead: soldQuantity > 0 ? profit / soldQuantity : 0,
         },
         timeline: {
           daysInConfinement: Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24)),
           averageDailyGain: lot.currentWeight > lot.entryWeight 
-            ? (lot.currentWeight - lot.entryWeight) / lot.quantity / 
+            ? (lot.currentWeight - lot.entryWeight) / lot.currentQuantity / 
               Math.floor((new Date().getTime() - lot.entryDate.getTime()) / (1000 * 60 * 60 * 24))
             : 0,
         },
@@ -253,15 +249,15 @@ export class ReportRepository {
           where: {
             removalDate: null,
           },
-          include: {
-            lot: {
+          include: { 
+            purchase: {
               include: {
-                purchaseOrder: true,
-              },
-            },
-          },
-        },
-      },
+                vendor: true
+              }
+            }
+          }
+        }
+      }
     });
 
     const totalCapacity = pens.reduce((sum: number, p: any) => sum + p.capacity, 0);
@@ -289,8 +285,8 @@ export class ReportRepository {
           available: pen.capacity - occupied,
           occupancyRate: pen.capacity > 0 ? (occupied / pen.capacity) * 100 : 0,
           lots: pen.lotAllocations.map((a: any) => ({
-            lotId: a.lot.id,
-            lotNumber: a.lot.lotNumber,
+            lotId: a.purchase.id,
+            lotNumber: a.purchase.lotCode,
             quantity: a.quantity,
             entryDate: a.allocationDate,
             daysInPen: Math.floor((new Date().getTime() - a.allocationDate.getTime()) / (1000 * 60 * 60 * 24)),

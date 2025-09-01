@@ -45,8 +45,8 @@ export const registerRecentUpdates = () => {
 export const registerFutureUpdate = (
   version: string,
   title: string,
-  description: string,
-  changes: string[]
+  _description: string,
+  _changes: string[]
 ) => {
   // Esta função pode ser chamada quando novas funcionalidades forem implementadas
   console.log(`Preparando atualização ${version}: ${title}`);

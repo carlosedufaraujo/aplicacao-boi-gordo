@@ -1,25 +1,17 @@
-import { createClient } from '@supabase/supabase-js';
+import { prisma } from '@/config/database';
 import { AppError } from '@/utils/AppError';
 import { env } from '@/config/env';
 
-// Inicializar cliente Supabase
-const supabase = createClient(
-  env.SUPABASE_URL || '',
-  env.SUPABASE_ANON_KEY || ''
-);
-
 export class UserService {
   /**
-   * Busca usuário por ID via Supabase
+   * Busca usuário por ID
    */
   async getUserById(userId: string): Promise<any> {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
 
-    if (error) {
+    if (!user) {
       throw new AppError('Usuário não encontrado', 404);
     }
 
@@ -27,98 +19,73 @@ export class UserService {
   }
 
   /**
-   * Busca usuário por email via Supabase
+   * Busca usuário por email
    */
   async getUserByEmail(email: string): Promise<any> {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
-
-    if (error) {
-      return null;
-    }
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
 
     return user;
   }
 
   /**
-   * Lista todos os usuários via Supabase
+   * Lista todos os usuários
    */
   async getAllUsers(): Promise<any[]> {
-    const { data: users, error } = await supabase
-      .from('users')
-      .select('*')
-      .order('createdAt', { ascending: false });
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
 
-    if (error) {
-      throw new AppError('Erro ao buscar usuários', 500);
-    }
-
-    return users || [];
+    return users;
   }
 
   /**
-   * Atualiza dados do usuário via Supabase
+   * Atualiza dados do usuário
    */
   async updateUser(
     userId: string,
     updateData: Partial<any>
   ): Promise<any> {
-    const { data: user, error } = await supabase
-      .from('users')
-      .update({
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
         ...updateData,
-        updatedAt: new Date().toISOString()
-      })
-      .eq('id', userId)
-      .select()
-      .single();
-
-    if (error) {
-      throw new AppError('Erro ao atualizar usuário', 500);
-    }
+        updatedAt: new Date()
+      }
+    });
 
     return user;
   }
 
   /**
-   * Desativa usuário via Supabase
+   * Desativa usuário
    */
   async deactivateUser(userId: string): Promise<void> {
-    const { error } = await supabase
-      .from('users')
-      .update({ 
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
         isActive: false,
-        updatedAt: new Date().toISOString()
-      })
-      .eq('id', userId);
-
-    if (error) {
-      throw new AppError('Erro ao desativar usuário', 500);
-    }
+        updatedAt: new Date()
+      }
+    });
   }
 
   /**
-   * Reativa usuário via Supabase
+   * Reativa usuário
    */
   async reactivateUser(userId: string): Promise<void> {
-    const { error } = await supabase
-      .from('users')
-      .update({ 
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
         isActive: true,
-        updatedAt: new Date().toISOString()
-      })
-      .eq('id', userId);
-
-    if (error) {
-      throw new AppError('Erro ao reativar usuário', 500);
-    }
+        updatedAt: new Date()
+      }
+    });
   }
 
   /**
-   * Cria novo usuário via Supabase Auth
+   * Cria novo usuário
    */
   async createUser(userData: {
     email: string;
@@ -126,39 +93,26 @@ export class UserService {
     name: string;
     role?: string;
   }): Promise<any> {
-    // Criar no Supabase Auth
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: userData.email,
-      password: userData.password,
-      email_confirm: true,
-      user_metadata: {
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    
+    const user = await prisma.user.create({
+      data: {
+        email: userData.email,
+        password: hashedPassword,
         name: userData.name,
-        role: userData.role || 'USER'
+        role: userData.role || 'USER',
+        isActive: true
       }
     });
 
-    if (authError || !authUser.user) {
-      throw new AppError(`Erro ao criar usuário: ${authError?.message}`, 500);
-    }
-
-    // A tabela users será atualizada automaticamente pelo trigger
-    return authUser.user;
+    return user;
   }
 
   /**
    * Atualiza role do usuário
    */
   async updateUserRole(userId: string, newRole: string): Promise<any> {
-    // Atualizar metadata no Supabase Auth
-    const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
-      user_metadata: { role: newRole }
-    });
-
-    if (authError) {
-      throw new AppError(`Erro ao atualizar role: ${authError.message}`, 500);
-    }
-
-    // Atualizar na tabela de sincronização
     return this.updateUser(userId, { role: newRole });
   }
 
@@ -166,21 +120,8 @@ export class UserService {
    * Deleta usuário
    */
   async deleteUser(userId: string): Promise<void> {
-    // Deletar do Supabase Auth
-    const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-
-    if (authError) {
-      throw new AppError(`Erro ao deletar usuário: ${authError.message}`, 500);
-    }
-
-    // Deletar da tabela de sincronização
-    const { error: syncError } = await supabase
-      .from('users')
-      .delete()
-      .eq('id', userId);
-
-    if (syncError) {
-      throw new AppError(`Erro ao deletar da sincronização: ${syncError.message}`, 500);
-    }
+    await prisma.user.delete({
+      where: { id: userId }
+    });
   }
 }

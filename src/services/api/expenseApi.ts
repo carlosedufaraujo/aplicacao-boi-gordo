@@ -4,13 +4,13 @@ export interface Expense {
   id: string;
   description: string;
   value?: number;
-  totalAmount?: number;
+  purchaseValue?: number;
   dueDate: string;
   category?: string;
   categoryId?: string;
   costCenterId?: string;
   payerAccountId?: string;
-  purchaseOrderId?: string;
+  purchaseId?: string;
   notes?: string;
   isPaid: boolean;
   paymentDate?: string;
@@ -31,13 +31,13 @@ export interface Expense {
 export interface CreateExpenseData {
   description: string;
   value?: number;
-  totalAmount?: number;
+  purchaseValue?: number;
   dueDate: string;
   category?: string;
   categoryId?: string;
   costCenterId?: string;
   payerAccountId?: string;
-  purchaseOrderId?: string;
+  purchaseId?: string;
   notes?: string;
   isPaid?: boolean;
   paidDate?: string;
@@ -56,7 +56,7 @@ export interface ExpenseFilters {
   status?: string;
   categoryId?: string;
   payerAccountId?: string;
-  purchaseOrderId?: string;
+  purchaseId?: string;
   startDate?: string;
   endDate?: string;
   isPaid?: boolean;
@@ -127,8 +127,8 @@ export const expenseApi = {
   /**
    * Busca despesas por ordem de compra
    */
-  async getByPurchaseOrder(purchaseOrderId: string): Promise<ApiResponse<Expense[]>> {
-    const response = await apiClient.get(`/expenses/purchase-order/${purchaseOrderId}`);
+  async getByCattlePurchase(purchaseId: string): Promise<ApiResponse<Expense[]>> {
+    const response = await apiClient.get(`/expenses/purchase-order/${purchaseId}`);
     return response;
   },
 
@@ -139,7 +139,7 @@ export const expenseApi = {
     // Map frontend field names to backend field names and remove empty values
     const mappedData: any = {
       description: data.description,
-      totalAmount: data.totalAmount || data.value,
+      purchaseValue: data.purchaseValue || data.value,
       dueDate: data.dueDate,
       category: data.category || data.categoryId,
       impactsCashFlow: data.impactsCashFlow !== false, // default true
@@ -148,7 +148,7 @@ export const expenseApi = {
     // Add optional fields only if they have values
     if (data.costCenterId) mappedData.costCenterId = data.costCenterId;
     if (data.payerAccountId) mappedData.payerAccountId = data.payerAccountId;
-    if (data.purchaseOrderId) mappedData.purchaseOrderId = data.purchaseOrderId;
+    if (data.purchaseId) mappedData.purchaseId = data.purchaseId;
     if (data.notes) mappedData.notes = data.notes;
     if (data.lotId) mappedData.lotId = data.lotId;
     if (data.penId) mappedData.penId = data.penId;
@@ -167,8 +167,8 @@ export const expenseApi = {
     
     // Add fields only if they are defined
     if (data.description !== undefined) mappedData.description = data.description;
-    if (data.totalAmount !== undefined || data.value !== undefined) {
-      mappedData.totalAmount = data.totalAmount || data.value;
+    if (data.purchaseValue !== undefined || data.value !== undefined) {
+      mappedData.purchaseValue = data.purchaseValue || data.value;
     }
     if (data.dueDate !== undefined) mappedData.dueDate = data.dueDate;
     if (data.category !== undefined || data.categoryId !== undefined) {
@@ -176,7 +176,7 @@ export const expenseApi = {
     }
     if (data.costCenterId !== undefined && data.costCenterId) mappedData.costCenterId = data.costCenterId;
     if (data.payerAccountId !== undefined && data.payerAccountId) mappedData.payerAccountId = data.payerAccountId;
-    if (data.purchaseOrderId !== undefined && data.purchaseOrderId) mappedData.purchaseOrderId = data.purchaseOrderId;
+    if (data.purchaseId !== undefined && data.purchaseId) mappedData.purchaseId = data.purchaseId;
     if (data.notes !== undefined && data.notes) mappedData.notes = data.notes;
     if (data.impactsCashFlow !== undefined) mappedData.impactsCashFlow = data.impactsCashFlow;
     if (data.lotId !== undefined && data.lotId) mappedData.lotId = data.lotId;

@@ -11,11 +11,11 @@ export const useSystemTracking = () => {
     const unsubscribe = useAppStore.subscribe(
       (state, prevState) => {
         // Rastrear adição de novos registros
-        if (state.purchaseOrders.length > prevState.purchaseOrders.length) {
+        if (state.cattlePurchases.length > prevState.cattlePurchases.length) {
           trackSystemChange('Nova ordem de compra criada', 'pipeline', 'feature');
         }
         
-        if (state.cattleLots.length > prevState.cattleLots.length) {
+        if (state.cattlePurchases.length > prevState.cattlePurchases.length) {
           trackSystemChange('Novo lote de animais criado', 'pipeline', 'feature');
         }
         

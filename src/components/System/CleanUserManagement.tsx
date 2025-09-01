@@ -105,7 +105,7 @@ export const CleanUserManagement: React.FC = () => {
     const loadUsers = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3333/api/v1/users', {
+        const response = await fetch('http://localhost:3001/api/v1/users', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
             'Content-Type': 'application/json'

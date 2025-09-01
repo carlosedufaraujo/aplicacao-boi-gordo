@@ -33,7 +33,7 @@ export const HealthRecordForm: React.FC<HealthRecordFormProps> = ({
   lotId
 }) => {
   const { 
-    cattleLots, 
+    cattlePurchases, 
     penRegistrations,
     penStatuses, 
     addHealthRecord, 
@@ -64,7 +64,7 @@ export const HealthRecordForm: React.FC<HealthRecordFormProps> = ({
   // Quando o lotId é fornecido, encontrar o curral correspondente
   React.useEffect(() => {
     if (lotId) {
-      const lot = cattleLots.find(l => l.id === lotId);
+      const lot = cattlePurchases.find(l => l.id === lotId);
       if (lot && lot.alocacoesAtuais && lot.alocacoesAtuais.length > 0) {
         // Selecionar o curral com maior quantidade de animais do lote
         const mainAllocation = lot.alocacoesAtuais.reduce((prev, current) => 
@@ -73,7 +73,7 @@ export const HealthRecordForm: React.FC<HealthRecordFormProps> = ({
         setValue('penNumber', mainAllocation.curralId);
       }
     }
-  }, [lotId, cattleLots, setValue]);
+  }, [lotId, cattlePurchases, setValue]);
   
   // Obter lotes no curral selecionado
   const lotesInSelectedPen = React.useMemo(() => {

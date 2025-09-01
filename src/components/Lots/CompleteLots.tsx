@@ -114,8 +114,7 @@ import {
 } from '@/components/ui/sheet';
 
 // Stores e hooks
-import { useCattleLotsApi } from '@/hooks/api/useCattleLotsApi';
-import { usePurchaseOrdersApi } from '@/hooks/api/usePurchaseOrdersApi';
+import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
 import { usePartnersApi } from '@/hooks/api/usePartnersApi';
 import { usePensApi } from '@/hooks/api/usePensApi';
 import { usePenOccupancyApi } from '@/hooks/api/usePenOccupancyApi';
@@ -123,7 +122,7 @@ import { PenMapIntegrated } from './PenMapIntegrated';
 
 // Modais integrados da página de Compras
 import { PurchaseDetailsModal } from '@/components/Purchases/PurchaseDetailsModal';
-import { NewPurchaseOrderForm } from '@/components/Forms/NewPurchaseOrderForm';
+import { EnhancedPurchaseForm } from '@/components/Forms/EnhancedPurchaseForm';
 
 // Novos componentes
 import { PenOccupancyIndicators, OccupancyStats } from './PenOccupancyIndicators';
@@ -177,10 +176,10 @@ const safeDifferenceInDays = (endDate: Date, startDate: Date | string | null | u
 };
 
 // Tipos
-interface CattleLot {
+interface CattlePurchase {
   id: string;
   lotNumber: string;
-  purchaseOrderId: string;
+  purchaseId: string;
   initialQuantity: number;
   currentQuantity: number;
   deaths: number;
@@ -204,7 +203,7 @@ interface PenMapData {
   name: string;
   capacity: number;
   currentOccupancy: number;
-  lots: CattleLot[];
+  lots: CattlePurchase[];
   status: 'available' | 'occupied' | 'maintenance';
 }
 
@@ -279,8 +278,8 @@ const PenMapView: React.FC<{ pens: PenMapData[] }> = ({ pens }) => {
 
 // Componente Principal
 export const CompleteLots: React.FC = () => {
-  const { cattleLots, loading: lotsLoading, refresh: refreshLots, deleteCattleLot } = useCattleLotsApi();
-  const { purchaseOrders, loading: ordersLoading, refresh: refreshOrders } = usePurchaseOrdersApi();
+  const { cattlePurchases, loading: lotsLoading, refresh: refreshLots, deleteCattlePurchase } = useCattlePurchasesApi();
+  const { cattlePurchases: orders, loading: ordersLoading, refresh: refreshOrders } = useCattlePurchasesApi();
   const { partners } = usePartnersApi();
   const { pens } = usePensApi();
   const { 
@@ -298,7 +297,7 @@ export const CompleteLots: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [penFilter, setPenFilter] = useState<string>('all');
-  const [selectedLot, setSelectedLot] = useState<CattleLot | null>(null);
+  const [selectedLot, setSelectedLot] = useState<CattlePurchase | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showLotDetail, setShowLotDetail] = useState(false);
   const [showLotEdit, setShowLotEdit] = useState(false);
@@ -348,9 +347,13 @@ export const CompleteLots: React.FC = () => {
 
   // Dados processados
   const processedLots = useMemo(() => {
-    return cattleLots.map(lot => {
-      const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
-      const partner = partners.find(p => p.id === order?.vendorId);
+    if (!cattlePurchases || !Array.isArray(cattlePurchases)) {
+      return [];
+    }
+    
+    return cattlePurchases.map(lot => {
+      const order = cattlePurchases.find(o => o.id === lot.purchaseId);
+      const partner = partners?.find(p => p.id === order?.vendorId);
       
       // Calcular métricas derivadas
       const averageWeight = lot.entryQuantity > 0 ? lot.entryWeight / lot.entryQuantity : 0;
@@ -362,7 +365,7 @@ export const CompleteLots: React.FC = () => {
         ...lot,
         // Propriedades adicionais calculadas
         partnerName: partner?.name || 'N/A',
-        orderDate: order?.purchaseDate || lot.createdAt,
+        purchaseDate: order?.purchaseDate || lot.createdAt,
         breed: order?.animalType || 'Não informado',
         origin: order?.location ? 
           `${parseLocation(order.location).city} - ${parseLocation(order.location).state}` : 
@@ -374,7 +377,7 @@ export const CompleteLots: React.FC = () => {
         costPerHead
       };
     });
-  }, [cattleLots, purchaseOrders, partners]);
+  }, [cattlePurchases, cattlePurchases, partners]);
 
   // Filtros aplicados
   const filteredLots = useMemo(() => {
@@ -414,6 +417,10 @@ export const CompleteLots: React.FC = () => {
 
   // Dados do mapa de currais
   const penMapData: PenMapData[] = useMemo(() => {
+    if (!pens || !Array.isArray(pens)) {
+      return [];
+    }
+    
     return pens.map(pen => {
       const penLots = processedLots.filter(lot => lot.penId === pen.id && lot.status === 'ACTIVE');
       const currentOccupancy = penLots.reduce((sum, lot) => sum + lot.currentQuantity, 0);
@@ -430,16 +437,16 @@ export const CompleteLots: React.FC = () => {
     });
   }, [pens, processedLots]);
 
-  const handleLotView = (lot: CattleLot) => {
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
-    const partner = partners.find(p => p.id === order?.vendorId);
+  const handleLotView = (lot: CattlePurchase) => {
+    const order = cattlePurchases?.find(o => o.id === lot.purchaseId);
+    const partner = partners?.find(p => p.id === order?.vendorId);
     
     // Preparar dados combinados para o modal de detalhes
     const combinedData = {
       ...lot,
       ...order,
       lotNumber: lot.lotNumber,
-      orderNumber: order?.orderNumber,
+      lotCode: order?.lotCode,
       vendorName: partner?.name || 'N/A',
       brokerName: order?.brokerName || null,
       partnerName: partner?.name || 'N/A',
@@ -459,8 +466,8 @@ export const CompleteLots: React.FC = () => {
     setShowLotDetail(true);
   };
 
-  const handleLotEdit = (lot: CattleLot) => {
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+  const handleLotEdit = (lot: CattlePurchase) => {
+    const order = cattlePurchases?.find(o => o.id === lot.purchaseId);
     if (order) {
       setSelectedOrder(order);
       setShowLotEdit(true);
@@ -478,7 +485,7 @@ export const CompleteLots: React.FC = () => {
     if (!lotToDelete) return;
     
     try {
-      const success = await deleteCattleLot(lotToDelete);
+      const success = await deleteCattlePurchase(lotToDelete);
       
       if (success) {
         eventBus.emit(EVENTS.LOT_DELETED, lotToDelete);
@@ -677,7 +684,7 @@ export const CompleteLots: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os Currais</SelectItem>
-                  {pens.map((pen) => (
+                  {pens?.map((pen) => (
                     <SelectItem key={pen.id} value={pen.id}>
                       {pen.name}
                     </SelectItem>
@@ -799,8 +806,8 @@ export const CompleteLots: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {occupancyData.map((occupancy) => {
-                    const pen = pens.find(p => p.id === occupancy.penId);
+                  {occupancyData?.map((occupancy) => {
+                    const pen = pens?.find(p => p.id === occupancy.penId);
                     const getStatusColor = (status: string) => {
                       switch (status) {
                         case 'available': return 'text-success';
@@ -883,6 +890,7 @@ export const CompleteLots: React.FC = () => {
                       <TableHead className="table-header">Status</TableHead>
                       <TableHead className="table-header">Animais</TableHead>
                       <TableHead className="table-header">Peso Médio</TableHead>
+                      <TableHead className="table-header">Quebra %</TableHead>
                       <TableHead className="table-header">Investimento</TableHead>
                       <TableHead className="table-header">Fornecedor</TableHead>
                       <TableHead className="table-header">Entrada</TableHead>
@@ -914,6 +922,18 @@ export const CompleteLots: React.FC = () => {
                           </TableCell>
                           <TableCell className="table-cell">
                             {lot.entryWeight ? `${lot.entryWeight}kg` : 'N/A'}
+                          </TableCell>
+                          <TableCell className="table-cell">
+                            {lot.weightBreakPercentage ? (
+                              <Badge 
+                                variant={lot.weightBreakPercentage > 3 ? 'destructive' : 'secondary'}
+                                className="font-mono"
+                              >
+                                {lot.weightBreakPercentage.toFixed(2)}%
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
                           </TableCell>
                           <TableCell className="table-cell">
                             {formatCurrency(lot.totalCost)}
@@ -1195,13 +1215,12 @@ export const CompleteLots: React.FC = () => {
         />
 
         {/* Modal de Edição de Lote/Ordem */}
-        <NewPurchaseOrderForm 
-          isOpen={showLotEdit}
+        <EnhancedPurchaseForm 
+          open={showLotEdit}
           onClose={() => {
             setShowLotEdit(false);
             setSelectedOrder(null);
           }}
-          orderData={selectedOrder}
           onSuccess={handleEditComplete}
         />
 

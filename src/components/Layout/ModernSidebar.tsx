@@ -38,14 +38,14 @@ export function ModernSidebar({ currentPage, setCurrentPage }: ModernSidebarProp
     },
     {
       label: "Compras",
-      href: "pipeline",
+      href: "purchases",
       icon: (
         <IconShoppingBag className="text-neutral-200 h-5 w-5 flex-shrink-0" />
       ),
     },
     {
       label: "Vendas",
-      href: "sales-pipeline",
+      href: "sales",
       icon: (
         <IconTrendingUp className="text-neutral-200 h-5 w-5 flex-shrink-0" />
       ),

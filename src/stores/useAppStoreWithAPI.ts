@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import api from '../services/api';
 import { 
-  FatteningCycle, Partner, PurchaseOrder, CattleLot, WeightReading, 
+  FatteningCycle, Partner, CattlePurchase, CattlePurchase, WeightReading, 
   HealthRecord, FeedCost, LotMovement, SaleSimulation, FinancialAccount,
   KPI, PenStatus, Debt, ZootechnicalPerformance, BankStatement, 
   FinancialReconciliation, CostCenter, CostAllocation, Expense, 
@@ -30,9 +30,9 @@ interface AppState {
   // Dados - mantidos localmente para cache
   cycles: FatteningCycle[];
   partners: Partner[];
-  purchaseOrders: PurchaseOrder[];
-  cattleLots: CattleLot[];
-  weightReadings: WeightReading[];
+  cattlePurchases: CattlePurchase[];
+  cattlePurchases: CattlePurchase[];
+  currentWeightReadings: WeightReading[];
   healthRecords: HealthRecord[];
   feedCosts: FeedCost[];
   lotMovements: LotMovement[];
@@ -97,18 +97,18 @@ interface AppState {
   loadPartners: (type?: string) => Promise<void>;
   
   // Ordens de Compra
-  addPurchaseOrder: (order: Omit<PurchaseOrder, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updatePurchaseOrder: (id: string, data: Partial<PurchaseOrder>) => Promise<void>;
-  deletePurchaseOrder: (id: string) => Promise<void>;
-  movePurchaseOrderToNextStage: (id: string) => Promise<void>;
-  movePurchaseOrderToPreviousStage: (id: string) => Promise<void>;
-  loadPurchaseOrders: () => Promise<void>;
+  addCattlePurchase: (order: Omit<CattlePurchase, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateCattlePurchase: (id: string, data: Partial<CattlePurchase>) => Promise<void>;
+  deleteCattlePurchase: (id: string) => Promise<void>;
+  moveCattlePurchaseToNextStage: (id: string) => Promise<void>;
+  moveCattlePurchaseToPreviousStage: (id: string) => Promise<void>;
+  loadCattlePurchases: () => Promise<void>;
   
   // Lotes
-  addCattleLot: (lot: Omit<CattleLot, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateCattleLot: (id: string, data: Partial<CattleLot>) => Promise<void>;
-  deleteCattleLot: (id: string) => Promise<void>;
-  loadCattleLots: () => Promise<void>;
+  addCattlePurchase: (lot: Omit<CattlePurchase, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateCattlePurchase: (id: string, data: Partial<CattlePurchase>) => Promise<void>;
+  deleteCattlePurchase: (id: string) => Promise<void>;
+  loadCattlePurchases: () => Promise<void>;
   
   // Currais
   addPenRegistration: (pen: Omit<PenRegistration, 'id' | 'createdAt'>) => Promise<void>;
@@ -140,7 +140,7 @@ interface AppState {
   getUnreadNotificationsCount: () => number;
   
   // Métodos auxiliares
-  generatePurchaseOrderCode: () => Promise<string>;
+  generateCattlePurchaseCode: () => Promise<string>;
   generateLotNumber: () => Promise<string>;
 }
 
@@ -159,9 +159,9 @@ export const useAppStoreWithAPI = create<AppState>()(
         // Dados iniciais vazios
         cycles: [],
         partners: [],
-        purchaseOrders: [],
-        cattleLots: [],
-        weightReadings: [],
+        cattlePurchases: [],
+        cattlePurchases: [],
+        currentWeightReadings: [],
         healthRecords: [],
         feedCosts: [],
         lotMovements: [],
@@ -222,8 +222,8 @@ export const useAppStoreWithAPI = create<AppState>()(
               get().loadPartners(),
               get().loadPenRegistrations(),
               get().loadPayerAccounts(),
-              get().loadPurchaseOrders(),
-              get().loadCattleLots(),
+              get().loadCattlePurchases(),
+              get().loadCattlePurchases(),
               get().loadExpenses(),
               get().loadDashboardData(),
             ]);
@@ -252,7 +252,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const newCycle = await api.cadastros.cycles.create(cycle);
+            const newCycle = await (api as any).cadastros.cycles.create(cycle);
             set(state => ({ cycles: [...state.cycles, newCycle] }));
           } catch (error) {
             setError('Erro ao criar ciclo');
@@ -266,7 +266,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const updatedCycle = await api.cadastros.cycles.update(id, data);
+            const updatedCycle = await (api as any).cadastros.cycles.update(id, data);
             set(state => ({
               cycles: state.cycles.map(c => c.id === id ? updatedCycle : c)
             }));
@@ -282,7 +282,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            await api.cadastros.cycles.delete(id);
+            await (api as any).cadastros.cycles.delete(id);
             set(state => ({
               cycles: state.cycles.filter(c => c.id !== id)
             }));
@@ -309,7 +309,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const newPartner = await api.cadastros.partners.create(partner);
+            const newPartner = await (api as any).cadastros.partners.create(partner);
             set(state => ({ partners: [...state.partners, newPartner] }));
           } catch (error) {
             setError('Erro ao criar parceiro');
@@ -323,7 +323,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const updatedPartner = await api.cadastros.partners.update(id, data);
+            const updatedPartner = await (api as any).cadastros.partners.update(id, data);
             set(state => ({
               partners: state.partners.map(p => p.id === id ? updatedPartner : p)
             }));
@@ -339,7 +339,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            await api.cadastros.partners.delete(id);
+            await (api as any).cadastros.partners.delete(id);
             set(state => ({
               partners: state.partners.filter(p => p.id !== id)
             }));
@@ -366,7 +366,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const newPen = await api.cadastros.pens.create(pen);
+            const newPen = await (api as any).cadastros.pens.create(pen);
             set(state => ({ penRegistrations: [...state.penRegistrations, newPen] }));
           } catch (error) {
             setError('Erro ao criar curral');
@@ -380,7 +380,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const updatedPen = await api.cadastros.pens.update(id, data);
+            const updatedPen = await (api as any).cadastros.pens.update(id, data);
             set(state => ({
               penRegistrations: state.penRegistrations.map(p => p.id === id ? updatedPen : p)
             }));
@@ -396,7 +396,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            await api.cadastros.pens.delete(id);
+            await (api as any).cadastros.pens.delete(id);
             set(state => ({
               penRegistrations: state.penRegistrations.filter(p => p.id !== id)
             }));
@@ -411,7 +411,7 @@ export const useAppStoreWithAPI = create<AppState>()(
         // ===== CONTAS PAGADORAS =====
         loadPayerAccounts: async () => {
           try {
-            const data = await api.getFrontendData();
+            const data: any = await api.getFrontendData();
             set({ payerAccounts: data.payerAccounts || [] });
           } catch (error) {
             console.error('Erro ao carregar contas pagadoras:', error);
@@ -423,7 +423,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const newAccount = await api.cadastros.payerAccounts.create(account);
+            const newAccount = await (api as any).cadastros.payerAccounts.create(account);
             set(state => ({ payerAccounts: [...state.payerAccounts, newAccount] }));
           } catch (error) {
             setError('Erro ao criar conta pagadora');
@@ -437,7 +437,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const updatedAccount = await api.cadastros.payerAccounts.update(id, data);
+            const updatedAccount = await (api as any).cadastros.payerAccounts.update(id, data);
             set(state => ({
               payerAccounts: state.payerAccounts.map(a => a.id === id ? updatedAccount : a)
             }));
@@ -453,7 +453,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            await api.cadastros.payerAccounts.delete(id);
+            await (api as any).cadastros.payerAccounts.delete(id);
             set(state => ({
               payerAccounts: state.payerAccounts.filter(a => a.id !== id)
             }));
@@ -466,22 +466,22 @@ export const useAppStoreWithAPI = create<AppState>()(
         },
         
         // ===== ORDENS DE COMPRA =====
-        loadPurchaseOrders: async () => {
+        loadCattlePurchases: async () => {
           try {
-            const data = await api.getFrontendData();
-            set({ purchaseOrders: data.purchaseOrders || [] });
+            const data: any = await api.getFrontendData();
+            set({ cattlePurchases: data.cattlePurchases || [] });
           } catch (error) {
             console.error('Erro ao carregar ordens de compra:', error);
             throw error;
           }
         },
         
-        addPurchaseOrder: async (order) => {
+        addCattlePurchase: async (order) => {
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const newOrder = await api.pipeline.purchaseOrders.create(order);
-            set(state => ({ purchaseOrders: [...state.purchaseOrders, newOrder] }));
+            const newOrder = await (api as any).pipeline.cattlePurchases.create(order);
+            set(state => ({ cattlePurchases: [...state.cattlePurchases, newOrder] }));
           } catch (error) {
             setError('Erro ao criar ordem de compra');
             throw error;
@@ -490,13 +490,13 @@ export const useAppStoreWithAPI = create<AppState>()(
           }
         },
         
-        updatePurchaseOrder: async (id, data) => {
+        updateCattlePurchase: async (id, data) => {
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const updatedOrder = await api.pipeline.purchaseOrders.update(id, data);
+            const updatedOrder = await (api as any).pipeline.cattlePurchases.update(id, data);
             set(state => ({
-              purchaseOrders: state.purchaseOrders.map(o => o.id === id ? updatedOrder : o)
+              cattlePurchases: state.cattlePurchases.map(o => o.id === id ? updatedOrder : o)
             }));
           } catch (error) {
             setError('Erro ao atualizar ordem de compra');
@@ -506,13 +506,13 @@ export const useAppStoreWithAPI = create<AppState>()(
           }
         },
         
-        deletePurchaseOrder: async (id) => {
+        deleteCattlePurchase: async (id) => {
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            await api.pipeline.purchaseOrders.delete(id);
+            await (api as any).pipeline.cattlePurchases.delete(id);
             set(state => ({
-              purchaseOrders: state.purchaseOrders.filter(o => o.id !== id)
+              cattlePurchases: state.cattlePurchases.filter(o => o.id !== id)
             }));
           } catch (error) {
             setError('Erro ao deletar ordem de compra');
@@ -522,13 +522,13 @@ export const useAppStoreWithAPI = create<AppState>()(
           }
         },
         
-        movePurchaseOrderToNextStage: async (id) => {
+        moveCattlePurchaseToNextStage: async (id) => {
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const updatedOrder = await api.pipeline.purchaseOrders.moveToNextStage(id);
+            const updatedOrder = await (api as any).pipeline.cattlePurchases.moveToNextStage(id);
             set(state => ({
-              purchaseOrders: state.purchaseOrders.map(o => o.id === id ? updatedOrder : o)
+              cattlePurchases: state.cattlePurchases.map(o => o.id === id ? updatedOrder : o)
             }));
           } catch (error) {
             setError('Erro ao mover ordem para próximo estágio');
@@ -538,13 +538,13 @@ export const useAppStoreWithAPI = create<AppState>()(
           }
         },
         
-        movePurchaseOrderToPreviousStage: async (id) => {
+        moveCattlePurchaseToPreviousStage: async (id) => {
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const updatedOrder = await api.pipeline.purchaseOrders.moveToPreviousStage(id);
+            const updatedOrder = await (api as any).pipeline.cattlePurchases.moveToPreviousStage(id);
             set(state => ({
-              purchaseOrders: state.purchaseOrders.map(o => o.id === id ? updatedOrder : o)
+              cattlePurchases: state.cattlePurchases.map(o => o.id === id ? updatedOrder : o)
             }));
           } catch (error) {
             setError('Erro ao mover ordem para estágio anterior');
@@ -554,23 +554,23 @@ export const useAppStoreWithAPI = create<AppState>()(
           }
         },
         
-        // ===== LOTES =====
-        loadCattleLots: async () => {
+        // ===== LOTES ===== (duplicado - comentado)
+        /* loadCattlePurchases: async () => {
           try {
-            const data = await api.getFrontendData();
-            set({ cattleLots: data.cattleLots || [] });
+            const data: any = await api.getFrontendData();
+            set({ cattlePurchases: data.cattlePurchases || [] });
           } catch (error) {
             console.error('Erro ao carregar lotes:', error);
             throw error;
           }
-        },
+        }, */
         
-        addCattleLot: async (lot) => {
+        addCattlePurchase2: async (lot: any) => {
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const newLot = await api.lots.lots.create(lot);
-            set(state => ({ cattleLots: [...state.cattleLots, newLot] }));
+            const newLot = await (api as any).lots.lots.create(lot);
+            set(state => ({ cattlePurchases: [...state.cattlePurchases, newLot] }));
           } catch (error) {
             setError('Erro ao criar lote');
             throw error;
@@ -579,13 +579,13 @@ export const useAppStoreWithAPI = create<AppState>()(
           }
         },
         
-        updateCattleLot: async (id, data) => {
+        updateCattlePurchase2: async (id: any, data: any) => {
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const updatedLot = await api.lots.lots.update(id, data);
+            const updatedLot = await (api as any).lots.lots.update(id, data);
             set(state => ({
-              cattleLots: state.cattleLots.map(l => l.id === id ? updatedLot : l)
+              cattlePurchases: state.cattlePurchases.map(l => l.id === id ? updatedLot : l)
             }));
           } catch (error) {
             setError('Erro ao atualizar lote');
@@ -595,13 +595,13 @@ export const useAppStoreWithAPI = create<AppState>()(
           }
         },
         
-        deleteCattleLot: async (id) => {
+        deleteCattlePurchase2: async (id: any) => {
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            await api.lots.lots.delete(id);
+            await (api as any).lots.lots.delete(id);
             set(state => ({
-              cattleLots: state.cattleLots.filter(l => l.id !== id)
+              cattlePurchases: state.cattlePurchases.filter(l => l.id !== id)
             }));
           } catch (error) {
             setError('Erro ao deletar lote');
@@ -612,9 +612,9 @@ export const useAppStoreWithAPI = create<AppState>()(
         },
         
         // ===== DESPESAS =====
-        loadExpenses: async (filters?: any) => {
+        loadExpenses: async (_filters?: any) => {
           try {
-            const data = await api.getFrontendData();
+            const data: any = await api.getFrontendData();
             set({ expenses: data.expenses || [] });
           } catch (error) {
             console.error('Erro ao carregar despesas:', error);
@@ -626,7 +626,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const newExpense = await api.financial.expenses.create(expense);
+            const newExpense = await (api as any).financial.expenses.create(expense);
             set(state => ({ expenses: [...state.expenses, newExpense] }));
           } catch (error) {
             setError('Erro ao criar despesa');
@@ -640,7 +640,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            const updatedExpense = await api.financial.expenses.update(id, data);
+            const updatedExpense = await (api as any).financial.expenses.update(id, data);
             set(state => ({
               expenses: state.expenses.map(e => e.id === id ? updatedExpense : e)
             }));
@@ -656,7 +656,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           const { setLoading, setError } = get();
           setLoading(true);
           try {
-            await api.financial.expenses.delete(id);
+            await (api as any).financial.expenses.delete(id);
             set(state => ({
               expenses: state.expenses.filter(e => e.id !== id)
             }));
@@ -669,9 +669,9 @@ export const useAppStoreWithAPI = create<AppState>()(
         },
         
         // ===== DASHBOARD =====
-        loadDashboardData: async (period?: string) => {
+        loadDashboardData: async (_period?: string) => {
           try {
-            const data = await api.getStats();
+            const data: any = await api.getStats();
             // Atualizar KPIs e outras métricas
             const kpis: KPI[] = [
               { label: 'Animais Confinados', value: data.totalCattle?.toString() || '0', icon: 'Beef' },
@@ -718,9 +718,9 @@ export const useAppStoreWithAPI = create<AppState>()(
         },
         
         // ===== MÉTODOS AUXILIARES =====
-        generatePurchaseOrderCode: async () => {
+        generateCattlePurchaseCode: async () => {
           try {
-            const { code } = await api.pipeline.purchaseOrders.generateCode();
+            const { code } = await (api as any).pipeline?.cattlePurchases?.generateCode() || { code: `OC-${Date.now()}` };
             return code;
           } catch (error) {
             console.error('Erro ao gerar código de ordem:', error);
@@ -730,7 +730,7 @@ export const useAppStoreWithAPI = create<AppState>()(
         
         generateLotNumber: async () => {
           try {
-            const { number } = await api.lots.lots.generateNumber();
+            const { number } = await (api as any).lots?.lots?.generateNumber() || { number: `L-${Date.now()}` };
             return number;
           } catch (error) {
             console.error('Erro ao gerar número de lote:', error);

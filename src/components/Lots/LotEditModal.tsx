@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Edit, AlertCircle } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
-import { CattleLot } from '../../types';
+import { CattlePurchase } from '../../types';
 import { format } from 'date-fns';
 
 const lotEditSchema = z.object({
@@ -19,24 +19,24 @@ const lotEditSchema = z.object({
 });
 
 interface LotEditModalProps {
-  lot: CattleLot;
+  lot: CattlePurchase;
   isOpen: boolean;
   onClose: () => void;
 }
 
 export const LotEditModal: React.FC<LotEditModalProps> = ({ lot, isOpen, onClose }) => {
   const { 
-    updateCattleLot, 
+    updateCattlePurchase, 
     penRegistrations, 
     loteCurralLinks,
     partners,
-    purchaseOrders
+    cattlePurchases
   } = useAppStore();
 
   const [showFreightInfo, setShowFreightInfo] = useState(false);
 
   // Obter ordem de compra relacionada
-  const purchaseOrder = purchaseOrders.find(po => po.id === lot.purchaseOrderId);
+  const purchaseOrder = cattlePurchases.find(po => po.id === lot.purchaseId);
   
   // Obter currais atuais do lote
   const currentPens = (loteCurralLinks || [])
@@ -83,7 +83,7 @@ export const LotEditModal: React.FC<LotEditModalProps> = ({ lot, isOpen, onClose
   }, [lot]);
 
   const handleFormSubmit = (data: any) => {
-    updateCattleLot(lot.id, {
+    updateCattlePurchase(lot.id, {
       ...data,
       // Garantir que os valores de frete sejam números
       freightKm: data.freightKm || 0,
@@ -128,7 +128,7 @@ export const LotEditModal: React.FC<LotEditModalProps> = ({ lot, isOpen, onClose
                       <span className="font-medium">Ordem:</span> {purchaseOrder.code}
                     </div>
                     <div>
-                      <span className="font-medium">Quantidade:</span> {purchaseOrder.quantity} animais
+                      <span className="font-medium">Quantidade:</span> {purchaseOrder.currentQuantity} animais
                     </div>
                     <div>
                       <span className="font-medium">Peso Total:</span> {purchaseOrder.totalWeight.toLocaleString('pt-BR')} kg

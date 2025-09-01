@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { usePensApi } from '../../hooks/api/usePensApi';
 import { usePenOccupancyApi } from '../../hooks/api/usePenOccupancyApi';
-import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
+import { useCattlePurchasesApi } from '../../hooks/api/useCattlePurchasesApi';
 import { Plus, Edit, Trash2, Home, ArrowRightLeft, Scale, Heart, ArrowRight, RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Portal } from '../Common/Portal';
@@ -22,7 +22,7 @@ export const PenMapIntegrated: React.FC = () => {
     averageOccupancyRate,
     reload: reloadOccupancy 
   } = usePenOccupancyApi();
-  const { cattleLots } = useCattleLotsApi();
+  const { cattlePurchases } = useCattlePurchasesApi();
   
   const [selectedPen, setSelectedPen] = useState<string | null>(null);
   const [showPenForm, setShowPenForm] = useState(false);
@@ -96,7 +96,7 @@ export const PenMapIntegrated: React.FC = () => {
 
   // Obter lotes em um curral específico
   const getLotsInPen = (penId: string) => {
-    return cattleLots.filter(lot => lot.penId === penId && lot.status === 'ACTIVE');
+    return cattlePurchases.filter(lot => lot.penId === penId && lot.status === 'ACTIVE');
   };
 
   const selectedPenData = selectedPen ? pens.find(p => p.id === selectedPen) : null;

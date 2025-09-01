@@ -4,33 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileDown, RefreshCw } from 'lucide-react';
-import { supabase } from '@/services/supabase';
+import { reportApi, LotPerformanceReport as LotPerfReport } from '@/services/api/reportApi';
 import { usePDFGenerator } from '@/hooks/usePDFGenerator';
 import { useToast } from '@/hooks/use-toast';
 
-interface LotPerformance {
-  id: string;
-  lotNumber: string;
-  entryDate: string;
-  entryQuantity: number;
-  entryWeight: number;
-  status: string;
-  current_avg_weight: number;
-  total_weight_gain: number;
-  daily_weight_gain: number;
-  days_confined: number;
-  total_costs: number;
-  cost_per_head: number;
-  cost_per_kg: number;
-  estimated_revenue: number;
-  estimated_margin: number;
-  last_weighing_date: string | null;
-  weighing_count: number;
-  createdAt: string;
-}
-
 export const LotPerformanceReport: React.FC = () => {
-  const [data, setData] = useState<LotPerformance[]>([]);
+  const [report, setReport] = useState<LotPerfReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -42,16 +21,8 @@ export const LotPerformanceReport: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      const { data: performanceData, error: queryError } = await supabase
-        .from('v_lot_performance')
-        .select('*')
-        .order('entryDate', { ascending: false });
-
-      if (queryError) {
-        throw queryError;
-      }
-
-      setData(performanceData || []);
+      const data = await reportApi.getLotPerformance();
+      setReport(data);
     } catch (err) {
       console.error('Erro ao buscar dados:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
@@ -92,17 +63,19 @@ export const LotPerformanceReport: React.FC = () => {
   };
 
   const handleGenerateStructuredPDF = async () => {
+    if (!report) return;
+    
     const reportData = {
       title: 'Relatório de Performance dos Lotes',
       subtitle: `Período: ${new Date().toLocaleDateString('pt-BR')}`,
-      data: data.map(lot => ({
-        lote: lot.lotNumber,
-        entrada: new Date(lot.entryDate).toLocaleDateString('pt-BR'),
-        animais: lot.entryQuantity,
-        dias: Math.round(lot.days_confined),
-        gmd: `${lot.daily_weight_gain.toFixed(2)} kg`,
-        custo_cabeca: `R$ ${lot.cost_per_head.toFixed(2)}`,
-        margem: `R$ ${lot.estimated_margin.toFixed(2)}`
+      data: report.lots.map(lot => ({
+        lote: lot.lot.code,
+        entrada: new Date(lot.timeline.entryDate).toLocaleDateString('pt-BR'),
+        animais: lot.quantity.current,
+        dias: Math.round(lot.timeline.daysInConfinement),
+        gmd: `${lot.weight.avgDailyGain.toFixed(2)} kg`,
+        custo_cabeca: `R$ ${lot.financials.costPerHead.toFixed(2)}`,
+        margem: `R$ ${lot.financials.profit.toFixed(2)}`
       })),
       columns: [
         { key: 'lote', label: 'Lote', width: 40 },
@@ -114,10 +87,10 @@ export const LotPerformanceReport: React.FC = () => {
         { key: 'margem', label: 'Margem Est.', width: 35 }
       ],
       summary: {
-        'Total de Lotes': data.length,
-        'Total de Animais': data.reduce((sum, lot) => sum + lot.entryQuantity, 0),
-        'GMD Médio': `${(data.reduce((sum, lot) => sum + lot.daily_weight_gain, 0) / data.length).toFixed(2)} kg`,
-        'Margem Total Estimada': `R$ ${data.reduce((sum, lot) => sum + lot.estimated_margin, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        'Total de Lotes': report.summary.totalLots,
+        'Total de Animais': report.lots.reduce((sum, lot) => sum + lot.quantity.current, 0),
+        'GMD Médio': `${report.summary.averages?.daysInConfinement || 0} dias`,
+        'Margem Total Estimada': `R$ ${report.lots.reduce((sum, lot) => sum + lot.financials.profit, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
       }
     };
 
@@ -156,12 +129,20 @@ export const LotPerformanceReport: React.FC = () => {
     const variants = {
       'ACTIVE': 'default',
       'SOLD': 'secondary',
-      'FINISHED': 'outline'
+      'FINISHED': 'outline',
+      'IN_FORMATION': 'outline'
+    } as const;
+
+    const labels = {
+      'ACTIVE': 'Ativo',
+      'SOLD': 'Vendido',
+      'FINISHED': 'Finalizado',
+      'IN_FORMATION': 'Em Formação'
     } as const;
 
     return (
       <Badge variant={variants[status as keyof typeof variants] || 'default'}>
-        {status}
+        {labels[status as keyof typeof labels] || status}
       </Badge>
     );
   };
@@ -235,7 +216,7 @@ export const LotPerformanceReport: React.FC = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {data.length === 0 ? (
+          {!report || report.lots.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
               Nenhum lote encontrado.
             </p>
@@ -248,42 +229,53 @@ export const LotPerformanceReport: React.FC = () => {
                   <TableHead>Entrada</TableHead>
                   <TableHead className="text-right">Animais</TableHead>
                   <TableHead className="text-right">Dias</TableHead>
-                  <TableHead className="text-right">Peso Atual</TableHead>
+                  <TableHead className="text-right">Peso Médio</TableHead>
                   <TableHead className="text-right">GMD</TableHead>
                   <TableHead className="text-right">Custo/Cabeça</TableHead>
-                  <TableHead className="text-right">Margem Est.</TableHead>
+                  <TableHead className="text-right">Lucro</TableHead>
+                  <TableHead className="text-right">ROI</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.map((lot) => (
-                  <TableRow key={lot.id}>
+                {report.lots.map((lot) => (
+                  <TableRow key={lot.lot.id}>
                     <TableCell className="font-medium">
-                      {lot.lotNumber}
+                      {lot.lot.code}
+                      {lot.ranking && (
+                        <Badge variant="outline" className="ml-2">
+                          #{lot.ranking.position}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(lot.status)}
+                      {getStatusBadge(lot.lot.status)}
                     </TableCell>
                     <TableCell>
-                      {formatDate(lot.entryDate)}
+                      {formatDate(lot.timeline.entryDate)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {lot.entryQuantity.toLocaleString()}
+                      {lot.quantity.current.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      {Math.round(lot.days_confined)}
+                      {Math.round(lot.timeline.daysInConfinement)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {lot.current_avg_weight.toFixed(0)} kg
+                      {lot.weight.avgCurrent.toFixed(0)} kg
                     </TableCell>
                     <TableCell className="text-right">
-                      {lot.daily_weight_gain.toFixed(2)} kg
+                      {lot.weight.avgDailyGain.toFixed(2)} kg
                     </TableCell>
                     <TableCell className="text-right">
-                      {formatCurrency(lot.cost_per_head)}
+                      {formatCurrency(lot.financials.costPerHead)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className={lot.estimated_margin >= 0 ? 'text-green-600' : 'text-red-600'}>
-                        {formatCurrency(lot.estimated_margin)}
+                      <span className={lot.financials.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(lot.financials.profit)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={lot.financials.roi >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {lot.financials.roi.toFixed(1)}%
                       </span>
                     </TableCell>
                   </TableRow>
@@ -295,16 +287,16 @@ export const LotPerformanceReport: React.FC = () => {
       </Card>
 
       {/* Resumo */}
-      {data.length > 0 && (
+      {report && report.lots.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Resumo Geral</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
-                  {data.length}
+                  {report.summary.totalLots}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Total de Lotes
@@ -312,7 +304,7 @@ export const LotPerformanceReport: React.FC = () => {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
-                  {data.reduce((sum, lot) => sum + lot.entryQuantity, 0).toLocaleString()}
+                  {report.lots.reduce((sum, lot) => sum + lot.quantity.current, 0).toLocaleString()}
                 </div>
                 <div className="text-sm text-muted-foreground">
                   Total de Animais
@@ -320,21 +312,44 @@ export const LotPerformanceReport: React.FC = () => {
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-primary">
-                  {(data.reduce((sum, lot) => sum + lot.daily_weight_gain, 0) / data.length).toFixed(2)} kg
+                  {report.summary.averages?.margin.toFixed(1) || 0}%
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  GMD Médio
+                  Margem Média
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary">
+                  {report.summary.averages?.roi.toFixed(1) || 0}%
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  ROI Médio
                 </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">
-                  {formatCurrency(data.reduce((sum, lot) => sum + lot.estimated_margin, 0))}
+                  {formatCurrency(report.lots.reduce((sum, lot) => sum + lot.financials.profit, 0))}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Margem Total Est.
+                  Lucro Total
                 </div>
               </div>
             </div>
+            
+            {/* Top Performers */}
+            {report.summary.bestPerformers.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">Melhores Desempenhos</h4>
+                <div className="space-y-1">
+                  {report.summary.bestPerformers.slice(0, 3).map((lot) => (
+                    <div key={lot.lot.id} className="flex justify-between text-sm">
+                      <span>{lot.lot.code}</span>
+                      <span className="text-green-600">ROI: {lot.financials.roi.toFixed(1)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

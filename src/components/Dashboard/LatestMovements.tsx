@@ -1,20 +1,20 @@
 import React from 'react';
 import { ShoppingCart, DollarSign, Calendar, MapPin, User, TrendingUp, ArrowRight, Eye } from 'lucide-react';
 
-import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
-import { usePurchaseOrdersApi } from '../../hooks/api/usePurchaseOrdersApi';
+import { useCattlePurchasesApi } from '../../hooks/api/useCattlePurchasesApi';
+import { useCattlePurchasesApi } from '../../hooks/api/useCattlePurchasesApi';
 import { usePartnersApi } from '../../hooks/api/usePartnersApi';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const LatestMovements: React.FC = () => {
   // Hooks da Nova Arquitetura API
-  const { cattleLots } = useCattleLotsApi();
-  const { purchaseOrders } = usePurchaseOrdersApi();
+  const { cattlePurchases } = useCattlePurchasesApi();
+  const { cattlePurchases } = useCattlePurchasesApi();
   const { partners } = usePartnersApi();
 
   // Combinar ordens de compra em uma lista de movimentações
-  const movements = purchaseOrders
+  const movements = cattlePurchases
     .slice(-10)
     .map(order => {
       const vendor = partners.find(p => p.id === order.vendorId);
@@ -25,15 +25,15 @@ export const LatestMovements: React.FC = () => {
         id: order.id,
         type: 'purchase' as const,
         date: new Date(order.purchaseDate),
-        title: `Ordem de Compra ${order.orderNumber}`,
+        title: `Ordem de Compra ${order.lotCode}`,
         description: `${order.animalCount} animais • ${order.location}`,
         vendor: vendor?.name || 'Vendedor não encontrado',
         broker: broker?.name,
         value: totalValue,
         status: order.status,
         details: {
-          quantity: order.animalCount,
-          weight: order.totalWeight,
+          currentQuantity: order.animalCount,
+          currentWeight: order.totalWeight,
           pricePerArroba: order.pricePerArroba,
           city: order.location,
           state: order.location

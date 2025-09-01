@@ -94,6 +94,11 @@ router.get(
   partnerController.partnerStats
 );
 
+router.get(
+  '/:id/debug',
+  partnerController.debug
+);
+
 router.post(
   '/',
   authorize('ADMIN', 'MANAGER'),

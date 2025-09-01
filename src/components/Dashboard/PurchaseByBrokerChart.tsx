@@ -5,24 +5,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 export const PurchaseByBrokerChart: React.FC = () => {
-  const { purchaseOrders, partners } = useAppStore();
+  const { cattlePurchases, partners } = useAppStore();
 
   // Agrupar compras por corretor
   const data = React.useMemo(() => {
-    const brokerMap = new Map<string, { quantity: number, value: number, name: string }>();
+    const brokerMap = new Map<string, { currentQuantity: number, value: number, name: string }>();
     
     // Inicializar com "Sem Corretor" para compras diretas
-    brokerMap.set('direct', { quantity: 0, value: 0, name: 'N/A' });
+    brokerMap.set('direct', { currentQuantity: 0, value: 0, name: 'N/A' });
     
-    purchaseOrders.forEach(order => {
+    cattlePurchases.forEach(order => {
       const brokerId = order.brokerId || 'direct';
       const broker = order.brokerId ? partners.find(p => p.id === order.brokerId) : null;
       const brokerName = broker ? broker.name : 'N/A';
       
-      const current = brokerMap.get(brokerId) || { quantity: 0, value: 0, name: brokerName };
+      const current = brokerMap.get(brokerId) || { currentQuantity: 0, value: 0, name: brokerName };
       
       brokerMap.set(brokerId, {
-        quantity: current.quantity + order.quantity,
+        currentQuantity: current.currentQuantity + order.currentQuantity,
         value: current.value + ((order.totalWeight / 15) * order.pricePerArroba),
         name: brokerName
       });
@@ -34,18 +34,18 @@ export const PurchaseByBrokerChart: React.FC = () => {
         id,
         name: data.name.split(' ')[0], // Pegar apenas o primeiro nome para o gráfico
         fullName: data.name,
-        quantity: data.quantity,
+        currentQuantity: data.currentQuantity,
         value: data.value
       }))
-      .sort((a, b) => b.quantity - a.quantity)
+      .sort((a, b) => b.currentQuantity - a.currentQuantity)
       .slice(0, 6); // Limitar aos 6 maiores
-  }, [purchaseOrders, partners]);
+  }, [cattlePurchases, partners]);
 
   // Usar dados reais ou array vazio
   const chartData = data;
 
   const chartConfig = {
-    quantity: {
+    currentQuantity: {
       label: "Quantidade",
       color: "hsl(var(--chart-1))",
     },
@@ -89,8 +89,8 @@ export const PurchaseByBrokerChart: React.FC = () => {
                 />}
               />
               <Bar 
-                dataKey="quantity" 
-                fill="var(--color-quantity)"
+                dataKey="currentQuantity" 
+                fill="var(--color-currentQuantity)"
                 radius={[4, 4, 0, 0]}
               />
             </BarChart>
@@ -106,7 +106,7 @@ export const PurchaseByBrokerChart: React.FC = () => {
 
         <div className="mt-4 text-center">
           <div className="text-lg font-bold">
-            {chartData.reduce((sum, item) => sum + item.quantity, 0)} animais
+            {chartData.reduce((sum, item) => sum + item.currentQuantity, 0)} animais
           </div>
           <div className="text-sm text-muted-foreground">
             Total de animais intermediados

@@ -71,7 +71,7 @@ model PayerAccount {
 model CattlePurchase {
   id      String @id @default(cuid())
   // Código único de identificação
-  lotCode String @unique // Ex: LOT-2501001 (ano+mês+sequencial)
+  lotCode      String  @unique // Ex: LOT-2501001 (ano+mês+sequencial)
 
   // Relacionamentos principais
   vendorId           String
@@ -82,6 +82,9 @@ model CattlePurchase {
 
   // Localização e data
   location     String?
+  city         String?
+  state        String?
+  farm         String?
   purchaseDate DateTime
   receivedDate DateTime? // Data de recepção no confinamento
 
@@ -132,6 +135,10 @@ model CattlePurchase {
   status PurchaseStatus @default(CONFIRMED)
   stage  String? // Estágio detalhado do processo
   notes  String?
+  
+  // Ciclo
+  cycleId String?
+  cycle   Cycle?  @relation(fields: [cycleId], references: [id])
 
   // Mortalidade no transporte
   transportMortality Int? @default(0)
@@ -163,11 +170,9 @@ model CattlePurchase {
 
 // Enum para status da compra unificado
 enum PurchaseStatus {
-  NEGOTIATING // Em negociação
   CONFIRMED   // Compra confirmada
   IN_TRANSIT  // Em trânsito
-  RECEIVED    // Recebido no confinamento
-  ACTIVE      // Em confinamento ativo (era CONFINED)
+  ACTIVE      // Em confinamento ativo (recepcionado e alocado)
   SOLD        // Vendido
   CANCELLED   // Cancelado
 }
@@ -308,6 +313,7 @@ model SaleRecord {
   saleNumber       String         @unique
   purchaseId       String
   buyerId          String
+  cycleId          String?
   designationDate  DateTime
   slaughterPlant   String
   expectedDate     DateTime
@@ -328,6 +334,7 @@ model SaleRecord {
   updatedAt        DateTime       @updatedAt
   buyer            Partner        @relation(fields: [buyerId], references: [id])
   purchase         CattlePurchase @relation(fields: [purchaseId], references: [id])
+  cycle            Cycle?         @relation(fields: [cycleId], references: [id])
 
   @@map("sale_records")
 }
@@ -364,6 +371,7 @@ model Expense {
   vendorId        String?
   payerAccountId  String?
   userId          String
+  cycleId         String?
   notes           String?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
@@ -371,6 +379,7 @@ model Expense {
   costCenter      CostCenter?          @relation(fields: [costCenterId], references: [id])
   purchase        CattlePurchase?      @relation(fields: [purchaseId], references: [id])
   payerAccount    PayerAccount?        @relation(fields: [payerAccountId], references: [id])
+  cycle           Cycle?               @relation(fields: [cycleId], references: [id])
   reconciliations ReconciliationItem[]
 
   @@map("expenses")
@@ -388,6 +397,7 @@ model Revenue {
   saleRecordId    String?
   buyerId         String?
   payerAccountId  String?
+  cycleId         String?
   userId          String
   notes           String?
   createdAt       DateTime             @default(now())
@@ -396,6 +406,7 @@ model Revenue {
   allocations     RevenueAllocation[]
   costCenter      CostCenter?          @relation(fields: [costCenterId], references: [id])
   payerAccount    PayerAccount?        @relation(fields: [payerAccountId], references: [id])
+  cycle           Cycle?               @relation(fields: [cycleId], references: [id])
 
   @@map("revenues")
 }
@@ -561,22 +572,29 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-model cycles {
-  id            String      @id @default(dbgenerated("(gen_random_uuid())::text"))
+model Cycle {
+  id            String           @id @default(cuid())
   name          String
   description   String?
-  startDate     DateTime    @db.Timestamp(6)
-  endDate       DateTime?   @db.Timestamp(6)
-  status        CycleStatus @default(PLANNED)
-  budget        Float?      @default(0)
-  targetAnimals Int?        @default(0)
-  actualAnimals Int?        @default(0)
-  totalCost     Float?      @default(0)
-  totalRevenue  Float?      @default(0)
-  userId        String
-  isActive      Boolean     @default(true)
-  createdAt     DateTime    @default(now()) @db.Timestamp(6)
-  updatedAt     DateTime    @default(now()) @db.Timestamp(6)
+  startDate     DateTime
+  endDate       DateTime?
+  status        CycleStatus      @default(PLANNED)
+  budget        Float            @default(0)
+  targetAnimals Int              @default(0)
+  actualAnimals Int              @default(0)
+  totalCost     Float            @default(0)
+  totalRevenue  Float            @default(0)
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  // Relacionamentos
+  cattlePurchases CattlePurchase[]
+  expenses        Expense[]
+  revenues        Revenue[]
+  saleRecords     SaleRecord[]
+  
+  @@map("cycles")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

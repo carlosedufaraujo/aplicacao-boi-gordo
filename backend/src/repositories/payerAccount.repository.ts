@@ -1,6 +1,6 @@
 import { PayerAccount, AccountType } from '@prisma/client';
 import { BaseRepository } from './base.repository';
-import { prisma } from '@/config/database';
+// import { prisma } from '@/config/database';
 
 export class PayerAccountRepository extends BaseRepository<PayerAccount> {
   constructor() {

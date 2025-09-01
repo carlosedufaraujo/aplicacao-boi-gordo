@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { cattlePurchaseController } from '../controllers/cattlePurchase.controller';
 import { authenticate } from '../middlewares/auth';
 import { validateRequest } from '../middlewares/validation';
-import { body, param, query } from 'express-validator';
+import { body, param } from 'express-validator';
 
 const router = Router();
 

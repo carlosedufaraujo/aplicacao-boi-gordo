@@ -1,10 +1,12 @@
 import { SaleRecordRepository } from '@/repositories/saleRecord.repository';
 import { NotFoundError, ValidationError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';
+import { prisma } from '@/config/database';
 
 interface CreateSaleRecordData {
   purchaseId: string;
   buyerId: string;
+  cycleId?: string;
   saleDate: Date;
   quantity: number;
   totalWeight: number;
@@ -25,6 +27,7 @@ interface UpdateSaleRecordData extends Partial<CreateSaleRecordData> {}
 interface SaleRecordFilters {
   purchaseId?: string;
   buyerId?: string;
+  cycleId?: string;
   status?: string;
   startDate?: Date;
   endDate?: Date;
@@ -48,18 +51,22 @@ export class SaleRecordService {
     if (filters.buyerId) {
       where.buyerId = filters.buyerId;
     }
+    
+    if (filters.cycleId) {
+      where.cycleId = filters.cycleId;
+    }
 
     if (filters.status) {
       where.status = filters.status;
     }
 
     if (filters.startDate || filters.endDate) {
-      where.saleDate = {};
+      where.createdAt = {};
       if (filters.startDate) {
-        where.saleDate.gte = filters.startDate;
+        where.createdAt.gte = filters.startDate;
       }
       if (filters.endDate) {
-        where.saleDate.lte = filters.endDate;
+        where.createdAt.lte = filters.endDate;
       }
     }
 
@@ -94,7 +101,7 @@ export class SaleRecordService {
   }
 
   async findByPurchase(purchaseId: string) {
-    return this.saleRecordRepository.findByPurchase(purchaseId);
+    return this.saleRecordRepository.findAll({ purchaseId });
   }
 
   async findByBuyer(buyerId: string) {
@@ -105,8 +112,18 @@ export class SaleRecordService {
     // Valida se o lote existe e tem quantidade disponível
     // Aqui você pode adicionar validações adicionais
 
+    // Se não foi especificado um ciclo, buscar o ciclo ativo
+    let cycleId = data.cycleId;
+    if (!cycleId) {
+      const activeCycle = await prisma.cycle.findFirst({
+        where: { status: 'ACTIVE' }
+      });
+      cycleId = activeCycle?.id;
+    }
+
     const saleRecordData = {
       ...data,
+      cycleId,
       status: data.status || 'PENDING',
       deductions: data.deductions || 0,
     };
@@ -173,10 +190,10 @@ export class SaleRecordService {
 
     const summary = {
       total: records.total,
-      totalQuantity: records.items.reduce((sum, r) => sum + r.quantity, 0),
-      totalWeight: records.items.reduce((sum, r) => sum + r.totalWeight, 0),
-      totalGrossValue: records.items.reduce((sum, r) => sum + r.grossValue, 0),
-      totalNetValue: records.items.reduce((sum, r) => sum + r.netValue, 0),
+      totalQuantity: records.items.reduce((sum: number, r) => sum + r.quantity, 0),
+      totalWeight: records.items.reduce((sum: number, r) => sum + r.totalWeight, 0),
+      totalGrossValue: records.items.reduce((sum: number, r) => sum + r.grossValue, 0),
+      totalNetValue: records.items.reduce((sum: number, r) => sum + r.netValue, 0),
       averagePrice: 0,
       byStatus: {
         pending: records.items.filter(r => r.status === 'PENDING').length,

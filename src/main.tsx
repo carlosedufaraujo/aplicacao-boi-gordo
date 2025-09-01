@@ -4,6 +4,12 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import App from './App.tsx';
 import './index.css';
+import { logWebVitals } from './utils/webVitals';
+
+// Monitorar Web Vitals
+if (import.meta.env.PROD) {
+  logWebVitals();
+}
 
 // Configurar o router com future flags para v7
 const router = createBrowserRouter(

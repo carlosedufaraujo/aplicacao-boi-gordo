@@ -12,9 +12,9 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       where: { id },
       include: {
         buyer: true,
-        lot: {
+        purchase: {
           include: {
-            cattlePurchase: {
+            vendor: {
               include: {
                 vendor: true,
               },
@@ -22,7 +22,6 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
           },
         },
         user: true,
-        revenues: true,
       },
     });
   }
@@ -32,7 +31,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       where: { status },
       include: {
         buyer: true,
-        lot: true,
+        purchase: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -43,7 +42,6 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       where: { lotId },
       include: {
         buyer: true,
-        revenues: true,
       },
       orderBy: { saleDate: 'desc' },
     });
@@ -57,13 +55,13 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       });
 
       // Se a venda está confirmada, cria a receita
-      if (sale.status === 'CONFIRMED' || sale.status === 'SHIPPED') {
+      if (sale.status === 'NEXT_SLAUGHTER' || sale.status === 'SHIPPED') {
         await tx.revenue.create({
           data: {
             category: 'cattle_sales',
-            description: `Venda de gado - Lote ${sale.lotId}`,
-            totalAmount: sale.totalAmount,
-            dueDate: sale.paymentDueDate || sale.saleDate,
+            description: `Venda de gado - Lote ${sale.purchaseId}`,
+            totalAmount: sale.totalValue || 0,
+            dueDate: sale.paymentDate || sale.createdAt,
             saleRecordId: sale.id,
             buyerId: sale.buyerId,
             userId: sale.userId,
@@ -74,15 +72,15 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
 
       // Atualiza o status do lote se toda a quantidade foi vendida
       const lot = await tx.cattlePurchase.findUnique({
-        where: { id: sale.lotId },
+        where: { id: sale.purchaseId },
         include: {
-          sales: true,
+          saleRecords: true,
         },
       });
 
       if (lot) {
-        const totalSold = lot.sales.reduce((sum: number, s: any) => sum + s.quantity, 0);
-        if (totalSold >= lot.quantity) {
+        const totalSold = (lot as any).saleRecords.reduce((sum: number, s: any) => sum + s.quantity, 0);
+        if (totalSold >= lot.currentQuantity) {
           await tx.cattlePurchase.update({
             where: { id: lot.id },
             data: { status: 'SOLD' },
@@ -94,8 +92,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
         where: { id: sale.id },
         include: {
           buyer: true,
-          lot: true,
-          revenues: true,
+          purchase: true,
         },
       });
     });
@@ -109,7 +106,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       });
 
       // Se mudou para confirmado/enviado, cria receita se não existir
-      if ((status === 'CONFIRMED' || status === 'SHIPPED') && sale) {
+      if ((status === 'SCHEDULED' || status === 'SHIPPED') && sale) {
         const existingRevenue = await tx.revenue.findFirst({
           where: { saleRecordId: sale.id },
         });
@@ -118,9 +115,9 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
           await tx.revenue.create({
             data: {
               category: 'cattle_sales',
-              description: `Venda de gado - Lote ${sale.lotId}`,
-              totalAmount: sale.totalAmount,
-              dueDate: sale.paymentDueDate || sale.saleDate,
+              description: `Venda de gado - Lote ${sale.purchaseId}`,
+              totalAmount: sale.totalValue || 0,
+              dueDate: sale.paymentDate || sale.createdAt,
               saleRecordId: sale.id,
               buyerId: sale.buyerId,
               userId: sale.userId,
@@ -154,8 +151,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       },
       include: {
         buyer: true,
-        lot: true,
-        revenues: true,
+        purchase: true,
       },
       orderBy: { saleDate: 'asc' },
     });
@@ -165,16 +161,14 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
     const where: any = {};
     
     if (startDate || endDate) {
-      where.saleDate = {};
-      if (startDate) where.saleDate.gte = startDate;
-      if (endDate) where.saleDate.lte = endDate;
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = startDate;
+      if (endDate) where.createdAt.lte = endDate;
     }
 
     const sales = await this.model.findMany({
       where,
-      include: {
-        lot: true,
-        revenues: true,
+      include: { purchase: true,
       },
     });
 
@@ -187,7 +181,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       averagePricePerHead: 0,
       byStatus: {
         negotiating: sales.filter((s: any) => s.status === 'NEGOTIATING').length,
-        confirmed: sales.filter((s: any) => s.status === 'CONFIRMED').length,
+        confirmed: sales.filter((s: any) => s.status === 'SCHEDULED').length,
         shipped: sales.filter((s: any) => s.status === 'SHIPPED').length,
         delivered: sales.filter((s: any) => s.status === 'DELIVERED').length,
         cancelled: sales.filter((s: any) => s.status === 'CANCELLED').length,
@@ -205,8 +199,8 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
     }
 
     // Calcula valores recebidos/pendentes
-    sales.forEach(sale => {
-      sale.revenues.forEach(revenue => {
+    sales.forEach((sale: any) => {
+      sale.revenues.forEach((revenue: any) => {
         if (revenue.isReceived) {
           stats.receivedAmount += revenue.totalAmount;
         } else {
@@ -222,9 +216,9 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
     const lot = await prisma.cattlePurchase.findUnique({
       where: { id: lotId },
       include: {
-        sales: {
+        saleRecords: {
           include: {
-            revenues: true,
+            
           },
         },
         expenses: true,
@@ -235,7 +229,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       throw new Error('Lote não encontrado');
     }
 
-    const totalSales = lot.sales.reduce((sum: number, s: any) => sum + s.totalAmount, 0);
+    const totalSales = (lot as any).saleRecords.reduce((sum: number, s: any) => sum + s.totalAmount, 0);
     const totalExpenses = lot.totalCost;
     const profit = totalSales - totalExpenses;
     const margin = totalSales > 0 ? (profit / totalSales) * 100 : 0;
@@ -247,10 +241,10 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
       profit,
       margin,
       roi: totalExpenses > 0 ? (profit / totalExpenses) * 100 : 0,
-      salesCount: lot.sales.length,
-      totalAnimals: lot.quantity,
-      soldAnimals: lot.sales.reduce((sum: number, s: any) => sum + s.quantity, 0),
-      remainingAnimals: lot.remainingQuantity,
+      salesCount: (lot as any).saleRecords.length,
+      totalAnimals: lot.currentQuantity,
+      soldAnimals: (lot as any).saleRecords.reduce((sum: number, s: any) => sum + s.quantity, 0),
+      remainingAnimals: lot.currentQuantity,
     };
   }
 } 

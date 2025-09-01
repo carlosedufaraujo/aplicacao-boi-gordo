@@ -15,7 +15,7 @@ export const PenMap: React.FC = () => {
     penStatuses, 
     penRegistrations,
     penAllocations,
-    cattleLots,
+    cattlePurchases,
     getTotalConfinedAnimals, 
     getUnallocatedAnimals,
     deletePenRegistration,
@@ -107,7 +107,7 @@ export const PenMap: React.FC = () => {
   const getLotsInPen = (penNumber: string) => {
     const allocations = penAllocations.filter(alloc => alloc.penNumber === penNumber);
     return allocations.map(alloc => {
-      const lot = cattleLots.find(l => l.id === alloc.lotId);
+      const lot = cattlePurchases.find(l => l.id === alloc.lotId);
       return {
         allocation: alloc,
         lot
@@ -121,7 +121,7 @@ export const PenMap: React.FC = () => {
     setShowHealthForm(true);
   };
 
-  // Handle weight reading for a lot in the pen
+  // Handle currentWeight reading for a lot in the pen
   const handleWeightReading = (lotId: string) => {
     setSelectedLotId(lotId);
     setShowWeightForm(true);
@@ -319,7 +319,7 @@ export const PenMap: React.FC = () => {
                               <div>
                                 <div className="font-medium text-b3x-navy-900 text-sm">Lote {lot?.lotNumber}</div>
                                 <div className="text-xs text-neutral-600">
-                                  {allocation.quantity} animais • {allocation.entryWeight.toLocaleString('pt-BR')} kg
+                                  {allocation.currentQuantity} animais • {allocation.entryWeight.toLocaleString('pt-BR')} kg
                                 </div>
                               </div>
                               <div className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">

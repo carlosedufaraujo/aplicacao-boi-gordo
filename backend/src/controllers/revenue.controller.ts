@@ -12,6 +12,7 @@ export class RevenueController {
     const { 
       category,
       costCenterId,
+      cycleId,
       isReceived,
       saleRecordId,
       startDate,
@@ -26,6 +27,7 @@ export class RevenueController {
     const filters = {
       category: category as string,
       costCenterId: costCenterId as string,
+      cycleId: cycleId as string,
       isReceived: isReceived === 'true' ? true : isReceived === 'false' ? false : undefined,
       saleRecordId: saleRecordId as string,
       startDate: startDate ? new Date(startDate as string) : undefined,
@@ -34,10 +36,10 @@ export class RevenueController {
     };
 
     const pagination = {
-      page: page ? parseInt(page as string) : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
-      sortBy: sortBy as string,
-      sortOrder: sortOrder as 'asc' | 'desc',
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 10,
+      sortBy: sortBy as string || 'createdAt',
+      sortOrder: sortOrder as 'asc' | 'desc' || 'desc',
     };
 
     const result = await revenueService.findAll(filters, pagination);

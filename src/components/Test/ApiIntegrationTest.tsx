@@ -3,8 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-import { usePurchaseOrdersApi } from '@/hooks/api/usePurchaseOrdersApi';
-import { useCattleLotsApi } from '@/hooks/api/useCattleLotsApi';
+import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
 import { useExpensesApi } from '@/hooks/api/useExpensesApi';
 import { useRevenuesApi } from '@/hooks/api/useRevenuesApi';
 import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
@@ -23,20 +22,20 @@ export const ApiIntegrationTest: React.FC = () => {
   const [testing, setTesting] = useState(false);
   
   const { 
-    purchaseOrders, 
+    cattlePurchases, 
     loading, 
     error, 
     stats,
     refresh 
-  } = usePurchaseOrdersApi();
+  } = useCattlePurchasesApi();
   
   const { 
-    cattleLots, 
+    cattlePurchases: cattleLots, 
     loading: cattleLoading, 
     error: cattleError,
     stats: cattleStats,
     refresh: cattleRefresh 
-  } = useCattleLotsApi();
+  } = useCattlePurchasesApi();
 
   const { 
     expenses, 
@@ -118,7 +117,7 @@ export const ApiIntegrationTest: React.FC = () => {
 
     // Teste 1: Conectividade básica
     try {
-      const response = await fetch('http://localhost:3333/health');
+      const response = await fetch('http://localhost:3001/health');
       const data = await response.json();
       addTestResult('Conectividade Backend', true, 'Backend acessível', data);
     } catch (err) {
@@ -142,7 +141,7 @@ export const ApiIntegrationTest: React.FC = () => {
     try {
       await refresh();
       addTestResult('Hook Purchase Orders', !error, error || 'Hook funcionando', {
-        count: purchaseOrders.length,
+        count: cattlePurchases.length,
         stats
       });
     } catch (err) {
@@ -153,7 +152,7 @@ export const ApiIntegrationTest: React.FC = () => {
     try {
       await cattleRefresh();
       addTestResult('Hook Cattle Lots', !cattleError, cattleError || 'Hook funcionando', {
-        count: cattleLots.length,
+        count: cattlePurchases.length,
         stats: cattleStats
       });
     } catch (err) {
@@ -347,7 +346,7 @@ export const ApiIntegrationTest: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {loading ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : purchaseOrders.length}
+                {loading ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : cattlePurchases.length}
               </div>
               <div className="text-sm text-muted-foreground">Ordens Carregadas</div>
             </div>
@@ -391,7 +390,7 @@ export const ApiIntegrationTest: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
               <div className="text-2xl font-bold">
-                {cattleLoading ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : cattleLots.length}
+                {cattleLoading ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : cattlePurchases.length}
               </div>
               <div className="text-sm text-muted-foreground">Lotes Carregados</div>
             </div>
@@ -766,17 +765,17 @@ export const ApiIntegrationTest: React.FC = () => {
         </CardContent>
       </Card>
 
-      {purchaseOrders.length > 0 && (
+      {cattlePurchases.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Primeiras Ordens de Compra (via API)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {purchaseOrders.slice(0, 3).map((order) => (
+              {cattlePurchases.slice(0, 3).map((order) => (
                 <div key={order.id} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
-                    <div className="font-medium">{order.orderNumber}</div>
+                    <div className="font-medium">{order.lotCode}</div>
                     <div className="text-sm text-muted-foreground">
                       {order.animalCount} animais • {order.location}
                     </div>

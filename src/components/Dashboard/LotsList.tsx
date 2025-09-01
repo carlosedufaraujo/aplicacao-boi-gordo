@@ -9,26 +9,26 @@ import { SaleRecordForm } from '../Forms/SaleRecordForm';
 import { ConfirmDialog } from '../Common/ConfirmDialog';
 import { Portal } from '../Common/Portal';
 import { TableWithPagination } from '../Common/TableWithPagination';
-import { CattleLot } from '../../types';
+import { CattlePurchase } from '../../types';
 
 export const LotsList: React.FC = () => {
-  const { cattleLots, purchaseOrders, partners, penAllocations, deleteCattleLot } = useAppStore();
-  const [selectedLot, setSelectedLot] = useState<CattleLot | null>(null);
-  const [editLot, setEditLot] = useState<CattleLot | null>(null);
-  const [simulationLot, setSimulationLot] = useState<CattleLot | null>(null);
+  const { cattlePurchases, cattlePurchases, partners, penAllocations, deleteCattlePurchase } = useAppStore();
+  const [selectedLot, setSelectedLot] = useState<CattlePurchase | null>(null);
+  const [editLot, setEditLot] = useState<CattlePurchase | null>(null);
+  const [simulationLot, setSimulationLot] = useState<CattlePurchase | null>(null);
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [saleLotId, setSaleLotId] = useState<string>('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteLotId, setDeleteLotId] = useState<string>('');
 
-  const getOrderData = (purchaseOrderId: string) => {
-    const order = purchaseOrders.find(o => o.id === purchaseOrderId);
+  const getOrderData = (purchaseId: string) => {
+    const order = cattlePurchases.find(o => o.id === purchaseId);
     const vendor = order ? partners.find(p => p.id === order.vendorId) : null;
     return { order, vendor };
   };
 
-  const getLotStatus = (lot: CattleLot) => {
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+  const getLotStatus = (lot: CattlePurchase) => {
+    const order = cattlePurchases.find(o => o.id === lot.purchaseId);
     if (!order) return 'Desconhecido';
     
     switch (order.status) {
@@ -62,15 +62,15 @@ export const LotsList: React.FC = () => {
     return allocation ? allocation.penNumber : '-';
   };
 
-  const handleViewLot = (lot: CattleLot) => {
+  const handleViewLot = (lot: CattlePurchase) => {
     setSelectedLot(lot);
   };
 
-  const handleEditLot = (lot: CattleLot) => {
+  const handleEditLot = (lot: CattlePurchase) => {
     setEditLot(lot);
   };
 
-  const handleCalculateLot = (lot: CattleLot) => {
+  const handleCalculateLot = (lot: CattlePurchase) => {
     setSimulationLot(lot);
   };
 
@@ -85,7 +85,7 @@ export const LotsList: React.FC = () => {
   };
 
   const confirmDeleteLot = () => {
-    deleteCattleLot(deleteLotId);
+    deleteCattlePurchase(deleteLotId);
     setDeleteLotId('');
     setShowDeleteConfirm(false);
   };
@@ -103,8 +103,8 @@ export const LotsList: React.FC = () => {
       key: 'purchaseDate',
       label: 'Data Compra',
       sortable: true,
-      render: (value: any, row: CattleLot) => {
-        const { order } = getOrderData(row.purchaseOrderId);
+      render: (value: any, row: CattlePurchase) => {
+        const { order } = getOrderData(row.purchaseId);
         return order ? format(order.date, 'dd/MM/yyyy') : '-';
       }
     },
@@ -112,8 +112,8 @@ export const LotsList: React.FC = () => {
       key: 'city',
       label: 'Cidade',
       sortable: true,
-      render: (value: any, row: CattleLot) => {
-        const { order } = getOrderData(row.purchaseOrderId);
+      render: (value: any, row: CattlePurchase) => {
+        const { order } = getOrderData(row.purchaseId);
         return order?.city || '-';
       }
     },
@@ -121,7 +121,7 @@ export const LotsList: React.FC = () => {
       key: 'penNumber',
       label: 'Curral',
       sortable: true,
-      render: (value: any, row: CattleLot) => {
+      render: (value: any, row: CattlePurchase) => {
         const penNumber = getPenNumber(row.id);
         return penNumber !== '-' ? (
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-info-100 text-info-800">
@@ -152,7 +152,7 @@ export const LotsList: React.FC = () => {
       key: 'status',
       label: 'Status',
       sortable: true,
-      render: (value: any, row: CattleLot) => {
+      render: (value: any, row: CattlePurchase) => {
         const status = getLotStatus(row);
         return (
           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
@@ -164,7 +164,7 @@ export const LotsList: React.FC = () => {
     {
       key: 'actions',
       label: 'Ações',
-      render: (value: any, row: CattleLot) => (
+      render: (value: any, row: CattlePurchase) => (
         <div className="flex items-center space-x-1">
           <button 
             onClick={() => handleViewLot(row)}
@@ -206,7 +206,7 @@ export const LotsList: React.FC = () => {
     }
   ];
 
-  if (cattleLots.length === 0) {
+  if (cattlePurchases.length === 0) {
     return (
       <div className="text-center py-8">
         <div className="w-12 h-12 bg-gradient-to-br from-neutral-100 to-neutral-200 rounded-xl mx-auto mb-3 flex items-center justify-center">
@@ -221,7 +221,7 @@ export const LotsList: React.FC = () => {
   return (
     <>
       <TableWithPagination
-        data={cattleLots}
+        data={cattlePurchases}
         columns={columns}
         itemsPerPage={10}
         className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50"

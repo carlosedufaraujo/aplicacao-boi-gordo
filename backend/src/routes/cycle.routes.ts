@@ -30,6 +30,11 @@ router.get(
 );
 
 router.get(
+  '/current',
+  cycleController.current
+);
+
+router.get(
   '/period',
   cycleController.byPeriod
 );

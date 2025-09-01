@@ -5,7 +5,7 @@ import { RefreshCw, Database, CheckCircle, AlertCircle } from 'lucide-react';
 
 export const RealDataSync: React.FC = () => {
   const { loading, error, lastSync, sync, hasRealData, dataCounts } = useRealDataSync();
-  const { cycles, cattleLots, partners, expenses, revenues, penRegistrations, healthRecords, weightReadings } = useAppStore();
+  const { cycles, cattlePurchases, partners, expenses, revenues, penRegistrations, healthRecords, currentWeightReadings } = useAppStore();
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
@@ -78,7 +78,7 @@ export const RealDataSync: React.FC = () => {
             {/* Lotes */}
             <div className="bg-green-50 p-3 rounded-md">
               <h5 className="font-semibold text-green-800 mb-1">🐄 Lotes</h5>
-              <p className="text-xl font-bold text-green-600">{dataCounts?.cattleLots || 0}</p>
+              <p className="text-xl font-bold text-green-600">{dataCounts?.cattlePurchases || 0}</p>
             </div>
 
             {/* Parceiros */}
@@ -114,7 +114,7 @@ export const RealDataSync: React.FC = () => {
             {/* Peso */}
             <div className="bg-teal-50 p-3 rounded-md">
               <h5 className="font-semibold text-teal-800 mb-1">⚖️ Peso</h5>
-              <p className="text-xl font-bold text-teal-600">{dataCounts?.weightReadings || 0}</p>
+              <p className="text-xl font-bold text-teal-600">{dataCounts?.currentWeightReadings || 0}</p>
             </div>
           </div>
 

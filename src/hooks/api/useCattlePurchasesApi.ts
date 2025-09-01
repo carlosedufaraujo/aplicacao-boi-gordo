@@ -4,8 +4,7 @@ import { toast } from 'sonner';
 
 export interface CattlePurchase {
   id: string;
-  // Códigos
-  purchaseCode: string;
+  // Código único
   lotCode: string;
   
   // Relacionamentos
@@ -33,6 +32,9 @@ export interface CattlePurchase {
   
   // Localização e data
   location?: string;
+  city?: string;
+  state?: string;
+  farm?: string;
   purchaseDate: Date | string;
   receivedDate?: Date | string;
   
@@ -48,7 +50,7 @@ export interface CattlePurchase {
   receivedWeight?: number;
   currentWeight?: number;
   averageWeight?: number;
-  weightBreakPercentage?: number;
+  currentWeightBreakPercentage?: number;
   
   // Valores e rendimento
   carcassYield: number;
@@ -92,7 +94,7 @@ export interface CattlePurchase {
   // Relacionamentos adicionais
   penAllocations?: any[];
   healthRecords?: any[];
-  weightReadings?: any[];
+  currentWeightReadings?: any[];
   expenses?: any[];
   saleRecords?: any[];
 }
@@ -106,6 +108,9 @@ export interface CreateCattlePurchaseDto {
   
   // Localização e data
   location?: string;
+  city?: string;
+  state?: string;
+  farm?: string;
   purchaseDate: Date | string;
   
   // Informações dos animais
@@ -148,7 +153,7 @@ export interface UpdateCattlePurchaseDto extends Partial<CreateCattlePurchaseDto
   currentWeight?: number;
   currentQuantity?: number;
   deathCount?: number;
-  weightBreakPercentage?: number;
+  currentWeightBreakPercentage?: number;
   transportMortality?: number;
   healthCost?: number;
   feedCost?: number;
@@ -181,18 +186,21 @@ export function useCattlePurchasesApi() {
       if (filters?.endDate) params.append('endDate', filters.endDate);
       
       const queryString = params.toString();
-      const url = `/v1/cattle-purchases${queryString ? `?${queryString}` : ''}`;
+      const url = `/cattle-purchases${queryString ? `?${queryString}` : ''}`;
       
       const response = await apiClient.get(url);
       
-      if (response.data.status === 'success') {
-        setPurchases(response.data.data || []);
-        return response.data.data;
+      if (response && response.items !== undefined) {
+        // Backend retorna 'items' para listagens
+        const purchases = response.items || [];
+        setPurchases(purchases);
+        return purchases;
       } else {
-        throw new Error('Erro ao carregar compras');
+        throw new Error('Resposta inválida do servidor');
       }
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 'Erro ao carregar compras';
+      console.error('❌ Erro ao carregar compras:', err);
+      const errorMessage = err.message || err.response?.data?.message || 'Erro ao carregar compras';
       setError(errorMessage);
       toast.error(errorMessage);
       return [];
@@ -207,10 +215,10 @@ export function useCattlePurchasesApi() {
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.get(`/v1/cattle-purchases/${id}`);
+      const response = await apiClient.get(`/cattle-purchases/${id}`);
       
-      if (response.data.status === 'success') {
-        return response.data.data;
+      if (response.data) {
+        return response.data;
       } else {
         throw new Error('Erro ao buscar compra');
       }
@@ -247,10 +255,10 @@ export function useCattlePurchasesApi() {
           : data.freightDueDate,
       };
       
-      const response = await apiClient.post('/v1/cattle-purchases', payload);
+      const response = await apiClient.post('/cattle-purchases', payload);
       
-      if (response.data.status === 'success') {
-        const newPurchase = response.data.data;
+      if (response.data) {
+        const newPurchase = response.data;
         setPurchases(prev => [newPurchase, ...prev]);
         toast.success('Compra criada com sucesso!');
         return newPurchase;
@@ -283,8 +291,8 @@ export function useCattlePurchasesApi() {
       
       const response = await apiClient.put(`/cattle-purchases/${id}`, payload);
       
-      if (response.data.status === 'success') {
-        const updatedPurchase = response.data.data;
+      if (response.data) {
+        const updatedPurchase = response.data;
         setPurchases(prev => prev.map(p => p.id === id ? updatedPurchase : p));
         toast.success('Compra atualizada com sucesso!');
         return updatedPurchase;
@@ -307,7 +315,7 @@ export function useCattlePurchasesApi() {
     receivedWeight: number;
     actualQuantity: number;
     transportMortality?: number;
-    weightBreakPercentage?: number;
+    currentWeightBreakPercentage?: number;
     penIds?: string[];
   }) => {
     try {
@@ -321,10 +329,10 @@ export function useCattlePurchasesApi() {
           : data.receivedDate,
       };
       
-      const response = await apiClient.post(`/v1/cattle-purchases/${id}/reception`, payload);
+      const response = await apiClient.post(`/cattle-purchases/${id}/reception`, payload);
       
-      if (response.data.status === 'success') {
-        const updatedPurchase = response.data.data;
+      if (response.data) {
+        const updatedPurchase = response.data;
         setPurchases(prev => prev.map(p => p.id === id ? updatedPurchase : p));
         toast.success('Recepção registrada com sucesso!');
         return updatedPurchase;
@@ -347,10 +355,10 @@ export function useCattlePurchasesApi() {
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.patch(`/v1/cattle-purchases/${id}/status`, { status });
+      const response = await apiClient.patch(`/cattle-purchases/${id}/status`, { status });
       
-      if (response.data.status === 'success') {
-        const updatedPurchase = response.data.data;
+      if (response.data) {
+        const updatedPurchase = response.data;
         setPurchases(prev => prev.map(p => p.id === id ? updatedPurchase : p));
         toast.success('Status atualizado com sucesso!');
         return updatedPurchase;
@@ -378,10 +386,10 @@ export function useCattlePurchasesApi() {
         date: date instanceof Date ? date.toISOString() : date,
       };
       
-      const response = await apiClient.post(`/v1/cattle-purchases/${id}/death`, payload);
+      const response = await apiClient.post(`/cattle-purchases/${id}/death`, payload);
       
-      if (response.data.status === 'success') {
-        const updatedPurchase = response.data.data;
+      if (response.data) {
+        const updatedPurchase = response.data;
         setPurchases(prev => prev.map(p => p.id === id ? updatedPurchase : p));
         toast.success(`${count} morte(s) registrada(s)`);
         return updatedPurchase;
@@ -404,13 +412,13 @@ export function useCattlePurchasesApi() {
       setLoading(true);
       setError(null);
       
-      const response = await apiClient.patch(`/v1/cattle-purchases/${id}/gmd`, {
+      const response = await apiClient.patch(`/cattle-purchases/${id}/gmd`, {
         expectedGMD,
         targetWeight,
       });
       
-      if (response.data.status === 'success') {
-        const updatedPurchase = response.data.data;
+      if (response.data) {
+        const updatedPurchase = response.data;
         setPurchases(prev => prev.map(p => p.id === id ? updatedPurchase : p));
         toast.success('GMD atualizado com sucesso!');
         return updatedPurchase;
@@ -460,8 +468,8 @@ export function useCattlePurchasesApi() {
       
       const response = await apiClient.get('/cattle-purchases/statistics');
       
-      if (response.data.status === 'success') {
-        return response.data.data;
+      if (response.data) {
+        return response.data;
       } else {
         throw new Error('Erro ao buscar estatísticas');
       }

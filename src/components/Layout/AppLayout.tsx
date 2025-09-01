@@ -100,12 +100,12 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
         {
           title: "Compras",
           icon: ShoppingBag,
-          page: "pipeline",
+          page: "purchases",
         },
         {
           title: "Vendas",
           icon: TrendingUp,
-          page: "sales-pipeline",
+          page: "sales",
         },
         {
           title: "Lotes",

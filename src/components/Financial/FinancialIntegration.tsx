@@ -18,8 +18,8 @@ import {
 export const FinancialIntegration: React.FC = () => {
   const { 
     expenses, 
-    purchaseOrders, 
-    cattleLots,
+    cattlePurchases, 
+    cattlePurchases,
     dreStatements,
     generateDREStatement
   } = useAppStore();
@@ -63,7 +63,7 @@ export const FinancialIntegration: React.FC = () => {
 
   // Exemplo de fluxo de dados
   const dataFlowExample = () => {
-    const recentOrder = purchaseOrders[0];
+    const recentOrder = cattlePurchases[0];
     if (!recentOrder) return null;
 
     const relatedExpenses = expenses.filter(exp => 
@@ -73,7 +73,7 @@ export const FinancialIntegration: React.FC = () => {
     return {
       order: recentOrder,
       expenses: relatedExpenses,
-      totalValue: relatedExpenses.reduce((sum, exp) => sum + exp.totalAmount, 0)
+      totalValue: relatedExpenses.reduce((sum, exp) => sum + exp.purchaseValue, 0)
     };
   };
 
@@ -119,7 +119,7 @@ export const FinancialIntegration: React.FC = () => {
               <div>
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Dados da Ordem:</h4>
                 <ul className="text-sm space-y-1">
-                  <li>Quantidade: {example.order.quantity} animais</li>
+                  <li>Quantidade: {example.order.currentQuantity} animais</li>
                   <li>Valor Total: R$ {((example.order.totalWeight / 15) * example.order.pricePerArroba).toFixed(2)}</li>
                   <li>Data: {format(new Date(example.order.date), 'dd/MM/yyyy', { locale: ptBR })}</li>
                 </ul>
@@ -130,7 +130,7 @@ export const FinancialIntegration: React.FC = () => {
                   {example.expenses.map((exp, i) => (
                     <li key={i} className="flex justify-between">
                       <span>{EXPENSE_CATEGORIES.find(cat => cat.category === exp.category)?.name}</span>
-                      <span>R$ {exp.totalAmount.toFixed(2)}</span>
+                      <span>R$ {exp.purchaseValue.toFixed(2)}</span>
                     </li>
                   ))}
                 </ul>

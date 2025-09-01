@@ -83,7 +83,7 @@ export const RealDataDisplay: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Peso Total</p>
-                    <p className="font-semibold">{(lot.totalweight || lot.totalWeight)?.toLocaleString()} kg</p>
+                    <p className="font-semibold">{(lot.totalcurrentWeight || lot.totalWeight)?.toLocaleString()} kg</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Custo Total</p>

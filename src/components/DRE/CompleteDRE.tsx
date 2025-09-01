@@ -49,7 +49,7 @@ import {
 // Hooks da Nova Arquitetura API
 import { useExpensesApi } from '@/hooks/api/useExpensesApi';
 import { useRevenuesApi } from '@/hooks/api/useRevenuesApi';
-import { useCattleLotsApi } from '@/hooks/api/useCattleLotsApi';
+import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
 import { useSaleRecordsApi } from '@/hooks/api/useSaleRecordsApi';
 import { usePDFGenerator } from '@/hooks/usePDFGenerator';
 
@@ -190,7 +190,7 @@ export const CompleteDRE: React.FC = () => {
   // Hooks da Nova Arquitetura API
   const { expenses, loading: expensesLoading } = useExpensesApi();
   const { revenues, loading: revenuesLoading } = useRevenuesApi();
-  const { cattleLots, loading: lotsLoading } = useCattleLotsApi();
+  const { cattlePurchases, loading: lotsLoading } = useCattlePurchasesApi();
   const { saleRecords, loading: salesLoading } = useSaleRecordsApi();
   const { generatePDFFromElement, generateReportPDF } = usePDFGenerator();
 
@@ -222,15 +222,15 @@ export const CompleteDRE: React.FC = () => {
     return categories.map(category => {
       const currentMonth = currentMonthRevenues
         .filter(r => r.category === category)
-        .reduce((sum, r) => sum + r.totalAmount, 0);
+        .reduce((sum, r) => sum + r.purchaseValue, 0);
       
       const previousMonth = previousMonthRevenues
         .filter(r => r.category === category)
-        .reduce((sum, r) => sum + r.totalAmount, 0);
+        .reduce((sum, r) => sum + r.purchaseValue, 0);
       
       const yearToDate = yearToDateRevenues
         .filter(r => r.category === category)
-        .reduce((sum, r) => sum + r.totalAmount, 0);
+        .reduce((sum, r) => sum + r.purchaseValue, 0);
 
       const variance = currentMonth - previousMonth;
       const variancePercentage = previousMonth > 0 ? (variance / previousMonth) * 100 : 0;
@@ -260,15 +260,15 @@ export const CompleteDRE: React.FC = () => {
     return categories.map(category => {
       const currentMonth = currentMonthExpenses
         .filter(e => e.category === category)
-        .reduce((sum, e) => sum + e.totalAmount, 0);
+        .reduce((sum, e) => sum + e.purchaseValue, 0);
       
       const previousMonth = previousMonthExpenses
         .filter(e => e.category === category)
-        .reduce((sum, e) => sum + e.totalAmount, 0);
+        .reduce((sum, e) => sum + e.purchaseValue, 0);
       
       const yearToDate = yearToDateExpenses
         .filter(e => e.category === category)
-        .reduce((sum, e) => sum + e.totalAmount, 0);
+        .reduce((sum, e) => sum + e.purchaseValue, 0);
 
       const variance = currentMonth - previousMonth;
       const variancePercentage = previousMonth > 0 ? (variance / previousMonth) * 100 : 0;

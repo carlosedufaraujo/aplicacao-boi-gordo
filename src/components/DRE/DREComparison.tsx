@@ -20,7 +20,7 @@ export const DREComparison: React.FC<DREComparisonProps> = ({
   periodStart,
   periodEnd
 }) => {
-  const { cattleLots, compareDREs } = useAppStore();
+  const { cattlePurchases, compareDREs } = useAppStore();
   const { pens } = usePens();
   const [selectedEntities, setSelectedEntities] = useState<string[]>([]);
   const [comparison, setComparison] = useState<DREComparisonType | null>(null);
@@ -65,7 +65,7 @@ export const DREComparison: React.FC<DREComparisonProps> = ({
   };
 
   const entities = entityType === 'lot' 
-    ? cattleLots.filter(lot => lot.status === 'active' || lot.status === 'sold')
+    ? cattlePurchases.filter(lot => lot.status === 'active' || lot.status === 'sold')
     : pens.filter(pen => pen.isActive);
 
   return (

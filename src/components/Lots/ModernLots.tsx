@@ -88,11 +88,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 // Stores e hooks
 import { useAppStore } from '@/stores/useAppStore';
-import { useCattleLots, usePurchaseOrders } from '@/hooks/useSupabaseData';
+import { useCattlePurchases, useCattlePurchases } from '@/hooks/useSupabaseData';
 
 export const ModernLots: React.FC = () => {
-  const { cattleLots } = useCattleLots();
-  const { purchaseOrders } = usePurchaseOrders();
+  const { cattlePurchases } = useCattlePurchases();
+  const { cattlePurchases } = useCattlePurchases();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedLot, setSelectedLot] = useState<any>(null);
@@ -102,7 +102,7 @@ export const ModernLots: React.FC = () => {
 
   // Filtrar lotes
   const filteredLots = useMemo(() => {
-    return cattleLots.filter(lot => {
+    return cattlePurchases.filter(lot => {
       const matchesSearch = searchTerm === '' || 
         lot.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lot.origin.toLowerCase().includes(searchTerm.toLowerCase());
@@ -111,11 +111,11 @@ export const ModernLots: React.FC = () => {
       
       return matchesSearch && matchesStatus;
     });
-  }, [cattleLots, searchTerm, statusFilter]);
+  }, [cattlePurchases, searchTerm, statusFilter]);
 
   // Estatísticas
   const stats = useMemo(() => {
-    const activeLots = cattleLots.filter(l => l.status === 'active');
+    const activeLots = cattlePurchases.filter(l => l.status === 'active');
     const totalAnimals = activeLots.reduce((sum, lot) => sum + lot.currentQuantity, 0);
     const totalWeight = activeLots.reduce((sum, lot) => sum + (lot.currentQuantity * lot.currentAverageWeight), 0);
     const avgDaysConfined = activeLots.reduce((sum, lot) => {
@@ -124,22 +124,22 @@ export const ModernLots: React.FC = () => {
     }, 0) / (activeLots.length || 1);
 
     const totalCost = activeLots.reduce((sum, lot) => {
-      const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+      const order = cattlePurchases.find(o => o.id === lot.purchaseId);
       if (!order) return sum;
       return sum + order.totalValue;
     }, 0);
 
     return {
-      totalLots: cattleLots.length,
+      totalLots: cattlePurchases.length,
       activeLots: activeLots.length,
-      soldLots: cattleLots.filter(l => l.status === 'sold').length,
+      soldLots: cattlePurchases.filter(l => l.status === 'sold').length,
       totalAnimals,
       totalWeight,
       avgDaysConfined: Math.round(avgDaysConfined),
       totalCost,
       mortalityRate: 0.5, // Simulado
     };
-  }, [cattleLots, purchaseOrders]);
+  }, [cattlePurchases, cattlePurchases]);
 
   // Função para calcular rendimento estimado
   const calculateEstimatedYield = (lot: any) => {
@@ -157,7 +157,7 @@ export const ModernLots: React.FC = () => {
   };
 
   const LotCard = ({ lot }: { lot: any }) => {
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    const order = cattlePurchases.find(o => o.id === lot.purchaseId);
     const metrics = calculateEstimatedYield(lot);
     
     return (

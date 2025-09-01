@@ -34,7 +34,7 @@ export const NotificationSettings: React.FC = () => {
     emailFrequency: 'immediate' as 'immediate' | 'daily' | 'weekly',
     pushFrequency: 'immediate' as 'immediate' | 'daily' | 'weekly',
     notificationTypes: {
-      newPurchaseOrder: true,
+      newCattlePurchase: true,
       saleCompleted: true,
       paymentDue: true,
       lowStock: true,
@@ -79,7 +79,7 @@ export const NotificationSettings: React.FC = () => {
       emailFrequency: 'immediate',
       pushFrequency: 'immediate',
       notificationTypes: {
-        newPurchaseOrder: true,
+        newCattlePurchase: true,
         saleCompleted: true,
         paymentDue: true,
         lowStock: true,
@@ -243,8 +243,8 @@ export const NotificationSettings: React.FC = () => {
                   <p className="text-xs text-muted-foreground">Quando uma nova ordem de compra é criada</p>
                 </div>
                 <Switch
-                  checked={localSettings.notificationTypes.newPurchaseOrder}
-                  onCheckedChange={(value) => handleNotificationTypeChange('newPurchaseOrder', value)}
+                  checked={localSettings.notificationTypes.newCattlePurchase}
+                  onCheckedChange={(value) => handleNotificationTypeChange('newCattlePurchase', value)}
                 />
               </div>
 

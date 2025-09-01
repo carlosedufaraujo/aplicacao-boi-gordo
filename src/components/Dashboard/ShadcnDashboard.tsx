@@ -108,8 +108,7 @@ import {
 } from "@/components/ui/tooltip";
 
 // Hooks e serviços - NOVA ARQUITETURA API
-import { usePurchaseOrdersApi } from '@/hooks/api/usePurchaseOrdersApi';
-import { useCattleLotsApi } from '@/hooks/api/useCattleLotsApi';
+import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
 import { useExpensesApi } from '@/hooks/api/useExpensesApi';
 import { useRevenuesApi } from '@/hooks/api/useRevenuesApi';
 import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
@@ -148,8 +147,8 @@ export function ShadcnDashboard() {
   const [showAllActivities, setShowAllActivities] = useState(false);
 
   // Hooks da Nova Arquitetura API
-  const { cattleLots, loading: lotsLoading } = useCattleLotsApi();
-  const { purchaseOrders, loading: ordersLoading } = usePurchaseOrdersApi();
+  const { cattlePurchases, loading: lotsLoading } = useCattlePurchasesApi();
+  const { cattlePurchases: orders, loading: ordersLoading } = useCattlePurchasesApi();
   const { partners, loading: partnersLoading } = usePartnersApi();
   const { expenses, loading: expensesLoading } = useExpensesApi();
   const { revenues, loading: revenuesLoading } = useRevenuesApi();
@@ -201,12 +200,12 @@ export function ShadcnDashboard() {
       data: [
         {
           metrica: 'Lotes Ativos',
-          valor: cattleLots.filter(lot => lot.status === 'ACTIVE').length,
+          valor: cattlePurchases?.filter(lot => lot.status === 'ACTIVE').length || 0,
           unidade: 'lotes'
         },
         {
           metrica: 'Total de Animais',
-          valor: cattleLots.reduce((sum, lot) => sum + (lot.currentQuantity || 0), 0),
+          valor: (cattlePurchases || []).reduce((sum, lot) => sum + (lot.currentQuantity || 0), 0),
           unidade: 'cabeças'
         },
         {
@@ -267,7 +266,7 @@ export function ShadcnDashboard() {
       ],
       summary: {
         'Data de Geração': formatSafeDateTime(new Date()),
-        'Total de Lotes': cattleLots.length,
+        'Total de Lotes': cattlePurchases?.length || 0,
         'Total de Contas': payerAccounts.length,
         'Total de Receitas': formatSafeCurrency(totalRevenues),
         'Total de Despesas': formatSafeCurrency(totalExpenses),
@@ -292,13 +291,13 @@ export function ShadcnDashboard() {
 
   // Calcular dados quando os dados mudarem
   useEffect(() => {
-    if (purchaseOrders.length > 0) {
+    if (cattlePurchases && cattlePurchases.length > 0) {
       // Calcular animais confirmados vs pendentes
-      const animalsConfirmed = purchaseOrders
+      const animalsConfirmed = cattlePurchases
         .filter(order => order.status !== 'PENDING')
         .reduce((total, order) => total + order.animalCount, 0);
       
-      const animalsPending = purchaseOrders
+      const animalsPending = cattlePurchases
         .filter(order => order.status === 'PENDING')
         .reduce((total, order) => total + order.animalCount, 0);
       
@@ -306,7 +305,7 @@ export function ShadcnDashboard() {
       setPendingAnimals(animalsPending);
       
       // Calcular custo total de aquisição
-      const acquisitionCost = purchaseOrders
+      const acquisitionCost = cattlePurchases
         .filter(order => order.status !== 'PENDING')
         .reduce((total, order) => {
           const carcassWeight = safeMultiplication(
@@ -322,7 +321,7 @@ export function ShadcnDashboard() {
       setTotalAcquisitionCost(acquisitionCost);
       
       // Calcular valor das ordens pendentes
-      const pendingValue = purchaseOrders
+      const pendingValue = cattlePurchases
         .filter(order => order.status === 'PENDING')
         .reduce((total, order) => {
           const carcassWeight = safeMultiplication(
@@ -338,7 +337,7 @@ export function ShadcnDashboard() {
       setPendingOrdersValue(pendingValue);
       
       // Calcular custo médio de compra por arroba
-      const totalArrobas = purchaseOrders
+      const totalArrobas = cattlePurchases
         .filter(order => order.status !== 'PENDING')
         .reduce((total, order) => {
           const carcassWeight = safeMultiplication(
@@ -354,8 +353,8 @@ export function ShadcnDashboard() {
     }
 
     // Calcular métricas dos lotes
-    if (cattleLots.length > 0) {
-      const activeLots = cattleLots.filter(lot => lot.status === 'ACTIVE');
+    if (cattlePurchases && cattlePurchases.length > 0) {
+      const activeLots = cattlePurchases.filter(lot => lot.status === 'ACTIVE');
       
       if (activeLots.length > 0) {
         // Média de dias confinados
@@ -379,7 +378,7 @@ export function ShadcnDashboard() {
         setAverageWeightLoss(3.5); // Valor fixo para demo
       }
     }
-  }, [purchaseOrders, cattleLots]);
+  }, [cattlePurchases, cattlePurchases]);
 
   // Calcular métricas financeiras integradas
   useEffect(() => {
@@ -388,13 +387,13 @@ export function ShadcnDashboard() {
       
       // Calcular total de receitas
       const revenuesTotal = revenues.reduce((total, revenue) => {
-        return total + toSafeNumber(revenue.amount || revenue.value || revenue.totalAmount, 0);
+        return total + toSafeNumber(revenue.amount || revenue.value || revenue.purchaseValue, 0);
       }, 0);
       setTotalRevenues(revenuesTotal);
       
       // Calcular total de despesas
       const expensesTotal = expenses.reduce((total, expense) => {
-        return total + toSafeNumber(expense.amount || expense.value || expense.totalAmount, 0);
+        return total + toSafeNumber(expense.amount || expense.value || expense.purchaseValue, 0);
       }, 0);
       setTotalExpenses(expensesTotal);
       
@@ -416,7 +415,7 @@ export function ShadcnDashboard() {
       const pendingRevenuesTotal = revenues
         .filter(revenue => !revenue.isReceived && revenue.status !== 'paid')
         .reduce((total, revenue) => {
-          return total + toSafeNumber(revenue.amount || revenue.value || revenue.totalAmount, 0);
+          return total + toSafeNumber(revenue.amount || revenue.value || revenue.purchaseValue, 0);
         }, 0);
       setPendingRevenues(pendingRevenuesTotal);
       
@@ -424,7 +423,7 @@ export function ShadcnDashboard() {
       const pendingExpensesTotal = expenses
         .filter(expense => expense.status === 'pending' || expense.status === 'overdue')
         .reduce((total, expense) => {
-          return total + toSafeNumber(expense.amount || expense.value || expense.totalAmount, 0);
+          return total + toSafeNumber(expense.amount || expense.value || expense.purchaseValue, 0);
         }, 0);
       setPendingExpenses(pendingExpensesTotal);
       
@@ -470,16 +469,16 @@ export function ShadcnDashboard() {
       const monthRevenues = revenues.filter(r => {
         const date = toSafeDate(r.date || r.createdAt);
         return date >= monthStart && date <= monthEnd;
-      }).reduce((sum, r) => sum + toSafeNumber(r.amount || r.value || r.totalAmount, 0), 0);
+      }).reduce((sum, r) => sum + toSafeNumber(r.amount || r.value || r.purchaseValue, 0), 0);
 
       // Calcular despesas do mês
       const monthExpenses = expenses.filter(e => {
         const date = toSafeDate(e.date || e.createdAt);
         return date >= monthStart && date <= monthEnd;
-      }).reduce((sum, e) => sum + toSafeNumber(e.amount || e.value || e.totalAmount, 0), 0);
+      }).reduce((sum, e) => sum + toSafeNumber(e.amount || e.value || e.purchaseValue, 0), 0);
 
       // Calcular compras do mês (ordens de compra)
-      const monthPurchases = purchaseOrders.filter(order => {
+      const monthPurchases = (cattlePurchases || []).filter(order => {
         const date = toSafeDate(order.createdAt || order.purchaseDate);
         return date >= monthStart && date <= monthEnd;
       }).reduce((sum, order) => sum + toSafeNumber(order.totalValue, 0), 0);
@@ -498,14 +497,14 @@ export function ShadcnDashboard() {
     }
     
     return months;
-  }, [revenues, expenses, purchaseOrders]);
+  }, [revenues, expenses, cattlePurchases]);
 
   // Atividades recentes combinadas
   const recentActivities = useMemo(() => {
     const activities = [];
 
     // Adicionar ordens de compra
-    purchaseOrders.slice(0, 5).forEach(order => {
+    (cattlePurchases || []).slice(0, 5).forEach(order => {
       activities.push({
         id: `order-${order.id}`,
         type: 'purchase',
@@ -561,7 +560,7 @@ export function ShadcnDashboard() {
         return true;
       })
       .slice(0, showAllActivities ? undefined : 5);
-  }, [purchaseOrders, expenses, revenues, activityFilter, showAllActivities, customDateRange]);
+  }, [cattlePurchases, expenses, revenues, activityFilter, showAllActivities, customDateRange]);
 
   // Handler para exportar dados
   const handleExport = () => {
@@ -907,201 +906,6 @@ export function ShadcnDashboard() {
           </Card>
         </div>
 
-        {/* Status da Integração Financeira */}
-        <FinancialIntegrationStatus
-          totalRevenues={totalRevenues}
-          totalExpenses={totalExpenses}
-          netCashFlow={netCashFlow}
-          totalAccountBalance={totalAccountBalance}
-          pendingRevenues={pendingRevenues}
-          pendingExpenses={pendingExpenses}
-          profitMargin={profitMargin}
-          accountsCount={payerAccounts.length}
-          revenuesCount={revenues.length}
-          expensesCount={expenses.length}
-          isLoading={isLoading}
-          onRefresh={() => window.location.reload()}
-        />
-
-        {/* KPIs Financeiros Integrados */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">Métricas Financeiras</h3>
-              <p className="text-sm text-muted-foreground">
-                Dados integrados do Centro Financeiro
-              </p>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate('/centro-financeiro')}
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              Ver Centro Financeiro
-            </Button>
-          </div>
-
-          <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-7">
-            {/* KPI Financeiro 1: Total de Receitas */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="kpi-label">Receitas</CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
-                    <TrendingUp className="h-4 w-4 text-emerald-600" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="kpi-value text-emerald-600">
-                    {formatSafeCurrency(totalRevenues)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">total</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* KPI Financeiro 2: Total de Despesas */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="kpi-label">Despesas</CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-red-100 dark:bg-red-950 flex items-center justify-center">
-                    <TrendingDown className="h-4 w-4 text-red-600" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="kpi-value text-red-600">
-                    {formatSafeCurrency(totalExpenses)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">total</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* KPI Financeiro 3: Fluxo de Caixa */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="kpi-label">Fluxo Caixa</CardTitle>
-                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                    netCashFlow >= 0 
-                      ? 'bg-emerald-100 dark:bg-emerald-950' 
-                      : 'bg-red-100 dark:bg-red-950'
-                  }`}>
-                    <Activity className={`h-4 w-4 ${
-                      netCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'
-                    }`} />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className={`kpi-value ${
-                    netCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'
-                  }`}>
-                    {formatSafeCurrency(netCashFlow)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">líquido</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* KPI Financeiro 4: Margem de Lucro */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="kpi-label">Margem</CardTitle>
-                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                    profitMargin >= 0 
-                      ? 'bg-emerald-100 dark:bg-emerald-950' 
-                      : 'bg-red-100 dark:bg-red-950'
-                  }`}>
-                    <Percent className={`h-4 w-4 ${
-                      profitMargin >= 0 ? 'text-emerald-600' : 'text-red-600'
-                    }`} />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className={`kpi-value ${
-                    profitMargin >= 0 ? 'text-emerald-600' : 'text-red-600'
-                  }`}>
-                    {formatSafeDecimal(profitMargin, 1)}%
-                  </p>
-                  <p className="text-xs text-muted-foreground">lucro</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* KPI Financeiro 5: Saldo das Contas */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="kpi-label">Saldo Contas</CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
-                    <Wallet className="h-4 w-4 text-blue-600" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="kpi-value text-blue-600">
-                    {formatSafeCurrency(totalAccountBalance)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {payerAccounts.length} contas
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* KPI Financeiro 6: Receitas Pendentes */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="kpi-label">A Receber</CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-950 flex items-center justify-center">
-                    <Clock className="h-4 w-4 text-amber-600" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="kpi-value text-amber-600">
-                    {formatSafeCurrency(pendingRevenues)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">pendente</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* KPI Financeiro 7: Despesas Pendentes */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="kpi-label">A Pagar</CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-950 flex items-center justify-center">
-                    <AlertCircle className="h-4 w-4 text-orange-600" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="kpi-value text-orange-600">
-                    {formatSafeCurrency(pendingExpenses)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">pendente</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
 
         {/* Tabs com gráficos e atividades */}
         <Tabs defaultValue="overview" className="space-y-4">

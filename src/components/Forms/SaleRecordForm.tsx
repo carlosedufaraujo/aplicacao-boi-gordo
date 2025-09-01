@@ -10,7 +10,7 @@ const saleRecordSchema = z.object({
   slaughterhouseId: z.string().min(1, 'Selecione um frigorífico'),
   saleDate: z.date(),
   animalType: z.enum(['male', 'female']),
-  quantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
+  currentQuantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
   totalWeight: z.number().min(1, 'Peso total deve ser maior que 0'),
   pricePerArroba: z.number().min(1, 'Preço por arroba deve ser maior que 0'),
   paymentType: z.enum(['cash', 'installment']),
@@ -32,7 +32,7 @@ const saleRecordSchema = z.object({
 }).refine((data) => {
   // A soma dos animais classificados deve ser igual à quantidade total
   const totalClassified = data.commonAnimals + data.chinaAnimals + data.angusAnimals;
-  return totalClassified === data.quantity;
+  return totalClassified === data.currentQuantity;
 }, {
   message: "A soma dos animais classificados deve ser igual à quantidade total",
   path: ["commonAnimals"]
@@ -50,14 +50,14 @@ export const SaleRecordForm: React.FC<SaleRecordFormProps> = ({
   lotId
 }) => {
   const { 
-    cattleLots, 
+    cattlePurchases, 
     partners, 
     addSaleRecord, 
     calculateLotCosts,
     calculateZootechnicalPerformance 
   } = useAppStore();
 
-  const lot = cattleLots.find(l => l.id === lotId);
+  const lot = cattlePurchases.find(l => l.id === lotId);
   const slaughterhouses = partners.filter(p => p.type === 'slaughterhouse' && p.isActive);
 
   const {
@@ -72,8 +72,8 @@ export const SaleRecordForm: React.FC<SaleRecordFormProps> = ({
     defaultValues: {
       lotId,
       saleDate: new Date(),
-      animalType: lot?.purchaseOrderId ? 'male' : 'male', // Baseado na ordem de compra
-      quantity: lot?.entryQuantity || 0,
+      animalType: lot?.purchaseId ? 'male' : 'male', // Baseado na ordem de compra
+      currentQuantity: lot?.entryQuantity || 0,
       totalWeight: lot?.entryWeight || 0,
       pricePerArroba: 320, // Preço padrão
       paymentType: 'cash',
@@ -90,14 +90,14 @@ export const SaleRecordForm: React.FC<SaleRecordFormProps> = ({
   const totalCosts = lot ? calculateLotCosts(lot.id) : 0;
   const netProfit = grossRevenue - totalCosts;
   const profitMargin = grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0;
-  const profitPerAnimal = watchedValues.quantity > 0 ? netProfit / watchedValues.quantity : 0;
+  const profitPerAnimal = watchedValues.currentQuantity > 0 ? netProfit / watchedValues.currentQuantity : 0;
 
   // Performance zootécnica
   const performance = lot ? calculateZootechnicalPerformance(lot.id) : null;
 
   // Verificar se a classificação está correta
   const totalClassified = (watchedValues.commonAnimals || 0) + (watchedValues.chinaAnimals || 0) + (watchedValues.angusAnimals || 0);
-  const classificationError = totalClassified !== watchedValues.quantity;
+  const classificationError = totalClassified !== watchedValues.currentQuantity;
 
   const handleFormSubmit = (data: SaleRecordFormData) => {
     if (!lot) return;
@@ -115,9 +115,9 @@ export const SaleRecordForm: React.FC<SaleRecordFormProps> = ({
   };
 
   // Auto-distribuir animais quando a quantidade mudar
-  const handleQuantityChange = (quantity: number) => {
-    setValue('quantity', quantity);
-    setValue('commonAnimals', quantity);
+  const handleQuantityChange = (currentQuantity: number) => {
+    setValue('currentQuantity', currentQuantity);
+    setValue('commonAnimals', currentQuantity);
     setValue('chinaAnimals', 0);
     setValue('angusAnimals', 0);
   };
@@ -235,7 +235,7 @@ export const SaleRecordForm: React.FC<SaleRecordFormProps> = ({
                 </label>
                 <input
                   type="number"
-                  {...register('quantity', { 
+                  {...register('currentQuantity', { 
                     valueAsNumber: true,
                     onChange: (e) => handleQuantityChange(Number(e.target.value))
                   })}
@@ -243,8 +243,8 @@ export const SaleRecordForm: React.FC<SaleRecordFormProps> = ({
                   className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-all duration-200"
                   placeholder={`Máximo: ${lot.entryQuantity}`}
                 />
-                {errors.quantity && (
-                  <p className="text-error-500 text-xs mt-1">{errors.quantity.message}</p>
+                {errors.currentQuantity && (
+                  <p className="text-error-500 text-xs mt-1">{errors.currentQuantity.message}</p>
                 )}
               </div>
 
@@ -408,7 +408,7 @@ export const SaleRecordForm: React.FC<SaleRecordFormProps> = ({
                   <>
                     <X className="w-3 h-3 text-error-600" />
                     <span className="text-error-700 font-medium text-xs">
-                      Total classificado: {totalClassified} | Quantidade vendida: {watchedValues.quantity}
+                      Total classificado: {totalClassified} | Quantidade vendida: {watchedValues.currentQuantity}
                     </span>
                   </>
                 ) : (

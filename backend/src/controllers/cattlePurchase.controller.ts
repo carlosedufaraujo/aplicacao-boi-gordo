@@ -16,12 +16,13 @@ class CattlePurchaseController {
   
   // Listar todas as compras
   findAll = catchAsync(async (req: Request, res: Response) => {
-    const { status, vendorId, startDate, endDate, page, limit } = req.query;
+    const { status, vendorId, cycleId, startDate, endDate, page, limit } = req.query;
     
     // Constrói filtros apenas com valores definidos
     const filters: any = {};
     if (status) filters.status = status;
     if (vendorId) filters.vendorId = vendorId;
+    if (cycleId) filters.cycleId = cycleId;
     if (startDate || endDate) {
       filters.purchaseDate = {};
       if (startDate) filters.purchaseDate.gte = new Date(startDate as string);
@@ -70,15 +71,48 @@ class CattlePurchaseController {
     });
   });
   
-  // Registrar recepção
+  // Registrar recepção (agora com alocação opcional)
   registerReception = catchAsync(async (req: Request, res: Response) => {
     const { id } = req.params;
+    const {
+      receivedWeight,
+      receivedQuantity,
+      freightDistance,
+      freightCostPerKm,
+      freightValue,
+      transportCompanyId,
+      unloadingDate,
+      estimatedGMD,
+      mortalityReason,
+      observations,
+      penAllocations
+    } = req.body;
     
-    const purchase = await cattlePurchaseService.registerReception(id, req.body);
+    // Preparar dados para o serviço
+    const receptionData = {
+      receivedDate: unloadingDate ? new Date(unloadingDate) : new Date(),
+      receivedWeight: parseFloat(receivedWeight),
+      actualQuantity: parseInt(receivedQuantity),
+      freightDistance: freightDistance ? parseFloat(freightDistance) : undefined,
+      freightCostPerKm: freightCostPerKm ? parseFloat(freightCostPerKm) : undefined,
+      freightValue: freightValue ? parseFloat(freightValue) : undefined,
+      transportCompanyId: transportCompanyId || undefined,
+      estimatedGMD: estimatedGMD ? parseFloat(estimatedGMD) : undefined,
+      transportMortality: undefined,
+      mortalityReason: mortalityReason || undefined,
+      notes: observations,
+      penAllocations: penAllocations || []
+    };
+    
+    const purchase = await cattlePurchaseService.registerReception(id, receptionData);
+    
+    const message = penAllocations && penAllocations.length > 0
+      ? `Recepção registrada e ${receivedQuantity} animais alocados em ${penAllocations.length} curral(is)`
+      : 'Recepção registrada com sucesso';
     
     res.json({
       status: 'success',
-      message: 'Recepção registrada com sucesso',
+      message,
       data: purchase
     });
   });
@@ -135,7 +169,7 @@ class CattlePurchaseController {
   });
   
   // Obter estatísticas
-  getStatistics = catchAsync(async (req: Request, res: Response) => {
+  getStatistics = catchAsync(async (_req: Request, res: Response) => {
     const stats = await cattlePurchaseService.getStatistics();
     
     res.json({

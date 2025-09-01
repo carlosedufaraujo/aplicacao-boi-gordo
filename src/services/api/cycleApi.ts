@@ -5,13 +5,15 @@ export interface Cycle {
   name: string;
   description?: string;
   startDate: string;
-  expectedEndDate: string;
-  actualEndDate?: string;
-  targetWeight?: number;
-  isActive: boolean;
-  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
-  notes?: string;
-  userId: string;
+  endDate?: string;
+  status: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  budget?: number;
+  targetAnimals?: number;
+  actualAnimals?: number;
+  totalCost?: number;
+  totalRevenue?: number;
+  userId?: string;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,15 +22,16 @@ export interface CreateCycleData {
   name: string;
   description?: string;
   startDate: string;
-  expectedEndDate: string;
-  targetWeight?: number;
-  isActive?: boolean;
-  notes?: string;
+  endDate?: string;
+  status?: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  budget?: number;
+  targetAnimals?: number;
 }
 
 export interface UpdateCycleData extends Partial<CreateCycleData> {
-  status?: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
-  actualEndDate?: string;
+  actualAnimals?: number;
+  totalCost?: number;
+  totalRevenue?: number;
 }
 
 export interface CycleFilters {

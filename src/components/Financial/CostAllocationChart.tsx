@@ -9,7 +9,7 @@ interface CostAllocationChartProps {
 const COLORS = ['#a6e60d', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 export const CostAllocationChart: React.FC<CostAllocationChartProps> = ({ selectedCostCenter }) => {
-  const { costCenters, costAllocations, expenses, cattleLots } = useAppStore();
+  const { costCenters, costAllocations, expenses, cattlePurchases } = useAppStore();
 
   const data = React.useMemo(() => {
     if (selectedCostCenter) {
@@ -99,7 +99,7 @@ export const CostAllocationChart: React.FC<CostAllocationChartProps> = ({ select
         value: amount
       }));
     }
-  }, [selectedCostCenter, costCenters, costAllocations, expenses, cattleLots]);
+  }, [selectedCostCenter, costCenters, costAllocations, expenses, cattlePurchases]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {

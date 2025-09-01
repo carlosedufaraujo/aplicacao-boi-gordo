@@ -13,7 +13,7 @@ export const CostCenterManagement: React.FC = () => {
     costCenters, 
     expenses, 
     costAllocations,
-    cattleLots,
+    cattlePurchases,
     addCostCenter,
     addExpense 
   } = useAppStore();
@@ -91,10 +91,10 @@ export const CostCenterManagement: React.FC = () => {
     const lotIds = [...new Set(lotAllocations.map(allocation => allocation.targetId))];
     
     // Retornar os lotes correspondentes
-    return cattleLots.filter(lot => lotIds.includes(lot.id));
+    return cattlePurchases.filter(lot => lotIds.includes(lot.id));
   };
 
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.totalAmount, 0);
+  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.purchaseValue, 0);
   const totalAllocated = costAllocations.reduce((sum, allocation) => sum + allocation.amount, 0);
   const unallocatedAmount = totalExpenses - totalAllocated;
 
@@ -162,7 +162,7 @@ export const CostCenterManagement: React.FC = () => {
         const subcategoryExpenses = centerExpenses.filter(exp => exp.category === subcategory);
         
         // Calcular valor total para esta subcategoria
-        const totalAmount = subcategoryExpenses.reduce((sum, exp) => {
+        const purchaseValue = subcategoryExpenses.reduce((sum, exp) => {
           // Encontrar alocações para este centro de custo
           const allocations = exp.allocations.filter(alloc => 
             (alloc.targetType === 'cost_center' && alloc.targetId === selectedCostCenter) ||
@@ -177,7 +177,7 @@ export const CostCenterManagement: React.FC = () => {
         const involvedLots = getLotsForCostCenter(selectedCostCenter);
         
         // Calcular percentual sobre o total
-        const percentageOfTotal = totalExpenses > 0 ? (totalAmount / totalExpenses) * 100 : 0;
+        const percentageOfTotal = totalExpenses > 0 ? (purchaseValue / totalExpenses) * 100 : 0;
         
         // Mapear categoria para nome legível
         const categoryMap: Record<string, string> = {
@@ -213,7 +213,7 @@ export const CostCenterManagement: React.FC = () => {
           center: costCenters.find(cc => cc.id === selectedCostCenter)?.name || '',
           centerType: costCenters.find(cc => cc.id === selectedCostCenter)?.type || '',
           subcategory: categoryMap[subcategory] || subcategory,
-          amount: totalAmount,
+          amount: purchaseValue,
           percentage: percentageOfTotal,
           lotsInvolved: involvedLots.length > 0 
             ? involvedLots.map(lot => lot.lotNumber).join(', ')
@@ -226,8 +226,8 @@ export const CostCenterManagement: React.FC = () => {
       const centersOfType = costCenters.filter(cc => cc.type === selectedCostCenterType && cc.isActive);
       
       return centersOfType.map(center => {
-        const totalAmount = getTotalAllocatedAmount(center.id);
-        const percentageOfTotal = totalExpenses > 0 ? (totalAmount / totalExpenses) * 100 : 0;
+        const purchaseValue = getTotalAllocatedAmount(center.id);
+        const percentageOfTotal = totalExpenses > 0 ? (purchaseValue / totalExpenses) * 100 : 0;
         const involvedLots = getLotsForCostCenter(center.id);
         
         return {
@@ -235,7 +235,7 @@ export const CostCenterManagement: React.FC = () => {
           center: center.name,
           centerType: center.type,
           subcategory: 'Total',
-          amount: totalAmount,
+          amount: purchaseValue,
           percentage: percentageOfTotal,
           lotsInvolved: involvedLots.length > 0 
             ? involvedLots.map(lot => lot.lotNumber).join(', ')
@@ -246,8 +246,8 @@ export const CostCenterManagement: React.FC = () => {
     } else {
       // Mostrar todos os centros de custo agrupados por tipo
       return activeCostCenters.map(center => {
-        const totalAmount = getTotalAllocatedAmount(center.id);
-        const percentageOfTotal = totalExpenses > 0 ? (totalAmount / totalExpenses) * 100 : 0;
+        const purchaseValue = getTotalAllocatedAmount(center.id);
+        const percentageOfTotal = totalExpenses > 0 ? (purchaseValue / totalExpenses) * 100 : 0;
         const involvedLots = getLotsForCostCenter(center.id);
         
         return {
@@ -255,7 +255,7 @@ export const CostCenterManagement: React.FC = () => {
           center: center.name,
           centerType: center.type,
           subcategory: 'Total',
-          amount: totalAmount,
+          amount: purchaseValue,
           percentage: percentageOfTotal,
           lotsInvolved: involvedLots.length > 0 
             ? involvedLots.map(lot => lot.lotNumber).join(', ')
@@ -361,7 +361,7 @@ export const CostCenterManagement: React.FC = () => {
       )
     },
     {
-      key: 'totalAmount',
+      key: 'purchaseValue',
       label: 'Valor',
       sortable: true,
       render: (value: number) => (
@@ -405,7 +405,7 @@ export const CostCenterManagement: React.FC = () => {
         
         if (lotAllocations.length > 0) {
           const lotIds = lotAllocations.map(a => a.targetId);
-          const lots = cattleLots.filter(lot => lotIds.includes(lot.id));
+          const lots = cattlePurchases.filter(lot => lotIds.includes(lot.id));
           return (
             <span className="text-sm text-b3x-navy-900">
               {lots.map(lot => lot.lotNumber).join(', ')}
@@ -494,7 +494,7 @@ export const CostCenterManagement: React.FC = () => {
         {isTypeSelected && (
           <div className="pl-4 space-y-2">
             {centers.map(center => {
-              const totalAmount = getTotalAllocatedAmount(center.id);
+              const purchaseValue = getTotalAllocatedAmount(center.id);
               const isCenterSelected = selectedCostCenter === center.id;
               
               return (
@@ -513,7 +513,7 @@ export const CostCenterManagement: React.FC = () => {
                       <p className="text-xs text-neutral-600">{center.code}</p>
                     </div>
                     <div className="text-sm font-bold text-b3x-navy-900">
-                      R$ {totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {purchaseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
                   </div>
                 </div>
@@ -681,7 +681,7 @@ export const CostCenterManagement: React.FC = () => {
               className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
             >
               <option value="">Todos os Lotes</option>
-              {cattleLots.map(lot => (
+              {cattlePurchases.map(lot => (
                 <option key={lot.id} value={lot.id}>
                   {lot.lotNumber}
                 </option>
@@ -793,7 +793,7 @@ export const CostCenterManagement: React.FC = () => {
               className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
             >
               <option value="">Todos os Lotes</option>
-              {cattleLots.map(lot => (
+              {cattlePurchases.map(lot => (
                 <option key={lot.id} value={lot.id}>
                   {lot.lotNumber}
                 </option>
@@ -857,7 +857,7 @@ export const CostCenterManagement: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Valor Total:</span>
-                      <span className="font-medium">R$ {selectedExpense.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="font-medium">R$ {selectedExpense.purchaseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-600">Status:</span>
@@ -935,7 +935,7 @@ export const CostCenterManagement: React.FC = () => {
                         // Obter nome do destino
                         let destinationName = '';
                         if (allocation.targetType === 'lot') {
-                          const lot = cattleLots.find(l => l.id === allocation.targetId);
+                          const lot = cattlePurchases.find(l => l.id === allocation.targetId);
                           destinationName = lot ? `Lote ${lot.lotNumber}` : 'Lote desconhecido';
                         } else {
                           const center = costCenters.find(cc => cc.id === allocation.targetId);

@@ -1,4 +1,4 @@
-import { PurchaseOrder, Expense, Revenue, CattleLot } from '../types';
+import { CattlePurchase, Expense, Revenue, CattlePurchase } from '../types';
 
 // Tipo CalendarEvent baseado no componente CompleteCalendar
 interface CalendarEvent {
@@ -30,12 +30,12 @@ export class LotIntegrationService {
   /**
    * Executa todas as integrações necessárias quando um lote é criado
    */
-  static async integrateNewLot(purchaseOrder: PurchaseOrder): Promise<void> {
+  static async integrateNewLot(purchaseOrder: CattlePurchase): Promise<void> {
     console.log('🔄 Iniciando integrações para novo lote:', purchaseOrder.code);
     
     try {
-      // 1. Integração com página Lotes (criar CattleLot)
-      const cattleLot = await this.createCattleLot(purchaseOrder);
+      // 1. Integração com página Lotes (criar CattlePurchase)
+      const cattleLot = await this.createCattlePurchase(purchaseOrder);
       
       // 2. Integração com Centro Financeiro (criar despesas)
       await this.createFinancialEntries(purchaseOrder);
@@ -61,9 +61,9 @@ export class LotIntegrationService {
   }
 
   /**
-   * Cria o CattleLot na página de Lotes baseado na ordem de compra
+   * Cria o CattlePurchase na página de Lotes baseado na ordem de compra
    */
-  private static async createCattleLot(purchaseOrder: PurchaseOrder): Promise<CattleLot> {
+  private static async createCattlePurchase(purchaseOrder: CattlePurchase): Promise<CattlePurchase> {
     // Calcular peso da carcaça baseado no RC%
     const rcPercentage = purchaseOrder.rcPercentage || 50;
     const carcassWeight = purchaseOrder.totalWeight * (rcPercentage / 100);
@@ -72,20 +72,20 @@ export class LotIntegrationService {
     // Gerar ID único para o lote
     const lotId = `lot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Garantir que temos um lotNumber válido - usar orderNumber ou code ou gerar um novo
-    const lotNumber = purchaseOrder.orderNumber || purchaseOrder.code || `LOT-${Date.now()}`;
+    // Garantir que temos um lotNumber válido - usar lotCode ou code ou gerar um novo
+    const lotNumber = purchaseOrder.lotCode || purchaseOrder.code || `LOT-${Date.now()}`;
     
     // Garantir que temos valores válidos para todos os campos obrigatórios
     const entryDate = purchaseOrder.arrivalDate || purchaseOrder.purchaseDate || new Date().toISOString();
     const entryWeight = purchaseOrder.totalWeight || 0;
-    const entryQuantity = purchaseOrder.quantity || 0;
+    const entryQuantity = purchaseOrder.currentQuantity || 0;
     const totalValue = purchaseOrder.totalValue || 0;
     
     // Log para debug
     console.log('📝 Criando lote com dados:', {
       id: lotId,
       lotNumber: lotNumber,
-      purchaseOrderId: purchaseOrder.id,
+      purchaseId: purchaseOrder.id,
       entryDate: entryDate,
       entryWeight: entryWeight,
       entryQuantity: entryQuantity
@@ -98,7 +98,7 @@ export class LotIntegrationService {
     const cattleLotData = {
       id: lotId,
       lotNumber: lotNumber,
-      purchaseOrderId: purchaseOrder.id,
+      purchaseId: purchaseOrder.id,
       entryDate: entryDate,
       entryWeight: entryWeight,
       entryQuantity: entryQuantity,
@@ -117,9 +117,9 @@ export class LotIntegrationService {
     };
 
     try {
-      const newCattleLot = await dataService.createCattleLot(cattleLotData);
-      console.log('🐄 Lote de gado criado:', newCattleLot.lotNumber);
-      return newCattleLot;
+      const newCattlePurchase = await dataService.createCattlePurchase(cattleLotData);
+      console.log('🐄 Lote de gado criado:', newCattlePurchase.lotNumber);
+      return newCattlePurchase;
     } catch (error) {
       console.error('❌ Erro ao criar lote de gado:', error);
       throw error;
@@ -129,7 +129,7 @@ export class LotIntegrationService {
   /**
    * Aloca o lote em currais disponíveis
    */
-  private static async allocateLotToPens(cattleLot: CattleLot, purchaseOrder: PurchaseOrder): Promise<void> {
+  private static async allocateLotToPens(cattleLot: CattlePurchase, purchaseOrder: CattlePurchase): Promise<void> {
     try {
       // Buscar currais disponíveis
       // Por enquanto, apenas log - a implementação completa depende da estrutura de currais
@@ -143,7 +143,7 @@ export class LotIntegrationService {
       
       const allocationData = {
         lotId: cattleLot.id,
-        quantity: cattleLot.currentQuantity,
+        currentQuantity: cattleLot.currentQuantity,
         allocationDate: cattleLot.arrivalDate,
         status: 'ACTIVE'
       };
@@ -162,7 +162,7 @@ export class LotIntegrationService {
   /**
    * Cria as despesas no Centro Financeiro baseadas na ordem de compra
    */
-  private static async createFinancialEntries(purchaseOrder: PurchaseOrder): Promise<void> {
+  private static async createFinancialEntries(purchaseOrder: CattlePurchase): Promise<void> {
     const expenses: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>[] = [];
     
     // 1. Despesa principal - Compra de animais
@@ -254,13 +254,13 @@ export class LotIntegrationService {
   /**
    * Cria eventos no calendário relacionados ao lote
    */
-  private static async createCalendarEvents(purchaseOrder: PurchaseOrder): Promise<void> {
+  private static async createCalendarEvents(purchaseOrder: CattlePurchase): Promise<void> {
     const events: Omit<CalendarEvent, 'id'>[] = [];
 
     // 1. Evento de chegada do gado
     const arrivalEvent: Omit<CalendarEvent, 'id'> = {
       title: `Chegada do Gado - Lote ${purchaseOrder.code}`,
-      description: `Chegada de ${purchaseOrder.quantity} cabeças de gado do fornecedor ${purchaseOrder.vendorName}`,
+      description: `Chegada de ${purchaseOrder.currentQuantity} cabeças de gado do fornecedor ${purchaseOrder.vendorName}`,
       date: new Date(purchaseOrder.arrivalDate || purchaseOrder.purchaseDate),
       type: 'purchase',
       priority: 'high',
@@ -343,7 +343,7 @@ export class LotIntegrationService {
   /**
    * Cria entradas para conciliação bancária
    */
-  private static async createReconciliationEntries(purchaseOrder: PurchaseOrder): Promise<void> {
+  private static async createReconciliationEntries(purchaseOrder: CattlePurchase): Promise<void> {
     // Por enquanto, apenas log - a implementação completa depende da estrutura da conciliação
     console.log('🏦 Criando entradas para conciliação bancária do lote:', purchaseOrder.code);
     
@@ -365,7 +365,7 @@ export class LotIntegrationService {
   /**
    * Atualiza as integrações quando um lote é modificado
    */
-  static async updateLotIntegrations(purchaseOrder: PurchaseOrder): Promise<void> {
+  static async updateLotIntegrations(purchaseOrder: CattlePurchase): Promise<void> {
     console.log('🔄 Atualizando integrações para lote modificado:', purchaseOrder.code);
     
     // Aqui seria implementada a lógica para atualizar despesas, eventos, etc.
@@ -375,15 +375,15 @@ export class LotIntegrationService {
   /**
    * Remove as integrações quando um lote é excluído
    */
-  static async removeLotIntegrations(purchaseOrderId: string): Promise<void> {
-    console.log('🗑️ Removendo integrações para lote excluído:', purchaseOrderId);
+  static async removeLotIntegrations(purchaseId: string): Promise<void> {
+    console.log('🗑️ Removendo integrações para lote excluído:', purchaseId);
     
     try {
       // Remover despesas relacionadas
-      // await dataService.deleteExpensesByLotId(purchaseOrderId);
+      // await dataService.deleteExpensesByLotId(purchaseId);
       
       // Remover eventos relacionados
-      // await dataService.deleteCalendarEventsByLotId(purchaseOrderId);
+      // await dataService.deleteCalendarEventsByLotId(purchaseId);
       
       console.log('✅ Integrações removidas com sucesso');
     } catch (error) {

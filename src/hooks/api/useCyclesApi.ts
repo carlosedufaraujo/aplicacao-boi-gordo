@@ -17,7 +17,7 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
         // Se response.data for um objeto paginado, extrair o array
         const items = Array.isArray(response.data) 
           ? response.data 
-          : response.data.data || [];
+          : response.data.items || [];
         setCycles(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar ciclos');
@@ -181,13 +181,26 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
         console.log('[useCyclesApi] Respostas recebidas:', { cyclesResponse, statsResponse });
         
         if (cyclesResponse.status === 'success' && cyclesResponse.data) {
-          const items = Array.isArray(cyclesResponse.data) 
-            ? cyclesResponse.data 
-            : cyclesResponse.data.data || [];
+          console.log('[useCyclesApi.ts] Response structure:', {
+            isArray: Array.isArray(cyclesResponse.data),
+            hasItems: !!(cyclesResponse.data as any).items,
+            data: cyclesResponse.data
+          });
+          
+          // Extrair items corretamente da estrutura paginada
+          let items: any[] = [];
+          if (Array.isArray(cyclesResponse.data)) {
+            items = cyclesResponse.data;
+          } else if ((cyclesResponse.data as any).items && Array.isArray((cyclesResponse.data as any).items)) {
+            items = (cyclesResponse.data as any).items;
+          }
+          
+          console.log('[useCyclesApi.ts] Extracted items:', items);
           setCycles(items);
         }
         
         if (statsResponse.status === 'success' && statsResponse.data) {
+          console.log('[useCyclesApi.ts] Stats data:', statsResponse.data);
           setStats(statsResponse.data);
         }
       } catch (err) {

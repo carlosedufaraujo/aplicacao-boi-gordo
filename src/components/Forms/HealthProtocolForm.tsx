@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Heart, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
-import { PurchaseOrder, HealthProtocolFormData } from '../../types';
+import { CattlePurchase, HealthProtocolFormData } from '../../types';
 
 const healthProtocolSchema = z.object({
   protocoledQuantity: z.number().min(1, 'Quantidade protocolada deve ser maior que 0'),
@@ -21,7 +21,7 @@ const healthProtocolSchema = z.object({
 interface HealthProtocolFormProps {
   isOpen: boolean;
   onClose: () => void;
-  order: PurchaseOrder;
+  order: CattlePurchase;
 }
 
 export const HealthProtocolForm: React.FC<HealthProtocolFormProps> = ({
@@ -29,10 +29,10 @@ export const HealthProtocolForm: React.FC<HealthProtocolFormProps> = ({
   onClose,
   order
 }) => {
-  const { addHealthProtocol, movePurchaseOrderToNextStage, cattleLots } = useAppStore();
+  const { addHealthProtocol, moveCattlePurchaseToNextStage, cattlePurchases } = useAppStore();
 
   // Encontrar o lote relacionado a esta ordem
-  const relatedLot = cattleLots.find(lot => lot.purchaseOrderId === order.id);
+  const relatedLot = cattlePurchases.find(lot => lot.purchaseId === order.id);
 
   const {
     register,
@@ -45,7 +45,7 @@ export const HealthProtocolForm: React.FC<HealthProtocolFormProps> = ({
     resolver: zodResolver(healthProtocolSchema),
     defaultValues: {
       date: new Date(),
-      protocoledQuantity: relatedLot?.entryQuantity || order.quantity,
+      protocoledQuantity: relatedLot?.entryQuantity || order.currentQuantity,
       totalWeight: relatedLot?.entryWeight || order.totalWeight,
       sickAnimals: 0,
       cost: 0
@@ -55,8 +55,8 @@ export const HealthProtocolForm: React.FC<HealthProtocolFormProps> = ({
   const watchedValues = watch();
   
   // Verificar se quantidade protocolada é diferente da quantidade de entrada
-  const quantityDifference = relatedLot && watchedValues.protocoledQuantity !== relatedLot.entryQuantity;
-  const quantityLoss = relatedLot ? relatedLot.entryQuantity - (watchedValues.protocoledQuantity || 0) : 0;
+  const currentQuantityDifference = relatedLot && watchedValues.protocoledQuantity !== relatedLot.entryQuantity;
+  const currentQuantityLoss = relatedLot ? relatedLot.entryQuantity - (watchedValues.protocoledQuantity || 0) : 0;
 
   const handleFormSubmit = (data: HealthProtocolFormData) => {
     if (!relatedLot) {
@@ -74,7 +74,7 @@ export const HealthProtocolForm: React.FC<HealthProtocolFormProps> = ({
     });
 
     // Avançar para próxima etapa (confined)
-    movePurchaseOrderToNextStage(order.id);
+    moveCattlePurchaseToNextStage(order.id);
     
     reset();
     onClose();
@@ -147,21 +147,21 @@ export const HealthProtocolForm: React.FC<HealthProtocolFormProps> = ({
                   type="number"
                   {...register('protocoledQuantity', { valueAsNumber: true })}
                   className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
-                  placeholder={relatedLot ? `Entrada: ${relatedLot.entryQuantity}` : `Compra: ${order.quantity}`}
+                  placeholder={relatedLot ? `Entrada: ${relatedLot.entryQuantity}` : `Compra: ${order.currentQuantity}`}
                 />
                 {errors.protocoledQuantity && (
                   <p className="text-error-500 text-xs mt-1">{errors.protocoledQuantity.message}</p>
                 )}
                 
                 {/* Alerta de diferença na quantidade */}
-                {quantityDifference && (
-                  <div className={`mt-2 p-2 rounded-lg ${quantityLoss > 0 ? 'bg-error-50 border border-error-200' : 'bg-info-50 border border-info-200'}`}>
+                {currentQuantityDifference && (
+                  <div className={`mt-2 p-2 rounded-lg ${currentQuantityLoss > 0 ? 'bg-error-50 border border-error-200' : 'bg-info-50 border border-info-200'}`}>
                     <div className="flex items-center space-x-2">
-                      <AlertTriangle className={`w-3 h-3 ${quantityLoss > 0 ? 'text-error-600' : 'text-info-600'}`} />
-                      <p className={`text-xs font-medium ${quantityLoss > 0 ? 'text-error-700' : 'text-info-700'}`}>
-                        {quantityLoss > 0 
-                          ? `⚠️ Quantidade a menos: ${quantityLoss} animais`
-                          : `ℹ️ Quantidade a mais: ${Math.abs(quantityLoss)} animais`
+                      <AlertTriangle className={`w-3 h-3 ${currentQuantityLoss > 0 ? 'text-error-600' : 'text-info-600'}`} />
+                      <p className={`text-xs font-medium ${currentQuantityLoss > 0 ? 'text-error-700' : 'text-info-700'}`}>
+                        {currentQuantityLoss > 0 
+                          ? `⚠️ Quantidade a menos: ${currentQuantityLoss} animais`
+                          : `ℹ️ Quantidade a mais: ${Math.abs(currentQuantityLoss)} animais`
                         }
                       </p>
                     </div>

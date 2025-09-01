@@ -12,7 +12,7 @@ const expenseAllocationSchema = z.object({
   }),
   description: z.string().min(1, 'Descrição é obrigatória'),
   category: z.string().min(1, 'Categoria é obrigatória'),
-  totalAmount: z.number().min(0.01, 'Valor deve ser maior que 0'),
+  purchaseValue: z.number().min(0.01, 'Valor deve ser maior que 0'),
   supplierId: z.string().optional(),
   invoiceNumber: z.string().optional(),
   allocationType: z.enum(['direct', 'indirect']),
@@ -34,7 +34,7 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
   isOpen,
   onClose
 }) => {
-  const { costCenters, cattleLots, partners, addExpense, penRegistrations, loteCurralLinks } = useAppStore();
+  const { costCenters, cattlePurchases, partners, addExpense, penRegistrations, loteCurralLinks } = useAppStore();
   const [equalSplitActive, setEqualSplitActive] = useState(false);
 
   const {
@@ -52,7 +52,7 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
       date: new Date(),
       description: '',
       category: 'feed',
-      totalAmount: 0,
+      purchaseValue: 0,
       supplierId: '',
       invoiceNumber: '',
       allocationType: 'direct' as const,
@@ -74,7 +74,7 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
   const watchedValues = watch();
   const suppliers = partners.filter(p => p.type === 'vendor' && p.isActive);
   const activeCostCenters = costCenters.filter(cc => cc.isActive);
-  const activeLots = cattleLots.filter(lot => lot.status === 'active');
+  const activeLots = cattlePurchases.filter(lot => lot.status === 'active');
 
   // Mapear categorias para tipos de centro de custo
   const categoryToType: Record<string, string> = {
@@ -186,11 +186,11 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
 
   // Dividir o valor igualmente entre todas as alocações
   const handleDivideEqually = () => {
-    const totalAmount = watchedValues.totalAmount || 0;
+    const purchaseValue = watchedValues.purchaseValue || 0;
     const allocationsCount = fields.length;
     
-    if (allocationsCount > 0 && totalAmount > 0) {
-      const equalAmount = totalAmount / allocationsCount;
+    if (allocationsCount > 0 && purchaseValue > 0) {
+      const equalAmount = purchaseValue / allocationsCount;
       const equalPercentage = 100 / allocationsCount;
       
       fields.forEach((_, index) => {
@@ -205,8 +205,8 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
 
   // Atualizar valor quando percentual mudar
   const updateAmountFromPercentage = (index: number, percentage: number) => {
-    const totalAmount = watchedValues.totalAmount || 0;
-    const amount = (totalAmount * percentage) / 100;
+    const purchaseValue = watchedValues.purchaseValue || 0;
+    const amount = (purchaseValue * percentage) / 100;
     setValue(`allocations.${index}.amount`, amount);
     setValue(`allocations.${index}.allocationMethod`, 'percentage_allocation');
     setEqualSplitActive(false);
@@ -214,9 +214,9 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
 
   // Atualizar percentual quando valor mudar
   const updatePercentageFromAmount = (index: number, amount: number) => {
-    const totalAmount = watchedValues.totalAmount || 0;
-    if (totalAmount > 0) {
-      const percentage = (amount / totalAmount) * 100;
+    const purchaseValue = watchedValues.purchaseValue || 0;
+    if (purchaseValue > 0) {
+      const percentage = (amount / purchaseValue) * 100;
       setValue(`allocations.${index}.percentage`, percentage);
       setValue(`allocations.${index}.allocationMethod`, 'manual_value');
       setEqualSplitActive(false);
@@ -225,7 +225,7 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
 
   // Atualizar todos os valores quando o valor total mudar
   React.useEffect(() => {
-    const totalAmount = watchedValues.totalAmount || 0;
+    const purchaseValue = watchedValues.purchaseValue || 0;
     
     if (equalSplitActive && fields.length > 0) {
       handleDivideEqually();
@@ -234,13 +234,13 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
         const method = watchedValues.allocations[index]?.allocationMethod;
         const percentage = watchedValues.allocations[index]?.percentage || 0;
         
-        if (method === 'percentage_allocation' && totalAmount > 0) {
-          const amount = (totalAmount * percentage) / 100;
+        if (method === 'percentage_allocation' && purchaseValue > 0) {
+          const amount = (purchaseValue * percentage) / 100;
           setValue(`allocations.${index}.amount`, amount);
         }
       });
     }
-  }, [watchedValues.totalAmount]);
+  }, [watchedValues.purchaseValue]);
 
   // Atualizar tipo de destino quando o tipo de alocação mudar
   React.useEffect(() => {
@@ -257,7 +257,7 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
       if (relevantCenters.length > 0 && fields.length > 0) {
         setValue(`allocations.0.targetId`, relevantCenters[0].id);
         setValue(`allocations.0.percentage`, 100);
-        setValue(`allocations.0.amount`, watchedValues.totalAmount || 0);
+        setValue(`allocations.0.amount`, watchedValues.purchaseValue || 0);
         
         // Remover alocações adicionais se houver
         while (fields.length > 1) {
@@ -304,7 +304,7 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
 
   const totalPercentage = watchedValues.allocations?.reduce((sum, alloc) => sum + (alloc.percentage || 0), 0) || 0;
   const totalAllocated = watchedValues.allocations?.reduce((sum, alloc) => sum + (alloc.amount || 0), 0) || 0;
-  const unallocatedAmount = (watchedValues.totalAmount || 0) - totalAllocated;
+  const unallocatedAmount = (watchedValues.purchaseValue || 0) - totalAllocated;
 
   if (!isOpen) return null;
 
@@ -357,12 +357,12 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
                 <input
                   type="number"
                   step="0.01"
-                  {...register('totalAmount', { valueAsNumber: true })}
+                  {...register('purchaseValue', { valueAsNumber: true })}
                   className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-navy-500 focus:border-transparent"
                   placeholder="Ex: 15000.00"
                 />
-                {errors.totalAmount && (
-                  <p className="text-error-500 text-xs mt-1">{errors.totalAmount.message}</p>
+                {errors.purchaseValue && (
+                  <p className="text-error-500 text-xs mt-1">{errors.purchaseValue.message}</p>
                 )}
               </div>
             </div>
@@ -710,7 +710,7 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
                 <input 
                   type="hidden" 
                   {...register(`allocations.0.amount`)} 
-                  value={watchedValues.totalAmount || 0} 
+                  value={watchedValues.purchaseValue || 0} 
                 />
                 <input 
                   type="hidden" 
@@ -736,7 +736,7 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
                     type="button"
                     onClick={handleDivideEqually}
                     className="px-3 py-1.5 bg-info-500 text-white rounded-lg hover:bg-info-600 transition-colors text-xs"
-                    disabled={fields.length === 0 || !watchedValues.totalAmount}
+                    disabled={fields.length === 0 || !watchedValues.purchaseValue}
                   >
                     Dividir Igualmente
                   </button>
@@ -848,7 +848,7 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
                 </div>
                 <div className="flex justify-between items-center mt-1">
                   <span className="text-xs text-neutral-600">Valor Alocado:</span>
-                  <span className={`font-bold text-sm ${Math.abs(totalAllocated - (watchedValues.totalAmount || 0)) < 0.01 ? 'text-success-600' : 'text-error-600'}`}>
+                  <span className={`font-bold text-sm ${Math.abs(totalAllocated - (watchedValues.purchaseValue || 0)) < 0.01 ? 'text-success-600' : 'text-error-600'}`}>
                     R$ {totalAllocated.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>

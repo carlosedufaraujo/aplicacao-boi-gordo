@@ -2,10 +2,12 @@
 import { ExpenseRepository } from '@/repositories/expense.repository';
 import { NotFoundError, ValidationError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';
+import { prisma } from '@/config/database';
 
 interface CreateExpenseData {
   category: string;
   costCenterId?: string;
+  cycleId?: string;
   description: string;
   totalAmount: number;
   dueDate: Date;
@@ -25,6 +27,7 @@ interface UpdateExpenseData extends Partial<CreateExpenseData> {
 interface ExpenseFilters {
   category?: string;
   costCenterId?: string;
+  cycleId?: string;
   isPaid?: boolean;
   impactsCashFlow?: boolean;
   lotId?: string;
@@ -62,6 +65,10 @@ export class ExpenseService {
     if (filters.costCenterId) {
       where.costCenterId = filters.costCenterId;
     }
+    
+    if (filters.cycleId) {
+      where.cycleId = filters.cycleId;
+    }
 
     if (filters.isPaid !== undefined) {
       where.isPaid = filters.isPaid;
@@ -72,7 +79,7 @@ export class ExpenseService {
     }
 
     if (filters.lotId) {
-      where.lotId = filters.lotId;
+      where.purchaseId = filters.lotId;
     }
 
     if (filters.startDate || filters.endDate) {
@@ -137,18 +144,29 @@ export class ExpenseService {
       throw new ValidationError('Categoria inválida');
     }
 
+    // Se não foi especificado um ciclo, buscar o ciclo ativo
+    let cycleId = data.cycleId;
+    if (!cycleId) {
+      const activeCycle = await prisma.cycle.findFirst({
+        where: { status: 'ACTIVE' }
+      });
+      cycleId = activeCycle?.id;
+    }
+
     // Define impactsCashFlow baseado na categoria se não fornecido
     const impactsCashFlow = data.impactsCashFlow ?? 
       !['deaths', 'weight_loss'].includes(data.category);
 
     const expenseData = {
       ...data,
+      cycleId,
       impactsCashFlow,
       isPaid: false,
       userId,
       user: { connect: { id: userId } },
       costCenter: data.costCenterId ? { connect: { id: data.costCenterId } } : undefined,
-      lot: data.lotId ? { connect: { id: data.lotId } } : undefined,
+      cycle: cycleId ? { connect: { id: cycleId } } : undefined,
+      lot: (data as any).purchaseId ? { connect: { id: (data as any).purchaseId } } : undefined,
       payerAccount: data.payerAccountId ? { connect: { id: data.payerAccountId } } : undefined,
     };
 
@@ -237,9 +255,9 @@ export class ExpenseService {
     const expenses = await this.findAll(filters || {}, { page: 1, limit: 1000 });
 
     const summary = {
-      total: expenses.items.reduce((sum, e) => sum + e.totalAmount, 0),
-      paid: expenses.items.filter(e => e.isPaid).reduce((sum, e) => sum + e.totalAmount, 0),
-      pending: expenses.items.filter(e => !e.isPaid).reduce((sum, e) => sum + e.totalAmount, 0),
+      total: expenses.items.reduce((sum: number, e) => sum + e.totalAmount, 0),
+      paid: expenses.items.filter(e => e.isPaid).reduce((sum: number, e) => sum + e.totalAmount, 0),
+      pending: expenses.items.filter(e => !e.isPaid).reduce((sum: number, e) => sum + e.totalAmount, 0),
       overdue: 0,
       count: expenses.total,
       paidCount: expenses.items.filter(e => e.isPaid).length,
@@ -250,7 +268,7 @@ export class ExpenseService {
     // Calcula vencidas
     const today = new Date();
     const overdue = expenses.items.filter(e => !e.isPaid && e.dueDate < today);
-    summary.overdue = overdue.reduce((sum, e) => sum + e.totalAmount, 0);
+    summary.overdue = overdue.reduce((sum: number, e) => sum + e.totalAmount, 0);
     summary.overdueCount = overdue.length;
 
     return summary;

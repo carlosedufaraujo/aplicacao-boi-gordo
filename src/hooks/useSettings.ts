@@ -11,7 +11,7 @@ export interface SettingsData {
   currency: string;
   
   // Business
-  weightUnit: string;
+  currentWeightUnit: string;
   priceUnit: string;
   taxRate: number;
   defaultPaymentTerm: number;
@@ -107,7 +107,7 @@ export function useSettings() {
       timezone: 'America/Sao_Paulo',
       dateFormat: 'DD/MM/YYYY',
       currency: 'BRL',
-      weightUnit: 'kg',
+      currentWeightUnit: 'kg',
       priceUnit: 'arroba',
       taxRate: 15,
       defaultPaymentTerm: 30,
@@ -153,7 +153,7 @@ export function useSettings() {
       timezone: 'regional',
       dateFormat: 'regional',
       currency: 'regional',
-      weightUnit: 'business',
+      currentWeightUnit: 'business',
       priceUnit: 'business',
       taxRate: 'business',
       defaultPaymentTerm: 'business',

@@ -9,11 +9,12 @@ export class SaleRecordController {
    * Lista todos os registros de venda com filtros
    */
   async index(req: Request, res: Response): Promise<void> {
-    const { purchaseId, buyerId, status, startDate, endDate, search, page, limit, sortBy, sortOrder } = req.query;
+    const { purchaseId, buyerId, cycleId, status, startDate, endDate, search, page, limit, sortBy, sortOrder } = req.query;
 
     const filters = {
       purchaseId: purchaseId as string,
       buyerId: buyerId as string,
+      cycleId: cycleId as string,
       status: status as string,
       startDate: startDate ? new Date(startDate as string) : undefined,
       endDate: endDate ? new Date(endDate as string) : undefined,
@@ -21,10 +22,10 @@ export class SaleRecordController {
     };
 
     const pagination = {
-      page: page ? parseInt(page as string) : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
-      sortBy: sortBy as string,
-      sortOrder: sortOrder as 'asc' | 'desc',
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 10,
+      sortBy: sortBy as string || 'createdAt',
+      sortOrder: sortOrder as 'asc' | 'desc' || 'desc',
     };
 
     const result = await saleRecordService.findAll(filters, pagination);
@@ -73,7 +74,7 @@ export class SaleRecordController {
    * Lista vendas por período
    */
   async byPeriod(req: Request, res: Response): Promise<void> {
-    const { startDate, endDate, buyerId, cattleLotId, status } = req.query;
+    const { startDate, endDate, buyerId, status } = req.query;
     
     if (!startDate || !endDate) {
       res.status(400).json({
@@ -85,7 +86,7 @@ export class SaleRecordController {
 
     const filters = {
       buyerId: buyerId as string,
-      purchaseId: purchaseId as string,
+      purchaseId: undefined,
       status: status as string,
     };
 
@@ -102,13 +103,13 @@ export class SaleRecordController {
   }
 
   /**
-   * GET /sale-records/cattle-lot/:cattleLotId
+   * GET /sale-records/cattle-lot/:purchaseId
    * Lista vendas por lote
    */
   async byCattleLot(req: Request, res: Response): Promise<void> {
-    const { cattleLotId } = req.params;
+    const { purchaseId } = req.params;
     
-    const records = await saleRecordService.findByCattleLot(cattleLotId);
+    const records = await saleRecordService.findByPurchase(purchaseId);
 
     res.json({
       status: 'success',

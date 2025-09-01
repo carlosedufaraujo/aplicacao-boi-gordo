@@ -26,7 +26,7 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
         // Se response.data for um objeto paginado, extrair o array
         const items = Array.isArray(response.data) 
           ? response.data 
-          : response.data.data || [];
+          : response.data.items || [];
         setRevenues(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar receitas');
@@ -52,7 +52,7 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
         // Se response.data for um objeto paginado, extrair o array
         const items = Array.isArray(response.data) 
           ? response.data 
-          : response.data.data || [];
+          : response.data.items || [];
         setRevenues(items);
       }
     } catch (err) {

@@ -76,21 +76,22 @@ export class PenRepository extends BaseRepository<Pen> {
 
     if (!pen) return null;
 
-    const totalOccupied = pen.lotAllocations.reduce(
-      (sum, allocation) => sum + allocation.quantity, 
+    const penAllocations = (pen as any).penAllocations || [];
+    const totalOccupied = penAllocations.reduce(
+      (sum: number, allocation: any) => sum + (allocation.quantity || 0), 
       0
     );
     
     const occupationRate = (totalOccupied / pen.capacity) * 100;
     const availableSpace = pen.capacity - totalOccupied;
 
-    const lotsSummary = pen.lotAllocations.map(allocation => ({
-      purchaseId: allocation.purchase.id,
-      lotCode: allocation.purchase.lotCode,
-      vendorName: allocation.purchase.vendor.name,
-      quantity: allocation.quantity,
-      percentage: allocation.percentageOfPen,
-      allocationDate: allocation.allocationDate
+    const lotsSummary = penAllocations.map((allocation: any) => ({
+      purchaseId: allocation.purchase?.id,
+      lotCode: allocation.purchase?.lotCode,
+      vendorName: allocation.purchase?.vendor?.name,
+      quantity: allocation.quantity || 0,
+      percentage: allocation.quantity || 0,
+      allocationDate: allocation.entryDate
     }));
 
     return {
@@ -129,8 +130,9 @@ export class PenRepository extends BaseRepository<Pen> {
     };
 
     pens.forEach(pen => {
-      const occupied = pen.lotAllocations.reduce(
-        (sum, a) => sum + a.quantity, 
+      const penAllocations = (pen as any).penAllocations || [];
+      const occupied = penAllocations.reduce(
+        (sum: number, a: any) => sum + (a.quantity || 0), 
         0
       );
       
@@ -201,5 +203,18 @@ export class PenRepository extends BaseRepository<Pen> {
     if (totalOccupied >= pen.capacity) {
       await this.updateStatus(penId, 'OCCUPIED');
     }
+  }
+
+  async getPenOccupation(id: string) {
+    return this.findWithOccupation(id);
+  }
+
+  async applyHealthProtocol(penId: string, data: any) {
+    return this.prisma.healthProtocol.create({
+      data: {
+        ...data,
+        penId,
+      }
+    });
   }
 }

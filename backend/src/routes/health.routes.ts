@@ -5,7 +5,7 @@ import { logger } from '@/config/logger';
 const router = Router();
 
 // Endpoint de health check básico
-router.get('/', async (req, res) => {
+router.get('/', async (_req, res) => {
   try {
     // Testa conexão com Prisma/PostgreSQL
     await prisma.$queryRaw`SELECT 1`;
@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
 });
 
 // Endpoint detalhado de status da database
-router.get('/database', async (req, res) => {
+router.get('/database', async (_req, res) => {
   try {
     // Verifica conexão e conta tabelas
     const [dbCheck, userCount, partnerCount] = await Promise.all([

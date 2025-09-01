@@ -1,14 +1,26 @@
+import { createServer } from 'http';
 import { createApp } from './app';
 import { env } from '@/config/env';
 import { logger } from '@/config/logger';
+import { initializeSocket } from '@/config/socket';
+import { ensureAdminUser } from '@/utils/ensureAdminUser';
 
 async function startServer(): Promise<void> {
   try {
+    // Garante que existe um usuário administrador
+    await ensureAdminUser();
+    
     // Cria a aplicação Express
     const app = createApp();
+    
+    // Cria servidor HTTP
+    const httpServer = createServer(app);
+    
+    // Inicializa Socket.io
+    initializeSocket(httpServer);
 
     // Inicia o servidor
-    const server = app.listen(env.PORT, () => {
+    const server = httpServer.listen(env.PORT, () => {
       logger.info(`🚀 Server running on port ${env.PORT}`);
       logger.info(`📝 API documentation: http://localhost:${env.PORT}${env.API_PREFIX}/api-docs`);
       logger.info(`🌍 Environment: ${env.NODE_ENV}`);

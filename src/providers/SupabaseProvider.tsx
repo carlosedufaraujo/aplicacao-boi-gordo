@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
 import { useUserManagement } from '../hooks/useUserManagement';
-import { useCattleLots, usePurchaseOrders, usePartners, usePens, useCycles, useExpenses, useRevenues, usePayerAccounts, useDashboard } from '../hooks/useSupabaseData';
+import { useCattlePurchases, useCattlePurchases, usePartners, usePens, useCycles, useExpenses, useRevenues, usePayerAccounts, useDashboard } from '../hooks/useSupabaseData';
 
 interface SupabaseContextType {
   // Autenticação
@@ -26,8 +26,8 @@ interface SupabaseContextType {
   deleteUser: (id: string) => Promise<void>;
 
   // Dados do sistema
-  cattleLots: any[];
-  purchaseOrders: any[];
+  cattlePurchases: any[];
+  cattlePurchases: any[];
   partners: any[];
   pens: any[];
   cycles: any[];
@@ -81,8 +81,7 @@ function SupabaseProvider({ children }: SupabaseProviderProps) {
   const userManagement = useUserManagement();
   
   // Hooks de dados
-  const cattleLots = useCattleLots();
-  const purchaseOrders = usePurchaseOrders();
+  const cattlePurchases = useCattlePurchases();
   const partners = usePartners();
   const pens = usePens();
   const cycles = useCycles();
@@ -95,8 +94,8 @@ function SupabaseProvider({ children }: SupabaseProviderProps) {
   const refreshData = async () => {
     try {
       await Promise.all([
-        cattleLots.loadCattleLots(),
-        purchaseOrders.loadPurchaseOrders(),
+        cattlePurchases.loadCattlePurchases(),
+        cattlePurchases.loadCattlePurchases(),
         partners.loadPartners(),
         pens.loadPens(),
         cycles.loadCycles(),
@@ -133,8 +132,8 @@ function SupabaseProvider({ children }: SupabaseProviderProps) {
     deleteUser: userManagement.deleteUser,
 
     // Dados do sistema
-    cattleLots: cattleLots.cattleLots,
-    purchaseOrders: purchaseOrders.purchaseOrders,
+    cattlePurchases: cattlePurchases.cattlePurchases,
+    cattlePurchases: cattlePurchases.cattlePurchases,
     partners: partners.partners,
     pens: pens.pens,
     cycles: cycles.cycles,
@@ -144,8 +143,8 @@ function SupabaseProvider({ children }: SupabaseProviderProps) {
     dashboardData: dashboard.dashboardData,
 
     // Loading states
-    lotsLoading: cattleLots.loading,
-    ordersLoading: purchaseOrders.loading,
+    lotsLoading: cattlePurchases.loading,
+    ordersLoading: cattlePurchases.loading,
     partnersLoading: partners.loading,
     pensLoading: pens.loading,
     cyclesLoading: cycles.loading,
@@ -155,8 +154,8 @@ function SupabaseProvider({ children }: SupabaseProviderProps) {
     dashboardLoading: dashboard.loading,
 
     // Error states
-    lotsError: cattleLots.error,
-    ordersError: purchaseOrders.error,
+    lotsError: cattlePurchases.error,
+    ordersError: cattlePurchases.error,
     partnersError: partners.error,
     pensError: pens.error,
     cyclesError: cycles.error,

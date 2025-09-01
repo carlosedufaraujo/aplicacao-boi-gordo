@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Ciclos</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .success { background: #10b981; color: white; }
+        .error { background: #ef4444; color: white; }
+        .warning { background: #f59e0b; color: white; }
+        .info { background: #3b82f6; color: white; }
+        .cycle-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        .cycle-header {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .cycle-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            font-size: 14px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .badge-active { background: #10b981; color: white; }
+        .badge-planned { background: #6b7280; color: white; }
+        .badge-completed { background: #3b82f6; color: white; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        pre {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 Teste de Ciclos - Sistema BoviControl</h1>
+    
+    <div class="container">
+        <h2>Status da Conexão</h2>
+        <div id="connection-status" class="status info">Verificando conexão...</div>
+        <button onclick="testConnection()">Testar Conexão</button>
+        <button onclick="loadCycles()">Carregar Ciclos</button>
+        <button onclick="createTestCycle()">Criar Ciclo de Teste</button>
+    </div>
+
+    <div class="container">
+        <h2>Ciclos Disponíveis</h2>
+        <div id="cycles-list">Carregando...</div>
+    </div>
+
+    <div class="container">
+        <h2>Logs de Debug</h2>
+        <pre id="debug-log"></pre>
+    </div>
+
+    <script>
+        let token = null;
+        const API_URL = 'http://localhost:3001/api/v1';
+        
+        function log(message, data = null) {
+            const logElement = document.getElementById('debug-log');
+            const timestamp = new Date().toLocaleTimeString('pt-BR');
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            if (data) {
+                logElement.textContent += JSON.stringify(data, null, 2) + '\n';
+            }
+            logElement.textContent += '\n';
+        }
+
+        async function login() {
+            try {
+                log('Fazendo login...');
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@boicontrol.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    token = data.data.token;
+                    localStorage.setItem('token', token);
+                    log('✅ Login realizado com sucesso!');
+                    return true;
+                } else {
+                    log('❌ Erro no login:', data);
+                    return false;
+                }
+            } catch (error) {
+                log('❌ Erro de conexão:', error.message);
+                return false;
+            }
+        }
+
+        async function testConnection() {
+            const statusElement = document.getElementById('connection-status');
+            
+            // Testar backend
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                if (response.ok) {
+                    statusElement.className = 'status success';
+                    statusElement.textContent = '✅ Backend conectado e funcionando!';
+                    log('Backend OK');
+                    
+                    // Fazer login
+                    if (await login()) {
+                        statusElement.textContent += ' | Login OK';
+                    }
+                } else {
+                    statusElement.className = 'status error';
+                    statusElement.textContent = '❌ Backend com problemas';
+                    log('Backend error:', response.status);
+                }
+            } catch (error) {
+                statusElement.className = 'status error';
+                statusElement.textContent = '❌ Backend não está rodando';
+                log('Connection error:', error.message);
+            }
+        }
+
+        async function loadCycles() {
+            const listElement = document.getElementById('cycles-list');
+            
+            if (!token) {
+                const loggedIn = await login();
+                if (!loggedIn) {
+                    listElement.innerHTML = '<div class="status error">Erro ao fazer login</div>';
+                    return;
+                }
+            }
+
+            try {
+                log('Carregando ciclos...');
+                const response = await fetch(`${API_URL}/cycles`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                log('Resposta dos ciclos:', data);
+                
+                if (data.status === 'success') {
+                    const cycles = data.data?.items || data.data || [];
+                    
+                    if (cycles.length === 0) {
+                        listElement.innerHTML = '<div class="status warning">Nenhum ciclo encontrado</div>';
+                    } else {
+                        listElement.innerHTML = cycles.map(cycle => `
+                            <div class="cycle-card">
+                                <div class="cycle-header">
+                                    ${cycle.name}
+                                    <span class="badge badge-${cycle.status.toLowerCase()}">${cycle.status}</span>
+                                </div>
+                                <div class="cycle-info">
+                                    <div>📝 ${cycle.description || 'Sem descrição'}</div>
+                                    <div>📅 Início: ${new Date(cycle.startDate).toLocaleDateString('pt-BR')}</div>
+                                    <div>📅 Fim: ${cycle.endDate ? new Date(cycle.endDate).toLocaleDateString('pt-BR') : 'Em andamento'}</div>
+                                    <div>💰 Orçamento: R$ ${(cycle.budget || 0).toLocaleString('pt-BR')}</div>
+                                    <div>🐂 Meta: ${cycle.targetAnimals || 0} animais</div>
+                                    <div>📊 Real: ${cycle.actualAnimals || 0} animais</div>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    listElement.innerHTML = `<div class="status error">Erro ao carregar ciclos: ${data.message}</div>`;
+                }
+            } catch (error) {
+                listElement.innerHTML = `<div class="status error">Erro de conexão: ${error.message}</div>`;
+                log('Erro ao carregar ciclos:', error);
+            }
+        }
+
+        async function createTestCycle() {
+            if (!token) {
+                const loggedIn = await login();
+                if (!loggedIn) {
+                    alert('Erro ao fazer login');
+                    return;
+                }
+            }
+
+            const cycleData = {
+                name: `Ciclo Teste ${new Date().getFullYear()}`,
+                description: 'Ciclo criado para teste',
+                startDate: new Date().toISOString(),
+                endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // +90 dias
+                status: 'PLANNED',
+                budget: 100000,
+                targetAnimals: 50
+            };
+
+            try {
+                log('Criando ciclo de teste...', cycleData);
+                const response = await fetch(`${API_URL}/cycles`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(cycleData)
+                });
+                
+                const data = await response.json();
+                log('Resposta da criação:', data);
+                
+                if (data.status === 'success') {
+                    alert('Ciclo criado com sucesso!');
+                    loadCycles();
+                } else {
+                    alert(`Erro ao criar ciclo: ${data.message}`);
+                }
+            } catch (error) {
+                alert(`Erro de conexão: ${error.message}`);
+                log('Erro ao criar ciclo:', error);
+            }
+        }
+
+        // Carregar ao iniciar
+        window.onload = async () => {
+            await testConnection();
+            await loadCycles();
+        };
+    </script>
+</body>
+</html>

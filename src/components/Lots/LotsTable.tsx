@@ -7,15 +7,15 @@ import { SaleSimulationModal } from './SaleSimulationModal';
 import { SaleRecordForm } from '../Forms/SaleRecordForm';
 import { ConfirmDialog } from '../Common/ConfirmDialog';
 import { Portal } from '../Common/Portal';
-import { CattleLot } from '../../types';
+import { CattlePurchase } from '../../types';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
 
 export const LotsTable: React.FC = () => {
-  const { cattleLots, purchaseOrders, partners, loteCurralLinks, calculateLotCostsByCategory, deleteCattleLot, cycles } = useAppStore();
-  const [selectedLot, setSelectedLot] = useState<CattleLot | null>(null);
-  const [editLot, setEditLot] = useState<CattleLot | null>(null);
-  const [simulationLot, setSimulationLot] = useState<CattleLot | null>(null);
+  const { cattlePurchases, cattlePurchases, partners, loteCurralLinks, calculateLotCostsByCategory, deleteCattlePurchase, cycles } = useAppStore();
+  const [selectedLot, setSelectedLot] = useState<CattlePurchase | null>(null);
+  const [editLot, setEditLot] = useState<CattlePurchase | null>(null);
+  const [simulationLot, setSimulationLot] = useState<CattlePurchase | null>(null);
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [saleLotId, setSaleLotId] = useState<string>('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -27,8 +27,8 @@ export const LotsTable: React.FC = () => {
   const [penFilter, setPenFilter] = useState<string>('');
 
   // FILTRO ATUALIZADO: Mostrar todos os lotes (pendentes e ativos)
-  const allLots = cattleLots.filter(lot => {
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+  const allLots = cattlePurchases.filter(lot => {
+    const order = cattlePurchases.find(o => o.id === lot.purchaseId);
     return order !== undefined;
   });
   
@@ -37,7 +37,7 @@ export const LotsTable: React.FC = () => {
     // Filtro de pesquisa
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+      const order = cattlePurchases.find(o => o.id === lot.purchaseId);
       const vendor = order ? partners.find(p => p.id === order.vendorId) : null;
       
       if (
@@ -51,7 +51,7 @@ export const LotsTable: React.FC = () => {
     
     // Filtro de status
     if (statusFilter !== 'all') {
-      const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+      const order = cattlePurchases.find(o => o.id === lot.purchaseId);
       const isPending = order && (order.status === 'order' || order.status === 'payment_validation');
       
       if (statusFilter === 'active' && isPending) return false;
@@ -69,26 +69,26 @@ export const LotsTable: React.FC = () => {
     return true;
   });
 
-  const getOrderData = (purchaseOrderId: string) => {
-    const order = purchaseOrders.find(o => o.id === purchaseOrderId);
+  const getOrderData = (purchaseId: string) => {
+    const order = cattlePurchases.find(o => o.id === purchaseId);
     const vendor = order ? partners.find(p => p.id === order.vendorId) : null;
     return { order, vendor };
   };
 
-  const calculateWeightLoss = (lot: CattleLot) => {
-    const { order } = getOrderData(lot.purchaseOrderId);
+  const calculateWeightLoss = (lot: CattlePurchase) => {
+    const { order } = getOrderData(lot.purchaseId);
     if (!order) return { kg: 0, percentage: 0 };
     const lossKg = order.totalWeight - lot.entryWeight;
     const lossPercentage = order.totalWeight > 0 ? (lossKg / order.totalWeight) * 100 : 0;
     return { kg: lossKg, percentage: lossPercentage };
   };
 
-  const calculateCostPerArroba = (lot: CattleLot) => {
+  const calculateCostPerArroba = (lot: CattlePurchase) => {
     const costs = calculateLotCostsByCategory(lot.id);
     const currentWeight = lot.entryWeight;
     
     // Considerar R.C.% para o cálculo
-    const { order } = getOrderData(lot.purchaseOrderId);
+    const { order } = getOrderData(lot.purchaseId);
     const rcPercentage = order?.rcPercentage || 50;
     const carcassWeight = currentWeight * (rcPercentage / 100);
     const arrobas = carcassWeight / 15;
@@ -107,25 +107,25 @@ export const LotsTable: React.FC = () => {
   };
   
   // Calcular dias em confinamento
-  const getDaysInConfinement = (lot: CattleLot) => {
+  const getDaysInConfinement = (lot: CattlePurchase) => {
     const entryDate = lot.entryDate instanceof Date ? lot.entryDate : new Date(lot.entryDate);
     return Math.floor((new Date().getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
   };
   
   // Calcular peso médio por animal
-  const getAverageWeight = (lot: CattleLot) => {
+  const getAverageWeight = (lot: CattlePurchase) => {
     return lot.entryQuantity > 0 ? lot.entryWeight / lot.entryQuantity : 0;
   };
 
-  const handleViewLot = (lot: CattleLot) => {
+  const handleViewLot = (lot: CattlePurchase) => {
     setSelectedLot(lot);
   };
 
-  const handleEditLot = (lot: CattleLot) => {
+  const handleEditLot = (lot: CattlePurchase) => {
     setEditLot(lot);
   };
 
-  const handleCalculateLot = (lot: CattleLot) => {
+  const handleCalculateLot = (lot: CattlePurchase) => {
     setSimulationLot(lot);
   };
 
@@ -140,7 +140,7 @@ export const LotsTable: React.FC = () => {
   };
 
   const confirmDeleteLot = () => {
-    deleteCattleLot(deleteLotId);
+    deleteCattlePurchase(deleteLotId);
     setDeleteLotId('');
     setShowDeleteConfirm(false);
   };
@@ -257,13 +257,13 @@ export const LotsTable: React.FC = () => {
             </thead>
             <tbody className="bg-white/50 divide-y divide-neutral-200/50">
               {filteredLots.map((lot) => {
-                const { order, vendor } = getOrderData(lot.purchaseOrderId);
+                const { order, vendor } = getOrderData(lot.purchaseId);
                 const isPending = order && (order.status === 'order' || order.status === 'payment_validation');
-                const weightLoss = calculateWeightLoss(lot);
+                const currentWeightLoss = calculateWeightLoss(lot);
                 const costPerArroba = calculateCostPerArroba(lot);
                 const penNumbers = getPenNumbers(lot.id);
                 const daysInConfinement = isPending ? 0 : getDaysInConfinement(lot);
-                const averageWeight = isPending ? (order.totalWeight / order.quantity) : getAverageWeight(lot);
+                const averageWeight = isPending ? (order.totalWeight / order.currentQuantity) : getAverageWeight(lot);
                 
                 return (
                   <tr key={lot.id} className="hover:bg-neutral-50/50 transition-colors">
@@ -276,7 +276,7 @@ export const LotsTable: React.FC = () => {
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="font-semibold text-b3x-navy-900 text-sm">{lot.lotNumber}</div>
                       <div className="text-xs text-success-600 font-medium">
-                        {isPending ? order.quantity : lot.entryQuantity} animais
+                        {isPending ? order.currentQuantity : lot.entryQuantity} animais
                       </div>
                       {(() => {
                         const cycle = order && cycles.find(c => c.id === order.cycleId);
@@ -306,10 +306,10 @@ export const LotsTable: React.FC = () => {
                       <div className="text-sm font-medium text-b3x-navy-900">
                         {isPending ? '-' : `${averageWeight.toFixed(1)} kg/animal`}
                       </div>
-                      {!isPending && weightLoss.kg !== 0 && (
+                      {!isPending && currentWeightLoss.kg !== 0 && (
                         <div className="flex items-center text-xs text-error-600">
                           <TrendingDown className="w-3 h-3 mr-1" />
-                          {weightLoss.percentage.toFixed(1)}%
+                          {currentWeightLoss.percentage.toFixed(1)}%
                         </div>
                       )}
                     </td>

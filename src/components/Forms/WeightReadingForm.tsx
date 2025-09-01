@@ -6,7 +6,7 @@ import { X, Scale } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { WeightReadingFormData } from '../../types';
 
-const weightReadingSchema = z.object({
+const currentWeightReadingSchema = z.object({
   lotId: z.string().min(1, 'Selecione um lote'),
   penNumber: z.string().min(1, 'Selecione um curral'),
   date: z.date({
@@ -30,7 +30,7 @@ export const WeightReadingForm: React.FC<WeightReadingFormProps> = ({
   onClose,
   lotId
 }) => {
-  const { cattleLots, penAllocations, penStatuses, addWeightReading } = useAppStore();
+  const { cattlePurchases, penAllocations, penStatuses, addWeightReading } = useAppStore();
 
   const {
     register,
@@ -40,7 +40,7 @@ export const WeightReadingForm: React.FC<WeightReadingFormProps> = ({
     watch,
     setValue
   } = useForm<WeightReadingFormData>({
-    resolver: zodResolver(weightReadingSchema),
+    resolver: zodResolver(currentWeightReadingSchema),
     defaultValues: {
       lotId: lotId || '',
       penNumber: '',
@@ -56,12 +56,12 @@ export const WeightReadingForm: React.FC<WeightReadingFormProps> = ({
   // Quando o lotId é fornecido diretamente, preencher o penNumber automaticamente
   React.useEffect(() => {
     if (lotId) {
-      const lot = cattleLots.find(l => l.id === lotId);
+      const lot = cattlePurchases.find(l => l.id === lotId);
       if (lot && lot.penNumber) {
         setValue('penNumber', lot.penNumber);
       }
     }
-  }, [lotId, cattleLots, setValue]);
+  }, [lotId, cattlePurchases, setValue]);
   
   // Quando o penNumber muda, filtrar os lotes disponíveis
   const lotsInSelectedPen = React.useMemo(() => {
@@ -72,10 +72,10 @@ export const WeightReadingForm: React.FC<WeightReadingFormProps> = ({
     
     // Mapear para os lotes correspondentes
     return allocations.map(alloc => {
-      const lot = cattleLots.find(l => l.id === alloc.lotId);
+      const lot = cattlePurchases.find(l => l.id === alloc.lotId);
       return lot;
     }).filter(Boolean);
-  }, [selectedPenNumber, penAllocations, cattleLots]);
+  }, [selectedPenNumber, penAllocations, cattlePurchases]);
   
   // Se houver apenas um lote no curral, selecioná-lo automaticamente
   React.useEffect(() => {

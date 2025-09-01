@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { X, TrendingUp, Calendar, Printer, AlertCircle, DollarSign, ArrowRight, Clock } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
-import { CattleLot } from '../../types';
+import { CattlePurchase } from '../../types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface SaleSimulationModalProps {
-  lot: CattleLot;
+  lot: CattlePurchase;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -14,14 +14,14 @@ interface SaleSimulationModalProps {
 export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, isOpen, onClose }) => {
   const { 
     calculateLotProfit,
-    purchaseOrders,
+    cattlePurchases,
     loteCurralLinks,
     penRegistrations,
-    cattleLots
+    cattlePurchases
   } = useAppStore();
   
   // Sempre buscar o lote mais atualizado do store
-  const currentLot = cattleLots.find(l => l.id === lot.id) || lot;
+  const currentLot = cattlePurchases.find(l => l.id === lot.id) || lot;
   
   // Estado para controlar se os parâmetros estão sincronizados
   const [syncParams, setSyncParams] = useState(true);
@@ -48,7 +48,7 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
   }, [syncParams, salePriceToday, rcPercentageVendaToday]);
 
   // Obter ordem de compra
-  const purchaseOrder = purchaseOrders.find(po => po.id === currentLot.purchaseOrderId);
+  const purchaseOrder = cattlePurchases.find(po => po.id === currentLot.purchaseId);
   const rcPercentageCompra = purchaseOrder?.rcPercentage || 50;
   
   // Inicializar RC% de venda baseado na compra
@@ -84,7 +84,7 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
   const currentAverageWeight = currentWeight / currentAnimals;
   const currentCarcassWeight = currentWeight * (rcPercentageVendaToday / 100);
   const currentArrobas = currentCarcassWeight / 15;
-  const weightGain = currentWeight - currentLot.entryWeight;
+  const currentWeightGain = currentWeight - currentLot.entryWeight;
   
   // Peso projetado
   const projectedWeight = currentWeight + (gmdEstimated * currentAnimals * projectedDays);
@@ -155,13 +155,13 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
             .card-lime { background-color: #f7fee7; border-color: #bef264; }
             .card-info { background-color: #e0f2fe; border-color: #7dd3fc; }
             .card-neutral { background-color: #f9f9f9; border-color: #e5e7eb; }
-            .card-title { font-size: 11px; color: #666; margin-bottom: 4px; font-weight: normal; }
-            .card-value { font-size: 16px; font-weight: bold; color: #1a2332; }
+            .card-title { font-size: 11px; color: #666; margin-bottom: 4px; font-currentWeight: normal; }
+            .card-value { font-size: 16px; font-currentWeight: bold; color: #1a2332; }
             .card-subtitle { font-size: 10px; color: #888; margin-top: 2px; }
             .info-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; border-bottom: 1px solid #f0f0f0; }
             .info-row:last-child { border-bottom: none; }
             .info-label { color: #666; }
-            .info-value { font-weight: 500; color: #1a2332; }
+            .info-value { font-currentWeight: 500; color: #1a2332; }
             .section { margin-bottom: 20px; page-break-inside: avoid; }
             .timeline { 
               display: flex; 
@@ -196,7 +196,7 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
               justify-content: center;
               font-size: 20px;
             }
-            .timeline-title { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+            .timeline-title { font-size: 12px; font-currentWeight: bold; margin-bottom: 4px; }
             .timeline-info { font-size: 11px; color: #666; }
             .success { color: #4caf50; }
             .error { color: #f44336; }
@@ -244,7 +244,7 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
             }
             .cost-value {
               font-size: 11px;
-              font-weight: bold;
+              font-currentWeight: bold;
               min-width: 100px;
               text-align: right;
             }
@@ -258,7 +258,7 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
               padding: 8px;
               text-align: left;
               font-size: 12px;
-              font-weight: bold;
+              font-currentWeight: bold;
               border: 1px solid #ddd;
             }
             .comparison-table td {
@@ -267,12 +267,12 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
               border: 1px solid #ddd;
             }
             .comparison-table .metric-name {
-              font-weight: 500;
+              font-currentWeight: 500;
               color: #666;
             }
             .comparison-table .value {
               text-align: right;
-              font-weight: bold;
+              font-currentWeight: bold;
             }
             .footer {
               margin-top: 30px;
@@ -316,7 +316,7 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
                 ${daysInConfinement} dias<br>
                 ${currentAverageWeight.toFixed(1)} kg/animal<br>
                 <span class="success">+${(currentAverageWeight - entryAverageWeight).toFixed(1)} kg</span><br>
-                GMD Real: ${(weightGain / currentAnimals / daysInConfinement).toFixed(2)} kg/dia
+                GMD Real: ${(currentWeightGain / currentAnimals / daysInConfinement).toFixed(2)} kg/dia
               </div>
             </div>
             <div class="timeline-item">
@@ -631,7 +631,7 @@ export const SaleSimulationModal: React.FC<SaleSimulationModalProps> = ({ lot, i
                     <span className="text-success-600 ml-1">(+{(currentAverageWeight - entryAverageWeight).toFixed(1)} kg)</span>
                   </p>
                   <p className="text-xs text-neutral-700">
-                    <span className="font-medium">GMD Real:</span> {(weightGain / currentAnimals / daysInConfinement).toFixed(2)} kg/dia
+                    <span className="font-medium">GMD Real:</span> {(currentWeightGain / currentAnimals / daysInConfinement).toFixed(2)} kg/dia
                   </p>
                 </div>
               </div>

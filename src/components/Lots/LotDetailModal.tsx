@@ -1,27 +1,27 @@
 import React, { useState } from 'react';
 import { X, Calendar, MapPin, User, DollarSign, Home, Truck, Users, TrendingUp, Package, Percent, TrendingDown, Printer, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
-import { CattleLot } from '../../types';
+import { CattlePurchase } from '../../types';
 import { format } from 'date-fns';
 import { ConfirmDialog } from '../Common/ConfirmDialog';
 import { Portal } from '../Common/Portal';
 import { NonCashExpenseModal } from './NonCashExpenseModal';
 
 interface LotDetailModalProps {
-  lot: CattleLot;
+  lot: CattlePurchase;
   isOpen: boolean;
   onClose: () => void;
 }
 
 export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onClose }) => {
   const { 
-    purchaseOrders, 
+    cattlePurchases, 
     partners, 
     loteCurralLinks,
     penStatuses,
     calculateLotCostsByCategory,
     calculateLotProfit,
-    deleteCattleLot
+    deleteCattlePurchase
   } = useAppStore();
   
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -29,7 +29,7 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
   
   if (!isOpen) return null;
 
-  const purchaseOrder = purchaseOrders.find(po => po.id === lot.purchaseOrderId);
+  const purchaseOrder = cattlePurchases.find(po => po.id === lot.purchaseId);
   const vendor = purchaseOrder ? partners.find(p => p.id === purchaseOrder.vendorId) : null;
   const broker = purchaseOrder?.brokerId ? partners.find(p => p.id === purchaseOrder.brokerId) : null;
   const transportCompany = lot.transportCompany ? partners.find(p => p.isTransporter && p.name === lot.transportCompany) : null;
@@ -61,9 +61,9 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
     return { kg: lossKg, percentage: lossPercentage };
   };
 
-  const weightLoss = calculateWeightLoss();
-  const quantityDifference = purchaseOrder ? purchaseOrder.quantity - lot.entryQuantity : 0;
-  const hasMortalityInTransport = lot.quantityDifferenceReason === 'Morte Transporte';
+  const currentWeightLoss = calculateWeightLoss();
+  const currentQuantityDifference = purchaseOrder ? purchaseOrder.currentQuantity - lot.entryQuantity : 0;
+  const hasMortalityInTransport = lot.currentQuantityDifferenceReason === 'Morte Transporte';
 
   // Calcular arrobas com R.C.%
   const rcPercentage = purchaseOrder?.rcPercentage || 50;
@@ -73,7 +73,7 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
   const actualArrobas = actualCarcassWeight / 15;
 
   const handleDeleteLot = () => {
-    deleteCattleLot(lot.id);
+    deleteCattlePurchase(lot.id);
     onClose();
   };
 
@@ -104,17 +104,17 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
             .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
             .card { border: 1px solid #ddd; padding: 8px; border-radius: 4px; page-break-inside: avoid; }
             .card-title { font-size: 11px; color: #666; margin-bottom: 2px; }
-            .card-value { font-size: 14px; font-weight: bold; }
+            .card-value { font-size: 14px; font-currentWeight: bold; }
             .card-subtitle { font-size: 10px; color: #888; }
             .info-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
             .info-label { color: #666; }
-            .info-value { font-weight: 500; }
+            .info-value { font-currentWeight: 500; }
             .section { margin-bottom: 20px; page-break-inside: avoid; }
             .cost-bar { display: flex; align-items: center; margin: 5px 0; }
             .cost-label { width: 80px; font-size: 11px; }
             .cost-progress { flex: 1; height: 8px; background: #eee; margin: 0 10px; position: relative; }
             .cost-fill { height: 100%; background: #4CAF50; }
-            .cost-percent { font-size: 11px; font-weight: bold; }
+            .cost-percent { font-size: 11px; font-currentWeight: bold; }
           }
           @media screen {
             body { margin: 20px; font-family: Arial, sans-serif; }
@@ -141,7 +141,7 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
             <div class="card">
               <div class="card-title">Peso Recepção</div>
               <div class="card-value">${(lot.entryWeight / lot.entryQuantity).toFixed(1)} kg/animal</div>
-              <div class="card-subtitle">Quebra: ${weightLoss.percentage.toFixed(1)}%</div>
+              <div class="card-subtitle">Quebra: ${currentWeightLoss.percentage.toFixed(1)}%</div>
             </div>
             <div class="card">
               <div class="card-title">Currais</div>
@@ -153,8 +153,8 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
             </div>
             <div class="card">
               <div class="card-title">Quebra de Peso (Compra)</div>
-              <div class="card-value">${weightLoss.percentage.toFixed(1)}%</div>
-              <div class="card-subtitle">${Math.abs(weightLoss.kg / lot.entryQuantity).toFixed(1)} kg/animal</div>
+              <div class="card-value">${currentWeightLoss.percentage.toFixed(1)}%</div>
+              <div class="card-subtitle">${Math.abs(currentWeightLoss.kg / lot.entryQuantity).toFixed(1)} kg/animal</div>
             </div>
           </div>
           
@@ -184,7 +184,7 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
               </div>` : ''}
               <div class="info-row">
                 <span class="info-label">Quantidade:</span>
-                <span class="info-value">${purchaseOrder?.quantity || '-'} animais</span>
+                <span class="info-value">${purchaseOrder?.currentQuantity || '-'} animais</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Peso Total:</span>
@@ -198,7 +198,7 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
                 <span class="info-label">Arrobas:</span>
                 <span class="info-value">${estimatedArrobas.toFixed(2)} @</span>
               </div>
-              <div class="info-row" style="font-weight: bold; margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px;">
+              <div class="info-row" style="font-currentWeight: bold; margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px;">
                 <span class="info-label">Total:</span>
                 <span class="info-value">R$ ${purchaseOrder ? 
                   (estimatedArrobas * purchaseOrder.pricePerArroba + 
@@ -402,7 +402,7 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
                   {(lot.entryWeight / lot.entryQuantity).toFixed(1)} kg/animal
                 </div>
                 <div className="text-xs text-neutral-500">
-                  Quebra: {weightLoss.percentage.toFixed(1)}%
+                  Quebra: {currentWeightLoss.percentage.toFixed(1)}%
                 </div>
               </div>
               
@@ -432,10 +432,10 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
                   <span className="text-xs text-neutral-600">Quebra de Peso (Compra)</span>
                 </div>
                 <div className="text-lg font-bold text-b3x-navy-900">
-                  {weightLoss.percentage.toFixed(1)}%
+                  {currentWeightLoss.percentage.toFixed(1)}%
                 </div>
                 <div className="text-xs text-neutral-500">
-                  {Math.abs(weightLoss.kg / lot.entryQuantity).toFixed(1)} kg/animal
+                  {Math.abs(currentWeightLoss.kg / lot.entryQuantity).toFixed(1)} kg/animal
                 </div>
               </div>
             </div>
@@ -486,7 +486,7 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-neutral-600">Quantidade:</span>
-                      <span className="text-sm font-medium">{purchaseOrder?.quantity || '-'} animais</span>
+                      <span className="text-sm font-medium">{purchaseOrder?.currentQuantity || '-'} animais</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-neutral-600">Peso Total:</span>
@@ -638,12 +638,12 @@ export const LotDetailModal: React.FC<LotDetailModalProps> = ({ lot, isOpen, onC
                 )}
                 
                 {/* Diferença de Quantidade */}
-                {quantityDifference !== 0 && (
+                {currentQuantityDifference !== 0 && (
                   <div className="border-t border-neutral-100 pt-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-neutral-600">Diferença de Animais:</span>
                       <span className="text-sm font-medium text-error-600">
-                        {quantityDifference} animais
+                        {currentQuantityDifference} animais
                         {hasMortalityInTransport && " (Morte no Transporte)"}
                       </span>
                     </div>

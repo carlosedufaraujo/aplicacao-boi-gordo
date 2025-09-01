@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { AppError } from '@/utils/AppError';
 import { logger } from '@/config/logger';

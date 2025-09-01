@@ -58,35 +58,35 @@ export const PenMovementModal: React.FC<PenMovementModalProps> = ({
       lotId: selectedAllocation.lotId,
       fromPen: sourcePenNumber,
       toPen: targetPenNumber,
-      quantity: movementQuantity,
+      currentQuantity: movementQuantity,
       reason: 'Movimentação manual via mapa de currais',
       observations: `Movimentação de ${movementQuantity} animais do curral ${sourcePenNumber} para o curral ${targetPenNumber}`,
       date: new Date()
     });
 
     // Atualizar alocações
-    if (movementQuantity === selectedAllocation.quantity) {
+    if (movementQuantity === selectedAllocation.currentQuantity) {
       // Movimentação completa: remover da origem e criar nova no destino
       deletePenAllocation(selectedAllocation.id);
       addPenAllocation({
         penNumber: targetPenNumber,
         lotId: selectedAllocation.lotId,
-        quantity: movementQuantity,
+        currentQuantity: movementQuantity,
         entryWeight: selectedAllocation.entryWeight,
         entryDate: selectedAllocation.entryDate
       });
     } else {
       // Movimentação parcial: reduzir na origem e criar nova no destino
       updatePenAllocation(selectedAllocation.id, {
-        quantity: selectedAllocation.quantity - movementQuantity,
-        entryWeight: selectedAllocation.entryWeight * (selectedAllocation.quantity - movementQuantity) / selectedAllocation.quantity
+        currentQuantity: selectedAllocation.currentQuantity - movementQuantity,
+        entryWeight: selectedAllocation.entryWeight * (selectedAllocation.currentQuantity - movementQuantity) / selectedAllocation.currentQuantity
       });
       
       addPenAllocation({
         penNumber: targetPenNumber,
         lotId: selectedAllocation.lotId,
-        quantity: movementQuantity,
-        entryWeight: selectedAllocation.entryWeight * movementQuantity / selectedAllocation.quantity,
+        currentQuantity: movementQuantity,
+        entryWeight: selectedAllocation.entryWeight * movementQuantity / selectedAllocation.currentQuantity,
         entryDate: selectedAllocation.entryDate
       });
     }
@@ -147,7 +147,7 @@ export const PenMovementModal: React.FC<PenMovementModalProps> = ({
                 setSelectedAllocationId(e.target.value);
                 const allocation = penAllocations.find(alloc => alloc.id === e.target.value);
                 if (allocation) {
-                  setMovementQuantity(allocation.quantity);
+                  setMovementQuantity(allocation.currentQuantity);
                 }
               }}
               className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-transparent"
@@ -155,7 +155,7 @@ export const PenMovementModal: React.FC<PenMovementModalProps> = ({
               <option value="">Selecione um lote</option>
               {sourceAllocations.map(allocation => (
                 <option key={allocation.id} value={allocation.id}>
-                  Lote {allocation.lotId.slice(-3)} - {allocation.quantity} animais ({allocation.entryWeight.toLocaleString('pt-BR')} kg)
+                  Lote {allocation.lotId.slice(-3)} - {allocation.currentQuantity} animais ({allocation.entryWeight.toLocaleString('pt-BR')} kg)
                 </option>
               ))}
             </select>
@@ -178,10 +178,10 @@ export const PenMovementModal: React.FC<PenMovementModalProps> = ({
                     type="number"
                     value={movementQuantity}
                     onChange={(e) => setMovementQuantity(Number(e.target.value))}
-                    max={selectedAllocation.quantity}
+                    max={selectedAllocation.currentQuantity}
                     min={1}
                     className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-transparent"
-                    placeholder={`Máximo: ${selectedAllocation.quantity}`}
+                    placeholder={`Máximo: ${selectedAllocation.currentQuantity}`}
                   />
                 </div>
 

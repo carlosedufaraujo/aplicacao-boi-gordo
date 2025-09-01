@@ -61,12 +61,12 @@ export function ShadcnSidebar({ currentPage, setCurrentPage }: ShadcnSidebarProp
     {
       title: "Compras",
       icon: ShoppingBag,
-      page: "pipeline",
+      page: "purchases",
     },
     {
       title: "Vendas",
       icon: TrendingUp,
-      page: "sales-pipeline",
+      page: "sales",
     },
     {
       title: "Lotes",

@@ -34,7 +34,7 @@ export const DREFilters: React.FC<DREFiltersProps> = ({
   onIncludeProjectionsChange,
   onPricePerArrobaChange
 }) => {
-  const { cattleLots } = useAppStore();
+  const { cattlePurchases } = useAppStore();
   const { pens } = usePens();
 
   return (
@@ -83,7 +83,7 @@ export const DREFilters: React.FC<DREFiltersProps> = ({
               >
                 <option value="">Selecione...</option>
                 {entityType === 'lot' ? (
-                  cattleLots
+                  cattlePurchases
                     .filter(lot => lot.status === 'active' || lot.status === 'sold')
                     .map(lot => (
                       <option key={lot.id} value={lot.id}>

@@ -58,7 +58,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SimplifiedPurchaseForm } from '../Forms/SimplifiedPurchaseForm';
+import { EnhancedPurchaseForm } from '../Forms/EnhancedPurchaseForm';
 import { SimplifiedPurchaseDetails } from './SimplifiedPurchaseDetails';
 import { StatusChangeModal } from '../Modals/StatusChangeModal';
 
@@ -175,11 +175,26 @@ export function SimplifiedPurchaseManagement() {
     }
   };
 
-  const handleQuickStatusUpdate = async (id: string, newStatus: CattlePurchase['status']) => {
-    try {
-      await updateStatus(id, newStatus);
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error);
+  const handleQuickStatusUpdate = async (purchaseId: string, newStatus: CattlePurchase['status']) => {
+    // Para status RECEIVED, sempre abrir o modal
+    if (newStatus === 'RECEIVED') {
+      const purchase = purchases.find(p => p.id === purchaseId);
+      if (purchase) {
+        setStatusModalData({
+          currentStatus: purchase.status,
+          nextStatus: 'RECEIVED',
+          purchase: purchase
+        });
+        setShowStatusModal(true);
+      }
+    } else {
+      // Para outros status, atualizar diretamente
+      try {
+        await updateStatus(purchaseId, newStatus);
+        await loadPurchases();
+      } catch (error) {
+        console.error('Erro ao atualizar status:', error);
+      }
     }
   };
 
@@ -481,7 +496,7 @@ export function SimplifiedPurchaseManagement() {
                                     onClick={() => handleQuickStatusUpdate(purchase.id, 'RECEIVED')}
                                   >
                                     <Package className="h-3 w-3 mr-2" />
-                                    Registrar Recepção
+                                    Receber e Alocar
                                   </Button>
                                 )}
                                 {purchase.status === 'RECEIVED' && (
@@ -508,23 +523,19 @@ export function SimplifiedPurchaseManagement() {
         </CardContent>
       </Card>
 
-      {/* Modal de Formulário */}
-      {showForm && (
-        <SimplifiedPurchaseForm
-          isOpen={showForm}
-          onClose={() => {
-            setShowForm(false);
-            setSelectedPurchase(null);
-          }}
-          initialData={selectedPurchase}
-          isEditing={!!selectedPurchase}
-          onSuccess={() => {
-            loadPurchases();
-            setShowForm(false);
-            setSelectedPurchase(null);
-          }}
-        />
-      )}
+      {/* Modal de Formulário - Usando o novo EnhancedPurchaseForm */}
+      <EnhancedPurchaseForm
+        open={showForm}
+        onClose={() => {
+          setShowForm(false);
+          setSelectedPurchase(null);
+        }}
+        onSuccess={() => {
+          loadPurchases();
+          setShowForm(false);
+          setSelectedPurchase(null);
+        }}
+      />
 
       {/* Modal de Detalhes */}
       {showDetails && selectedPurchase && (

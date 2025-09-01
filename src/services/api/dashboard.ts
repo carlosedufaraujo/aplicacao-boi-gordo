@@ -69,7 +69,7 @@ interface LatestMovement {
   id: string;
   type: 'purchase' | 'sale' | 'transfer' | 'death' | 'birth';
   description: string;
-  quantity: number;
+  currentQuantity: number;
   value?: number;
   date: Date;
   lotId?: string;
@@ -180,7 +180,7 @@ export const dashboardService = {
 
   // Exportar dados do dashboard
   exportData: async (format: 'pdf' | 'excel' | 'csv' = 'pdf'): Promise<Blob> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3333/api/v1'}/dashboard/export?format=${format}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/dashboard/export?format=${format}`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${localStorage.getItem('authToken')}`,

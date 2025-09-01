@@ -32,10 +32,10 @@ export class SaleController {
     };
 
     const pagination = {
-      page: page ? parseInt(page as string) : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
-      sortBy: sortBy as string,
-      sortOrder: sortOrder as 'asc' | 'desc',
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 10,
+      sortBy: sortBy as string || 'createdAt',
+      sortOrder: sortOrder as 'asc' | 'desc' || 'desc',
     };
 
     const result = await saleService.findAll(filters, pagination);

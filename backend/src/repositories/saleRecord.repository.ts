@@ -1,12 +1,12 @@
-import { BaseRepository } from './base.repository';
+import { BaseRepository, PaginationParams, QueryOptions } from './base.repository';
 
-export class SaleRecordRepository extends BaseRepository {
+export class SaleRecordRepository extends BaseRepository<any> {
   constructor() {
     super('saleRecord');
   }
 
   async findWithRelations(id: string) {
-    return this.model.findUnique({
+    return (this as any).model.findUnique({
       where: { id },
       include: {
         purchase: true,
@@ -36,7 +36,7 @@ export class SaleRecordRepository extends BaseRepository {
       where.status = filters.status;
     }
 
-    return this.model.findMany({
+    return (this as any).model.findMany({
       where,
       include: {
         purchase: true,
@@ -48,7 +48,7 @@ export class SaleRecordRepository extends BaseRepository {
   }
 
   async findByPurchase(purchaseId: string) {
-    return this.model.findMany({
+    return (this as any).model.findMany({
       where: { purchaseId },
       include: {
         buyer: true,
@@ -59,7 +59,7 @@ export class SaleRecordRepository extends BaseRepository {
   }
 
   async findByBuyer(buyerId: string) {
-    return this.model.findMany({
+    return (this as any).model.findMany({
       where: { buyerId },
       include: {
         purchase: true,
@@ -73,19 +73,19 @@ export class SaleRecordRepository extends BaseRepository {
     const where: any = {};
     
     if (startDate || endDate) {
-      where.saleDate = {};
-      if (startDate) where.saleDate.gte = startDate;
-      if (endDate) where.saleDate.lte = endDate;
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = startDate;
+      if (endDate) where.createdAt.lte = endDate;
     }
 
-    const sales = await this.model.findMany({ where });
+    const sales = await (this as any).model.findMany({ where });
     
     const stats = {
       totalSales: sales.length,
-      totalQuantity: sales.reduce((sum, s) => sum + s.quantity, 0),
-      totalWeight: sales.reduce((sum, s) => sum + s.totalWeight, 0),
-      totalGrossValue: sales.reduce((sum, s) => sum + s.grossValue, 0),
-      totalNetValue: sales.reduce((sum, s) => sum + s.netValue, 0),
+      totalQuantity: sales.reduce((sum: number, s: any) => sum + s.quantity, 0),
+      totalWeight: sales.reduce((sum: number, s: any) => sum + s.totalWeight, 0),
+      totalGrossValue: sales.reduce((sum: number, s: any) => sum + s.grossValue, 0),
+      totalNetValue: sales.reduce((sum: number, s: any) => sum + s.netValue, 0),
       averagePrice: 0,
     };
 
@@ -97,50 +97,63 @@ export class SaleRecordRepository extends BaseRepository {
   }
 
   async getSalesByStatus() {
-    const sales = await this.model.findMany({});
+    const sales = await (this as any).model.findMany({});
     
     return {
-      PENDING: sales.filter(s => s.status === 'PENDING').length,
-      CONFIRMED: sales.filter(s => s.status === 'CONFIRMED').length,
-      DELIVERED: sales.filter(s => s.status === 'DELIVERED').length,
-      COMPLETED: sales.filter(s => s.status === 'COMPLETED').length,
-      CANCELLED: sales.filter(s => s.status === 'CANCELLED').length,
+      PENDING: sales.filter((s: any) => s.status === 'PENDING').length,
+      CONFIRMED: sales.filter((s: any) => s.status === 'CONFIRMED').length,
+      DELIVERED: sales.filter((s: any) => s.status === 'DELIVERED').length,
+      COMPLETED: sales.filter((s: any) => s.status === 'COMPLETED').length,
+      CANCELLED: sales.filter((s: any) => s.status === 'CANCELLED').length,
     };
   }
 
-  async findAll(where: any = {}, pagination?: any, include?: any) {
+  async findAll(where: any = {}, pagination?: PaginationParams, options?: QueryOptions) {
     const query: any = { where };
     
     if (pagination) {
-      query.skip = pagination.skip;
-      query.take = pagination.take;
+      const { page = 1, limit = 20 } = pagination;
+      query.skip = (page - 1) * limit;
+      query.take = limit;
     }
     
-    if (include) {
-      query.include = include;
+    if (options?.include) {
+      query.include = options.include;
     }
     
     const [items, total] = await Promise.all([
-      this.model.findMany(query),
-      this.model.count({ where })
+      (this as any).model.findMany(query),
+      (this as any).model.count({ where })
     ]);
     
-    return { items, total };
+    const page = pagination?.page || 1;
+    const limit = pagination?.limit || 20;
+    const totalPages = Math.ceil(total / limit);
+    
+    return { 
+      items, 
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNext: page < totalPages,
+      hasPrev: page > 1
+    };
   }
 
   async create(data: any) {
-    return this.model.create({ data });
+    return (this as any).model.create({ data });
   }
 
   async update(id: string, data: any) {
-    return this.model.update({
+    return (this as any).model.update({
       where: { id },
       data
     });
   }
 
   async delete(id: string) {
-    return this.model.delete({
+    return (this as any).model.delete({
       where: { id }
     });
   }

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 export const LotsInsertionChart: React.FC = () => {
-  const { cattleLots } = useAppStore();
+  const { cattlePurchases } = useAppStore();
 
   // Gerar dados para os últimos 6 meses
   const data = React.useMemo(() => {
@@ -19,7 +19,7 @@ export const LotsInsertionChart: React.FC = () => {
       const monthStart = startOfMonth(month);
       const monthEnd = endOfMonth(month);
       
-      const lotsInMonth = cattleLots.filter(lot => {
+      const lotsInMonth = cattlePurchases.filter(lot => {
         const lotDate = lot.entryDate;
         return lotDate >= monthStart && lotDate <= monthEnd;
       });
@@ -49,7 +49,7 @@ export const LotsInsertionChart: React.FC = () => {
         fullMonth: format(month, 'MMMM yyyy', { locale: ptBR })
       };
     });
-  }, [cattleLots]);
+  }, [cattlePurchases]);
 
   const chartConfig = {
     lotes: {

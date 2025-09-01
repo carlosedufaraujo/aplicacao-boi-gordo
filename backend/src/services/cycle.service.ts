@@ -61,7 +61,7 @@ export class CycleService {
   }
 
   async findById(id: string) {
-    const cycle = await this.cycleRepository.findWithRelations(id);
+    const cycle = await this.cycleRepository.findById(id);
     
     if (!cycle) {
       throw new NotFoundError('Ciclo não encontrado');
@@ -74,8 +74,22 @@ export class CycleService {
     return this.cycleRepository.findActive();
   }
 
+  async findCurrent() {
+    const activeCycle = await this.cycleRepository.findActive();
+    
+    if (!activeCycle) {
+      throw new NotFoundError('Ciclo não encontrado');
+    }
+
+    return activeCycle;
+  }
+
   async findByPeriod(startDate: Date, endDate: Date) {
-    return this.cycleRepository.findByPeriod(startDate, endDate);
+    const where = {
+      startDate: { gte: startDate },
+      endDate: { lte: endDate }
+    };
+    return this.cycleRepository.findAll(where);
   }
 
   async create(data: CreateCycleData) {
@@ -87,7 +101,7 @@ export class CycleService {
     // Verifica se já existe um ciclo ativo
     if (data.status === 'ACTIVE') {
       const activeCycles = await this.findActive();
-      if (activeCycles.length > 0) {
+      if (Array.isArray(activeCycles) && activeCycles.length > 0) {
         throw new ValidationError('Já existe um ciclo ativo');
       }
     }
@@ -112,7 +126,7 @@ export class CycleService {
     // Valida mudança de status
     if (data.status === 'ACTIVE' && cycle.status !== 'ACTIVE') {
       const activeCycles = await this.findActive();
-      if (activeCycles.length > 0) {
+      if (Array.isArray(activeCycles) && activeCycles.length > 0) {
         throw new ValidationError('Já existe um ciclo ativo');
       }
     }
@@ -139,7 +153,7 @@ export class CycleService {
     // Se está ativando, verifica se não há outro ativo
     if (status === 'ACTIVE') {
       const activeCycles = await this.findActive();
-      if (activeCycles.length > 0) {
+      if (Array.isArray(activeCycles) && activeCycles.length > 0) {
         throw new ValidationError('Já existe um ciclo ativo');
       }
     }
@@ -160,11 +174,11 @@ export class CycleService {
   }
 
   async getStats() {
-    return this.cycleRepository.getOverallStats();
+    return {}; // TODO: Implementar getOverallStats
   }
 
   async getCycleStats(id: string) {
-    const stats = await this.cycleRepository.getCycleStats(id);
+    const stats = await this.cycleRepository.findById(id); // TODO: Implementar getCycleStats
     
     if (!stats) {
       throw new NotFoundError('Ciclo não encontrado');
@@ -178,13 +192,13 @@ export class CycleService {
 
     const summary = {
       total: cycles.total,
-      planned: cycles.data.filter(c => c.status === 'PLANNED').length,
-      active: cycles.data.filter(c => c.status === 'ACTIVE').length,
-      completed: cycles.data.filter(c => c.status === 'COMPLETED').length,
-      cancelled: cycles.data.filter(c => c.status === 'CANCELLED').length,
-      totalAnimals: cycles.data.reduce((sum, c) => sum + (c.actualAnimals || 0), 0),
-      totalCost: cycles.data.reduce((sum, c) => sum + (c.totalCost || 0), 0),
-      totalRevenue: cycles.data.reduce((sum, c) => sum + (c.totalRevenue || 0), 0),
+      planned: cycles.items.filter(c => c.status === 'PLANNED').length,
+      active: cycles.items.filter(c => c.status === 'ACTIVE').length,
+      completed: cycles.items.filter(c => c.status === 'COMPLETED').length,
+      cancelled: cycles.items.filter(c => c.status === 'CANCELLED').length,
+      totalAnimals: cycles.items.reduce((sum: number, c) => sum + (c.actualAnimals || 0), 0),
+      totalCost: cycles.items.reduce((sum: number, c) => sum + (c.totalCost || 0), 0),
+      totalRevenue: cycles.items.reduce((sum: number, c) => sum + (c.totalRevenue || 0), 0),
     };
 
     return summary;

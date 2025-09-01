@@ -4,18 +4,18 @@ import { PenMap } from './PenMap';
 import { List, Map, Package, DollarSign, TrendingDown, AlertTriangle, ShoppingCart, Layers, Activity } from 'lucide-react';
 import { clsx } from 'clsx';
 
-import { useCattleLots, usePurchaseOrders } from '../../hooks/useSupabaseData';
+import { useCattlePurchases, useCattlePurchases } from '../../hooks/useSupabaseData';
 
 export const Lots: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'lots' | 'map'>('overview');
   // Removido useAppStoreWithAPI - agora gerenciado pelo App.tsx
-  const { cattleLots, loading: lotsLoading } = useCattleLots();
-  const { purchaseOrders, loading: ordersLoading } = usePurchaseOrders();
+  const { cattlePurchases, loading: lotsLoading } = useCattlePurchases();
+  const { cattlePurchases, loading: ordersLoading } = useCattlePurchases();
 
   // Calcular métricas
-  const activeLots = cattleLots.filter(lot => lot.status === 'ACTIVE');
-  const pendingLots = cattleLots.filter(lot => {
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+  const activeLots = cattlePurchases.filter(lot => lot.status === 'ACTIVE');
+  const pendingLots = cattlePurchases.filter(lot => {
+    const order = cattlePurchases.find(o => o.id === lot.purchaseId);
     return order && (order.status === 'PENDING' || order.status === 'PAYMENT_VALIDATING');
   });
   
@@ -24,7 +24,7 @@ export const Lots: React.FC = () => {
   
   // Quantidade de Animais Pendentes
   const totalAnimalsPending = pendingLots.reduce((sum, lot) => {
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    const order = cattlePurchases.find(o => o.id === lot.purchaseId);
     return sum + (order?.animalCount || 0);
   }, 0);
   
@@ -33,7 +33,7 @@ export const Lots: React.FC = () => {
   
   // Calcular métricas médias
   const metrics = activeLots.reduce((acc, lot) => {
-    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+    const order = cattlePurchases.find(o => o.id === lot.purchaseId);
     if (!order) return acc;
     
     // Calcular arrobas com R.C.%
@@ -44,7 +44,7 @@ export const Lots: React.FC = () => {
     const costPerArroba = arrobas > 0 ? totalCost / arrobas : 0;
     
     // Quebra de peso
-    const weightLoss = lot.entryWeight < order.totalWeight ? 
+    const currentWeightLoss = lot.entryWeight < order.totalWeight ? 
       ((order.totalWeight - lot.entryWeight) / order.totalWeight) * 100 : 0;
     
     // Mortes em transporte
@@ -53,7 +53,7 @@ export const Lots: React.FC = () => {
     
     return {
       totalCostPerArroba: acc.totalCostPerArroba + costPerArroba,
-      totalWeightLoss: acc.totalWeightLoss + weightLoss,
+      totalWeightLoss: acc.totalWeightLoss + currentWeightLoss,
       totalTransportDeathRate: acc.totalTransportDeathRate + transportDeathRate,
       totalPricePerArroba: acc.totalPricePerArroba + order.pricePerArroba,
       count: acc.count + 1
@@ -208,8 +208,8 @@ export const Lots: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {cattleLots.slice(0, 5).map((lot) => {
-                    const order = purchaseOrders.find(o => o.id === lot.purchaseOrderId);
+                  {cattlePurchases.slice(0, 5).map((lot) => {
+                    const order = cattlePurchases.find(o => o.id === lot.purchaseId);
                     const isPending = order && (order.status === 'PENDING' || order.status === 'PAYMENT_VALIDATING');
                     const entryDate = lot.entryDate instanceof Date ? lot.entryDate : new Date(lot.entryDate);
                     const daysConfined = Math.floor((new Date().getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -240,13 +240,13 @@ export const Lots: React.FC = () => {
                   })}
                 </tbody>
               </table>
-              {cattleLots.length > 5 && (
+              {cattlePurchases.length > 5 && (
                 <div className="mt-3 text-center">
                   <button
                     onClick={() => setActiveTab('lots')}
                     className="text-sm text-b3x-lime-600 hover:text-b3x-lime-700 font-medium"
                   >
-                    Ver todos os {cattleLots.length} lotes →
+                    Ver todos os {cattlePurchases.length} lotes →
                   </button>
                 </div>
               )}

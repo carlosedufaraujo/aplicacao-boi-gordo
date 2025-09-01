@@ -1,165 +1,125 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../services/supabase';
-import type { Pen } from '../services/supabaseData';
+import { socketService } from '../services/socket';
+import { penApi } from '../services/api/penApi';
 
 interface PenOccupancy {
   penId: string;
   penNumber: string;
   capacity: number;
-  currentOccupancy: number;
+  occupied: number;
+  available: number;
   occupancyRate: number;
-  status: 'available' | 'partial' | 'full' | 'maintenance';
-  lastUpdated: Date;
-  activeLots: number;
+  lots: Array<{
+    lotId: string;
+    lotCode: string;
+    quantity: number;
+    entryDate: string;
+  }>;
 }
 
 export const useRealtimePenOccupancy = () => {
   const [occupancyData, setOccupancyData] = useState<PenOccupancy[]>([]);
-  const [loading, setLoading] = useState(false); // Desabilitado temporariamente
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
 
-  // Função para calcular ocupação baseada nos lotes ativos
-  const calculateOccupancy = async (pens: Pen[]): Promise<PenOccupancy[]> => {
-    try {
-      // Buscar lotes ativos por curral
-      const { data: lotPenLinks, error: linksError } = await supabase
-        .from('lot_pen_links')
-        .select(`
-          penId,
-          quantity,
-          cattle_lots!lotId(
-            id,
-            status,
-            currentQuantity
-          )
-        `)
-        .eq('cattle_lots.status', 'ACTIVE');
-
-      if (linksError) throw linksError;
-
-      // Agrupar por curral
-      const occupancyByPen = new Map<string, number>();
-      const lotsByPen = new Map<string, number>();
-
-      lotPenLinks?.forEach(link => {
-        const penId = link.penId;
-        const quantity = link.quantity || 0;
+  useEffect(() => {
+    // Carregar dados iniciais via API
+    const loadInitialData = async () => {
+      try {
+        setLoading(true);
+        const response = await penApi.getOccupancyStats();
         
-        occupancyByPen.set(penId, (occupancyByPen.get(penId) || 0) + quantity);
-        lotsByPen.set(penId, (lotsByPen.get(penId) || 0) + 1);
-      });
-
-      // Mapear dados de ocupação
-      return pens.map(pen => {
-        const currentOccupancy = occupancyByPen.get(pen.id) || 0;
-        const occupancyRate = pen.capacity > 0 ? (currentOccupancy / pen.capacity) * 100 : 0;
-        const activeLots = lotsByPen.get(pen.id) || 0;
-
-        let status: PenOccupancy['status'] = 'available';
-        if (!pen.isActive) {
-          status = 'maintenance';
-        } else if (occupancyRate >= 95) {
-          status = 'full';
-        } else if (occupancyRate > 0) {
-          status = 'partial';
+        if (response.data) {
+          setOccupancyData(response.data);
         }
+        setError(null);
+      } catch (err) {
+        console.error('Erro ao carregar ocupação de currais:', err);
+        setError('Erro ao carregar dados de ocupação');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        return {
-          penId: pen.id,
-          penNumber: pen.penNumber,
-          capacity: pen.capacity,
-          currentOccupancy,
-          occupancyRate,
-          status,
-          lastUpdated: new Date(),
-          activeLots
-        };
-      });
-    } catch (err: any) {
-      console.error('Erro ao calcular ocupação:', err);
-      throw err;
+    loadInitialData();
+
+    // Inscrever-se para atualizações em tempo real via Socket.io
+    const handleOccupancyUpdate = (data: any) => {
+      console.log('📊 Atualização de ocupação recebida:', data);
+      
+      if (data.type === 'full_update') {
+        setOccupancyData(data.occupancy);
+      } else if (data.type === 'pen_update') {
+        setOccupancyData((prev) => {
+          const updated = [...prev];
+          const index = updated.findIndex(p => p.penId === data.penId);
+          
+          if (index >= 0) {
+            updated[index] = data.occupancy;
+          } else {
+            updated.push(data.occupancy);
+          }
+          
+          return updated;
+        });
+      }
+    };
+
+    // Conectar ao socket se houver token
+    const token = localStorage.getItem('authToken');
+    if (token && !socketService.isConnected()) {
+      socketService.connect(token);
     }
-  };
 
-  // Carregar dados iniciais (DESABILITADO - migrado para API Backend)
-  const loadInitialData = async () => {
+    // Inscrever-se para atualizações
+    socketService.subscribePenOccupancy(handleOccupancyUpdate);
+
+    // Cleanup
+    return () => {
+      socketService.unsubscribePenOccupancy();
+    };
+  }, []);
+
+  // Função para atualizar manualmente
+  const refresh = async () => {
     try {
-      // Hook desabilitado - usando API Backend ao invés de Supabase direto
-      // Dados mock para não quebrar a interface
-      setOccupancyData([
-        {
-          penId: '1',
-          penNumber: 'A-001',
-          capacity: 100,
-          currentOccupancy: 45,
-          occupancyRate: 45,
-          status: 'partial',
-          lastUpdated: new Date(),
-          activeLots: 2
-        }
-      ]);
-    } catch (err: any) {
-      console.error('Erro ao carregar dados de ocupação:', err);
-      setError(err.message);
+      setLoading(true);
+      const response = await penApi.getOccupancyStats();
+      
+      if (response.data) {
+        setOccupancyData(response.data);
+      }
+      setError(null);
+    } catch (err) {
+      console.error('Erro ao atualizar ocupação:', err);
+      setError('Erro ao atualizar dados');
     } finally {
       setLoading(false);
     }
   };
 
-  // Configurar subscriptions em tempo real (DESABILITADO)
-  useEffect(() => {
-    loadInitialData();
-    
-    // Atualização periódica básica (fallback) - desabilitada
-    const interval = setInterval(() => {
-      // Polling desabilitado - usar API Backend
-      if (!loading && false) { // Desabilitado
-        loadInitialData();
-      }
-    }, 60000); // A cada 60 segundos
+  // Calcular estatísticas totais
+  const totalStats = occupancyData.reduce(
+    (acc, pen) => ({
+      totalCapacity: acc.totalCapacity + pen.capacity,
+      totalOccupied: acc.totalOccupied + pen.occupied,
+      totalAvailable: acc.totalAvailable + pen.available,
+    }),
+    { totalCapacity: 0, totalOccupied: 0, totalAvailable: 0 }
+  );
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, []);
-
-  // Função para obter ocupação de um curral específico
-  const getPenOccupancy = (penId: string): PenOccupancy | null => {
-    return occupancyData.find(data => data.penId === penId) || null;
-  };
-
-  // Função para obter estatísticas gerais
-  const getOccupancyStats = () => {
-    const total = occupancyData.length;
-    const available = occupancyData.filter(p => p.status === 'available').length;
-    const partial = occupancyData.filter(p => p.status === 'partial').length;
-    const full = occupancyData.filter(p => p.status === 'full').length;
-    const maintenance = occupancyData.filter(p => p.status === 'maintenance').length;
-    
-    const totalCapacity = occupancyData.reduce((sum, p) => sum + p.capacity, 0);
-    const totalOccupancy = occupancyData.reduce((sum, p) => sum + p.currentOccupancy, 0);
-    const overallOccupancyRate = totalCapacity > 0 ? (totalOccupancy / totalCapacity) * 100 : 0;
-
-    return {
-      total,
-      available,
-      partial,
-      full,
-      maintenance,
-      totalCapacity,
-      totalOccupancy,
-      overallOccupancyRate
-    };
-  };
+  const overallOccupancyRate = totalStats.totalCapacity > 0
+    ? (totalStats.totalOccupied / totalStats.totalCapacity) * 100
+    : 0;
 
   return {
     occupancyData,
     loading,
     error,
-    isConnected,
-    getPenOccupancy,
-    getOccupancyStats,
-    refresh: loadInitialData
+    refresh,
+    totalStats: {
+      ...totalStats,
+      occupancyRate: overallOccupancyRate,
+    },
   };
 };

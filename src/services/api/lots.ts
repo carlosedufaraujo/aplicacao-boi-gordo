@@ -1,6 +1,6 @@
 // Serviço para Lotes e Mapa de Currais
 import { apiRequest } from './index';
-import { CattleLot, LotMovement, WeightReading, HealthRecord, PenAllocation, LoteCurralLink } from '../../types';
+import { CattlePurchase, LotMovement, WeightReading, HealthRecord, PenAllocation, LoteCurralLink } from '../../types';
 
 interface LotStats {
   total: number;
@@ -23,7 +23,7 @@ interface PenMap {
     lots: {
       id: string;
       lotNumber: string;
-      quantity: number;
+      currentQuantity: number;
       averageWeight: number;
       daysConfined: number;
     }[];
@@ -45,7 +45,7 @@ export const lotsService = {
       penId?: string;
       startDate?: Date;
       endDate?: Date;
-    }): Promise<CattleLot[]> => {
+    }): Promise<CattlePurchase[]> => {
       const params = new URLSearchParams();
       if (filters) {
         Object.entries(filters).forEach(([key, value]) => {
@@ -53,22 +53,22 @@ export const lotsService = {
         });
       }
       const endpoint = params.toString() ? `/lots?${params}` : '/lots';
-      return apiRequest<CattleLot[]>(endpoint);
+      return apiRequest<CattlePurchase[]>(endpoint);
     },
 
-    getById: async (id: string): Promise<CattleLot> => {
-      return apiRequest<CattleLot>(`/lots/${id}`);
+    getById: async (id: string): Promise<CattlePurchase> => {
+      return apiRequest<CattlePurchase>(`/lots/${id}`);
     },
 
-    create: async (data: Omit<CattleLot, 'id' | 'createdAt' | 'updatedAt'>): Promise<CattleLot> => {
-      return apiRequest<CattleLot>('/lots', {
+    create: async (data: Omit<CattlePurchase, 'id' | 'createdAt' | 'updatedAt'>): Promise<CattlePurchase> => {
+      return apiRequest<CattlePurchase>('/lots', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
 
-    update: async (id: string, data: Partial<CattleLot>): Promise<CattleLot> => {
-      return apiRequest<CattleLot>(`/lots/${id}`, {
+    update: async (id: string, data: Partial<CattlePurchase>): Promise<CattlePurchase> => {
+      return apiRequest<CattlePurchase>(`/lots/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       });
@@ -83,7 +83,7 @@ export const lotsService = {
     // Obter estatísticas do lote
     getStats: async (id: string): Promise<{
       currentWeight: number;
-      weightGain: number;
+      currentWeightGain: number;
       dailyGainAverage: number;
       feedConversion: number;
       mortality: number;
@@ -140,7 +140,7 @@ export const lotsService = {
       lotId: string;
       fromPenId: string;
       toPenId: string;
-      quantity: number;
+      currentQuantity: number;
       reason?: string;
     }): Promise<LotMovement> => {
       return apiRequest<LotMovement>('/lot-movements/transfer', {
@@ -153,7 +153,7 @@ export const lotsService = {
     registerDeath: async (data: {
       lotId: string;
       penId: string;
-      quantity: number;
+      currentQuantity: number;
       cause: string;
       date: Date;
       observations?: string;
@@ -166,32 +166,32 @@ export const lotsService = {
   },
 
   // ===== PESAGENS =====
-  weightReadings: {
+  currentWeightReadings: {
     getAll: async (lotId?: string): Promise<WeightReading[]> => {
-      const endpoint = lotId ? `/weight-readings?lotId=${lotId}` : '/weight-readings';
+      const endpoint = lotId ? `/currentWeight-readings?lotId=${lotId}` : '/currentWeight-readings';
       return apiRequest<WeightReading[]>(endpoint);
     },
 
     getById: async (id: string): Promise<WeightReading> => {
-      return apiRequest<WeightReading>(`/weight-readings/${id}`);
+      return apiRequest<WeightReading>(`/currentWeight-readings/${id}`);
     },
 
     create: async (data: Omit<WeightReading, 'id' | 'createdAt'>): Promise<WeightReading> => {
-      return apiRequest<WeightReading>('/weight-readings', {
+      return apiRequest<WeightReading>('/currentWeight-readings', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
 
     update: async (id: string, data: Partial<WeightReading>): Promise<WeightReading> => {
-      return apiRequest<WeightReading>(`/weight-readings/${id}`, {
+      return apiRequest<WeightReading>(`/currentWeight-readings/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       });
     },
 
     delete: async (id: string): Promise<void> => {
-      return apiRequest<void>(`/weight-readings/${id}`, {
+      return apiRequest<void>(`/currentWeight-readings/${id}`, {
         method: 'DELETE',
       });
     },
@@ -201,12 +201,12 @@ export const lotsService = {
       lotId: string;
       readings: {
         animalId?: string;
-        weight: number;
+        currentWeight: number;
         observations?: string;
       }[];
       date: Date;
     }): Promise<WeightReading[]> => {
-      return apiRequest<WeightReading[]>('/weight-readings/batch', {
+      return apiRequest<WeightReading[]>('/currentWeight-readings/batch', {
         method: 'POST',
         body: JSON.stringify(data),
       });
@@ -282,7 +282,7 @@ export const lotsService = {
       lotId: string;
       allocations: {
         penId: string;
-        quantity: number;
+        currentQuantity: number;
       }[];
     }): Promise<PenAllocation[]> => {
       return apiRequest<PenAllocation[]>('/pen-allocations/allocate', {

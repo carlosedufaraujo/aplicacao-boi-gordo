@@ -40,12 +40,12 @@ export const FinancialCenterManagement: React.FC = () => {
     costCenters, 
     expenses, 
     costAllocations,
-    cattleLots,
+    cattlePurchases,
     penRegistrations,
     cashFlowEntries,
     financialContributions,
     saleRecords,
-    purchaseOrders,
+    cattlePurchases,
     partners,
     addCostCenter,
     addExpense,
@@ -118,7 +118,7 @@ export const FinancialCenterManagement: React.FC = () => {
       if (expense.category === 'animal_purchase') {
         const orderCode = expense.description?.match(/X\d{4}/)?.[0];
         if (orderCode) {
-          return purchaseOrders.some(order => order.code === orderCode);
+          return cattlePurchases.some(order => order.code === orderCode);
         }
         return false; // Não incluir compras sem código de ordem
       }
@@ -126,15 +126,15 @@ export const FinancialCenterManagement: React.FC = () => {
     });
     
     // Filtrar ordens de compra manualmente pois usa date ao invés de outro campo
-    const filteredPurchaseOrders = dateRange 
-      ? purchaseOrders.filter(order => {
-          const orderDate = new Date(order.date);
-          return isWithinInterval(orderDate, dateRange);
+    const filteredCattlePurchases = dateRange 
+      ? cattlePurchases.filter(order => {
+          const purchaseDate = new Date(order.date);
+          return isWithinInterval(purchaseDate, dateRange);
         })
-      : purchaseOrders;
+      : cattlePurchases;
     
     // Adicionar compras de gado ao total de aquisição
-    const cattlePurchases = filteredPurchaseOrders
+    const cattlePurchases = filteredCattlePurchases
       .filter(order => order.status === 'payment_validation' || order.status === 'reception' || order.status === 'confined')
       .reduce((sum, order) => {
         const totalCost = (order.totalWeight / 15) * order.pricePerArroba + order.commission + order.taxes + order.otherCosts;
@@ -152,13 +152,13 @@ export const FinancialCenterManagement: React.FC = () => {
       if (!hasAllocation) {
         // Só adicionar se não tiver alocação para evitar duplicação
         if (expense.category === 'animal_purchase' || expense.category === 'commission' || expense.category === 'freight') {
-          totals.acquisition += expense.totalAmount;
+          totals.acquisition += expense.purchaseValue;
         } else if (expense.category === 'feed' || expense.category === 'health_costs' || expense.category === 'operational_costs') {
-          totals.fattening += expense.totalAmount;
+          totals.fattening += expense.purchaseValue;
         } else if (expense.category === 'general_admin' || expense.category === 'personnel' || expense.category === 'office') {
-          totals.administrative += expense.totalAmount;
+          totals.administrative += expense.purchaseValue;
         } else if (expense.category === 'taxes' || expense.category === 'interest' || expense.category === 'fees') {
-          totals.financial += expense.totalAmount;
+          totals.financial += expense.purchaseValue;
         }
       }
     });
@@ -172,13 +172,13 @@ export const FinancialCenterManagement: React.FC = () => {
             alloc.costCenterId === center.id
           )
         )
-        .reduce((sum, expense) => sum + expense.totalAmount, 0);
+        .reduce((sum, expense) => sum + expense.purchaseValue, 0);
       
       totals[center.type] += centerExpenses;
     });
     
     return totals;
-  }, [expenses, costCenters, purchaseOrders, selectedPeriod]);
+  }, [expenses, costCenters, cattlePurchases, selectedPeriod]);
 
   // Calcular totais por tipo - RECEITAS
   const revenuesByType = useMemo(() => {
@@ -253,9 +253,9 @@ export const FinancialCenterManagement: React.FC = () => {
             label: 'Venda de Gado', 
             expenses: saleRecords.map(sale => ({
               id: sale.id,
-              description: `Venda Lote ${cattleLots.find(l => l.id === sale.lotId)?.lotNumber}`,
+              description: `Venda Lote ${cattlePurchases.find(l => l.id === sale.lotId)?.lotNumber}`,
               date: sale.saleDate,
-              totalAmount: sale.grossRevenue,
+              purchaseValue: sale.grossRevenue,
               status: sale.paymentType === 'cash' ? 'paid' : 'pending'
             }))
           }
@@ -268,7 +268,7 @@ export const FinancialCenterManagement: React.FC = () => {
               id: entry.id,
               description: entry.description,
               date: entry.date,
-              totalAmount: entry.actualAmount || entry.plannedAmount,
+              purchaseValue: entry.actualAmount || entry.plannedAmount,
               status: entry.status
             }))
           }
@@ -281,7 +281,7 @@ export const FinancialCenterManagement: React.FC = () => {
               id: contrib.id,
               description: `Financiamento - ${contrib.contributorName}`,
               date: contrib.date,
-              totalAmount: contrib.amount,
+              purchaseValue: contrib.amount,
               status: contrib.status
             }))
           }
@@ -294,7 +294,7 @@ export const FinancialCenterManagement: React.FC = () => {
               id: entry.id,
               description: entry.description,
               date: entry.date,
-              totalAmount: entry.actualAmount || entry.plannedAmount,
+              purchaseValue: entry.actualAmount || entry.plannedAmount,
               status: entry.status
             }))
           }
@@ -311,7 +311,7 @@ export const FinancialCenterManagement: React.FC = () => {
               if (e.category === 'animal_purchase') {
                 const orderCode = e.description?.match(/X\d{4}/)?.[0];
                 if (orderCode) {
-                  return purchaseOrders.some(order => order.code === orderCode);
+                  return cattlePurchases.some(order => order.code === orderCode);
                 }
                 return false;
               }
@@ -501,7 +501,7 @@ export const FinancialCenterManagement: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {subcategories.map(subcategory => {
                   const total = subcategory.expenses.reduce((sum, expense: any) => {
-                    if (expense.totalAmount) return sum + expense.totalAmount;
+                    if (expense.purchaseValue) return sum + expense.purchaseValue;
                     if (expense.amount) return sum + expense.amount;
                     if (expense.plannedAmount) return sum + expense.plannedAmount;
                     return sum;
@@ -547,7 +547,7 @@ export const FinancialCenterManagement: React.FC = () => {
                         </div>
                         <div className="text-right">
                           <p className={`font-bold text-sm ${isRevenue ? 'text-success-600' : 'text-error-600'}`}>
-                            {isRevenue ? '+' : '-'}R$ {(expense.totalAmount || expense.amount || expense.plannedAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            {isRevenue ? '+' : '-'}R$ {(expense.purchaseValue || expense.amount || expense.plannedAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                           </p>
                           <p className="text-xs text-neutral-500">
                             {expense.paymentStatus || expense.status || 'N/A'}
@@ -600,7 +600,7 @@ export const FinancialCenterManagement: React.FC = () => {
     };
     
     const totals = isRevenue ? revenuesByType : expensesByType;
-    const totalAmount = totals[type as keyof typeof totals] || 0;
+    const purchaseValue = totals[type as keyof typeof totals] || 0;
     
     return (
       <div className="space-y-3">
@@ -625,7 +625,7 @@ export const FinancialCenterManagement: React.FC = () => {
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-lg font-bold text-b3x-navy-900">
-                {formatCompactCurrency(totalAmount )}
+                {formatCompactCurrency(purchaseValue )}
               </div>
               <ChevronRight className="w-4 h-4 text-neutral-600" />
             </div>
@@ -1089,13 +1089,13 @@ export const FinancialCenterManagement: React.FC = () => {
                          if (expense.category === 'animal_purchase') {
                            const orderCode = expense.description?.match(/X\d{4}/)?.[0];
                            if (orderCode) {
-                             return purchaseOrders.some(order => order.code === orderCode);
+                             return cattlePurchases.some(order => order.code === orderCode);
                            }
                            return false; // Não mostrar compras sem código de ordem
                          }
                          return true; // Mostrar todas as outras despesas
                        })
-                       .map(e => ({ ...e, movType: 'saida', movValue: -e.totalAmount })),
+                       .map(e => ({ ...e, movType: 'saida', movValue: -e.purchaseValue })),
                      // Entradas do fluxo de caixa
                      ...filterByPeriod(cashFlowEntries.filter(e => ['receita', 'aporte', 'financiamento'].includes(e.type)))
                         .map(e => ({ ...e, movType: 'entrada', movValue: e.actualAmount || e.plannedAmount })),
@@ -1109,7 +1109,7 @@ export const FinancialCenterManagement: React.FC = () => {
                      ).map(sale => ({
                        ...sale,
                        date: sale.saleDate,
-                       description: `Venda Lote ${cattleLots.find(l => l.id === sale.lotId)?.lotNumber || sale.lotId}`,
+                       description: `Venda Lote ${cattlePurchases.find(l => l.id === sale.lotId)?.lotNumber || sale.lotId}`,
                        movType: 'entrada',
                        movValue: sale.grossRevenue,
                        category: 'vendas',
@@ -1372,7 +1372,7 @@ export const FinancialCenterManagement: React.FC = () => {
                 if (expense.category === 'animal_purchase') {
                   const orderCode = expense.description?.match(/X\d{4}/)?.[0];
                   if (orderCode) {
-                    return purchaseOrders.some(order => order.code === orderCode);
+                    return cattlePurchases.some(order => order.code === orderCode);
                   }
                   return false; // Não mostrar compras sem código de ordem
                 }
@@ -1416,7 +1416,7 @@ export const FinancialCenterManagement: React.FC = () => {
                   }
                 },
                 {
-                  key: 'totalAmount',
+                  key: 'purchaseValue',
                   label: 'Valor',
                   sortable: true,
                   render: (value: number) => (
@@ -1741,7 +1741,7 @@ export const FinancialCenterManagement: React.FC = () => {
             </div>
             
             <TableWithPagination
-              data={[...filterByPeriod(expenses).map(e => ({ ...e, type: 'saida', amount: -e.totalAmount })),
+              data={[...filterByPeriod(expenses).map(e => ({ ...e, type: 'saida', amount: -e.purchaseValue })),
                      ...filterByPeriod(cashFlowEntries.filter(e => ['receita', 'aporte', 'financiamento'].includes(e.type)))
                         .map(e => ({ ...e, type: 'entrada', amount: e.actualAmount || e.plannedAmount }))]
                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())}
@@ -1989,7 +1989,7 @@ export const FinancialCenterManagement: React.FC = () => {
                         <div key={sale.id} className="flex justify-between items-center p-2 hover:bg-neutral-50 rounded">
                           <div>
                             <p className="font-medium text-sm text-b3x-navy-900">
-                              Venda Lote {cattleLots.find(l => l.id === sale.lotId)?.lotNumber || sale.lotId}
+                              Venda Lote {cattlePurchases.find(l => l.id === sale.lotId)?.lotNumber || sale.lotId}
                             </p>
                             <p className="text-xs text-neutral-600">
                               {format(new Date(sale.saleDate), 'dd/MM/yyyy')} • Vendas
@@ -2326,7 +2326,7 @@ export const FinancialCenterManagement: React.FC = () => {
                           if (expense.category === 'animal_purchase') {
                             const orderCode = expense.description?.match(/X\d{4}/)?.[0];
                             if (orderCode) {
-                              return purchaseOrders.some(order => order.code === orderCode);
+                              return cattlePurchases.some(order => order.code === orderCode);
                             }
                             return false;
                           }
@@ -2349,7 +2349,7 @@ export const FinancialCenterManagement: React.FC = () => {
                             </div>
                             <div className="text-right">
                               <p className="font-bold text-error-600">
-                                -R$ {expense.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                -R$ {expense.purchaseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                               </p>
                               <p className="text-xs text-neutral-500">
                                 {expense.paymentStatus === 'paid' ? 'Pago' : 'Pendente'}

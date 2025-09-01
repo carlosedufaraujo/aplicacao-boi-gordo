@@ -117,20 +117,20 @@ export class PayerAccountService {
 
   async getStats() {
     const accounts = await this.accountRepository.findAll({});
-    const total = accounts.data.length;
-    const totalBalance = accounts.data.reduce((sum, acc) => sum + acc.balance, 0);
+    const total = accounts.items.length;
+    const totalBalance = accounts.items.reduce((sum: number, acc) => sum + acc.balance, 0);
     
     const byType = {
-      CHECKING: accounts.data.filter(a => a.accountType === 'CHECKING').length,
-      SAVINGS: accounts.data.filter(a => a.accountType === 'SAVINGS').length,
-      INVESTMENT: accounts.data.filter(a => a.accountType === 'INVESTMENT').length,
-      CREDIT: accounts.data.filter(a => a.accountType === 'CREDIT').length,
+      CHECKING: accounts.items.filter(a => a.accountType === 'CHECKING').length,
+      SAVINGS: accounts.items.filter(a => a.accountType === 'SAVINGS').length,
+      INVESTMENT: accounts.items.filter(a => a.accountType === 'INVESTMENT').length,
+      CREDIT: accounts.items.filter(a => (a.accountType as any) === 'CREDIT').length,
     };
 
     return {
       total,
-      active: accounts.data.filter(a => a.isActive).length,
-      inactive: accounts.data.filter(a => !a.isActive).length,
+      active: accounts.items.filter(a => a.isActive).length,
+      inactive: accounts.items.filter(a => !a.isActive).length,
       totalBalance,
       averageBalance: total > 0 ? totalBalance / total : 0,
       byType

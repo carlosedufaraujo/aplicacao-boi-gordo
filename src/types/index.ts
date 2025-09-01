@@ -100,7 +100,7 @@ export interface PenAllocation {
   id: string;
   penNumber: string;
   lotId: string;
-  quantity: number;
+  currentQuantity: number;
   entryWeight: number;
   entryDate: Date;
   createdAt: Date;
@@ -113,7 +113,7 @@ export interface SaleRecord {
   slaughterhouseId: string;
   saleDate: Date;
   animalType: 'male' | 'female';
-  quantity: number;
+  currentQuantity: number;
   totalWeight: number;
   pricePerArroba: number;
   grossRevenue: number;
@@ -131,7 +131,7 @@ export interface SaleRecord {
   reconciled?: boolean;
 }
 
-export interface PurchaseOrder {
+export interface CattlePurchase {
   id: string;
   code: string; // ACXENG0001, ACXENG0002, etc.
   cycleId: string;
@@ -140,7 +140,7 @@ export interface PurchaseOrder {
   brokerId?: string;
   city: string;
   state: string;
-  quantity: number;
+  currentQuantity: number;
   animalType: 'male' | 'female';
   estimatedAge: number; // in months
   totalWeight: number; // in kg - PESO VIVO
@@ -171,17 +171,17 @@ export interface PurchaseOrder {
   updatedAt: Date;
 }
 
-export interface CattleLot {
+export interface CattlePurchase {
   id: string;
   lotNumber: string;
-  purchaseOrderId: string;
+  purchaseId: string;
   // Dados de entrada (imutáveis após criação)
   entryWeight: number;
   entryQuantity: number;
-  quantityDifference?: number;
-  quantityDifferenceReason?: string;
-  freightKm: number;
-  freightCostPerKm: number;
+  currentQuantityDifference?: number;
+  currentQuantityDifferenceReason?: string;
+  freightKm?: number;
+  freightCostPerKm?: number;
   transportCompany?: string;
   entryDate: Date;
   cocoEntryDate?: Date;
@@ -193,7 +193,7 @@ export interface CattleLot {
   // Status e contadores
   deaths: number;
   observations?: string;
-  status: 'active' | 'sold' | 'slaughtered';
+  status: 'order' | 'payment_validation' | 'reception' | 'confined' | 'active' | 'sold' | 'slaughtered';
   // 🆕 REMOVIDO: penNumber (agora gerenciado via LoteCurralLink)
   // 🆕 NOVO: Custos acumulados
   custoAcumulado: {
@@ -220,9 +220,9 @@ export interface WeightReading {
   lotId: string;
   penNumber: string; // NOVO: Curral onde a pesagem foi realizada
   date: Date;
-  sampleWeight: number; // total weight of sample
+  sampleWeight: number; // total currentWeight of sample
   sampleQuantity: number; // number of animals in sample
-  averageWeight: number; // calculated average weight per animal
+  averageWeight: number; // calculated average currentWeight per animal
   technician?: string;
   observations?: string;
   createdAt: Date;
@@ -248,7 +248,7 @@ export interface FeedCost {
   penNumber: string; // NOVO: Curral onde o alimento foi fornecido
   date: Date;
   feedType: string;
-  quantity: number; // in kg or tons
+  currentQuantity: number; // in kg or tons
   costPerUnit: number;
   totalCost: number;
   supplier?: string;
@@ -263,7 +263,7 @@ export interface LotMovement {
   fromPen?: string;
   toPen: string;
   date: Date;
-  quantity: number;
+  currentQuantity: number;
   reason: string;
   observations?: string;
   createdAt: Date;
@@ -351,7 +351,7 @@ export interface Debt {
 
 export interface ZootechnicalPerformance {
   lotId: string;
-  gmd: number; // daily weight gain
+  gmd: number; // daily currentWeight gain
   feedConversion: number;
   daysInConfinement: number;
   mortality: number; // percentage
@@ -462,7 +462,7 @@ export interface CostAllocation {
   percentage: number;
   // ATUALIZADO: Novos métodos de alocação
   allocationMethod: 'manual_value' | 'percentage_allocation' | 'equal_split';
-  allocationBasis?: string; // e.g., 'animal_count', 'weight', 'area'
+  allocationBasis?: string; // e.g., 'animal_count', 'currentWeight', 'area'
   notes?: string;
   createdAt: Date;
 }
@@ -471,13 +471,13 @@ export interface CostAllocation {
 export interface NonCashExpense {
   id: string;
   date: Date;
-  type: 'mortality' | 'weight_loss' | 'inventory_adjustment' | 'depreciation' | 'provision';
+  type: 'mortality' | 'currentWeight_loss' | 'inventory_adjustment' | 'depreciation' | 'provision';
   description: string;
   relatedEntityType: 'cattle_lot' | 'pen' | 'equipment' | 'other';
   relatedEntityId: string;
   // Valores
-  quantity?: number; // Para mortalidade
-  weightLoss?: number; // Para quebra de peso
+  currentQuantity?: number; // Para mortalidade
+  currentWeightLoss?: number; // Para quebra de peso
   monetaryValue: number; // Valor monetário do prejuízo/ajuste
   // Detalhes específicos
   mortalityDetails?: {
@@ -485,7 +485,7 @@ export interface NonCashExpense {
     veterinarianReport?: string;
     insuranceClaim?: boolean;
   };
-  weightLossDetails?: {
+  currentWeightLossDetails?: {
     expectedWeight: number;
     actualWeight: number;
     lossPercentage: number;
@@ -512,7 +512,7 @@ export interface Expense {
     // Aquisição
     | 'animal_purchase' | 'commission' | 'freight' | 'acquisition_other'
     // Engorda
-    | 'feed' | 'health_costs' | 'operational_costs' | 'fattening_other' | 'deaths' | 'weight_loss'
+    | 'feed' | 'health_costs' | 'operational_costs' | 'fattening_other' | 'deaths' | 'currentWeight_loss'
     // Administrativo
     | 'general_admin' | 'marketing' | 'accounting' | 'personnel' | 'office' | 'services' | 'technology' | 'admin_other' | 'depreciation'
     // Financeiro
@@ -523,7 +523,7 @@ export interface Expense {
     | 'cattle_sales' | 'service_revenue' | 'byproduct_sales' | 'other_revenue'
     // Aportes e Financiamentos
     | 'partner_contribution' | 'partner_loan' | 'bank_financing' | 'external_investor';
-  totalAmount: number;
+  purchaseValue: number;
   supplierId?: string;
   invoiceNumber?: string;
   // MODELO HÍBRIDO: Substituindo paymentStatus e paymentDate
@@ -561,7 +561,7 @@ export const EXPENSE_CATEGORIES: ExpenseCategoryConfig[] = [
   { category: 'health_costs', name: 'Sanidade', costCenter: 'fattening', impactsCashFlow: true },
   { category: 'operational_costs', name: 'Custos Operacionais', costCenter: 'fattening', impactsCashFlow: true },
   { category: 'deaths', name: 'Mortalidade', costCenter: 'fattening', impactsCashFlow: false },
-  { category: 'weight_loss', name: 'Quebra de Peso', costCenter: 'fattening', impactsCashFlow: false },
+  { category: 'currentWeight_loss', name: 'Quebra de Peso', costCenter: 'fattening', impactsCashFlow: false },
   { category: 'fattening_other', name: 'Outros Engorda', costCenter: 'fattening', impactsCashFlow: true },
   
   // Administrativo
@@ -656,7 +656,7 @@ export interface Notification {
   message: string;
   type: 'info' | 'success' | 'warning' | 'error';
   isRead: boolean;
-  relatedEntityType?: 'purchase_order' | 'cattle_lot' | 'health_record' | 'feed_cost' | 'financial_account' | 'sale_record' | 'pen' | 'weight_reading';
+  relatedEntityType?: 'purchase_order' | 'cattle_lot' | 'health_record' | 'feed_cost' | 'financial_account' | 'sale_record' | 'pen' | 'currentWeight_reading';
   relatedEntityId?: string;
   actionUrl?: string;
   createdAt: Date;
@@ -693,14 +693,14 @@ export interface UpdateFeedback {
 }
 
 // Form types for better type safety
-export interface PurchaseOrderFormData {
+export interface CattlePurchaseFormData {
   cycleId: string;
   date: Date;
   vendorId: string;
   brokerId?: string;
   city: string;
   state: string;
-  quantity: number;
+  currentQuantity: number;
   animalType: 'male' | 'female';
   estimatedAge: number;
   totalWeight: number;
@@ -721,13 +721,13 @@ export interface PurchaseOrderFormData {
   observations?: string;
 }
 
-export interface CattleLotFormData {
-  purchaseOrderId: string;
+export interface CattlePurchaseFormData {
+  purchaseId: string;
   entryWeight: number;
   entryQuantity: number;
-  quantityDifferenceReason?: string; // NOVO
-  freightKm: number;
-  freightCostPerKm: number;
+  currentQuantityDifferenceReason?: string; // NOVO
+  freightKm?: number;
+  freightCostPerKm?: number;
   transportCompany?: string; // NOVO: transportadora
   entryDate: Date;
   cocoEntryDate?: Date;
@@ -774,7 +774,7 @@ export interface PenRegistrationFormData {
 export interface PenAllocationFormData {
   penNumber: string;
   lotId: string;
-  quantity: number;
+  currentQuantity: number;
 }
 
 // 🆕 NOVA INTERFACE: Form para Registro de Venda
@@ -783,7 +783,7 @@ export interface SaleRecordFormData {
   slaughterhouseId: string;
   saleDate: Date;
   animalType: 'male' | 'female';
-  quantity: number;
+  currentQuantity: number;
   totalWeight: number;
   pricePerArroba: number;
   paymentType: 'cash' | 'installment';
@@ -821,7 +821,7 @@ export interface LotMovementFormData {
   penNumber: string; // NOVO: Curral de origem
   fromPen?: string;
   toPen: string;
-  quantity: number;
+  currentQuantity: number;
   reason: string;
   observations?: string;
 }
@@ -835,7 +835,7 @@ export interface ExpenseFormData {
     // Aquisição
     | 'animal_purchase' | 'commission' | 'freight' | 'acquisition_other'
     // Engorda
-    | 'feed' | 'health_costs' | 'operational_costs' | 'fattening_other' | 'deaths' | 'weight_loss'
+    | 'feed' | 'health_costs' | 'operational_costs' | 'fattening_other' | 'deaths' | 'currentWeight_loss'
     // Administrativo
     | 'general_admin' | 'marketing' | 'accounting' | 'personnel' | 'office' | 'services' | 'technology' | 'admin_other' | 'depreciation'
     // Financeiro
@@ -846,7 +846,7 @@ export interface ExpenseFormData {
     | 'cattle_sales' | 'service_revenue' | 'byproduct_sales' | 'other_revenue'
     // Aportes e Financiamentos
     | 'partner_contribution' | 'partner_loan' | 'bank_financing' | 'external_investor';
-  totalAmount: number;
+  purchaseValue: number;
   supplierId?: string;
   invoiceNumber?: string;
   // MODELO HÍBRIDO
@@ -1151,7 +1151,7 @@ export interface DREStatement {
     health: number; // Sanidade
     freight: number; // Frete
     mortality: number; // Perdas por mortalidade (não-caixa)
-    weightLoss: number; // Perdas por quebra de peso (não-caixa)
+    currentWeightLoss: number; // Perdas por quebra de peso (não-caixa)
     total: number;
   };
   
@@ -1252,11 +1252,11 @@ export interface IndirectCostAllocation {
     startDate: Date;
     endDate: Date;
   };
-  totalAmount: number;
+  purchaseValue: number;
   costType: 'administrative' | 'financial' | 'operational' | 'marketing' | 'other';
   
   // Método de rateio
-  allocationMethod: 'by_heads' | 'by_value' | 'by_days' | 'by_weight' | 'custom';
+  allocationMethod: 'by_heads' | 'by_value' | 'by_days' | 'by_currentWeight' | 'custom';
   
   // Base de cálculo para o rateio
   allocationBasis?: {
@@ -1275,7 +1275,7 @@ export interface IndirectCostAllocation {
     heads?: number;
     value?: number;
     days?: number;
-    weight?: number;
+    currentWeight?: number;
     // Resultado do rateio
     percentage: number;
     allocatedAmount: number;
@@ -1294,8 +1294,8 @@ export interface IndirectCostAllocation {
   updatedAt: Date;
 }
 
-// Definição das categorias de despesas
-export const EXPENSE_CATEGORIES = [
+// Definição das categorias de despesas (duplicado - usando a primeira definição)
+export const EXPENSE_CATEGORIES_DUPLICATE = [
   // Aquisição
   { category: 'animal_purchase', label: 'Compra de Animais', costCenter: 'acquisition', isRevenue: false },
   { category: 'commission', label: 'Comissão', costCenter: 'acquisition', isRevenue: false },
@@ -1308,7 +1308,7 @@ export const EXPENSE_CATEGORIES = [
   { category: 'operational_costs', label: 'Custos Operacionais', costCenter: 'fattening', isRevenue: false },
   { category: 'fattening_other', label: 'Outras - Engorda', costCenter: 'fattening', isRevenue: false },
   { category: 'deaths', label: 'Mortes', costCenter: 'fattening', isRevenue: false },
-  { category: 'weight_loss', label: 'Perda de Peso', costCenter: 'fattening', isRevenue: false },
+  { category: 'currentWeight_loss', label: 'Perda de Peso', costCenter: 'fattening', isRevenue: false },
   
   // Administrativo
   { category: 'general_admin', label: 'Administração Geral', costCenter: 'administrative', isRevenue: false },
@@ -1358,14 +1358,14 @@ export interface AllocationTemplate {
   name: string;
   description: string;
   costType: 'administrative' | 'financial' | 'operational' | 'marketing' | 'other';
-  allocationMethod: 'by_heads' | 'by_value' | 'by_days' | 'by_weight' | 'custom';
+  allocationMethod: 'by_heads' | 'by_value' | 'by_days' | 'by_currentWeight' | 'custom';
   isActive: boolean;
   // Regras customizadas
   customRules?: {
     field: string;
     operator: 'equals' | 'contains' | 'greaterThan' | 'lessThan';
     value: string | number;
-    weight: number; // Peso na alocação
+    currentWeight: number; // Peso na alocação
   }[];
   createdAt: Date;
   updatedAt: Date;
@@ -1397,8 +1397,8 @@ export interface AllocationGenerationParams {
     startDate: Date;
     endDate: Date;
   };
-  totalAmount: number;
-  allocationMethod: 'by_heads' | 'by_value' | 'by_days' | 'by_weight' | 'custom';
+  purchaseValue: number;
+  allocationMethod: 'by_heads' | 'by_value' | 'by_days' | 'by_currentWeight' | 'custom';
   includeInactiveLots?: boolean;
   templateId?: string;
 }

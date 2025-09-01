@@ -8,7 +8,7 @@ import { PenAllocationFormData } from '../../types';
 
 const penAllocationSchema = z.object({
   lotId: z.string().min(1, 'Selecione um lote'),
-  quantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
+  currentQuantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
 });
 
 interface PenAllocationFormProps {
@@ -22,7 +22,7 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
   onClose,
   penNumber
 }) => {
-  const { cattleLots, penStatuses, addPenAllocation } = useAppStore();
+  const { cattlePurchases, penStatuses, addPenAllocation } = useAppStore();
 
   const {
     register,
@@ -34,16 +34,16 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
     resolver: zodResolver(penAllocationSchema),
     defaultValues: {
       penNumber,
-      quantity: 1
+      currentQuantity: 1
     }
   });
 
   const selectedLotId = watch('lotId');
-  const selectedLot = cattleLots.find(lot => lot.id === selectedLotId);
+  const selectedLot = cattlePurchases.find(lot => lot.id === selectedLotId);
   const pen = penStatuses.find(p => p.penNumber === penNumber);
   
   // Lotes confinados que ainda têm animais não totalmente alocados
-  const availableLots = cattleLots.filter(lot => lot.status === 'active');
+  const availableLots = cattlePurchases.filter(lot => lot.status === 'active');
 
   const handleFormSubmit = (data: PenAllocationFormData) => {
     if (!selectedLot) return;
@@ -51,8 +51,8 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
     addPenAllocation({
       penNumber,
       lotId: data.lotId,
-      quantity: data.quantity,
-      entryWeight: (selectedLot.entryWeight / selectedLot.entryQuantity) * data.quantity,
+      currentQuantity: data.currentQuantity,
+      entryWeight: (selectedLot.entryWeight / selectedLot.entryQuantity) * data.currentQuantity,
       entryDate: selectedLot.entryDate
     });
     
@@ -132,13 +132,13 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
             </label>
             <input
               type="number"
-              {...register('quantity', { valueAsNumber: true })}
+              {...register('currentQuantity', { valueAsNumber: true })}
               max={selectedLot ? selectedLot.entryQuantity : undefined}
               className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
               placeholder={selectedLot ? `Máximo: ${selectedLot.entryQuantity}` : 'Selecione um lote primeiro'}
             />
-            {errors.quantity && (
-              <p className="text-error-500 text-xs mt-1">{errors.quantity.message}</p>
+            {errors.currentQuantity && (
+              <p className="text-error-500 text-xs mt-1">{errors.currentQuantity.message}</p>
             )}
           </div>
 

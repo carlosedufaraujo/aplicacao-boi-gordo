@@ -9,7 +9,7 @@ import { PenAllocationFormData } from '../../types';
 const penAllocationSchema = z.object({
   penNumber: z.string().min(1, 'Número do curral é obrigatório'),
   lotId: z.string().min(1, 'Selecione um lote'),
-  quantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
+  currentQuantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
 });
 
 interface PenAllocationFormProps {
@@ -23,7 +23,7 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
   onClose,
   penNumber
 }) => {
-  const { cattleLots, penStatuses, penAllocations, addPenAllocation, updateCattleLot } = useAppStore();
+  const { cattlePurchases, penStatuses, penAllocations, addPenAllocation, updateCattlePurchase } = useAppStore();
   const [availableLots, setAvailableLots] = useState<any[]>([]);
   const [existingAllocations, setExistingAllocations] = useState<any[]>([]);
 
@@ -39,19 +39,19 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
     defaultValues: {
       penNumber,
       lotId: '',
-      quantity: 1
+      currentQuantity: 1
     }
   });
 
   const selectedLotId = watch('lotId');
-  const selectedLot = cattleLots.find(lot => lot.id === selectedLotId);
+  const selectedLot = cattlePurchases.find(lot => lot.id === selectedLotId);
   const pen = penStatuses.find(p => p.penNumber === penNumber);
   
   // Atualizar a lista de lotes disponíveis quando o componente montar
   useEffect(() => {
     if (penNumber) {
       // Obter todos os lotes ativos
-      const activeLots = cattleLots.filter(lot => lot.status === 'active');
+      const activeLots = cattlePurchases.filter(lot => lot.status === 'active');
       
       // Obter alocações existentes para este curral
       const currentPenAllocations = penAllocations.filter(alloc => alloc.penNumber === penNumber);
@@ -66,7 +66,7 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
         const lotAllocations = penAllocations.filter(alloc => alloc.lotId === lot.id);
         
         // Calcular o total de animais já alocados
-        const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.quantity, 0);
+        const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.currentQuantity, 0);
         
         // Incluir lotes que:
         // 1. Já estão neste curral (para permitir adicionar mais animais)
@@ -76,18 +76,18 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
       
       setAvailableLots(lotsWithAvailableAnimals);
     }
-  }, [penNumber, cattleLots, penAllocations]);
+  }, [penNumber, cattlePurchases, penAllocations]);
 
   // Quando o lote é selecionado, atualizar a quantidade máxima
   useEffect(() => {
     if (selectedLotId) {
-      const lot = cattleLots.find(l => l.id === selectedLotId);
+      const lot = cattlePurchases.find(l => l.id === selectedLotId);
       if (lot) {
         // Obter todas as alocações existentes para este lote
         const lotAllocations = penAllocations.filter(alloc => alloc.lotId === lot.id);
         
         // Calcular o total de animais já alocados
-        const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.quantity, 0);
+        const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.currentQuantity, 0);
         
         // Calcular quantos animais ainda estão disponíveis para alocar
         const availableQuantity = lot.entryQuantity - totalAllocated;
@@ -96,45 +96,45 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
         const penCapacityRemaining = pen ? pen.capacity - pen.currentAnimals : 0;
         const maxQuantity = Math.min(availableQuantity, penCapacityRemaining);
         
-        setValue('quantity', maxQuantity);
+        setValue('currentQuantity', maxQuantity);
       }
     }
-  }, [selectedLotId, cattleLots, penAllocations, pen, setValue]);
+  }, [selectedLotId, cattlePurchases, penAllocations, pen, setValue]);
 
   const handleFormSubmit = (data: PenAllocationFormData) => {
     if (!selectedLot) return;
 
     // Verificar se a quantidade não excede o disponível
     const lotAllocations = penAllocations.filter(alloc => alloc.lotId === data.lotId);
-    const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.quantity, 0);
+    const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.currentQuantity, 0);
     const availableQuantity = selectedLot.entryQuantity - totalAllocated;
     
-    if (data.quantity > availableQuantity) {
+    if (data.currentQuantity > availableQuantity) {
       alert(`Quantidade excede o disponível. Máximo disponível: ${availableQuantity} animais.`);
       return;
     }
 
     // Verificar se a capacidade do curral não será excedida
-    if (pen && pen.currentAnimals + data.quantity > pen.capacity) {
+    if (pen && pen.currentAnimals + data.currentQuantity > pen.capacity) {
       alert(`Capacidade do curral será excedida. Capacidade restante: ${pen.capacity - pen.currentAnimals} animais.`);
       return;
     }
 
     // Calcular o peso proporcional
-    const weightProportion = selectedLot.entryWeight / selectedLot.entryQuantity * data.quantity;
+    const currentWeightProportion = selectedLot.entryWeight / selectedLot.entryQuantity * data.currentQuantity;
 
     // Adicionar alocação
     addPenAllocation({
       penNumber: data.penNumber,
       lotId: data.lotId,
-      quantity: data.quantity,
-      entryWeight: weightProportion,
+      currentQuantity: data.currentQuantity,
+      entryWeight: currentWeightProportion,
       entryDate: new Date()
     });
 
     // Atualizar o curral no lote se for a primeira alocação
     if (!selectedLot.penNumber) {
-      updateCattleLot(selectedLot.id, { penNumber: data.penNumber });
+      updateCattlePurchase(selectedLot.id, { penNumber: data.penNumber });
     }
     
     reset();
@@ -192,11 +192,11 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
                   </div>
                   <div className="space-y-1">
                     {existingAllocations.map(alloc => {
-                      const lot = cattleLots.find(l => l.id === alloc.lotId);
+                      const lot = cattlePurchases.find(l => l.id === alloc.lotId);
                       return (
                         <div key={alloc.id} className="flex justify-between text-xs">
                           <span>Lote {lot?.lotNumber || 'Desconhecido'}:</span>
-                          <span className="font-medium">{alloc.quantity} animais</span>
+                          <span className="font-medium">{alloc.currentQuantity} animais</span>
                         </div>
                       );
                     })}
@@ -219,7 +219,7 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
               {availableLots.map(lot => {
                 // Calcular animais já alocados
                 const lotAllocations = penAllocations.filter(alloc => alloc.lotId === lot.id);
-                const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.quantity, 0);
+                const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.currentQuantity, 0);
                 const availableQuantity = lot.entryQuantity - totalAllocated;
                 
                 // Verificar se este lote já está alocado neste curral
@@ -251,12 +251,12 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
             </label>
             <input
               type="number"
-              {...register('quantity', { valueAsNumber: true })}
+              {...register('currentQuantity', { valueAsNumber: true })}
               className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
               placeholder={selectedLot ? `Máximo: ${selectedLot.entryQuantity}` : 'Selecione um lote primeiro'}
             />
-            {errors.quantity && (
-              <p className="text-error-500 text-xs mt-1">{errors.quantity.message}</p>
+            {errors.currentQuantity && (
+              <p className="text-error-500 text-xs mt-1">{errors.currentQuantity.message}</p>
             )}
           </div>
 
@@ -299,7 +299,7 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
                     {penAllocations.filter(alloc => alloc.lotId === selectedLot.id).map(alloc => (
                       <div key={alloc.id} className="flex justify-between text-xs">
                         <span>Curral {alloc.penNumber}:</span>
-                        <span className="font-medium">{alloc.quantity} animais</span>
+                        <span className="font-medium">{alloc.currentQuantity} animais</span>
                       </div>
                     ))}
                     <div className="border-t border-warning-200 pt-1 mt-1 flex justify-between text-xs font-medium">
@@ -307,7 +307,7 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
                       <span>
                         {penAllocations
                           .filter(alloc => alloc.lotId === selectedLot.id)
-                          .reduce((sum, alloc) => sum + alloc.quantity, 0)} 
+                          .reduce((sum, alloc) => sum + alloc.currentQuantity, 0)} 
                         de {selectedLot.entryQuantity} animais
                       </span>
                     </div>

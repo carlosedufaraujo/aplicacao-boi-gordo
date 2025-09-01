@@ -35,7 +35,7 @@ export const enhancedValidation = (schema: ValidationSchema) => {
         });
 
         if (error) {
-          // error.details.map((detail) => ({
+          // error.details.map((detail: any) => ({
           //   field: detail.path.join('.'),
           //   message: detail.message,
           //   type: detail.type,
@@ -55,7 +55,7 @@ export const enhancedValidation = (schema: ValidationSchema) => {
         });
 
         if (error) {
-          // error.details.map((detail) => ({
+          // error.details.map((detail: any) => ({
           //   field: detail.path.join('.'),
           //   message: detail.message,
           //   type: detail.type,

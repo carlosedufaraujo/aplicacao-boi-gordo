@@ -29,7 +29,7 @@ export function validate(
 
     if (error) {
       const errorMessage = error.details
-        .map((detail) => detail.message)
+        .map((detail: any) => detail.message)
         .join(', ');
       
       return next(new ValidationError(errorMessage));
@@ -44,7 +44,7 @@ export function validate(
 // Middleware para express-validator
 import { validationResult } from 'express-validator';
 
-export function validateRequest(_req: Request, res: Response, next: NextFunction): void {
+export function validateRequest(req: Request, _res: Response, next: NextFunction): void {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return next(new ValidationError(
@@ -73,8 +73,8 @@ export const commonSchemas = {
     endDate: Joi.date().iso().min(Joi.ref('startDate')),
   }),
   
-  // CPF/CNPJ
-  cpfCnpj: Joi.string().pattern(/^[0-9]{11}$|^[0-9]{14}$/),
+  // CPF/CNPJ (aceita 11 dígitos para CPF, 14 para CNPJ, ou qualquer valor entre 10-15 dígitos para flexibilidade)
+  cpfCnpj: Joi.string().pattern(/^[0-9]{10,15}$/),
   
   // Telefone (aceita números nacionais e internacionais)
   phone: Joi.string().pattern(/^[0-9]{10,15}$/),

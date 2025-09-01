@@ -2,18 +2,18 @@
 // Mantido apenas para compatibilidade durante a migração
 // USE os hooks específicos em /hooks/api/ em vez deste arquivo
 
-import { useCattleLotsApi } from './api/useCattleLotsApi';
+import { useCattlePurchasesApi } from './api/useCattlePurchasesApi';
 import { usePartnersApi } from './api/usePartnersApi';
 import { usePensApi } from './api/usePensApi';
 import { useExpensesApi } from './api/useExpensesApi';
 import { useRevenuesApi } from './api/useRevenuesApi';
 import { usePayerAccountsApi } from './api/usePayerAccountsApi';
-import { usePurchaseOrdersApi } from './api/usePurchaseOrdersApi';
+import { useCattlePurchasesApi } from './api/useCattlePurchasesApi';
 
 // Re-export dos tipos para compatibilidade
 export type {
-  CattleLot,
-  PurchaseOrder,
+  CattlePurchase,
+  CattlePurchase,
   Partner,
   Pen,
   Cycle,
@@ -30,14 +30,9 @@ export type {
 // HOOKS MIGRADOS - Use os novos hooks diretamente
 // ============================================================================
 
-export const useCattleLots = () => {
-  console.warn('⚠️ useCattleLots está deprecado. Use useCattleLotsApi()');
-  return useCattleLotsApi();
-};
-
-export const usePurchaseOrders = () => {
-  console.warn('⚠️ usePurchaseOrders está deprecado. Use usePurchaseOrdersApi()');
-  return usePurchaseOrdersApi();
+export const useCattlePurchases = () => {
+  console.warn('⚠️ useCattlePurchases está deprecado. Use useCattlePurchasesApi()');
+  return useCattlePurchasesApi();
 };
 
 export const usePartners = () => {

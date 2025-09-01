@@ -2,10 +2,12 @@ import { Revenue } from '@prisma/client';
 import { RevenueRepository } from '@/repositories/revenue.repository';
 import { NotFoundError, ValidationError } from '@/utils/AppError';
 import { PaginationParams } from '@/repositories/base.repository';
+import { prisma } from '@/config/database';
 
 interface CreateRevenueData {
   category: string;
   costCenterId?: string;
+  cycleId?: string;
   description: string;
   totalAmount: number;
   dueDate: Date;
@@ -23,6 +25,7 @@ interface UpdateRevenueData extends Partial<CreateRevenueData> {
 interface RevenueFilters {
   category?: string;
   costCenterId?: string;
+  cycleId?: string;
   isReceived?: boolean;
   saleRecordId?: string;
   startDate?: Date;
@@ -58,6 +61,10 @@ export class RevenueService {
 
     if (filters.costCenterId) {
       where.costCenterId = filters.costCenterId;
+    }
+    
+    if (filters.cycleId) {
+      where.cycleId = filters.cycleId;
     }
 
     if (filters.isReceived !== undefined) {
@@ -127,12 +134,23 @@ export class RevenueService {
       throw new ValidationError('Categoria inválida');
     }
 
+    // Se não foi especificado um ciclo, buscar o ciclo ativo
+    let cycleId = data.cycleId;
+    if (!cycleId) {
+      const activeCycle = await prisma.cycle.findFirst({
+        where: { status: 'ACTIVE' }
+      });
+      cycleId = activeCycle?.id;
+    }
+
     const revenueData = {
       ...data,
+      cycleId,
       isReceived: false,
       userId,
       user: { connect: { id: userId } },
       costCenter: data.costCenterId ? { connect: { id: data.costCenterId } } : undefined,
+      cycle: cycleId ? { connect: { id: cycleId } } : undefined,
       payerAccount: data.payerAccountId ? { connect: { id: data.payerAccountId } } : undefined,
     };
 
@@ -221,9 +239,9 @@ export class RevenueService {
     const revenues = await this.findAll(filters || {}, { page: 1, limit: 1000 });
 
     const summary = {
-      total: revenues.items.reduce((sum, r) => sum + r.totalAmount, 0),
-      received: revenues.items.filter(r => r.isReceived).reduce((sum, r) => sum + r.totalAmount, 0),
-      pending: revenues.items.filter(r => !r.isReceived).reduce((sum, r) => sum + r.totalAmount, 0),
+      total: revenues.items.reduce((sum: number, r) => sum + r.totalAmount, 0),
+      received: revenues.items.filter(r => r.isReceived).reduce((sum: number, r) => sum + r.totalAmount, 0),
+      pending: revenues.items.filter(r => !r.isReceived).reduce((sum: number, r) => sum + r.totalAmount, 0),
       overdue: 0,
       count: revenues.total,
       receivedCount: revenues.items.filter(r => r.isReceived).length,
@@ -234,7 +252,7 @@ export class RevenueService {
     // Calcula vencidas
     const today = new Date();
     const overdue = revenues.items.filter(r => !r.isReceived && r.dueDate < today);
-    summary.overdue = overdue.reduce((sum, r) => sum + r.totalAmount, 0);
+    summary.overdue = overdue.reduce((sum: number, r) => sum + r.totalAmount, 0);
     summary.overdueCount = overdue.length;
 
     return summary;
@@ -284,7 +302,7 @@ export class RevenueService {
     return {
       recurring,
       projections,
-      totalProjected: projections.reduce((sum, p) => sum + p.total, 0),
+      totalProjected: projections.reduce((sum: number, p) => sum + p.total, 0),
     };
   }
 } 

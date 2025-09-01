@@ -3,13 +3,18 @@ import { CattlePurchaseRepository } from '@/repositories/cattlePurchase.reposito
 import { PenRepository } from '@/repositories/pen.repository';
 import { AppError } from '@/utils/AppError';
 import { prisma } from '@/config/database';
+import { CodeGeneratorService } from '@/services/codeGenerator.service';
 
 interface CreateCattlePurchaseData {
   vendorId: string;
   brokerId?: string;
   transportCompanyId?: string;
   payerAccountId: string;
+  cycleId?: string;
   location?: string;
+  city?: string;
+  state?: string;
+  farm?: string;
   purchaseDate: Date;
   animalType: 'MALE' | 'FEMALE' | 'MIXED';
   animalAge?: number;
@@ -30,8 +35,15 @@ interface RegisterReceptionData {
   receivedDate: Date;
   receivedWeight: number;
   actualQuantity: number;
+  freightDistance?: number;
+  freightCostPerKm?: number;
+  freightValue?: number;
+  transportCompanyId?: string;
+  estimatedGMD?: number;
   transportMortality?: number;
+  mortalityReason?: string;
   notes?: string;
+  penAllocations?: Array<{ penId: string; quantity: number }>;
 }
 
 interface MarkAsConfinedData {
@@ -49,8 +61,18 @@ export class CattlePurchaseService {
   }
 
   async create(data: CreateCattlePurchaseData) {
-    // Gerar código único
+    // Gerar códigos únicos
     const lotCode = await this.generateLotCode();
+    // Removido internalCode - usando apenas lotCode
+    
+    // Se não foi especificado um ciclo, buscar o ciclo ativo
+    let cycleId = data.cycleId;
+    if (!cycleId) {
+      const activeCycle = await prisma.cycle.findFirst({
+        where: { status: 'ACTIVE' }
+      });
+      cycleId = activeCycle?.id;
+    }
     
     // Calcular valor da compra
     const purchaseValue = (data.purchaseWeight / 30) * data.pricePerArroba;
@@ -62,14 +84,20 @@ export class CattlePurchaseService {
 
     return await this.repository.create({
       ...data,
+      cycleId,
       lotCode,
+      // internalCode removido
       purchaseValue,
       totalCost,
       currentQuantity: data.initialQuantity,
       status: 'CONFIRMED' as const,
       stage: 'confirmed',
       deathCount: 0,
-      averageWeight: data.purchaseWeight / data.initialQuantity
+      averageWeight: data.purchaseWeight / data.initialQuantity,
+      // Adicionar campos de localização
+      city: data.city,
+      state: data.state,
+      farm: data.farm
     });
   }
 
@@ -115,8 +143,8 @@ export class CattlePurchaseService {
   async registerReception(id: string, data: RegisterReceptionData) {
     const purchase = await this.findById(id);
     
-    if (purchase.status !== 'CONFIRMED') {
-      throw new AppError('Apenas compras confirmadas podem ser recepcionadas', 400);
+    if (purchase.status !== 'CONFIRMED' && purchase.status !== 'IN_TRANSIT') {
+      throw new AppError('Apenas compras confirmadas ou em trânsito podem ser recepcionadas', 400);
     }
 
     // Calcular quebra de peso
@@ -127,18 +155,97 @@ export class CattlePurchaseService {
     const transportMortality = data.transportMortality || 
                               (purchase.initialQuantity - data.actualQuantity);
 
-    return await this.repository.update(id, {
-      receivedDate: data.receivedDate,
-      receivedWeight: data.receivedWeight,
-      currentQuantity: data.actualQuantity,
-      transportMortality,
-      weightBreakPercentage,
-      deathCount: transportMortality,
-      status: 'RECEIVED' as const,
-      stage: 'received',
-      averageWeight: data.receivedWeight / data.actualQuantity,
-      notes: data.notes ? `${purchase.notes || ''}\n${data.notes}`.trim() : purchase.notes
-    });
+    // Se tiver alocações de curral, processar recepção e alocação juntas
+    if (data.penAllocations && data.penAllocations.length > 0) {
+      // Validar total de animais alocados
+      const totalAllocated = data.penAllocations.reduce((sum: number, alloc) => sum + alloc.quantity, 0);
+      if (totalAllocated !== data.actualQuantity) {
+        throw new AppError(`Total alocado (${totalAllocated}) deve ser igual à quantidade recebida (${data.actualQuantity})`, 400);
+      }
+
+      // Executar em transação
+      return await prisma.$transaction(async (tx) => {
+        // Atualizar compra para ACTIVE direto
+        const updatedPurchase = await tx.cattlePurchase.update({
+          where: { id },
+          data: {
+            receivedDate: data.receivedDate,
+            receivedWeight: data.receivedWeight,
+            currentQuantity: data.actualQuantity,
+            transportMortality,
+            weightBreakPercentage,
+            deathCount: transportMortality,
+            freightDistance: data.freightDistance || purchase.freightDistance,
+            freightCostPerKm: data.freightCostPerKm || purchase.freightCostPerKm,
+            freightCost: data.freightValue || purchase.freightCost,
+            transportCompanyId: data.transportCompanyId || purchase.transportCompanyId,
+            expectedGMD: data.estimatedGMD || purchase.expectedGMD,
+            status: 'ACTIVE' as const,
+            stage: 'confined',
+            averageWeight: data.receivedWeight / data.actualQuantity,
+            notes: [
+              purchase.notes,
+              data.mortalityReason ? `Motivo da mortalidade: ${data.mortalityReason}` : null,
+              data.notes
+            ].filter(Boolean).join('\n').trim() || null,
+            confinementDate: new Date()
+          },
+          include: {
+            vendor: true,
+            broker: true,
+            pens: true
+          }
+        });
+
+        // Criar alocações de curral
+        for (const allocation of data.penAllocations) {
+          await tx.lotPenLink.create({
+            data: {
+              purchaseId: id,
+              penId: allocation.penId,
+              quantity: allocation.quantity,
+              entryDate: new Date(),
+              status: 'ACTIVE'
+            }
+          });
+
+          // Atualizar ocupação do curral
+          await tx.pen.update({
+            where: { id: allocation.penId },
+            data: {
+              currentOccupancy: {
+                increment: allocation.quantity
+              }
+            }
+          });
+        }
+
+        return updatedPurchase;
+      });
+    } else {
+      // Apenas registrar recepção sem alocação (mantém compatibilidade)
+      return await this.repository.update(id, {
+        receivedDate: data.receivedDate,
+        receivedWeight: data.receivedWeight,
+        currentQuantity: data.actualQuantity,
+        transportMortality,
+        weightBreakPercentage,
+        deathCount: transportMortality,
+        freightDistance: data.freightDistance || purchase.freightDistance,
+        freightCostPerKm: data.freightCostPerKm || purchase.freightCostPerKm,
+        freightCost: data.freightValue || purchase.freightCost,
+        transportCompanyId: data.transportCompanyId || purchase.transportCompanyId,
+        expectedGMD: data.estimatedGMD || purchase.expectedGMD,
+        status: 'RECEIVED' as const,
+        stage: 'received',
+        averageWeight: data.receivedWeight / data.actualQuantity,
+        notes: [
+          purchase.notes,
+          data.mortalityReason ? `Motivo da mortalidade: ${data.mortalityReason}` : null,
+          data.notes
+        ].filter(Boolean).join('\n').trim() || null
+      });
+    }
   }
 
   async markAsConfined(id: string, data: MarkAsConfinedData) {
@@ -149,7 +256,7 @@ export class CattlePurchaseService {
     }
 
     // Validar total de animais alocados
-    const totalAllocated = data.penAllocations.reduce((sum, alloc) => sum + alloc.quantity, 0);
+    const totalAllocated = data.penAllocations.reduce((sum: number, alloc) => sum + alloc.quantity, 0);
     if (totalAllocated !== purchase.currentQuantity) {
       throw new AppError(`Total alocado (${totalAllocated}) deve ser igual à quantidade atual (${purchase.currentQuantity})`, 400);
     }

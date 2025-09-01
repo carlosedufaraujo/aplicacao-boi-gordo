@@ -1,6 +1,6 @@
 import { Expense, Prisma } from '@prisma/client';
 import { BaseRepository } from './base.repository';
-import { prisma } from '@/config/database';
+// import { prisma } from '@/config/database';
 
 export class ExpenseRepository extends BaseRepository<Expense> {
   constructor() {
@@ -12,7 +12,7 @@ export class ExpenseRepository extends BaseRepository<Expense> {
       where: { id },
       include: {
         costCenter: true,
-        lot: {
+        purchase: {
           include: {
             purchaseOrder: {
               include: {
@@ -39,7 +39,7 @@ export class ExpenseRepository extends BaseRepository<Expense> {
       where,
       include: {
         costCenter: true,
-        lot: true,
+        purchase: true,
         payerAccount: true,
       },
       orderBy: { dueDate: 'asc' },
@@ -64,7 +64,7 @@ export class ExpenseRepository extends BaseRepository<Expense> {
       where,
       include: {
         costCenter: true,
-        lot: true,
+        purchase: true,
         payerAccount: true,
       },
       orderBy: { dueDate: 'asc' },
@@ -82,7 +82,7 @@ export class ExpenseRepository extends BaseRepository<Expense> {
       },
       include: {
         costCenter: true,
-        lot: true,
+        purchase: true,
         payerAccount: true,
       },
       orderBy: { dueDate: 'asc' },
@@ -242,7 +242,7 @@ export class ExpenseRepository extends BaseRepository<Expense> {
         include: {
           allocations: true,
           costCenter: true,
-          lot: true,
+          purchase: true,
           payerAccount: true,
         },
       });

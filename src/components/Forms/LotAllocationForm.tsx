@@ -27,7 +27,7 @@ export const LotAllocationForm: React.FC<LotAllocationFormProps> = ({
   const { 
     penRegistrations, 
     penStatuses, 
-    cattleLots,
+    cattlePurchases,
     allocateLotToPens,
     getLotesInCurral 
   } = useAppStore();
@@ -37,7 +37,7 @@ export const LotAllocationForm: React.FC<LotAllocationFormProps> = ({
   ]);
   const [errorMessage, setErrorMessage] = useState<string>('');
   
-  const lote = cattleLots.find(l => l.id === loteId);
+  const lote = cattlePurchases.find(l => l.id === loteId);
   
   const { handleSubmit, formState: { isSubmitting } } = useForm<LotAllocationFormData>();
 

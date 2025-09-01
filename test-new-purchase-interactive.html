@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NewPurchaseOrderForm - Teste Interativo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f8fafc;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            color: #0f172a;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        .header p {
+            color: #64748b;
+            font-size: 16px;
+        }
+        .alert {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            color: #991b1b;
+        }
+        .alert strong {
+            color: #dc2626;
+        }
+        .form-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .tabs {
+            display: flex;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .tab {
+            flex: 1;
+            padding: 16px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .tab:hover {
+            background: #e2e8f0;
+        }
+        .tab.active {
+            background: white;
+            color: #0f172a;
+        }
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #3b82f6;
+        }
+        .tab-content {
+            padding: 32px;
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 24px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #0f172a;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .required {
+            color: #ef4444;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        .calculation-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .calculation-box h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+        .calculation-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .calculation-item:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            padding-top: 12px;
+            border-top: 2px solid #e2e8f0;
+            margin-top: 4px;
+        }
+        .calculation-value {
+            color: #16a34a;
+            font-weight: 600;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            padding: 24px 32px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-secondary {
+            background: white;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+        .btn-secondary:hover {
+            background: #f8fafc;
+        }
+        .icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .code-display {
+            background: #1e293b;
+            color: #10b981;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .info-box h3 {
+            color: #1e40af;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+        .info-box p {
+            color: #1e40af;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐂 NewPurchaseOrderForm - Simulação Interativa</h1>
+            <p>Formulário completo de ordem de compra com 1.390 linhas de código</p>
+        </div>
+
+        <div class="alert">
+            <strong>⚠️ Atenção:</strong> Este formulário NÃO está em uso atualmente. O formulário ativo é o ShadcnPurchaseForm.
+        </div>
+
+        <div class="info-box">
+            <h3>ℹ️ Sobre este formulário</h3>
+            <p>
+                O NewPurchaseOrderForm é o formulário mais completo do sistema, com recursos avançados como:
+                suporte a cidades brasileiras, campo lotCode único, validação complexa com Zod,
+                e organização em 5 abas principais usando shadcn/ui.
+            </p>
+        </div>
+
+        <div class="form-container">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab(0)">📝 Informações Básicas</button>
+                <button class="tab" onclick="switchTab(1)">🐮 Dados do Gado</button>
+                <button class="tab" onclick="switchTab(2)">💰 Valores e Pagamento</button>
+                <button class="tab" onclick="switchTab(3)">🚚 Logística</button>
+                <button class="tab" onclick="switchTab(4)">📊 Resumo</button>
+            </div>
+
+            <!-- Tab 1: Informações Básicas -->
+            <div class="tab-content active" id="tab-0">
+                <div class="form-group">
+                    <label>Código do Lote (Gerado Automaticamente)</label>
+                    <div class="code-display" id="lotCode">LOT-2501001</div>
+                    <div class="help-text">Formato: LOT-AAMM###</div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fornecedor <span class="required">*</span></label>
+                        <select id="vendor">
+                            <option value="">Selecione um fornecedor</option>
+                            <option value="1">Fazenda Boi Gordo</option>
+                            <option value="2">Rancho São José</option>
+                            <option value="3">Pecuária Silva</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Corretor</label>
+                        <select id="broker">
+                            <option value="">Selecione um corretor (opcional)</option>
+                            <option value="1">João da Silva</option>
+                            <option value="2">Maria Santos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Estado <span class="required">*</span></label>
+                        <select id="state" onchange="updateCities()">
+                            <option value="">Selecione o estado</option>
+                            <option value="SP">São Paulo</option>
+                            <option value="MG">Minas Gerais</option>
+                            <option value="GO">Goiás</option>
+                            <option value="MT">Mato Grosso</option>
+                            <option value="MS">Mato Grosso do Sul</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Cidade <span class="required">*</span></label>
+                        <select id="city" disabled>
+                            <option value="">Selecione primeiro o estado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fazenda/Propriedade</label>
+                        <input type="text" id="farm" placeholder="Nome da fazenda">
+                    </div>
+                    <div class="form-group">
+                        <label>Data da Compra <span class="required">*</span></label>
+                        <input type="date" id="purchaseDate" value="2025-01-31">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Dados do Gado -->
+            <div class="tab-content" id="tab-1">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Quantidade de Animais <span class="required">*</span></label>
+                        <input type="number" id="quantity" value="100" oninput="calculateValues()">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Animal <span class="required">*</span></label>
+                        <select id="animalType">
+                            <option value="MALE">Macho</option>
+                            <option value="FEMALE">Fêmea</option>
+                            <option value="MIXED">Misto</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Peso Total (kg) <span class="required">*</span></label>
+                        <input type="number" id="totalWeight" value="45000" oninput="calculateValues()">
+                    </div>
+                    <div class="form-group">
+                        <label>Peso Médio (kg)</label>
+                        <input type="number" id="avgWeight" value="450" readonly style="background: #f8fafc;">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Rendimento de Carcaça (%) <span class="required">*</span></label>
+                        <input type="number" id="carcassYield" value="52" min="40" max="70">
+                        <div class="help-text">Normalmente entre 50-55%</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Preço por Arroba (R$) <span class="required">*</span></label>
+                        <input type="number" id="pricePerArroba" value="300" step="0.01" oninput="calculateValues()">
+                    </div>
+                </div>
+
+                <div class="calculation-box">
+                    <h4>📊 Cálculos Automáticos</h4>
+                    <div class="calculation-item">
+                        <span>Total em Arrobas:</span>
+                        <span class="calculation-value" id="totalArrobas">1.500 @</span>
+                    </div>
+                    <div class="calculation-item">
+                        <span>Peso Médio por Animal:</span>
+                        <span class="calculation-value" id="avgWeightCalc">450 kg</span>
+                    </div>
+                    <div class="calculation-item">
+                        <span>Valor da Compra:</span>
+                        <span class="calculation-value" id="purchaseValue">R$ 450.000,00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Valores e Pagamento -->
+            <div class="tab-content" id="tab-2">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Forma de Pagamento <span class="required">*</span></label>
+                        <select id="paymentType" onchange="togglePaymentDetails()">
+                            <option value="CASH">À Vista</option>
+                            <option value="INSTALLMENT">Parcelado</option>
+                            <option value="BARTER">Permuta</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Conta Pagadora <span class="required">*</span></label>
+                        <select id="payerAccount">
+                            <option value="">Selecione a conta</option>
+                            <option value="1">Banco do Brasil - Conta Principal</option>
+                            <option value="2">Bradesco - Conta Operacional</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="installmentDetails" style="display: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Número de Parcelas</label>
+                            <input type="number" id="installments" value="3" min="1" max="24">
+                        </div>
+                        <div class="form-group">
+                            <label>Primeira Parcela</label>
+                            <input type="date" id="firstPayment">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Comissão do Corretor (R$)</label>
+                        <input type="number" id="commission" value="0" step="0.01" oninput="calculateValues()">
+                        <div class="help-text">Deixe 0 se não houver comissão</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Outros Custos (R$)</label>
+                        <input type="number" id="otherCosts" value="0" step="0.01" oninput="calculateValues()">
+                    </div>
+                </div>
+
+                <div class="calculation-box">
+                    <h4>💰 Resumo Financeiro</h4>
+                    <div class="calculation-item">
+                        <span>Valor da Compra:</span>
+                        <span id="valueSummary">R$ 450.000,00</span>
+                    </div>
+                    <div class="calculation-item">
+                        <span>Comissão:</span>
+                        <span id="commissionSummary">R$ 0,00</span>
+                    </div>
+                    <div class="calculation-item">
+                        <span>Frete (calculado na aba Logística):</span>
+                        <span id="freightSummary">R$ 0,00</span>
+                    </div>
+                    <div class="calculation-item">
+                        <span>Outros Custos:</span>
+                        <span id="otherCostsSummary">R$ 0,00</span>
+                    </div>
+                    <div class="calculation-item">
+                        <span>Custo Total:</span>
+                        <span class="calculation-value" id="totalCost">R$ 450.000,00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Logística -->
+            <div class="tab-content" id="tab-3">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Transportadora</label>
+                        <select id="transportCompany">
+                            <option value="">Selecione a transportadora</option>
+                            <option value="1">Transporte Rápido Ltda</option>
+                            <option value="2">Logística Bovina S.A.</option>
+                            <option value="3">Frete Próprio</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Frete</label>
+                        <select id="freightType">
+                            <option value="CIF">CIF (Pago pelo Vendedor)</option>
+                            <option value="FOB">FOB (Pago pelo Comprador)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Distância (km)</label>
+                        <input type="number" id="distance" value="0" oninput="calculateFreight()">
+                    </div>
+                    <div class="form-group">
+                        <label>Custo por KM (R$)</label>
+                        <input type="number" id="costPerKm" value="2.50" step="0.01" oninput="calculateFreight()">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valor Total do Frete (R$)</label>
+                        <input type="number" id="freightCost" value="0" step="0.01" oninput="calculateValues()">
+                        <div class="help-text">Calculado automaticamente ou insira manualmente</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Previsão de Entrega</label>
+                        <input type="date" id="deliveryDate">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Observações sobre Transporte</label>
+                    <textarea id="transportNotes" rows="3" placeholder="Informações adicionais sobre o transporte..."></textarea>
+                </div>
+            </div>
+
+            <!-- Tab 5: Resumo -->
+            <div class="tab-content" id="tab-4">
+                <div class="info-box" style="background: #f0fdf4; border-color: #86efac;">
+                    <h3 style="color: #166534;">✅ Resumo da Compra</h3>
+                    <p style="color: #166534;">Revise todas as informações antes de salvar.</p>
+                </div>
+
+                <div class="form-group">
+                    <h4 style="margin-bottom: 16px;">📋 Informações Gerais</h4>
+                    <div class="calculation-box">
+                        <div class="calculation-item">
+                            <span>Código do Lote:</span>
+                            <span id="summaryLotCode">LOT-2501001</span>
+                        </div>
+                        <div class="calculation-item">
+                            <span>Fornecedor:</span>
+                            <span id="summaryVendor">-</span>
+                        </div>
+                        <div class="calculation-item">
+                            <span>Local:</span>
+                            <span id="summaryLocation">-</span>
+                        </div>
+                        <div class="calculation-item">
+                            <span>Data da Compra:</span>
+                            <span id="summaryDate">31/01/2025</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <h4 style="margin-bottom: 16px;">🐮 Dados do Gado</h4>
+                    <div class="calculation-box">
+                        <div class="calculation-item">
+                            <span>Quantidade:</span>
+                            <span id="summaryQuantity">100 animais</span>
+                        </div>
+                        <div class="calculation-item">
+                            <span>Peso Total:</span>
+                            <span id="summaryWeight">45.000 kg</span>
+                        </div>
+                        <div class="calculation-item">
+                            <span>Peso Médio:</span>
+                            <span id="summaryAvgWeight">450 kg</span>
+                        </div>
+                        <div class="calculation-item">
+                            <span>Preço por Arroba:</span>
+                            <span id="summaryPrice">R$ 300,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <h4 style="margin-bottom: 16px;">💰 Valores Finais</h4>
+                    <div class="calculation-box">
+                        <div class="calculation-item">
+                            <span>Valor da Compra:</span>
+                            <span id="finalPurchaseValue">R$ 450.000,00</span>
+                        </div>
+                        <div class="calculation-item">
+                            <span>Frete:</span>
+                            <span id="finalFreight">R$ 0,00</span>
+                        </div>
+                        <div class="calculation-item">
+                            <span>Comissão:</span>
+                            <span id="finalCommission">R$ 0,00</span>
+                        </div>
+                        <div class="calculation-item">
+                            <span>Outros Custos:</span>
+                            <span id="finalOtherCosts">R$ 0,00</span>
+                        </div>
+                        <div class="calculation-item">
+                            <span><strong>CUSTO TOTAL:</strong></span>
+                            <span class="calculation-value" style="font-size: 18px;" id="finalTotalCost">R$ 450.000,00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Observações Finais</label>
+                    <textarea id="finalNotes" rows="4" placeholder="Adicione observações importantes sobre esta compra..."></textarea>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="clearForm()">
+                    Limpar Formulário
+                </button>
+                <button class="btn btn-secondary" onclick="showCode()">
+                    Ver Código
+                </button>
+                <button class="btn btn-primary" onclick="saveForm()">
+                    Salvar Compra
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dados simulados de cidades
+        const citiesByState = {
+            'SP': ['São Paulo', 'Campinas', 'Ribeirão Preto', 'São José do Rio Preto', 'Bauru'],
+            'MG': ['Belo Horizonte', 'Uberlândia', 'Uberaba', 'Montes Claros', 'Patos de Minas'],
+            'GO': ['Goiânia', 'Anápolis', 'Rio Verde', 'Jataí', 'Catalão'],
+            'MT': ['Cuiabá', 'Rondonópolis', 'Sinop', 'Tangará da Serra', 'Cáceres'],
+            'MS': ['Campo Grande', 'Dourados', 'Três Lagoas', 'Corumbá', 'Ponta Porã']
+        };
+
+        let currentTab = 0;
+
+        function switchTab(index) {
+            // Remove active de todas as tabs
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Adiciona active na tab selecionada
+            document.querySelectorAll('.tab')[index].classList.add('active');
+            document.getElementById(`tab-${index}`).classList.add('active');
+            
+            currentTab = index;
+            
+            // Se for a aba de resumo, atualiza os valores
+            if (index === 4) {
+                updateSummary();
+            }
+        }
+
+        function updateCities() {
+            const state = document.getElementById('state').value;
+            const citySelect = document.getElementById('city');
+            
+            citySelect.innerHTML = '<option value="">Selecione a cidade</option>';
+            
+            if (state && citiesByState[state]) {
+                citySelect.disabled = false;
+                citiesByState[state].forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city;
+                    option.textContent = city;
+                    citySelect.appendChild(option);
+                });
+            } else {
+                citySelect.disabled = true;
+            }
+        }
+
+        function calculateValues() {
+            const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+            const totalWeight = parseFloat(document.getElementById('totalWeight').value) || 0;
+            const pricePerArroba = parseFloat(document.getElementById('pricePerArroba').value) || 0;
+            const commission = parseFloat(document.getElementById('commission').value) || 0;
+            const freightCost = parseFloat(document.getElementById('freightCost').value) || 0;
+            const otherCosts = parseFloat(document.getElementById('otherCosts').value) || 0;
+            
+            // Calcula peso médio
+            const avgWeight = quantity > 0 ? (totalWeight / quantity) : 0;
+            document.getElementById('avgWeight').value = avgWeight.toFixed(2);
+            
+            // Calcula total em arrobas (1 arroba = 30kg no padrão brasileiro de gado, mas 15kg é a medida oficial)
+            const totalArrobas = totalWeight / 30; // Usando 30kg como no sistema
+            document.getElementById('totalArrobas').textContent = totalArrobas.toFixed(2) + ' @';
+            document.getElementById('avgWeightCalc').textContent = avgWeight.toFixed(2) + ' kg';
+            
+            // Calcula valor da compra
+            const purchaseValue = totalArrobas * pricePerArroba;
+            document.getElementById('purchaseValue').textContent = formatCurrency(purchaseValue);
+            document.getElementById('valueSummary').textContent = formatCurrency(purchaseValue);
+            
+            // Atualiza resumo financeiro
+            document.getElementById('commissionSummary').textContent = formatCurrency(commission);
+            document.getElementById('freightSummary').textContent = formatCurrency(freightCost);
+            document.getElementById('otherCostsSummary').textContent = formatCurrency(otherCosts);
+            
+            // Calcula custo total
+            const totalCost = purchaseValue + commission + freightCost + otherCosts;
+            document.getElementById('totalCost').textContent = formatCurrency(totalCost);
+        }
+
+        function calculateFreight() {
+            const distance = parseFloat(document.getElementById('distance').value) || 0;
+            const costPerKm = parseFloat(document.getElementById('costPerKm').value) || 0;
+            
+            const freightCost = distance * costPerKm;
+            document.getElementById('freightCost').value = freightCost.toFixed(2);
+            
+            calculateValues();
+        }
+
+        function togglePaymentDetails() {
+            const paymentType = document.getElementById('paymentType').value;
+            const installmentDetails = document.getElementById('installmentDetails');
+            
+            if (paymentType === 'INSTALLMENT') {
+                installmentDetails.style.display = 'block';
+            } else {
+                installmentDetails.style.display = 'none';
+            }
+        }
+
+        function updateSummary() {
+            // Atualiza informações gerais
+            document.getElementById('summaryLotCode').textContent = document.getElementById('lotCode').textContent;
+            
+            const vendor = document.getElementById('vendor');
+            document.getElementById('summaryVendor').textContent = vendor.options[vendor.selectedIndex].text || '-';
+            
+            const state = document.getElementById('state').value;
+            const city = document.getElementById('city').value;
+            const farm = document.getElementById('farm').value;
+            const location = [city, state, farm].filter(Boolean).join(', ') || '-';
+            document.getElementById('summaryLocation').textContent = location;
+            
+            const purchaseDate = document.getElementById('purchaseDate').value;
+            if (purchaseDate) {
+                const date = new Date(purchaseDate);
+                document.getElementById('summaryDate').textContent = date.toLocaleDateString('pt-BR');
+            }
+            
+            // Atualiza dados do gado
+            const quantity = document.getElementById('quantity').value;
+            document.getElementById('summaryQuantity').textContent = quantity + ' animais';
+            
+            const totalWeight = document.getElementById('totalWeight').value;
+            document.getElementById('summaryWeight').textContent = formatNumber(totalWeight) + ' kg';
+            
+            const avgWeight = document.getElementById('avgWeight').value;
+            document.getElementById('summaryAvgWeight').textContent = avgWeight + ' kg';
+            
+            const pricePerArroba = document.getElementById('pricePerArroba').value;
+            document.getElementById('summaryPrice').textContent = formatCurrency(pricePerArroba);
+            
+            // Atualiza valores finais
+            document.getElementById('finalPurchaseValue').textContent = document.getElementById('purchaseValue').textContent;
+            document.getElementById('finalFreight').textContent = document.getElementById('freightSummary').textContent;
+            document.getElementById('finalCommission').textContent = document.getElementById('commissionSummary').textContent;
+            document.getElementById('finalOtherCosts').textContent = document.getElementById('otherCostsSummary').textContent;
+            document.getElementById('finalTotalCost').textContent = document.getElementById('totalCost').textContent;
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value);
+        }
+
+        function formatNumber(value) {
+            return new Intl.NumberFormat('pt-BR').format(value);
+        }
+
+        function clearForm() {
+            if (confirm('Deseja realmente limpar todos os campos do formulário?')) {
+                document.querySelectorAll('input, select, textarea').forEach(field => {
+                    if (field.type !== 'date' && !field.readOnly) {
+                        field.value = '';
+                    }
+                });
+                calculateValues();
+            }
+        }
+
+        function showCode() {
+            alert('Código do NewPurchaseOrderForm:\n\n' +
+                  '📁 Arquivo: /src/components/Forms/NewPurchaseOrderForm.tsx\n' +
+                  '📏 Tamanho: 1.390 linhas\n' +
+                  '🔧 Tecnologias:\n' +
+                  '  • React Hook Form\n' +
+                  '  • Zod validation\n' +
+                  '  • shadcn/ui components\n' +
+                  '  • Lucide React icons\n\n' +
+                  '⚡ Principais features:\n' +
+                  '  • Campo lotCode único\n' +
+                  '  • Suporte a cidades brasileiras\n' +
+                  '  • Cálculos automáticos complexos\n' +
+                  '  • Validação em tempo real\n' +
+                  '  • Layout em tabs\n\n' +
+                  '⚠️ Status: NÃO está em uso atualmente');
+        }
+
+        function saveForm() {
+            // Validação básica
+            const vendor = document.getElementById('vendor').value;
+            const state = document.getElementById('state').value;
+            const city = document.getElementById('city').value;
+            const quantity = document.getElementById('quantity').value;
+            const totalWeight = document.getElementById('totalWeight').value;
+            const pricePerArroba = document.getElementById('pricePerArroba').value;
+            const payerAccount = document.getElementById('payerAccount').value;
+            
+            const errors = [];
+            if (!vendor) errors.push('Fornecedor');
+            if (!state) errors.push('Estado');
+            if (!city) errors.push('Cidade');
+            if (!quantity || quantity <= 0) errors.push('Quantidade');
+            if (!totalWeight || totalWeight <= 0) errors.push('Peso Total');
+            if (!pricePerArroba || pricePerArroba <= 0) errors.push('Preço por Arroba');
+            if (!payerAccount) errors.push('Conta Pagadora');
+            
+            if (errors.length > 0) {
+                alert('❌ Campos obrigatórios faltando:\n\n• ' + errors.join('\n• '));
+                return;
+            }
+            
+            // Simula salvamento
+            const formData = {
+                lotCode: document.getElementById('lotCode').textContent,
+                vendor: vendor,
+                state: state,
+                city: city,
+                farm: document.getElementById('farm').value,
+                purchaseDate: document.getElementById('purchaseDate').value,
+                animalType: document.getElementById('animalType').value,
+                quantity: parseInt(quantity),
+                totalWeight: parseFloat(totalWeight),
+                avgWeight: parseFloat(document.getElementById('avgWeight').value),
+                carcassYield: parseFloat(document.getElementById('carcassYield').value),
+                pricePerArroba: parseFloat(pricePerArroba),
+                paymentType: document.getElementById('paymentType').value,
+                payerAccount: payerAccount,
+                commission: parseFloat(document.getElementById('commission').value) || 0,
+                freightCost: parseFloat(document.getElementById('freightCost').value) || 0,
+                otherCosts: parseFloat(document.getElementById('otherCosts').value) || 0
+            };
+            
+            console.log('Dados do formulário:', formData);
+            
+            alert('✅ Simulação de Salvamento!\n\n' +
+                  'Os dados foram validados com sucesso.\n\n' +
+                  'No sistema real, isso seria enviado para:\n' +
+                  'POST /api/v1/cattle-purchases\n\n' +
+                  'Código do Lote: ' + formData.lotCode + '\n' +
+                  'Fornecedor: ' + document.getElementById('vendor').options[vendor].text + '\n' +
+                  'Local: ' + formData.city + ', ' + formData.state + '\n' +
+                  'Quantidade: ' + formData.quantity + ' animais\n' +
+                  'Valor Total: ' + document.getElementById('totalCost').textContent);
+        }
+
+        // Gera código do lote ao carregar
+        function generateLotCode() {
+            const now = new Date();
+            const year = now.getFullYear().toString().slice(-2);
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const sequence = Math.floor(Math.random() * 999) + 1;
+            return `LOT-${year}${month}${sequence.toString().padStart(3, '0')}`;
+        }
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('lotCode').textContent = generateLotCode();
+            calculateValues();
+        });
+    </script>
+</body>
+</html>

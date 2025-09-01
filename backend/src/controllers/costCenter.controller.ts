@@ -3,7 +3,7 @@ import { costCenterService } from '@/services/costCenter.service';
 import { catchAsync } from '@/utils/catchAsync';
 
 export class CostCenterController {
-  index = catchAsync(async (req: Request, res: Response) => {
+  index = catchAsync(async (_req: Request, res: Response) => {
     const costCenters = await costCenterService.findAll();
     
     res.json({
@@ -12,7 +12,7 @@ export class CostCenterController {
     });
   });
 
-  show = catchAsync(async (req: Request, res: Response) => {
+  show = catchAsync(async (req: Request, res: Response): Promise<any> => {
     const { id } = req.params;
     const costCenter = await costCenterService.findById(id);
     
@@ -58,7 +58,7 @@ export class CostCenterController {
     });
   });
 
-  stats = catchAsync(async (req: Request, res: Response) => {
+  stats = catchAsync(async (_req: Request, res: Response) => {
     const stats = await costCenterService.getStats();
     
     res.json({

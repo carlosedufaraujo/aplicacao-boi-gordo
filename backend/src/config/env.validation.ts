@@ -41,6 +41,12 @@ const envSchema = z.object({
   // Supabase
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_ANON_KEY: z.string().optional(),
+  
+  // Redis
+  REDIS_HOST: z.string().default('localhost'),
+  REDIS_PORT: z.string().regex(/^\d+$/).transform(Number).default(6379),
+  REDIS_PASSWORD: z.string().optional(),
+  REDIS_DB: z.string().regex(/^\d+$/).transform(Number).default(0),
 });
 
 // Validação das variáveis

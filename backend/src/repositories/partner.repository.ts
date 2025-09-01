@@ -53,7 +53,7 @@ export class PartnerRepository extends BaseRepository<Partner> {
       active,
       inactive: total - active,
       byType: byType.reduce((acc: Record<PartnerType, number>, curr: any) => {
-        acc[curr.type] = curr._count;
+        acc[curr.type as PartnerType] = curr._count;
         return acc;
       }, {} as Record<PartnerType, number>),
     };
@@ -78,8 +78,9 @@ export class PartnerRepository extends BaseRepository<Partner> {
     return await this.model.findUnique({
       where: { id },
       include: {
-        cattlePurchasesAsVendor: true,
-        cattlePurchasesAsBroker: true,
+        purchasesAsVendor: true,
+        purchasesAsBroker: true,
+        purchasesAsTransport: true,
         saleRecords: true,
         contributions: true,
       },
@@ -90,14 +91,14 @@ export class PartnerRepository extends BaseRepository<Partner> {
     const partner = await this.model.findUnique({
       where: { id },
       include: {
-        cattlePurchasesAsVendor: {
+        purchasesAsVendor: {
           select: {
             id: true,
             purchaseValue: true,
             status: true,
           },
         },
-        cattlePurchasesAsBroker: {
+        purchasesAsBroker: {
           select: {
             id: true,
             purchaseValue: true,
@@ -130,14 +131,15 @@ export class PartnerRepository extends BaseRepository<Partner> {
         type: partner.type,
       },
       totals: {
-        asVendor: partner.cattlePurchasesAsVendor?.reduce((sum: number, cp: any) => sum + (cp.purchaseValue || 0), 0) || 0,
-        asBroker: partner.cattlePurchasesAsBroker?.reduce((sum: number, cp: any) => sum + (cp.purchaseValue || 0), 0) || 0,
+        asVendor: partner.purchasesAsVendor?.reduce((sum: number, cp: any) => sum + (cp.purchaseValue || 0), 0) || 0,
+        asBroker: partner.purchasesAsBroker?.reduce((sum: number, cp: any) => sum + (cp.purchaseValue || 0), 0) || 0,
         sales: partner.saleRecords.reduce((sum: number, sale: any) => sum + (sale.totalValue || 0), 0),
         contributions: partner.contributions.reduce((sum: number, contrib: any) => sum + (contrib.amount || 0), 0),
       },
       counts: {
-        cattlePurchasesAsVendor: partner.cattlePurchasesAsVendor?.length || 0,
-        cattlePurchasesAsBroker: partner.cattlePurchasesAsBroker?.length || 0,
+        purchasesAsVendor: partner.purchasesAsVendor?.length || 0,
+        purchasesAsBroker: partner.purchasesAsBroker?.length || 0,
+        purchasesAsTransport: partner.purchasesAsTransport?.length || 0,
         saleRecords: partner.saleRecords.length,
         contributions: partner.contributions.length,
       },

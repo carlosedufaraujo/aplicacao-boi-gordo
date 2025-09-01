@@ -17,7 +17,7 @@ const CompleteLots = lazy(() => import('@/components/Lots/CompleteLots').then(mo
 const CompleteRegistrations = lazy(() => import('@/components/Registrations/CompleteRegistrations').then(module => ({ default: module.CompleteRegistrations })));
 const ModernDREWithSupabase = lazy(() => import('@/components/DRE/ModernDREWithSupabase').then(module => ({ default: module.ModernDREWithSupabase })));
 const CompleteFinancialCenter = lazy(() => import('@/components/Financial/CompleteFinancialCenter').then(module => ({ default: module.CompleteFinancialCenter })));
-const CompleteSales = lazy(() => import('@/components/SalesPipeline/CompleteSales').then(module => ({ default: module.CompleteSales })));
+const SalesManagement = lazy(() => import('@/components/Sales/SalesManagement').then(module => ({ default: module.SalesManagement })));
 const PurchaseManagement = lazy(() => import('@/components/Purchases/SimplifiedPurchaseManagement').then(module => ({ default: module.SimplifiedPurchaseManagement })));
 const CompleteCalendar = lazy(() => import('@/components/Calendar/CompleteCalendar').then(module => ({ default: module.CompleteCalendar })));
 const CompleteFinancialReconciliation = lazy(() => import('@/components/Financial/CompleteFinancialReconciliation').then(module => ({ default: module.CompleteFinancialReconciliation })));
@@ -36,6 +36,7 @@ const Login02 = lazy(() => import('@/pages/Login02').then(module => ({ default: 
 
 // Componente de teste da integração API
 const ApiIntegrationTest = lazy(() => import('@/components/Test/ApiIntegrationTest').then(module => ({ default: module.ApiIntegrationTest })));
+const TestCycles = lazy(() => import('@/pages/TestCycles').then(module => ({ default: module.TestCycles })));
 
 // ============================================================================
 // COMPONENTE DE LOADING
@@ -87,9 +88,9 @@ const AppContent: React.FC = () => {
         return <ModernDREWithSupabase />;
       case 'financial':
         return <CompleteFinancialCenter />;
-      case 'sales-pipeline':
-        return <CompleteSales />;
-      case 'pipeline':
+      case 'sales':
+        return <SalesManagement />;
+      case 'purchases':
         return <PurchaseManagement />;
       case 'calendar':
         return <CompleteCalendar />;
@@ -111,6 +112,8 @@ const AppContent: React.FC = () => {
         return <SystemUpdates />;
       case 'api-test':
         return <ApiIntegrationTest />;
+      case 'test-cycles':
+        return <TestCycles />;
       default:
         return (
           <div className="flex items-center justify-center h-64">

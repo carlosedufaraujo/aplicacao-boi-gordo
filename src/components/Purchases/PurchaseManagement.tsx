@@ -21,10 +21,9 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/utils/formatters';
-import { usePurchaseOrdersApi } from '@/hooks/api/usePurchaseOrdersApi';
-import { useCattleLotsApi } from '@/hooks/api/useCattleLotsApi';
+import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
 import { usePartnersApi } from '@/hooks/api/usePartnersApi';
-import { NewPurchaseOrderForm } from '../Forms/NewPurchaseOrderForm';
+import { EnhancedPurchaseForm } from '../Forms/EnhancedPurchaseForm';
 import { PurchaseDetailsModal } from './PurchaseDetailsModal';
 import { eventBus, EVENTS } from '@/utils/eventBus';
 
@@ -80,12 +79,12 @@ import {
 interface PurchaseData {
   id: string;
   lotNumber: string;
-  orderNumber: string;
+  lotCode: string;
   vendorName: string;
   vendorId: string;
   purchaseDate: Date;
   entryDate?: Date;
-  quantity: number;
+  currentQuantity: number;
   entryQuantity?: number;
   totalWeight: number;
   entryWeight?: number;
@@ -122,21 +121,13 @@ export const PurchaseManagement: React.FC = () => {
 
   // Hooks de API
   const { 
-    purchaseOrders, 
+    cattlePurchases, 
     loading: ordersLoading, 
-    loadPurchaseOrders,
-    createPurchaseOrder,
-    updatePurchaseOrder,
-    deletePurchaseOrder
-  } = usePurchaseOrdersApi();
-  
-  const { 
-    cattleLots, 
-    loading: lotsLoading, 
-    loadCattleLots,
-    updateCattleLot,
-    deleteCattleLot
-  } = useCattleLotsApi();
+    loadCattlePurchases,
+    createCattlePurchase,
+    updateCattlePurchase,
+    deleteCattlePurchase
+  } = useCattlePurchasesApi();
   
   const { partners, loadPartners } = usePartnersApi();
 
@@ -164,14 +155,12 @@ export const PurchaseManagement: React.FC = () => {
     try {
       // Carregar dados em paralelo
       await Promise.all([
-        loadPurchaseOrders(),
-        loadCattleLots(),
+        loadCattlePurchases(),
         loadPartners()
       ]);
       
       console.log('📊 Dados carregados:', {
-        purchaseOrders: purchaseOrders.length,
-        cattleLots: cattleLots.length,
+        cattlePurchases: cattlePurchases.length,
         partners: partners.length
       });
       
@@ -184,13 +173,13 @@ export const PurchaseManagement: React.FC = () => {
 
   // Combinar dados quando os estados mudarem
   useEffect(() => {
-    if (purchaseOrders.length > 0 && !ordersLoading && !lotsLoading) {
-      const combinedData = purchaseOrders.map(order => {
-        const lot = cattleLots.find(l => l.purchaseOrderId === order.id);
+    if (cattlePurchases.length > 0 && !ordersLoading) {
+      const combinedData = cattlePurchases.map(order => {
+        const lot = cattlePurchases.find(l => l.purchaseId === order.id);
         const vendor = partners.find(p => p.id === order.vendorId);
         const broker = order.brokerId ? partners.find(p => p.id === order.brokerId) : null;
         
-        console.log(`🔍 Processando ordem ${order.orderNumber}:`, {
+        console.log(`🔍 Processando ordem ${order.lotCode}:`, {
           order: order,
           lot: lot,
           vendor: vendor?.name,
@@ -199,8 +188,8 @@ export const PurchaseManagement: React.FC = () => {
         
         // Calcular valores usando dados corretos do backend
         const totalWeight = lot?.entryWeight || order.totalWeight || 0;
-        const quantity = lot?.entryQuantity || order.animalCount || 1;
-        const averageWeight = order.averageWeight || (quantity > 0 ? totalWeight / quantity : 0);
+        const currentQuantity = lot?.entryQuantity || order.animalCount || 1;
+        const averageWeight = order.averageWeight || (currentQuantity > 0 ? totalWeight / currentQuantity : 0);
         const pricePerArroba = order.pricePerArroba || 0;
         const totalArrobasPesoVivo = totalWeight / 30;
         const totalArrobasCarcaca = totalArrobasPesoVivo * (order.carcassYield / 100);
@@ -224,8 +213,8 @@ export const PurchaseManagement: React.FC = () => {
           lotId: lot?.id,
           
           // Números de identificação
-          lotNumber: lot?.lotNumber || `LOT-${order.orderNumber}`,
-          orderNumber: order.orderNumber,
+          lotNumber: lot?.lotNumber || `LOT-${order.lotCode}`,
+          lotCode: order.lotCode,
           
           // Fornecedor e corretor
           vendorName: vendor?.name || order.vendor?.name || 'Desconhecido',
@@ -244,7 +233,7 @@ export const PurchaseManagement: React.FC = () => {
           // Tipo e quantidade de animais
           animalType: order.animalType,
           animalCount: order.animalCount,
-          quantity: order.animalCount,
+          currentQuantity: order.animalCount,
           entryQuantity: lot?.entryQuantity || lot?.currentQuantity || order.animalCount,
           currentQuantity: lot?.currentQuantity || order.animalCount,
           deathCount: lot?.deathCount || 0,
@@ -306,14 +295,14 @@ export const PurchaseManagement: React.FC = () => {
       setPurchases(combinedData);
     } else {
       console.log('⏳ Aguardando dados completos...', {
-        purchaseOrders: purchaseOrders.length,
-        cattleLots: cattleLots.length,
+        cattlePurchases: cattlePurchases.length,
+        cattlePurchases: cattlePurchases.length,
         partners: partners.length,
         ordersLoading,
         lotsLoading
       });
     }
-  }, [purchaseOrders, cattleLots, partners, ordersLoading, lotsLoading]);
+  }, [cattlePurchases, cattlePurchases, partners, ordersLoading, lotsLoading]);
 
   const mapStatus = (orderStatus: string, lotStatus?: string): PurchaseData['status'] => {
     if (orderStatus === 'CANCELLED') return 'CANCELLED';
@@ -348,13 +337,13 @@ export const PurchaseManagement: React.FC = () => {
       if (!purchase) return;
       
       // Deletar lote se existir
-      const lot = cattleLots.find(l => l.purchaseOrderId === purchase.id);
+      const lot = cattlePurchases.find(l => l.purchaseId === purchase.id);
       if (lot) {
-        await deleteCattleLot(lot.id);
+        await deleteCattlePurchase(lot.id);
       }
       
       // Deletar ordem
-      await deletePurchaseOrder(purchase.id);
+      await deleteCattlePurchase(purchase.id);
       
       toast.success('Compra excluída com sucesso');
       loadData();
@@ -381,7 +370,7 @@ export const PurchaseManagement: React.FC = () => {
   const filteredPurchases = purchases.filter(purchase => {
     const matchesSearch = 
       purchase.lotNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      purchase.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      purchase.lotCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       purchase.vendorName.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || purchase.status === statusFilter;
@@ -395,7 +384,7 @@ export const PurchaseManagement: React.FC = () => {
   // Métricas
   const metrics = {
     total: purchases.length,
-    totalAnimals: purchases.reduce((sum, p) => sum + (p.entryQuantity || p.quantity), 0),
+    totalAnimals: purchases.reduce((sum, p) => sum + (p.entryQuantity || p.currentQuantity), 0),
     totalWeight: purchases.reduce((sum, p) => sum + (p.entryWeight || p.totalWeight), 0),
     totalInvestment: purchases.reduce((sum, p) => sum + p.totalCost, 0),
     active: purchases.filter(p => p.status === 'ACTIVE').length,
@@ -409,8 +398,8 @@ export const PurchaseManagement: React.FC = () => {
       : 0,
     // Média ponderada do rendimento de carcaça
     averageCarcassYield: purchases.length > 0 
-      ? purchases.reduce((sum, p) => sum + (p.carcassYield * (p.entryQuantity || p.quantity)), 0) / 
-        purchases.reduce((sum, p) => sum + (p.entryQuantity || p.quantity), 0)
+      ? purchases.reduce((sum, p) => sum + (p.carcassYield * (p.entryQuantity || p.currentQuantity)), 0) / 
+        purchases.reduce((sum, p) => sum + (p.entryQuantity || p.currentQuantity), 0)
       : 50
   };
 
@@ -635,7 +624,7 @@ export const PurchaseManagement: React.FC = () => {
                           <div>
                             <div className="font-medium">{purchase.lotNumber}</div>
                             <div className="text-sm text-muted-foreground">
-                              {purchase.orderNumber}
+                              {purchase.lotCode}
                             </div>
                           </div>
                         </TableCell>
@@ -645,8 +634,8 @@ export const PurchaseManagement: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-center">
                           <div>
-                            <div className="font-medium">{purchase.quantity}</div>
-                            {purchase.entryQuantity !== purchase.quantity && (
+                            <div className="font-medium">{purchase.currentQuantity}</div>
+                            {purchase.entryQuantity !== purchase.currentQuantity && (
                               <div className="text-sm text-muted-foreground">
                                 Entrada: {purchase.entryQuantity}
                               </div>
@@ -830,59 +819,18 @@ export const PurchaseManagement: React.FC = () => {
 
       {/* Modal de Formulário */}
       {showForm && (
-        <NewPurchaseOrderForm
-          isOpen={showForm}
+        <EnhancedPurchaseForm
+          open={showForm}
           onClose={() => {
             setShowForm(false);
             setSelectedPurchase(null);
           }}
-          initialData={selectedPurchase ? 
-            purchaseOrders.find(o => o.id === selectedPurchase.id) : 
-            undefined
-          }
-          isEditing={!!selectedPurchase}
-          onSubmit={async (data) => {
-            try {
-              // Preparar dados completos - apenas completar campos opcionais
-              const completeData = {
-                ...data,
-                // Completar campos opcionais com valores padrão se necessário
-                location: data.location || 'Não especificado',
-                animalType: data.animalType || 'MALE',
-                carcassYield: data.carcassYield || 50,
-                paymentType: data.paymentType || 'CASH',
-                // Campos de data obrigatórios do backend
-                commissionDueDate: data.commissionDueDate || data.principalDueDate || new Date(),
-                otherCostsDueDate: data.otherCostsDueDate || data.principalDueDate || new Date(),
-                // Calcular peso médio se não fornecido
-                averageWeight: data.averageWeight || (data.totalWeight && data.animalCount ? data.totalWeight / data.animalCount : 0),
-                // Corrigir valores numéricos - garantir que sejam positivos ou zero
-                commission: Math.max(0, data.commission || 0),
-                freightCost: Math.max(0, data.freightCost || 0),
-                // otherCosts deve ser APENAS outros custos, NÃO incluir comissão
-                otherCosts: Math.max(0, (data.otherCosts || 0)),
-                // Corrigir brokerId - garantir que seja string ou undefined (não null)
-                brokerId: data.brokerId || undefined,
-                // Corrigir notes - garantir que não seja string vazia
-                notes: data.notes && data.notes.trim() ? data.notes.trim() : undefined,
-              };
-              
-              if (selectedPurchase) {
-                await updatePurchaseOrder(selectedPurchase.id, completeData);
-                toast.success('Compra atualizada com sucesso');
-              } else {
-                await createPurchaseOrder(completeData);
-                toast.success('Compra criada com sucesso');
-              }
-              setShowForm(false);
-              setSelectedPurchase(null);
-              loadData();
-            } catch (error) {
-              console.error('Erro ao salvar:', error);
-              const errorMessage = error?.response?.data?.message || error?.message || 'Erro desconhecido ao salvar compra';
-              toast.error(`Erro ao salvar compra: ${errorMessage}`);
-            }
+          onSuccess={() => {
+            setShowForm(false);
+            setSelectedPurchase(null);
+            loadData();
           }}
+
         />
       )}
 

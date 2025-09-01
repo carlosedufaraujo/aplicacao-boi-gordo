@@ -68,7 +68,7 @@ export const ModernSettings: React.FC = () => {
     currency: 'BRL',
     
     // Business
-    weightUnit: 'kg',
+    currentWeightUnit: 'kg',
     priceUnit: 'arroba',
     taxRate: 15,
     defaultPaymentTerm: 30,
@@ -318,9 +318,9 @@ export const ModernSettings: React.FC = () => {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="weightUnit" className="form-label">Unidade de Peso</Label>
-                  <Select value={settings.weightUnit} onValueChange={(value) => handleSettingChange('weightUnit', value)}>
-                    <SelectTrigger id="weightUnit">
+                  <Label htmlFor="currentWeightUnit" className="form-label">Unidade de Peso</Label>
+                  <Select value={settings.currentWeightUnit} onValueChange={(value) => handleSettingChange('currentWeightUnit', value)}>
+                    <SelectTrigger id="currentWeightUnit">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

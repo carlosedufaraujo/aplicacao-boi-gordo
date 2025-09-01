@@ -40,7 +40,7 @@ export function createApp(): Application {
         styleSrc: ["'self'", "'unsafe-inline'"],
         scriptSrc: ["'self'", "'unsafe-eval'"],
         imgSrc: ["'self'", "data:", "https:"],
-        connectSrc: ["'self'", "http://localhost:3333", "http://localhost:5173", "http://localhost:5174"],
+        connectSrc: ["'self'", "http://localhost:3001", "http://localhost:5173", "http://localhost:5174"],
       },
     },
     crossOriginEmbedderPolicy: false,

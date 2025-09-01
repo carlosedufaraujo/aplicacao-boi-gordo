@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { KPICard } from './KPICard';
 import { LatestMovements } from './LatestMovements';
 import { usePartnersApi } from '../../hooks/api/usePartnersApi';
-import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
-import { usePurchaseOrdersApi } from '../../hooks/api/usePurchaseOrdersApi';
+import { useCattlePurchasesApi } from '../../hooks/api/useCattlePurchasesApi';
+import { useCattlePurchasesApi } from '../../hooks/api/useCattlePurchasesApi';
 import { useExpensesApi } from '../../hooks/api/useExpensesApi';
 import { useRevenuesApi } from '../../hooks/api/useRevenuesApi';
 import { Plus, ShoppingCart, Users, Home, Heart, Scale, ArrowRight, DollarSign, CreditCard, Building2, Clock, TrendingDown, AlertTriangle, Truck } from 'lucide-react';
-import { PurchaseOrderForm } from '../Forms/PurchaseOrderForm';
+import { CattlePurchaseForm } from '../Forms/CattlePurchaseForm';
 import { PartnerForm } from '../Forms/PartnerForm';
 import { PenRegistrationForm } from '../Forms/PenRegistrationForm';
 import { HealthRecordForm } from '../Forms/HealthRecordForm';
@@ -25,14 +25,14 @@ export const Dashboard: React.FC = () => {
   // Removido useAppStoreWithAPI - agora gerenciado pelo App.tsx
   
   // Hooks da Nova Arquitetura API
-  const { cattleLots, loading: lotsLoading } = useCattleLotsApi();
-  const { purchaseOrders, loading: ordersLoading } = usePurchaseOrdersApi();
+  const { cattlePurchases, loading: lotsLoading } = useCattlePurchasesApi();
+  const { cattlePurchases, loading: ordersLoading } = useCattlePurchasesApi();
   const { partners, loading: partnersLoading } = usePartnersApi();
   const { expenses, loading: expensesLoading } = useExpensesApi();
   const { revenues, loading: revenuesLoading } = useRevenuesApi();
   
   // Estados para controlar a exibição dos formulários
-  const [showPurchaseOrderForm, setShowPurchaseOrderForm] = useState(false);
+  const [showCattlePurchaseForm, setShowCattlePurchaseForm] = useState(false);
   const [showPartnerForm, setShowPartnerForm] = useState(false);
   const [showPenForm, setShowPenForm] = useState(false);
   const [showHealthForm, setShowHealthForm] = useState(false);
@@ -53,13 +53,13 @@ export const Dashboard: React.FC = () => {
 
   // Calcular dados quando os dados mudarem
   useEffect(() => {
-    if (purchaseOrders.length > 0) {
+    if (cattlePurchases.length > 0) {
       // Calcular animais confirmados vs pendentes
-      const animalsConfirmed = purchaseOrders
+      const animalsConfirmed = cattlePurchases
         .filter(order => order.status !== 'PENDING')
         .reduce((total, order) => total + order.animalCount, 0);
       
-      const animalsPending = purchaseOrders
+      const animalsPending = cattlePurchases
         .filter(order => order.status === 'PENDING')
         .reduce((total, order) => total + order.animalCount, 0);
       
@@ -67,7 +67,7 @@ export const Dashboard: React.FC = () => {
       setPendingAnimals(animalsPending);
       
       // Calcular custo total de aquisição - APENAS ORDENS COM PAGAMENTO VALIDADO
-      const acquisitionCost = purchaseOrders
+      const acquisitionCost = cattlePurchases
         .filter(order => order.status !== 'PENDING') // Excluir ordens ainda não validadas
         .reduce((total, order) => {
           const carcassWeight = order.totalWeight * (order.carcassYield / 100);
@@ -80,7 +80,7 @@ export const Dashboard: React.FC = () => {
       setTotalAcquisitionCost(acquisitionCost);
       
       // Calcular valor das ordens pendentes (ainda não validadas)
-      const pendingValue = purchaseOrders
+      const pendingValue = cattlePurchases
         .filter(order => order.status === 'PENDING')
         .reduce((total, order) => {
           const carcassWeight = order.totalWeight * (order.carcassYield / 100);
@@ -93,7 +93,7 @@ export const Dashboard: React.FC = () => {
       setPendingOrdersValue(pendingValue);
       
       // Calcular custo médio de compra por arroba - APENAS ORDENS COM PAGAMENTO VALIDADO
-      const totalArrobas = purchaseOrders
+      const totalArrobas = cattlePurchases
         .filter(order => order.status !== 'PENDING') // Excluir ordens ainda não validadas
         .reduce((total, order) => {
           const carcassWeight = order.totalWeight * (order.carcassYield / 100);
@@ -105,7 +105,7 @@ export const Dashboard: React.FC = () => {
         setAveragePurchaseCostPerArroba(acquisitionCost / totalArrobas);
       }
     }
-  }, [purchaseOrders]);
+  }, [cattlePurchases]);
 
   // Loading geral
   const isLoading = dashboardLoading || lotsLoading || ordersLoading || partnersLoading || expensesLoading || revenuesLoading;
@@ -143,14 +143,14 @@ export const Dashboard: React.FC = () => {
 
   // Dados recentes
   const recentData = dashboardData?.recentData || {
-    cattleLots: [],
-    purchaseOrders: [],
+    cattlePurchases: [],
+    cattlePurchases: [],
     expenses: [],
     revenues: []
   };
 
   // Selecionar o primeiro lote ativo para formulários que precisam de um lote
-  const firstLot = cattleLots.find(lot => lot.status === 'active');
+  const firstLot = cattlePurchases.find(lot => lot.status === 'active');
 
   const handleNewPartner = (type: 'vendor' | 'broker' | 'slaughterhouse') => {
     setSelectedPartnerType(type);
@@ -333,11 +333,11 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Formulários em Portal */}
-      {showPurchaseOrderForm && (
+      {showCattlePurchaseForm && (
         <Portal>
-          <PurchaseOrderForm
-            isOpen={showPurchaseOrderForm}
-            onClose={() => setShowPurchaseOrderForm(false)}
+          <CattlePurchaseForm
+            isOpen={showCattlePurchaseForm}
+            onClose={() => setShowCattlePurchaseForm(false)}
           />
         </Portal>
       )}

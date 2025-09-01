@@ -25,8 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
     signOut, 
     isAdmin, 
     isMaster,
-    cattleLots,
-    purchaseOrders,
+    cattlePurchases,
+    cattlePurchases,
     partners
   } = useSupabase();
 
@@ -87,15 +87,15 @@ export const Header: React.FC<HeaderProps> = ({
     }> = [];
 
     // Buscar em lotes
-    const matchingLots = cattleLots.filter(lot => {
-      const purchaseOrder = purchaseOrders.find(po => po.id === lot.purchaseOrderId);
+    const matchingLots = cattlePurchases.filter(lot => {
+      const purchaseOrder = cattlePurchases.find(po => po.id === lot.purchaseId);
       const vendor = purchaseOrder ? partners.find(p => p.id === purchaseOrder.vendorId) : null;
       return lot.lotNumber.toLowerCase().includes(query) ||
         (vendor && vendor.name.toLowerCase().includes(query));
     });
     
     matchingLots.forEach(lot => {
-      const purchaseOrder = purchaseOrders.find(po => po.id === lot.purchaseOrderId);
+      const purchaseOrder = cattlePurchases.find(po => po.id === lot.purchaseId);
       const vendor = purchaseOrder ? partners.find(p => p.id === purchaseOrder.vendorId) : null;
       results.push({
         type: 'lot',
@@ -107,8 +107,8 @@ export const Header: React.FC<HeaderProps> = ({
     });
 
     // Buscar em ordens de compra
-    const matchingOrders = purchaseOrders.filter(order =>
-      order.orderNumber.toLowerCase().includes(query) ||
+    const matchingOrders = cattlePurchases.filter(order =>
+      order.lotCode.toLowerCase().includes(query) ||
       order.city.toLowerCase().includes(query) ||
       order.state.toLowerCase().includes(query)
     );
@@ -116,9 +116,9 @@ export const Header: React.FC<HeaderProps> = ({
     matchingOrders.forEach(order => {
       results.push({
         type: 'order',
-        title: `Ordem ${order.orderNumber}`,
+        title: `Ordem ${order.lotCode}`,
         subtitle: `${order.city} - ${order.state}`,
-        page: 'pipeline',
+        page: 'purchases',
         id: order.id
       });
     });

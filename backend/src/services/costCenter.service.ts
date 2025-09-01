@@ -15,7 +15,7 @@ export class CostCenterService {
           where: { costCenterId: center.id },
         });
 
-        const allocated = expenses.reduce((sum, expense) => sum + expense.totalAmount, 0);
+        const allocated = expenses.reduce((sum: number, expense) => sum + expense.totalAmount, 0);
         const budget = 100000; // Valor padrão, pode vir de outra tabela
         const percentage = budget > 0 ? (allocated / budget) * 100 : 0;
 

@@ -4,7 +4,7 @@ import {
   Calendar, Filter, Download, Plus, BarChart3,
   FileText, AlertCircle, ChevronRight, Eye
 } from 'lucide-react';
-import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
+import { useCattlePurchasesApi } from '../../hooks/api/useCattlePurchasesApi';
 import { DREStatement, DREGenerationParams } from '../../types';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -14,7 +14,7 @@ import { DREFilters } from './DREFilters';
 import { clsx } from 'clsx';
 
 export const DREStatementComponent: React.FC = () => {
-  const { cattleLots } = useCattleLotsApi();
+  const { cattlePurchases } = useCattlePurchasesApi();
   
   // TODO: Implementar funções DRE com API
   const penRegistrations: any[] = [];
@@ -96,7 +96,7 @@ export const DREStatementComponent: React.FC = () => {
       `Sanidade;${dre.costOfGoodsSold.health.toFixed(2)}`,
       `Frete;${dre.costOfGoodsSold.freight.toFixed(2)}`,
       `Mortalidade;${dre.costOfGoodsSold.mortality.toFixed(2)}`,
-      `Quebra de Peso;${dre.costOfGoodsSold.weightLoss.toFixed(2)}`,
+      `Quebra de Peso;${dre.costOfGoodsSold.currentWeightLoss.toFixed(2)}`,
       `TOTAL CPV;${dre.costOfGoodsSold.total.toFixed(2)}`,
       '',
       `LUCRO BRUTO;${dre.grossProfit.toFixed(2)}`,

@@ -77,7 +77,7 @@ export const isOwnerOrAdmin = (req: Request, res: Response, next: NextFunction) 
 /**
  * Middleware para proteger o usuário master de ser modificado
  */
-export const protectMasterUser = (req: Request, res: Response, next: NextFunction): void => {
+export const protectMasterUser = (req: Request, res: Response, next: NextFunction): void | Response => {
   const targetEmail = req.body.email || req.params.email;
   const requestingUserEmail = req.user?.email;
 

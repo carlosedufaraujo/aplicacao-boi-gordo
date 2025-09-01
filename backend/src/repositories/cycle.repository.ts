@@ -1,9 +1,9 @@
-import { cycles } from '@prisma/client';
+import { Cycle } from '@prisma/client';
 import { BaseRepository } from './base.repository';
 
-export class CycleRepository extends BaseRepository<cycles> {
+export class CycleRepository extends BaseRepository<Cycle> {
   constructor() {
-    super('cycles');
+    super('cycle');
   }
 
   async findActive() {

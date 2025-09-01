@@ -17,7 +17,7 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
         // Se response.data for um objeto paginado, extrair o array
         const items = Array.isArray(response.data) 
           ? response.data 
-          : response.data.data || [];
+          : response.data.items || [];
         setPens(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar currais');
@@ -152,13 +152,15 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
         ]);
         
         if (pensResponse.status === 'success' && pensResponse.data) {
+          console.log('[usePensApi.ts] Initial load - Response data:', pensResponse.data);
           const items = Array.isArray(pensResponse.data) 
             ? pensResponse.data 
-            : pensResponse.data.data || [];
+            : pensResponse.data.items || [];
           setPens(items);
         }
         
         if (statsResponse.status === 'success' && statsResponse.data) {
+          console.log('[usePensApi.ts] Initial load - Response data:', statsResponse.data);
           setStats(statsResponse.data);
         }
       } catch (err) {

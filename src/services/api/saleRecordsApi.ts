@@ -6,7 +6,7 @@ export interface SaleRecord {
   slaughterhouseId: string;
   saleDate: string;
   animalType: 'male' | 'female';
-  quantity: number;
+  currentQuantity: number;
   totalWeight: number;
   pricePerArroba: number;
   grossRevenue: number;
@@ -42,7 +42,7 @@ export interface CreateSaleRecordData {
   slaughterhouseId: string;
   saleDate: string;
   animalType: 'male' | 'female';
-  quantity: number;
+  currentQuantity: number;
   totalWeight: number;
   pricePerArroba: number;
   paymentType: 'cash' | 'installment';
@@ -56,7 +56,7 @@ export interface CreateSaleRecordData {
 export interface UpdateSaleRecordData {
   saleDate?: string;
   animalType?: 'male' | 'female';
-  quantity?: number;
+  currentQuantity?: number;
   totalWeight?: number;
   pricePerArroba?: number;
   paymentType?: 'cash' | 'installment';

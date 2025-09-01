@@ -12,6 +12,7 @@ export class ExpenseController {
     const { 
       category,
       costCenterId,
+      cycleId,
       isPaid,
       impactsCashFlow,
       lotId,
@@ -27,6 +28,7 @@ export class ExpenseController {
     const filters = {
       category: category as string,
       costCenterId: costCenterId as string,
+      cycleId: cycleId as string,
       isPaid: isPaid === 'true' ? true : isPaid === 'false' ? false : undefined,
       impactsCashFlow: impactsCashFlow === 'true' ? true : impactsCashFlow === 'false' ? false : undefined,
       lotId: lotId as string,
@@ -36,10 +38,10 @@ export class ExpenseController {
     };
 
     const pagination = {
-      page: page ? parseInt(page as string) : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
-      sortBy: sortBy as string,
-      sortOrder: sortOrder as 'asc' | 'desc',
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 10,
+      sortBy: sortBy as string || 'createdAt',
+      sortOrder: sortOrder as 'asc' | 'desc' || 'desc',
     };
 
     const result = await expenseService.findAll(filters, pagination);

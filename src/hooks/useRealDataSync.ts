@@ -18,15 +18,15 @@ export function useRealDataSync() {
   const store = useAppStore();
   const { 
     cycles, 
-    cattleLots, 
+    cattlePurchases, 
     partners,
     expenses,
     revenues,
     penRegistrations,
     healthRecords,
-    weightReadings,
+    currentWeightReadings,
     setCycles,
-    setCattleLots,
+    setCattlePurchases,
     setPartners,
     setExpenses,
     setRevenues,
@@ -42,7 +42,7 @@ export function useRealDataSync() {
 
       // Buscar TODOS os dados do backend
       const [allData, statsData] = await Promise.all([
-        fetch('http://localhost:3333/api/v1/all-data').then(r => r.json()),
+        fetch('http://localhost:3001/api/v1/all-data').then(r => r.json()),
         apiService.getStats()
       ]);
 
@@ -70,8 +70,8 @@ export function useRealDataSync() {
         }
 
         // 2. Lotes
-        if (data.cattleLots && data.cattleLots.length > 0) {
-          const realLots = data.cattleLots.map((lot: any) => ({
+        if (data.cattlePurchases && data.cattlePurchases.length > 0) {
+          const realLots = data.cattlePurchases.map((lot: any) => ({
             id: lot.id,
             lotNumber: lot.lotNumber,
             animalCount: lot.entryQuantity,
@@ -79,7 +79,7 @@ export function useRealDataSync() {
             totalCost: lot.totalCost,
             status: lot.status,
             createdAt: new Date(lot.createdAt),
-            purchaseOrderId: lot.purchaseOrderId,
+            purchaseId: lot.purchaseId,
             entryDate: new Date(lot.entryDate),
             entryWeight: lot.entryWeight,
             entryQuantity: lot.entryQuantity,
@@ -93,7 +93,7 @@ export function useRealDataSync() {
             otherCosts: lot.otherCosts || 0
           }));
           console.log('🐄 Atualizando lotes no store:', realLots);
-          setCattleLots(realLots);
+          setCattlePurchases(realLots);
         }
 
         // 3. Parceiros
@@ -120,7 +120,7 @@ export function useRealDataSync() {
             id: expense.id,
             category: expense.category,
             description: expense.description,
-            totalAmount: expense.totalAmount,
+            purchaseValue: expense.purchaseValue,
             dueDate: new Date(expense.dueDate),
             paymentDate: expense.paymentDate ? new Date(expense.paymentDate) : undefined,
             isPaid: expense.isPaid,
@@ -142,7 +142,7 @@ export function useRealDataSync() {
             id: revenue.id,
             category: revenue.category,
             description: revenue.description,
-            totalAmount: revenue.totalAmount,
+            purchaseValue: revenue.purchaseValue,
             dueDate: new Date(revenue.dueDate),
             receiptDate: revenue.receiptDate ? new Date(revenue.receiptDate) : undefined,
             isReceived: revenue.isReceived,
@@ -185,8 +185,8 @@ export function useRealDataSync() {
         }
 
         // 8. Leituras de Peso
-        if (data.weightReadings && data.weightReadings.length > 0) {
-          const realWeightReadings = data.weightReadings.map((reading: any) => ({
+        if (data.currentWeightReadings && data.currentWeightReadings.length > 0) {
+          const realWeightReadings = data.currentWeightReadings.map((reading: any) => ({
             id: reading.id,
             lotId: reading.lotId,
             readingDate: new Date(reading.readingDate),
@@ -226,13 +226,13 @@ export function useRealDataSync() {
   useEffect(() => {
     console.log('🔍 Debug - Variáveis do store:', {
       cycles: cycles?.length || 'undefined',
-      cattleLots: cattleLots?.length || 'undefined',
+      cattlePurchases: cattlePurchases?.length || 'undefined',
       partners: partners?.length || 'undefined',
       expenses: expenses?.length || 'undefined',
       revenues: revenues?.length || 'undefined',
       penRegistrations: penRegistrations?.length || 'undefined',
       healthRecords: healthRecords?.length || 'undefined',
-      weightReadings: weightReadings?.length || 'undefined'
+      currentWeightReadings: currentWeightReadings?.length || 'undefined'
     });
     syncWithBackend();
   }, []);
@@ -240,16 +240,16 @@ export function useRealDataSync() {
   return {
     ...syncState,
     sync: syncWithBackend,
-    hasRealData: (cycles?.length || 0) > 0 || (cattleLots?.length || 0) > 0 || (partners?.length || 0) > 0 || (expenses?.length || 0) > 0 || (revenues?.length || 0) > 0,
+    hasRealData: (cycles?.length || 0) > 0 || (cattlePurchases?.length || 0) > 0 || (partners?.length || 0) > 0 || (expenses?.length || 0) > 0 || (revenues?.length || 0) > 0,
     dataCounts: {
       cycles: cycles?.length || 0,
-      cattleLots: cattleLots?.length || 0,
+      cattlePurchases: cattlePurchases?.length || 0,
       partners: partners?.length || 0,
       expenses: expenses?.length || 0,
       revenues: revenues?.length || 0,
       pens: penRegistrations?.length || 0,
       healthRecords: healthRecords?.length || 0,
-      weightReadings: weightReadings?.length || 0
+      currentWeightReadings: currentWeightReadings?.length || 0
     }
   };
 }

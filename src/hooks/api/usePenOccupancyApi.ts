@@ -38,7 +38,7 @@ export const usePenOccupancyApi = () => {
         // Se response.data for um objeto paginado, extrair o array
         const pens = Array.isArray(response.data) 
           ? response.data 
-          : response.data.data || [];
+          : response.data.items || [];
 
         // Mapear para formato de ocupação
         const occupancy: PenOccupancy[] = pens.map(pen => {

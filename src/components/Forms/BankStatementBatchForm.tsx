@@ -13,9 +13,9 @@ const batchSchema = z.object({
     required_error: "Data é obrigatória",
     invalid_type_error: "Data inválida"
   }),
-  totalAmount: z.number().min(0.01, 'Valor total deve ser maior que 0'),
+  purchaseValue: z.number().min(0.01, 'Valor total deve ser maior que 0'),
   description: z.string().min(1, 'Descrição é obrigatória'),
-  quantity: z.number().min(1, 'Quantidade deve ser maior que 0').max(100, 'Máximo 100 lançamentos por vez'),
+  currentQuantity: z.number().min(1, 'Quantidade deve ser maior que 0').max(100, 'Máximo 100 lançamentos por vez'),
   category: z.string().optional(),
   tags: z.array(z.string()).optional()
 });

@@ -19,10 +19,10 @@ export class CycleController {
     };
 
     const pagination = {
-      page: page ? parseInt(page as string) : undefined,
-      limit: limit ? parseInt(limit as string) : undefined,
-      sortBy: sortBy as string,
-      sortOrder: sortOrder as 'asc' | 'desc',
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 10,
+      sortBy: sortBy as string || 'createdAt',
+      sortOrder: sortOrder as 'asc' | 'desc' || 'desc',
     };
 
     const result = await cycleService.findAll(filters, pagination);
@@ -52,7 +52,7 @@ export class CycleController {
    * GET /cycles/stats
    * Retorna estatísticas gerais
    */
-  async stats(req: Request, res: Response): Promise<void> {
+  async stats(_req: Request, res: Response): Promise<void> {
     const stats = await cycleService.getStats();
 
     res.json({
@@ -65,12 +65,25 @@ export class CycleController {
    * GET /cycles/active
    * Lista ciclos ativos
    */
-  async active(req: Request, res: Response): Promise<void> {
+  async active(_req: Request, res: Response): Promise<void> {
     const cycles = await cycleService.findActive();
 
     res.json({
       status: 'success',
       data: cycles,
+    });
+  }
+
+  /**
+   * GET /cycles/current
+   * Retorna o ciclo atual (ativo)
+   */
+  async current(_req: Request, res: Response): Promise<void> {
+    const cycle = await cycleService.findCurrent();
+
+    res.json({
+      status: 'success',
+      data: cycle,
     });
   }
 

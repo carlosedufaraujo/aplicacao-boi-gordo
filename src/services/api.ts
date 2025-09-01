@@ -1,5 +1,5 @@
 // Serviço de API para conectar com o backend
-const API_BASE_URL = 'http://localhost:3333/api/v1';
+const API_BASE_URL = 'http://localhost:3001/api/v1';
 
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -27,7 +27,7 @@ class ApiService {
   // Health check
   async healthCheck() {
     // Health check está na raiz, não no /api/v1
-    const response = await fetch('http://localhost:3333/health');
+    const response = await fetch('http://localhost:3001/health');
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -40,7 +40,7 @@ class ApiService {
   }
 
   // Lotes de gado
-  async getCattleLots() {
+  async getCattlePurchases() {
     return this.request('/cattle-lots');
   }
 
@@ -50,7 +50,7 @@ class ApiService {
   }
 
   // Criar lote (quando implementarmos)
-  async createCattleLot(data: any) {
+  async createCattlePurchase(data: any) {
     return this.request('/cattle-lots-simple', {
       method: 'POST',
       body: JSON.stringify(data),

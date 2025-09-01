@@ -648,7 +648,7 @@ export const CompleteFinancialCenter: React.FC = () => {
     const expenseTransactions = expenses.map(expense => ({
       id: expense.id,
       description: expense.description,
-      amount: expense.totalAmount || 0, // Usar totalAmount do backend
+      amount: expense.purchaseValue || 0, // Usar purchaseValue do backend
       type: 'expense' as const,
       category: expense.category,
       accountId: expense.payerAccountId || '1',
@@ -664,7 +664,7 @@ export const CompleteFinancialCenter: React.FC = () => {
     const revenueTransactions = revenues.map(revenue => ({
       id: revenue.id,
       description: revenue.description,
-      amount: revenue.totalAmount || 0, // Usar totalAmount do backend
+      amount: revenue.purchaseValue || 0, // Usar purchaseValue do backend
       type: 'revenue' as const,
       category: revenue.category,
       accountId: revenue.payerAccountId || '1',

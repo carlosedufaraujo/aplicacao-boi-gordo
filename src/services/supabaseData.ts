@@ -12,10 +12,10 @@ export type { SaleRecord } from '../types';
 // TIPOS E INTERFACES (mantidos para compatibilidade)
 // ============================================================================
 
-export interface CattleLot {
+export interface CattlePurchase {
   id: string;
   lotNumber: string;
-  purchaseOrderId: string;
+  purchaseId: string;
   entryDate: string;
   entryWeight: number;
   entryQuantity: number;
@@ -33,9 +33,9 @@ export interface CattleLot {
   updatedAt: string;
 }
 
-export interface PurchaseOrder {
+export interface CattlePurchase {
   id: string;
-  orderNumber: string;
+  lotCode: string;
   vendorId: string;
   brokerId?: string;
   userId: string;
@@ -223,32 +223,32 @@ class DataService {
   }
 
   // Métodos mantidos para compatibilidade, mas redirecionam para API backend
-  async getCattleLots(): Promise<CattleLot[]> {
-    this.logDeprecation('getCattleLots');
+  async getCattlePurchases(): Promise<CattlePurchase[]> {
+    this.logDeprecation('getCattlePurchases');
     const response = await apiClient.get('/cattle-lots');
     return response.data || [];
   }
 
-  async createCattleLot(lot: Omit<CattleLot, 'id' | 'createdAt' | 'updatedAt'>): Promise<CattleLot> {
-    this.logDeprecation('createCattleLot');
+  async createCattlePurchase(lot: Omit<CattlePurchase, 'id' | 'createdAt' | 'updatedAt'>): Promise<CattlePurchase> {
+    this.logDeprecation('createCattlePurchase');
     const response = await apiClient.post('/cattle-lots', lot);
     return response;
   }
 
-  async updateCattleLot(id: string, updates: Partial<CattleLot>): Promise<CattleLot> {
-    this.logDeprecation('updateCattleLot');
+  async updateCattlePurchase(id: string, updates: Partial<CattlePurchase>): Promise<CattlePurchase> {
+    this.logDeprecation('updateCattlePurchase');
     const response = await apiClient.put(`/cattle-lots/${id}`, updates);
     return response;
   }
 
-  async deleteCattleLot(id: string): Promise<void> {
-    this.logDeprecation('deleteCattleLot');
+  async deleteCattlePurchase(id: string): Promise<void> {
+    this.logDeprecation('deleteCattlePurchase');
     await apiClient.delete(`/cattle-lots/${id}`);
   }
 
   // Outros métodos seguem o mesmo padrão...
-  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
-    this.logDeprecation('getPurchaseOrders');
+  async getCattlePurchases(): Promise<CattlePurchase[]> {
+    this.logDeprecation('getCattlePurchases');
     const response = await apiClient.get('/purchase-orders');
     return response.data || [];
   }

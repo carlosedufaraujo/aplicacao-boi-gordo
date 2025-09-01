@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { partnerApi, Partner, CreatePartnerData, UpdatePartnerData, PartnerFilters, PartnerStats } from '@/services/api/partnerApi';
 import { toast } from 'sonner';
+import { showErrorNotification, showSuccessNotification } from '@/utils/errorHandler';
 
 /**
  * Hook para gerenciar Partners via API Backend
@@ -24,9 +25,11 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       
       if (response.status === 'success' && response.data) {
         // Se response.data for um objeto paginado, extrair o array
+        console.log('[usePartnersApi] Response data:', response.data);
         const items = Array.isArray(response.data) 
           ? response.data 
-          : response.data.data || [];
+          : response.data.items || [];
+        console.log('[usePartnersApi] Items extraídos:', items);
         setPartners(items);
       } else {
         throw new Error(response.message || 'Erro ao carregar parceiros');
@@ -35,7 +38,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao carregar parceiros:', err);
-      toast.error('Erro ao carregar parceiros');
+      showErrorNotification(err, 'Erro ao carregar parceiros');
     } finally {
       setLoading(false);
     }
@@ -49,11 +52,9 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const response = await partnerApi.getStats();
       
       if (response.status === 'success' && response.data) {
-        // Se response.data for um objeto paginado, extrair o array
-        const items = Array.isArray(response.data) 
-          ? response.data 
-          : response.data.data || [];
-        setPartners(items);
+        // Stats não deve sobrescrever os partners, apenas atualizar as estatísticas
+        console.log('Stats carregadas:', response.data);
+        // Não chamar setPartners aqui pois isso apaga a lista de parceiros
       }
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
@@ -71,7 +72,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const response = await partnerApi.create(data);
       
       if (response.status === 'success' && response.data) {
-        toast.success('Parceiro criado com sucesso');
+        showSuccessNotification('Parceiro criado com sucesso');
         
         // Recarregar a lista completa para garantir sincronização
         await loadPartners();
@@ -85,7 +86,9 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao criar parceiro:', err);
-      toast.error('Erro ao criar parceiro');
+      
+      // Notificação detalhada do erro usando o novo sistema
+      showErrorNotification(err, 'Erro ao criar parceiro');
       return null;
     } finally {
       setLoading(false);
@@ -103,7 +106,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const response = await partnerApi.update(id, data);
       
       if (response.status === 'success' && response.data) {
-        toast.success('Parceiro atualizado com sucesso');
+        showSuccessNotification('Parceiro atualizado com sucesso');
         
         // Recarregar a lista completa para garantir sincronização
         await loadPartners();
@@ -117,7 +120,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao atualizar parceiro:', err);
-      toast.error('Erro ao atualizar parceiro');
+      showErrorNotification(err, 'Erro ao atualizar parceiro');
       return null;
     } finally {
       setLoading(false);
@@ -138,7 +141,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
         setPartners(prev => prev.map(partner => 
           partner.id === id ? response.data! : partner
         ));
-        toast.success(`Parceiro ${isActive ? 'ativado' : 'desativado'} com sucesso`);
+        showSuccessNotification(`Parceiro ${isActive ? 'ativado' : 'desativado'} com sucesso`);
         
         // Recarregar estatísticas
         loadStats();
@@ -151,7 +154,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao alterar status do parceiro:', err);
-      toast.error('Erro ao alterar status do parceiro');
+      showErrorNotification(err, 'Erro ao alterar status');
       return null;
     } finally {
       setLoading(false);
@@ -170,7 +173,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       
       if (response.status === 'success') {
         setPartners(prev => prev.filter(partner => partner.id !== id));
-        toast.success('Parceiro removido com sucesso');
+        showSuccessNotification('Parceiro removido com sucesso');
         
         // Recarregar estatísticas
         loadStats();
@@ -183,7 +186,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
       setError(errorMessage);
       console.error('Erro ao remover parceiro:', err);
-      toast.error('Erro ao remover parceiro');
+      showErrorNotification(err, 'Erro ao remover parceiro');
       return false;
     } finally {
       setLoading(false);
@@ -285,9 +288,11 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
         ]);
         
         if (partnersResponse.status === 'success' && partnersResponse.data) {
+          console.log('[usePartnersApi] Initial load - Response data:', partnersResponse.data);
           const items = Array.isArray(partnersResponse.data) 
             ? partnersResponse.data 
-            : partnersResponse.data.data || [];
+            : partnersResponse.data.items || [];
+          console.log('[usePartnersApi] Initial load - Items extraídos:', items);
           setPartners(items);
         }
         

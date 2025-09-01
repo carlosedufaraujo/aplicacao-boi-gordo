@@ -51,7 +51,7 @@ import { cn } from '@/lib/utils';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart, ComposedChart } from 'recharts';
 import { useExpensesApi } from '../../hooks/api/useExpensesApi';
 import { useRevenuesApi } from '../../hooks/api/useRevenuesApi';
-import { useCattleLotsApi } from '../../hooks/api/useCattleLotsApi';
+import { useCattlePurchasesApi } from '../../hooks/api/useCattlePurchasesApi';
 import { useSaleRecordsApi } from '../../hooks/api/useSaleRecordsApi';
 
 interface DREItem {
@@ -88,7 +88,7 @@ export const ModernDREWithSupabase: React.FC = () => {
   // Hooks da Nova Arquitetura API
   const { expenses, loading: expensesLoading } = useExpensesApi();
   const { revenues, loading: revenuesLoading } = useRevenuesApi();
-  const { cattleLots, loading: lotsLoading } = useCattleLotsApi();
+  const { cattlePurchases, loading: lotsLoading } = useCattlePurchasesApi();
   const { saleRecords, loading: salesLoading } = useSaleRecordsApi();
 
   const isLoading = expensesLoading || revenuesLoading || lotsLoading || salesLoading;
@@ -117,7 +117,7 @@ export const ModernDREWithSupabase: React.FC = () => {
 
   // Calcular dados do DRE baseados nos dados reais
   const dreData = useMemo(() => {
-    if (isLoading) {
+    if (isLoading || !revenues || !expenses || !Array.isArray(revenues) || !Array.isArray(expenses)) {
       return [];
     }
 
@@ -147,19 +147,19 @@ export const ModernDREWithSupabase: React.FC = () => {
     });
 
     // Calcular totais de receitas
-    const currentRevenueTotal = currentRevenues.reduce((sum, rev) => sum + rev.totalAmount, 0);
-    const previousRevenueTotal = previousRevenues.reduce((sum, rev) => sum + rev.totalAmount, 0);
+    const currentRevenueTotal = currentRevenues.reduce((sum, rev) => sum + rev.purchaseValue, 0);
+    const previousRevenueTotal = previousRevenues.reduce((sum, rev) => sum + rev.purchaseValue, 0);
     const yearToDateRevenue = revenues.reduce((sum, rev) => {
       const revDate = new Date(rev.date);
-      return revDate.getFullYear() === new Date().getFullYear() ? sum + rev.totalAmount : sum;
+      return revDate.getFullYear() === new Date().getFullYear() ? sum + rev.purchaseValue : sum;
     }, 0);
 
     // Calcular totais de despesas
-    const currentExpenseTotal = currentExpenses.reduce((sum, exp) => sum + exp.totalAmount, 0);
-    const previousExpenseTotal = previousExpenses.reduce((sum, exp) => sum + exp.totalAmount, 0);
+    const currentExpenseTotal = currentExpenses.reduce((sum, exp) => sum + exp.purchaseValue, 0);
+    const previousExpenseTotal = previousExpenses.reduce((sum, exp) => sum + exp.purchaseValue, 0);
     const yearToDateExpense = expenses.reduce((sum, exp) => {
       const expDate = new Date(exp.date);
-      return expDate.getFullYear() === new Date().getFullYear() ? sum + exp.totalAmount : sum;
+      return expDate.getFullYear() === new Date().getFullYear() ? sum + exp.purchaseValue : sum;
     }, 0);
 
     // Calcular variações
@@ -191,14 +191,14 @@ export const ModernDREWithSupabase: React.FC = () => {
             description: 'Vendas de Gado',
             type: 'revenue' as const,
             category: 'operational',
-            currentMonth: currentRevenues.filter(r => r.category === 'cattle_sales').reduce((sum, r) => sum + r.totalAmount, 0),
-            previousMonth: previousRevenues.filter(r => r.category === 'cattle_sales').reduce((sum, r) => sum + r.totalAmount, 0),
-            yearToDate: revenues.filter(r => r.category === 'cattle_sales' && new Date(r.date).getFullYear() === new Date().getFullYear()).reduce((sum, r) => sum + r.totalAmount, 0),
+            currentMonth: currentRevenues.filter(r => r.category === 'cattle_sales').reduce((sum, r) => sum + r.purchaseValue, 0),
+            previousMonth: previousRevenues.filter(r => r.category === 'cattle_sales').reduce((sum, r) => sum + r.purchaseValue, 0),
+            yearToDate: revenues.filter(r => r.category === 'cattle_sales' && new Date(r.date).getFullYear() === new Date().getFullYear()).reduce((sum, r) => sum + r.purchaseValue, 0),
             budget: 0,
             variance: 0,
             variancePercentage: calculateVariancePercentage(
-              currentRevenues.filter(r => r.category === 'cattle_sales').reduce((sum, r) => sum + r.totalAmount, 0),
-              previousRevenues.filter(r => r.category === 'cattle_sales').reduce((sum, r) => sum + r.totalAmount, 0)
+              currentRevenues.filter(r => r.category === 'cattle_sales').reduce((sum, r) => sum + r.purchaseValue, 0),
+              previousRevenues.filter(r => r.category === 'cattle_sales').reduce((sum, r) => sum + r.purchaseValue, 0)
             )
           },
           {
@@ -206,14 +206,14 @@ export const ModernDREWithSupabase: React.FC = () => {
             description: 'Serviços e Arrendamentos',
             type: 'revenue' as const,
             category: 'operational',
-            currentMonth: currentRevenues.filter(r => r.category === 'services').reduce((sum, r) => sum + r.totalAmount, 0),
-            previousMonth: previousRevenues.filter(r => r.category === 'services').reduce((sum, r) => sum + r.totalAmount, 0),
-            yearToDate: revenues.filter(r => r.category === 'services' && new Date(r.date).getFullYear() === new Date().getFullYear()).reduce((sum, r) => sum + r.totalAmount, 0),
+            currentMonth: currentRevenues.filter(r => r.category === 'services').reduce((sum, r) => sum + r.purchaseValue, 0),
+            previousMonth: previousRevenues.filter(r => r.category === 'services').reduce((sum, r) => sum + r.purchaseValue, 0),
+            yearToDate: revenues.filter(r => r.category === 'services' && new Date(r.date).getFullYear() === new Date().getFullYear()).reduce((sum, r) => sum + r.purchaseValue, 0),
             budget: 0,
             variance: 0,
             variancePercentage: calculateVariancePercentage(
-              currentRevenues.filter(r => r.category === 'services').reduce((sum, r) => sum + r.totalAmount, 0),
-              previousRevenues.filter(r => r.category === 'services').reduce((sum, r) => sum + r.totalAmount, 0)
+              currentRevenues.filter(r => r.category === 'services').reduce((sum, r) => sum + r.purchaseValue, 0),
+              previousRevenues.filter(r => r.category === 'services').reduce((sum, r) => sum + r.purchaseValue, 0)
             )
           },
           {
@@ -221,14 +221,14 @@ export const ModernDREWithSupabase: React.FC = () => {
             description: 'Outras Receitas',
             type: 'revenue' as const,
             category: 'non-operational',
-            currentMonth: currentRevenues.filter(r => !['cattle_sales', 'services'].includes(r.category)).reduce((sum, r) => sum + r.totalAmount, 0),
-            previousMonth: previousRevenues.filter(r => !['cattle_sales', 'services'].includes(r.category)).reduce((sum, r) => sum + r.totalAmount, 0),
-            yearToDate: revenues.filter(r => !['cattle_sales', 'services'].includes(r.category) && new Date(r.date).getFullYear() === new Date().getFullYear()).reduce((sum, r) => sum + r.totalAmount, 0),
+            currentMonth: currentRevenues.filter(r => !['cattle_sales', 'services'].includes(r.category)).reduce((sum, r) => sum + r.purchaseValue, 0),
+            previousMonth: previousRevenues.filter(r => !['cattle_sales', 'services'].includes(r.category)).reduce((sum, r) => sum + r.purchaseValue, 0),
+            yearToDate: revenues.filter(r => !['cattle_sales', 'services'].includes(r.category) && new Date(r.date).getFullYear() === new Date().getFullYear()).reduce((sum, r) => sum + r.purchaseValue, 0),
             budget: 0,
             variance: 0,
             variancePercentage: calculateVariancePercentage(
-              currentRevenues.filter(r => !['cattle_sales', 'services'].includes(r.category)).reduce((sum, r) => sum + r.totalAmount, 0),
-              previousRevenues.filter(r => !['cattle_sales', 'services'].includes(r.category)).reduce((sum, r) => sum + r.totalAmount, 0)
+              currentRevenues.filter(r => !['cattle_sales', 'services'].includes(r.category)).reduce((sum, r) => sum + r.purchaseValue, 0),
+              previousRevenues.filter(r => !['cattle_sales', 'services'].includes(r.category)).reduce((sum, r) => sum + r.purchaseValue, 0)
             )
           }
         ]
@@ -249,14 +249,14 @@ export const ModernDREWithSupabase: React.FC = () => {
             description: 'Compra de Gado',
             type: 'expense' as const,
             category: 'operational',
-            currentMonth: -currentExpenses.filter(e => e.category === 'cattle_purchase').reduce((sum, e) => sum + e.totalAmount, 0),
-            previousMonth: -previousExpenses.filter(e => e.category === 'cattle_purchase').reduce((sum, e) => sum + e.totalAmount, 0),
-            yearToDate: -expenses.filter(e => e.category === 'cattle_purchase' && new Date(e.date).getFullYear() === new Date().getFullYear()).reduce((sum, e) => sum + e.totalAmount, 0),
+            currentMonth: -currentExpenses.filter(e => e.category === 'cattle_purchase').reduce((sum, e) => sum + e.purchaseValue, 0),
+            previousMonth: -previousExpenses.filter(e => e.category === 'cattle_purchase').reduce((sum, e) => sum + e.purchaseValue, 0),
+            yearToDate: -expenses.filter(e => e.category === 'cattle_purchase' && new Date(e.date).getFullYear() === new Date().getFullYear()).reduce((sum, e) => sum + e.purchaseValue, 0),
             budget: 0,
             variance: 0,
             variancePercentage: -calculateVariancePercentage(
-              currentExpenses.filter(e => e.category === 'cattle_purchase').reduce((sum, e) => sum + e.totalAmount, 0),
-              previousExpenses.filter(e => e.category === 'cattle_purchase').reduce((sum, e) => sum + e.totalAmount, 0)
+              currentExpenses.filter(e => e.category === 'cattle_purchase').reduce((sum, e) => sum + e.purchaseValue, 0),
+              previousExpenses.filter(e => e.category === 'cattle_purchase').reduce((sum, e) => sum + e.purchaseValue, 0)
             )
           },
           {
@@ -264,14 +264,14 @@ export const ModernDREWithSupabase: React.FC = () => {
             description: 'Alimentação e Nutrição',
             type: 'expense' as const,
             category: 'operational',
-            currentMonth: -currentExpenses.filter(e => e.category === 'feed').reduce((sum, e) => sum + e.totalAmount, 0),
-            previousMonth: -previousExpenses.filter(e => e.category === 'feed').reduce((sum, e) => sum + e.totalAmount, 0),
-            yearToDate: -expenses.filter(e => e.category === 'feed' && new Date(e.date).getFullYear() === new Date().getFullYear()).reduce((sum, e) => sum + e.totalAmount, 0),
+            currentMonth: -currentExpenses.filter(e => e.category === 'feed').reduce((sum, e) => sum + e.purchaseValue, 0),
+            previousMonth: -previousExpenses.filter(e => e.category === 'feed').reduce((sum, e) => sum + e.purchaseValue, 0),
+            yearToDate: -expenses.filter(e => e.category === 'feed' && new Date(e.date).getFullYear() === new Date().getFullYear()).reduce((sum, e) => sum + e.purchaseValue, 0),
             budget: 0,
             variance: 0,
             variancePercentage: -calculateVariancePercentage(
-              currentExpenses.filter(e => e.category === 'feed').reduce((sum, e) => sum + e.totalAmount, 0),
-              previousExpenses.filter(e => e.category === 'feed').reduce((sum, e) => sum + e.totalAmount, 0)
+              currentExpenses.filter(e => e.category === 'feed').reduce((sum, e) => sum + e.purchaseValue, 0),
+              previousExpenses.filter(e => e.category === 'feed').reduce((sum, e) => sum + e.purchaseValue, 0)
             )
           },
           {
@@ -279,14 +279,14 @@ export const ModernDREWithSupabase: React.FC = () => {
             description: 'Saúde e Veterinária',
             type: 'expense' as const,
             category: 'operational',
-            currentMonth: -currentExpenses.filter(e => e.category === 'health').reduce((sum, e) => sum + e.totalAmount, 0),
-            previousMonth: -previousExpenses.filter(e => e.category === 'health').reduce((sum, e) => sum + e.totalAmount, 0),
-            yearToDate: -expenses.filter(e => e.category === 'health' && new Date(e.date).getFullYear() === new Date().getFullYear()).reduce((sum, e) => sum + e.totalAmount, 0),
+            currentMonth: -currentExpenses.filter(e => e.category === 'health').reduce((sum, e) => sum + e.purchaseValue, 0),
+            previousMonth: -previousExpenses.filter(e => e.category === 'health').reduce((sum, e) => sum + e.purchaseValue, 0),
+            yearToDate: -expenses.filter(e => e.category === 'health' && new Date(e.date).getFullYear() === new Date().getFullYear()).reduce((sum, e) => sum + e.purchaseValue, 0),
             budget: 0,
             variance: 0,
             variancePercentage: -calculateVariancePercentage(
-              currentExpenses.filter(e => e.category === 'health').reduce((sum, e) => sum + e.totalAmount, 0),
-              previousExpenses.filter(e => e.category === 'health').reduce((sum, e) => sum + e.totalAmount, 0)
+              currentExpenses.filter(e => e.category === 'health').reduce((sum, e) => sum + e.purchaseValue, 0),
+              previousExpenses.filter(e => e.category === 'health').reduce((sum, e) => sum + e.purchaseValue, 0)
             )
           },
           {
@@ -294,14 +294,14 @@ export const ModernDREWithSupabase: React.FC = () => {
             description: 'Mão de Obra',
             type: 'expense' as const,
             category: 'operational',
-            currentMonth: -currentExpenses.filter(e => e.category === 'personnel').reduce((sum, e) => sum + e.totalAmount, 0),
-            previousMonth: -previousExpenses.filter(e => e.category === 'personnel').reduce((sum, e) => sum + e.totalAmount, 0),
-            yearToDate: -expenses.filter(e => e.category === 'personnel' && new Date(e.date).getFullYear() === new Date().getFullYear()).reduce((sum, e) => sum + e.totalAmount, 0),
+            currentMonth: -currentExpenses.filter(e => e.category === 'personnel').reduce((sum, e) => sum + e.purchaseValue, 0),
+            previousMonth: -previousExpenses.filter(e => e.category === 'personnel').reduce((sum, e) => sum + e.purchaseValue, 0),
+            yearToDate: -expenses.filter(e => e.category === 'personnel' && new Date(e.date).getFullYear() === new Date().getFullYear()).reduce((sum, e) => sum + e.purchaseValue, 0),
             budget: 0,
             variance: 0,
             variancePercentage: -calculateVariancePercentage(
-              currentExpenses.filter(e => e.category === 'personnel').reduce((sum, e) => sum + e.totalAmount, 0),
-              previousExpenses.filter(e => e.category === 'personnel').reduce((sum, e) => sum + e.totalAmount, 0)
+              currentExpenses.filter(e => e.category === 'personnel').reduce((sum, e) => sum + e.purchaseValue, 0),
+              previousExpenses.filter(e => e.category === 'personnel').reduce((sum, e) => sum + e.purchaseValue, 0)
             )
           },
           {
@@ -309,14 +309,14 @@ export const ModernDREWithSupabase: React.FC = () => {
             description: 'Despesas Administrativas',
             type: 'expense' as const,
             category: 'administrative',
-            currentMonth: -currentExpenses.filter(e => ['general_admin', 'office', 'admin_other'].includes(e.category)).reduce((sum, e) => sum + e.totalAmount, 0),
-            previousMonth: -previousExpenses.filter(e => ['general_admin', 'office', 'admin_other'].includes(e.category)).reduce((sum, e) => sum + e.totalAmount, 0),
-            yearToDate: -expenses.filter(e => ['general_admin', 'office', 'admin_other'].includes(e.category) && new Date(e.date).getFullYear() === new Date().getFullYear()).reduce((sum, e) => sum + e.totalAmount, 0),
+            currentMonth: -currentExpenses.filter(e => ['general_admin', 'office', 'admin_other'].includes(e.category)).reduce((sum, e) => sum + e.purchaseValue, 0),
+            previousMonth: -previousExpenses.filter(e => ['general_admin', 'office', 'admin_other'].includes(e.category)).reduce((sum, e) => sum + e.purchaseValue, 0),
+            yearToDate: -expenses.filter(e => ['general_admin', 'office', 'admin_other'].includes(e.category) && new Date(e.date).getFullYear() === new Date().getFullYear()).reduce((sum, e) => sum + e.purchaseValue, 0),
             budget: 0,
             variance: 0,
             variancePercentage: -calculateVariancePercentage(
-              currentExpenses.filter(e => ['general_admin', 'office', 'admin_other'].includes(e.category)).reduce((sum, e) => sum + e.totalAmount, 0),
-              previousExpenses.filter(e => ['general_admin', 'office', 'admin_other'].includes(e.category)).reduce((sum, e) => sum + e.totalAmount, 0)
+              currentExpenses.filter(e => ['general_admin', 'office', 'admin_other'].includes(e.category)).reduce((sum, e) => sum + e.purchaseValue, 0),
+              previousExpenses.filter(e => ['general_admin', 'office', 'admin_other'].includes(e.category)).reduce((sum, e) => sum + e.purchaseValue, 0)
             )
           }
         ]
@@ -326,7 +326,7 @@ export const ModernDREWithSupabase: React.FC = () => {
 
   // Calcular totais
   const totals = useMemo(() => {
-    if (dreData.length === 0) {
+    if (!dreData || !Array.isArray(dreData) || dreData.length === 0) {
       return {
         grossProfit: { currentMonth: 0, previousMonth: 0, yearToDate: 0, budget: 0 },
         grossMargin: { current: 0, previous: 0 },
@@ -370,12 +370,12 @@ export const ModernDREWithSupabase: React.FC = () => {
       const monthRevenues = revenues.filter(r => {
         const rDate = new Date(r.date);
         return rDate >= monthStart && rDate <= monthEnd;
-      }).reduce((sum, r) => sum + r.totalAmount, 0);
+      }).reduce((sum, r) => sum + r.purchaseValue, 0);
 
       const monthExpenses = expenses.filter(e => {
         const eDate = new Date(e.date);
         return eDate >= monthStart && eDate <= monthEnd;
-      }).reduce((sum, e) => sum + e.totalAmount, 0);
+      }).reduce((sum, e) => sum + e.purchaseValue, 0);
 
       last6Months.push({
         month: format(date, 'MMM', { locale: ptBR }),
@@ -389,7 +389,7 @@ export const ModernDREWithSupabase: React.FC = () => {
   }, [revenues, expenses, isLoading]);
 
   const expenseBreakdown = useMemo(() => {
-    if (isLoading || dreData.length === 0) return [];
+    if (isLoading || !dreData || !Array.isArray(dreData) || dreData.length === 0) return [];
 
     const expensesData = dreData.find(d => d.id === 'expenses');
     if (!expensesData?.children) return [];
@@ -1045,8 +1045,8 @@ export const ModernDREWithSupabase: React.FC = () => {
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Custo/Cabeça</p>
                     <p className="kpi-value">
-                      {cattleLots.length > 0 
-                        ? formatCurrency((dreData.length > 1 ? Math.abs(dreData[1].currentMonth) : 0) / cattleLots.reduce((sum, lot) => sum + lot.entryQuantity, 0))
+                      {cattlePurchases && cattlePurchases.length > 0 
+                        ? formatCurrency((dreData.length > 1 ? Math.abs(dreData[1].currentMonth) : 0) / cattlePurchases.reduce((sum, lot) => sum + lot.entryQuantity, 0))
                         : 'R$ 0'
                       }
                     </p>
@@ -1058,8 +1058,8 @@ export const ModernDREWithSupabase: React.FC = () => {
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Receita/Cabeça</p>
                     <p className="kpi-value">
-                      {cattleLots.length > 0 
-                        ? formatCurrency((dreData.length > 0 ? dreData[0].currentMonth : 0) / cattleLots.reduce((sum, lot) => sum + lot.entryQuantity, 0))
+                      {cattlePurchases && cattlePurchases.length > 0 
+                        ? formatCurrency((dreData.length > 0 ? dreData[0].currentMonth : 0) / cattlePurchases.reduce((sum, lot) => sum + lot.entryQuantity, 0))
                         : 'R$ 0'
                       }
                     </p>
@@ -1071,8 +1071,8 @@ export const ModernDREWithSupabase: React.FC = () => {
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">Lucro/Cabeça</p>
                     <p className="kpi-value">
-                      {cattleLots.length > 0 
-                        ? formatCurrency(totals.grossProfit.currentMonth / cattleLots.reduce((sum, lot) => sum + lot.entryQuantity, 0))
+                      {cattlePurchases && cattlePurchases.length > 0 
+                        ? formatCurrency(totals.grossProfit.currentMonth / cattlePurchases.reduce((sum, lot) => sum + lot.entryQuantity, 0))
                         : 'R$ 0'
                       }
                     </p>

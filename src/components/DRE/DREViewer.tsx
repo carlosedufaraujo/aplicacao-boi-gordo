@@ -235,11 +235,11 @@ export const DREViewer: React.FC<DREViewerProps> = ({ dre }) => {
                   </span>
                 </div>
               )}
-              {dre.costOfGoodsSold.weightLoss > 0 && (
+              {dre.costOfGoodsSold.currentWeightLoss > 0 && (
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-neutral-600 italic">Perdas por Quebra de Peso</span>
                   <span className="text-sm font-medium text-error-600 italic">
-                    -{formatCurrency(dre.costOfGoodsSold.weightLoss)}
+                    -{formatCurrency(dre.costOfGoodsSold.currentWeightLoss)}
                   </span>
                 </div>
               )}

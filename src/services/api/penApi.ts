@@ -2,12 +2,15 @@ import { apiClient } from './apiClient';
 
 export interface Pen {
   id: string;
+  name: string; // Nome do curral
   penNumber: string;
   capacity: number;
+  currentOccupancy: number; // Ocupação atual
   type: 'CONFINEMENT' | 'PASTURE' | 'QUARANTINE' | 'HOSPITAL';
   location: string;
   isActive: boolean;
   status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+  lotId?: string; // ID do lote alocado (se houver)
   notes?: string;
   userId: string;
   createdAt: string;

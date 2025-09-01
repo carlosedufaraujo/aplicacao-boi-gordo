@@ -109,8 +109,8 @@ export function SimplifiedPurchaseDetails({
   // Calcular peso estimado e dias para abate se tiver GMD
   if (data.expectedGMD && data.targetWeight) {
     metrics.estimatedWeight = metrics.averageWeight + (metrics.daysInConfinement * data.expectedGMD);
-    const weightToGain = data.targetWeight - metrics.averageWeight;
-    metrics.daysToTarget = data.expectedGMD > 0 ? Math.ceil(weightToGain / data.expectedGMD) : 0;
+    const currentWeightToGain = data.targetWeight - metrics.averageWeight;
+    metrics.daysToTarget = data.expectedGMD > 0 ? Math.ceil(currentWeightToGain / data.expectedGMD) : 0;
     
     if (metrics.daysToTarget > 0) {
       metrics.estimatedSlaughterDate = new Date();

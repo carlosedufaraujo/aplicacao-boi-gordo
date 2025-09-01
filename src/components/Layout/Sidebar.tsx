@@ -55,16 +55,16 @@ const navigation: NavigationSection[] = [
     label: 'Operações',
     items: [
       { 
-        id: 'pipeline', 
+        id: 'purchases', 
         name: 'Compras', 
         icon: ShoppingBag,
-        description: 'Pipeline de aquisições'
+        description: 'Gestão de compras'
       },
       { 
-        id: 'sales-pipeline', 
+        id: 'sales', 
         name: 'Vendas', 
         icon: TrendingUp,
-        description: 'Gestão de abates e vendas'
+        description: 'Gestão de vendas'
       },
       { 
         id: 'lots', 

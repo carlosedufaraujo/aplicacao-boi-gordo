@@ -68,8 +68,7 @@ export class PenService {
     const include = {
       lotAllocations: {
         where: { status: 'ACTIVE' },
-        include: {
-          lot: true,
+        include: { cattlePurchase: true,
         },
       },
     };
@@ -205,13 +204,13 @@ export class PenService {
     if (startDate) dateFilter.gte = startDate;
     if (endDate) dateFilter.lte = endDate;
 
-    const protocols = pen.healthProtocols.filter((protocol: any) => {
+    const protocols = (pen as any).healthProtocols?.filter((protocol: any) => {
       if (!startDate && !endDate) return true;
       const date = protocol.applicationDate;
       if (startDate && date < startDate) return false;
       if (endDate && date > endDate) return false;
       return true;
-    });
+    }) || [];
 
     return {
       pen: {
