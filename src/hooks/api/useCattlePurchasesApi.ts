@@ -313,8 +313,13 @@ export function useCattlePurchasesApi() {
   const registerReception = useCallback(async (id: string, data: {
     receivedDate: Date | string;
     receivedWeight: number;
+    receivedQuantity?: number;
     actualQuantity: number;
+    unloadingDate?: string;
     transportMortality?: number;
+    mortalityReason?: string;
+    observations?: string;
+    penAllocations?: Array<{ penId: string; quantity: number }>;
     currentWeightBreakPercentage?: number;
     penIds?: string[];
   }) => {
@@ -322,11 +327,16 @@ export function useCattlePurchasesApi() {
       setLoading(true);
       setError(null);
       
+      // Preparar payload conforme esperado pela API
       const payload = {
-        ...data,
-        receivedDate: data.receivedDate instanceof Date
+        receivedWeight: data.receivedWeight,
+        receivedQuantity: data.receivedQuantity || data.actualQuantity,
+        unloadingDate: data.unloadingDate || (data.receivedDate instanceof Date
           ? data.receivedDate.toISOString()
-          : data.receivedDate,
+          : data.receivedDate),
+        mortalityReason: data.mortalityReason,
+        observations: data.observations,
+        penAllocations: data.penAllocations || [],
       };
       
       const response = await apiClient.post(`/cattle-purchases/${id}/reception`, payload);

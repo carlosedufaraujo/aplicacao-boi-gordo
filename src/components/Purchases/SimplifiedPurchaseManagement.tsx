@@ -603,9 +603,13 @@ export function SimplifiedPurchaseManagement() {
                 await registerReception(statusData.purchaseId, {
                   receivedDate: new Date(statusData.receivedDate),
                   receivedWeight: statusData.receivedWeight,
+                  receivedQuantity: statusData.actualQuantity,
                   actualQuantity: statusData.actualQuantity,
+                  unloadingDate: statusData.receivedDate,
                   transportMortality: statusModalData.purchase.initialQuantity - statusData.actualQuantity,
-                  penIds: statusData.penIds,
+                  mortalityReason: statusData.mortalityReason,
+                  observations: statusData.notes,
+                  penAllocations: statusData.penAllocations,
                 });
               } else {
                 // Chamar API de mudança de status simples
