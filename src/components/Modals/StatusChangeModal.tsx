@@ -50,7 +50,8 @@ export function StatusChangeModal({ isOpen, onClose, data, onConfirm }: StatusCh
 
   // Filtrar apenas currais disponíveis
   const availablePens = pens.filter(pen => 
-    pen.status === 'ACTIVE' && 
+    (pen.status === 'AVAILABLE' || pen.status === 'ACTIVE') && 
+    pen.isActive !== false &&
     pen.currentOccupancy < pen.capacity
   );
 
