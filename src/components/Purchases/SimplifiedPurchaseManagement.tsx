@@ -81,6 +81,7 @@ export function SimplifiedPurchaseManagement() {
     loading, 
     loadPurchases, 
     createPurchase,
+    updatePurchase,
     deletePurchase,
     updateStatus,
     registerDeath,
@@ -577,6 +578,14 @@ export function SimplifiedPurchaseManagement() {
             setPurchaseToDelete(selectedPurchase.id);
             setShowDeleteDialog(true);
           }}
+          onRefresh={async () => {
+            await loadPurchases();
+            // Atualizar o selectedPurchase com os dados atualizados
+            const updatedPurchase = purchases.find(p => p.id === selectedPurchase.id);
+            if (updatedPurchase) {
+              setSelectedPurchase(updatedPurchase);
+            }
+          }}
         />
       )}
 
@@ -585,32 +594,34 @@ export function SimplifiedPurchaseManagement() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Confirmar Exclusão</DialogTitle>
-            <DialogDescription className="space-y-2">
-              <p>Tem certeza que deseja excluir esta compra?</p>
-              {purchaseToDelete && (() => {
-                const purchase = purchases.find(p => p.id === purchaseToDelete);
-                const isActive = purchase?.status === 'CONFINED' || purchase?.status === 'RECEIVED';
-                
-                if (isActive) {
-                  return (
-                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mt-2">
-                      <p className="text-amber-800 font-medium">⚠️ Atenção: Este lote está ativo!</p>
-                      <p className="text-amber-700 text-sm mt-1">
-                        Ao excluir, serão removidos TODOS os dados relacionados:
-                      </p>
-                      <ul className="text-amber-700 text-sm mt-1 ml-4 list-disc">
-                        <li>Alocações em currais</li>
-                        <li>Registros de saúde e mortalidade</li>
-                        <li>Despesas e receitas relacionadas</li>
-                        <li>Análises de quebra de peso</li>
-                        <li>Histórico completo do lote</li>
-                      </ul>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-              <p className="text-destructive font-semibold">Esta ação não pode ser desfeita!</p>
+            <DialogDescription asChild>
+              <div className="space-y-2">
+                <div>Tem certeza que deseja excluir esta compra?</div>
+                {purchaseToDelete && (() => {
+                  const purchase = purchases.find(p => p.id === purchaseToDelete);
+                  const isActive = purchase?.status === 'CONFINED' || purchase?.status === 'RECEIVED';
+                  
+                  if (isActive) {
+                    return (
+                      <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mt-2">
+                        <div className="text-amber-800 font-medium">⚠️ Atenção: Este lote está ativo!</div>
+                        <div className="text-amber-700 text-sm mt-1">
+                          Ao excluir, serão removidos TODOS os dados relacionados:
+                        </div>
+                        <ul className="text-amber-700 text-sm mt-1 ml-4 list-disc">
+                          <li>Alocações em currais</li>
+                          <li>Registros de saúde e mortalidade</li>
+                          <li>Despesas e receitas relacionadas</li>
+                          <li>Análises de quebra de peso</li>
+                          <li>Histórico completo do lote</li>
+                        </ul>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                <div className="text-destructive font-semibold">Esta ação não pode ser desfeita!</div>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -682,17 +693,26 @@ export function SimplifiedPurchaseManagement() {
         />
       )}
 
-      {/* Formulário de Nova Compra */}
+      {/* Formulário de Nova/Editar Compra */}
       <OptimizedPurchaseForm
         open={showForm}
-        onClose={() => setShowForm(false)}
+        onClose={() => {
+          setShowForm(false);
+          setSelectedPurchase(null);
+        }}
         onSubmit={async (data) => {
-          await createPurchase(data);
+          if (selectedPurchase) {
+            await updatePurchase(selectedPurchase.id, data);
+          } else {
+            await createPurchase(data);
+          }
           await loadPurchases();
           setShowForm(false);
+          setSelectedPurchase(null);
         }}
         partners={partners}
         payerAccounts={accounts}
+        initialData={selectedPurchase}
       />
     </div>
   );

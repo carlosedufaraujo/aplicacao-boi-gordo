@@ -6,6 +6,7 @@ export interface Revenue {
   value: number;
   receivedDate: string;
   categoryId: string;
+  costCenterId?: string;
   payerAccountId: string;
   saleRecordId?: string;
   notes?: string;
@@ -16,6 +17,7 @@ export interface Revenue {
   createdAt: string;
   updatedAt: string;
   category?: any;
+  costCenter?: any;
   payerAccount?: any;
   saleRecord?: any;
 }
@@ -25,6 +27,7 @@ export interface CreateRevenueData {
   value: number;
   receivedDate: string;
   categoryId: string;
+  costCenterId?: string;
   payerAccountId: string;
   saleRecordId?: string;
   notes?: string;
@@ -39,6 +42,7 @@ export interface UpdateRevenueData extends Partial<CreateRevenueData> {
 export interface RevenueFilters {
   status?: string;
   categoryId?: string;
+  costCenterId?: string;
   payerAccountId?: string;
   saleRecordId?: string;
   startDate?: string;

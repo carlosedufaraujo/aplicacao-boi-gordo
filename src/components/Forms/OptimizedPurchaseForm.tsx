@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -109,6 +110,7 @@ interface OptimizedPurchaseFormProps {
   onSubmit: (data: PurchaseFormData) => Promise<void>;
   partners: Partner[];
   payerAccounts: any[];
+  initialData?: any; // Dados para edição
 }
 
 export function OptimizedPurchaseForm({
@@ -117,6 +119,7 @@ export function OptimizedPurchaseForm({
   onSubmit,
   partners,
   payerAccounts,
+  initialData,
 }: OptimizedPurchaseFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('origin');
@@ -135,14 +138,54 @@ export function OptimizedPurchaseForm({
   } = useForm<PurchaseFormData>({
     resolver: zodResolver(purchaseSchema),
     mode: 'onChange',
-    defaultValues: {
+    defaultValues: initialData ? {
+      vendorId: initialData.vendorId || '',
+      payerAccountId: initialData.payerAccountId || '',
+      city: initialData.city || initialData.location || '',
+      state: initialData.state || '',
+      farm: initialData.farm || '',
+      animalType: initialData.animalType || 'MALE',
+      animalAge: initialData.animalAge,
+      initialQuantity: initialData.initialQuantity || initialData.currentQuantity || 0,
+      purchaseWeight: initialData.purchaseWeight || 0,
+      carcassYield: initialData.carcassYield || 50,
+      pricePerArroba: initialData.pricePerArroba || 0,
+      paymentType: initialData.paymentType || 'CASH',
+      purchaseDate: initialData.purchaseDate ? new Date(initialData.purchaseDate) : new Date(),
+      paymentDate: initialData.paymentDate ? new Date(initialData.paymentDate) : new Date(),
+      hasFreight: initialData.freightCost > 0,
+      freightCost: initialData.freightCost || 0,
+      freightDistance: initialData.freightDistance || 0,
+      transportCompanyId: initialData.transportCompanyId || '',
+      hasBroker: initialData.brokerId || initialData.commission > 0,
+      brokerId: initialData.brokerId || '',
+      commission: initialData.commission || 0,
+      commissionType: initialData.commissionType || 'PERCENTAGE',
+      notes: initialData.notes || '',
+    } : {
+      vendorId: '',
+      payerAccountId: '',
+      city: '',
+      state: '',
+      farm: '',
       animalType: 'MALE',
-      paymentType: 'CASH',
+      animalAge: undefined,
+      initialQuantity: 0,
+      purchaseWeight: 0,
       carcassYield: 50,
+      pricePerArroba: 0,
+      paymentType: 'CASH',
       purchaseDate: new Date(),
       paymentDate: new Date(),
       hasFreight: false,
+      freightCost: 0,
+      freightDistance: 0,
+      transportCompanyId: '',
       hasBroker: false,
+      brokerId: '',
+      commission: 0,
+      commissionType: 'PERCENTAGE',
+      notes: '',
     },
   });
 
@@ -156,6 +199,17 @@ export function OptimizedPurchaseForm({
     setLotCode(`LOT-${year}${month}${day}-${random}`);
   }, [open]);
 
+  // Sincronizar estados com dados iniciais
+  useEffect(() => {
+    if (initialData) {
+      setHasFreight(initialData.freightCost > 0);
+      setHasBroker(initialData.brokerId || initialData.commission > 0);
+    } else {
+      setHasFreight(false);
+      setHasBroker(false);
+    }
+  }, [initialData, open]);
+
   // Watchers para cálculos automáticos
   const purchaseWeight = watch('purchaseWeight');
   const pricePerArroba = watch('pricePerArroba');
@@ -163,14 +217,18 @@ export function OptimizedPurchaseForm({
   const freightCost = watch('freightCost');
   const commission = watch('commission');
   const commissionType = watch('commissionType');
+  const carcassYield = watch('carcassYield');
 
-  // Cálculos
+  // Cálculos - IMPORTANTE: O preço por arroba é baseado no peso da CARCAÇA, não no peso vivo
   const purchaseValue = useMemo(() => {
-    if (purchaseWeight && pricePerArroba) {
-      return (purchaseWeight / 30) * pricePerArroba;
+    if (purchaseWeight && pricePerArroba && carcassYield) {
+      // Calcula o peso da carcaça com base no rendimento
+      const carcassWeight = (purchaseWeight * carcassYield) / 100;
+      // Converte para arrobas (15kg) e multiplica pelo preço
+      return (carcassWeight / 15) * pricePerArroba;
     }
     return 0;
-  }, [purchaseWeight, pricePerArroba]);
+  }, [purchaseWeight, pricePerArroba, carcassYield]);
 
   const calculatedCommission = useMemo(() => {
     if (!hasBroker || !commission) return 0;
@@ -194,7 +252,7 @@ export function OptimizedPurchaseForm({
   // Filtros para parceiros
   const vendors = partners?.filter(p => p.type === 'VENDOR') || [];
   const brokers = partners?.filter(p => p.type === 'BROKER') || [];
-  const transportCompanies = partners?.filter(p => p.type === 'TRANSPORT_COMPANY') || [];
+  const transportCompanies = partners?.filter(p => p.type === 'FREIGHT_CARRIER') || [];
 
   const handleFormSubmit = async (data: PurchaseFormData) => {
     setIsSubmitting(true);
@@ -224,8 +282,41 @@ export function OptimizedPurchaseForm({
     reset();
     setHasFreight(false);
     setHasBroker(false);
+    setActiveTab('origin');
     onClose();
   };
+
+  // Reset form quando o modal abrir com dados de edição
+  useEffect(() => {
+    if (open && initialData) {
+      reset({
+        vendorId: initialData.vendorId || '',
+        payerAccountId: initialData.payerAccountId || '',
+        city: initialData.city || initialData.location || '',
+        state: initialData.state || '',
+        farm: initialData.farm || '',
+        animalType: initialData.animalType || 'MALE',
+        animalAge: initialData.animalAge,
+        initialQuantity: initialData.initialQuantity || initialData.currentQuantity || 0,
+        purchaseWeight: initialData.purchaseWeight || 0,
+        carcassYield: initialData.carcassYield || 50,
+        pricePerArroba: initialData.pricePerArroba || 0,
+        paymentType: initialData.paymentType || 'CASH',
+        purchaseDate: initialData.purchaseDate ? new Date(initialData.purchaseDate) : new Date(),
+        paymentDate: initialData.paymentDate ? new Date(initialData.paymentDate) : new Date(),
+        hasFreight: initialData.freightCost > 0,
+        freightCost: initialData.freightCost || 0,
+        freightDistance: initialData.freightDistance || 0,
+        transportCompanyId: initialData.transportCompanyId || '',
+        hasBroker: initialData.brokerId || initialData.commission > 0,
+        brokerId: initialData.brokerId || '',
+        commission: initialData.commission || 0,
+        commissionType: initialData.commissionType || 'PERCENTAGE',
+        notes: initialData.notes || '',
+      });
+      setActiveTab('origin');
+    }
+  }, [open, initialData, reset]);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -238,11 +329,11 @@ export function OptimizedPurchaseForm({
               </div>
               <div>
                 <DialogTitle className="text-xl font-semibold text-gray-900">
-                  Nova Compra de Gado
+                  {initialData ? 'Editar Compra de Gado' : 'Nova Compra de Gado'}
                 </DialogTitle>
-                <p className="text-sm text-gray-600 mt-0.5">
+                <DialogDescription className="text-sm text-gray-600 mt-0.5">
                   Preencha os dados para registrar uma nova compra
-                </p>
+                </DialogDescription>
               </div>
             </div>
             <Badge variant="secondary" className="text-sm font-mono">
@@ -256,7 +347,7 @@ export function OptimizedPurchaseForm({
           <ScrollArea className="h-[calc(90vh-140px)]">
             <div className="px-6 py-4">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-3 mb-6">
+                <TabsList className="grid w-full grid-cols-4 mb-6">
                   <TabsTrigger value="origin" className="flex items-center gap-2">
                     <MapPinned className="h-4 w-4" />
                     Origem
@@ -268,6 +359,10 @@ export function OptimizedPurchaseForm({
                   <TabsTrigger value="logistics" className="flex items-center gap-2">
                     <Truck className="h-4 w-4" />
                     Logística
+                  </TabsTrigger>
+                  <TabsTrigger value="summary" className="flex items-center gap-2">
+                    <Calculator className="h-4 w-4" />
+                    Resumo
                   </TabsTrigger>
                 </TabsList>
 
@@ -291,7 +386,7 @@ export function OptimizedPurchaseForm({
                             name="vendorId"
                             control={control}
                             render={({ field }) => (
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || ''}>
                                 <SelectTrigger className={errors.vendorId ? 'border-red-500' : ''}>
                                   <SelectValue placeholder="Selecione o vendedor" />
                                 </SelectTrigger>
@@ -363,7 +458,7 @@ export function OptimizedPurchaseForm({
                           name="payerAccountId"
                           control={control}
                           render={({ field }) => (
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value || ''}>
                               <SelectTrigger className={errors.payerAccountId ? 'border-red-500' : ''}>
                                 <SelectValue placeholder="Selecione a conta para pagamento" />
                               </SelectTrigger>
@@ -423,7 +518,7 @@ export function OptimizedPurchaseForm({
                             name="state"
                             control={control}
                             render={({ field }) => (
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || ''}>
                                 <SelectTrigger className={errors.state ? 'border-red-500' : ''}>
                                   <SelectValue placeholder="UF" />
                                 </SelectTrigger>
@@ -500,7 +595,7 @@ export function OptimizedPurchaseForm({
                             name="animalType"
                             control={control}
                             render={({ field }) => (
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || ''}>
                                 <SelectTrigger>
                                   <SelectValue />
                                 </SelectTrigger>
@@ -568,14 +663,6 @@ export function OptimizedPurchaseForm({
                         </div>
                       </div>
 
-                      {averageWeight > 0 && (
-                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <Info className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm text-blue-700">
-                            Peso médio: <strong>{averageWeight.toFixed(2)} kg/animal</strong>
-                          </span>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
 
@@ -611,7 +698,7 @@ export function OptimizedPurchaseForm({
                             name="paymentType"
                             control={control}
                             render={({ field }) => (
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || ''}>
                                 <SelectTrigger>
                                   <SelectValue />
                                 </SelectTrigger>
@@ -665,43 +752,6 @@ export function OptimizedPurchaseForm({
                         />
                       </div>
 
-                      {/* Resumo Financeiro */}
-                      {purchaseValue > 0 && (
-                        <div className="space-y-3 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Valor da Compra:</span>
-                            <span className="font-semibold text-gray-900">
-                              R$ {purchaseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                          
-                          {(freightCost || calculatedCommission > 0) && (
-                            <>
-                              <Separator className="bg-green-200" />
-                              {freightCost > 0 && (
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-gray-600">Frete:</span>
-                                  <span>R$ {freightCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                                </div>
-                              )}
-                              {calculatedCommission > 0 && (
-                                <div className="flex items-center justify-between text-sm">
-                                  <span className="text-gray-600">Comissão:</span>
-                                  <span>R$ {calculatedCommission.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                                </div>
-                              )}
-                            </>
-                          )}
-                          
-                          <Separator className="bg-green-200" />
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-gray-700">Total:</span>
-                            <span className="text-lg font-bold text-green-700">
-                              R$ {totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -762,13 +812,17 @@ export function OptimizedPurchaseForm({
 
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
-                            <Label htmlFor="freightCost">Valor do Frete (R$)</Label>
+                            <Label htmlFor="freightCostPerKm">Valor R$/km</Label>
                             <Input
-                              id="freightCost"
+                              id="freightCostPerKm"
                               type="number"
                               step="0.01"
                               placeholder="0.00"
-                              {...register('freightCost', { valueAsNumber: true })}
+                              onChange={(e) => {
+                                const costPerKm = parseFloat(e.target.value) || 0;
+                                const distance = watch('freightDistance') || 0;
+                                setValue('freightCost', costPerKm * distance);
+                              }}
                             />
                           </div>
 
@@ -779,9 +833,17 @@ export function OptimizedPurchaseForm({
                               type="number"
                               placeholder="0"
                               {...register('freightDistance', { valueAsNumber: true })}
+                              onChange={(e) => {
+                                const distance = parseFloat(e.target.value) || 0;
+                                setValue('freightDistance', distance);
+                                const costPerKmEl = document.getElementById('freightCostPerKm') as HTMLInputElement;
+                                const costPerKm = parseFloat(costPerKmEl?.value) || 0;
+                                setValue('freightCost', costPerKm * distance);
+                              }}
                             />
                           </div>
                         </div>
+
                       </CardContent>
                     )}
                   </Card>
@@ -872,14 +934,6 @@ export function OptimizedPurchaseForm({
                           </div>
                         </div>
 
-                        {calculatedCommission > 0 && (
-                          <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                            <Info className="h-4 w-4 text-amber-600" />
-                            <span className="text-sm text-amber-700">
-                              Valor da comissão: <strong>R$ {calculatedCommission.toFixed(2)}</strong>
-                            </span>
-                          </div>
-                        )}
                       </CardContent>
                     )}
                   </Card>
@@ -900,6 +954,259 @@ export function OptimizedPurchaseForm({
                       />
                     </CardContent>
                   </Card>
+                </TabsContent>
+
+                {/* Aba 4: Resumo - Todos os cálculos consolidados */}
+                <TabsContent value="summary" className="space-y-4 mt-0">
+                  {/* Grid de cards de resumo */}
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {/* Card Quantidade */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Quantidade Total
+                        </CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{initialQuantity || 0}</div>
+                        <p className="text-xs text-muted-foreground">
+                          cabeças de gado
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    {/* Card Peso Total */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Peso Total
+                        </CardTitle>
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {(purchaseWeight || 0).toLocaleString('pt-BR')}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          kg ({(purchaseWeight / 30).toFixed(1)} @ vivo)
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    {/* Card Peso Médio */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Peso Médio/Animal
+                        </CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{averageWeight.toFixed(1)} kg</div>
+                        <p className="text-xs text-muted-foreground">
+                          {(averageWeight / 30).toFixed(2)} @ vivo • {carcassYield > 0 ? `${((averageWeight * carcassYield / 100) / 15).toFixed(2)} @ carcaça` : 'Informe rendimento'}
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    {/* Card Rendimento */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Rendimento
+                        </CardTitle>
+                        <Calculator className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{carcassYield || 0}%</div>
+                        <p className="text-xs text-muted-foreground">
+                          de carcaça
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Cards de valores financeiros */}
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {/* Valor da Compra */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Valor da Compra
+                        </CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-green-600">
+                          R$ {purchaseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          R$ {(pricePerArroba || 0).toFixed(2)} por @ carcaça
+                        </p>
+                        <div className="mt-2 pt-2 border-t">
+                          <div className="text-sm font-medium">
+                            R$ {initialQuantity > 0 ? (purchaseValue / initialQuantity).toFixed(2) : '0,00'}
+                          </div>
+                          <p className="text-xs text-muted-foreground">por animal</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Custos Adicionais */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Custos Adicionais
+                        </CardTitle>
+                        <Truck className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-2 rounded-full bg-orange-500" />
+                              <span className="text-sm">Frete</span>
+                            </div>
+                            <span className="text-sm font-medium">
+                              R$ {(freightCost || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          {freightCost > 0 && watch('freightDistance') > 0 && (
+                            <p className="text-xs text-muted-foreground ml-4">
+                              {watch('freightDistance')} km × R$ {(freightCost / watch('freightDistance')).toFixed(2)}/km
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-2 rounded-full bg-purple-500" />
+                              <span className="text-sm">Comissão</span>
+                            </div>
+                            <span className="text-sm font-medium">
+                              R$ {calculatedCommission.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                          {calculatedCommission > 0 && (
+                            <p className="text-xs text-muted-foreground ml-4">
+                              {commissionType === 'PERCENTAGE' ? `${commission}% do valor` : 'Valor fixo'}
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Total Geral */}
+                    <Card className="border-green-200 bg-green-50/50">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">
+                          Custo Total
+                        </CardTitle>
+                        <Check className="h-4 w-4 text-green-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-green-700">
+                          R$ {totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Valor final com todos os custos
+                        </p>
+                        <div className="mt-3 space-y-1 pt-3 border-t border-green-200">
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Compra:</span>
+                            <span>R$ {purchaseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Frete:</span>
+                            <span>R$ {(freightCost || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div className="flex justify-between text-xs">
+                            <span className="text-muted-foreground">Comissão:</span>
+                            <span>R$ {calculatedCommission.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Card de Memória de Cálculo Detalhada */}
+                  {purchaseWeight > 0 && initialQuantity > 0 && pricePerArroba > 0 && carcassYield > 0 && (
+                    <Card>
+                      <CardHeader className="pb-4">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Calculator className="h-4 w-4 text-gray-500" />
+                          Memória de Cálculo Detalhada
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg mb-4">
+                          <p className="text-sm text-amber-800">
+                            ⚠️ <strong>Importante:</strong> O preço por arroba é aplicado sobre o peso da CARCAÇA (15kg/@), não sobre o peso vivo (30kg/@)
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Passo a passo do cálculo:</h4>
+                          
+                          <div className="space-y-2 font-mono text-sm">
+                            <div className="flex items-start gap-2">
+                              <span className="text-gray-500">1.</span>
+                              <div>
+                                <p className="text-gray-700">Peso total da carcaça:</p>
+                                <p className="text-gray-600 ml-4">
+                                  {purchaseWeight.toLocaleString('pt-BR')} kg × {carcassYield}% = 
+                                  <span className="font-semibold"> {(purchaseWeight * carcassYield / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} kg</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                              <span className="text-gray-500">2.</span>
+                              <div>
+                                <p className="text-gray-700">Peso de carcaça por animal:</p>
+                                <p className="text-gray-600 ml-4">
+                                  {(purchaseWeight * carcassYield / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} kg ÷ {initialQuantity} animais = 
+                                  <span className="font-semibold"> {((purchaseWeight * carcassYield / 100) / initialQuantity).toFixed(2)} kg/animal</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                              <span className="text-gray-500">3.</span>
+                              <div>
+                                <p className="text-gray-700">Conversão para arrobas de carcaça:</p>
+                                <p className="text-gray-600 ml-4">
+                                  {((purchaseWeight * carcassYield / 100) / initialQuantity).toFixed(2)} kg ÷ 15 kg/@ = 
+                                  <span className="font-semibold"> {(((purchaseWeight * carcassYield / 100) / initialQuantity) / 15).toFixed(2)} @/animal</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                              <span className="text-gray-500">4.</span>
+                              <div>
+                                <p className="text-gray-700">Valor por animal:</p>
+                                <p className="text-gray-600 ml-4">
+                                  {(((purchaseWeight * carcassYield / 100) / initialQuantity) / 15).toFixed(2)} @ × R$ {pricePerArroba.toFixed(2)}/@ = 
+                                  <span className="font-semibold text-green-600"> R$ {((((purchaseWeight * carcassYield / 100) / initialQuantity) / 15) * pricePerArroba).toFixed(2)}</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                              <span className="text-gray-500">5.</span>
+                              <div>
+                                <p className="text-gray-700">Valor total da compra:</p>
+                                <p className="text-gray-600 ml-4">
+                                  R$ {((((purchaseWeight * carcassYield / 100) / initialQuantity) / 15) * pricePerArroba).toFixed(2)} × {initialQuantity} animais = 
+                                  <span className="font-semibold text-green-600"> R$ {purchaseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
               </Tabs>
             </div>
@@ -939,7 +1246,7 @@ export function OptimizedPurchaseForm({
                   ) : (
                     <>
                       <Check className="h-4 w-4 mr-2" />
-                      Confirmar Compra
+                      {initialData ? 'Salvar Alterações' : 'Confirmar Compra'}
                     </>
                   )}
                 </Button>

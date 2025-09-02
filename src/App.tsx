@@ -16,7 +16,7 @@ const ShadcnDashboard = lazy(() => import('@/components/Dashboard/ShadcnDashboar
 const CompleteLots = lazy(() => import('@/components/Lots/CompleteLots').then(module => ({ default: module.CompleteLots })));
 const CompleteRegistrations = lazy(() => import('@/components/Registrations/CompleteRegistrations').then(module => ({ default: module.CompleteRegistrations })));
 const ModernDREWithSupabase = lazy(() => import('@/components/DRE/ModernDREWithSupabase').then(module => ({ default: module.ModernDREWithSupabase })));
-const CompleteFinancialCenter = lazy(() => import('@/components/Financial/CompleteFinancialCenter').then(module => ({ default: module.CompleteFinancialCenter })));
+const EnhancedFinancialDashboard = lazy(() => import('@/components/Financial/EnhancedFinancialDashboard').then(module => ({ default: module.EnhancedFinancialDashboard })));
 const SalesManagement = lazy(() => import('@/components/Sales/SalesManagement').then(module => ({ default: module.SalesManagement })));
 const PurchaseManagement = lazy(() => import('@/components/Purchases/SimplifiedPurchaseManagement').then(module => ({ default: module.SimplifiedPurchaseManagement })));
 const CompleteCalendar = lazy(() => import('@/components/Calendar/CompleteCalendar').then(module => ({ default: module.CompleteCalendar })));
@@ -88,7 +88,7 @@ const AppContent: React.FC = () => {
       case 'dre':
         return <ModernDREWithSupabase />;
       case 'financial':
-        return <CompleteFinancialCenter />;
+        return <EnhancedFinancialDashboard />;
       case 'sales':
         return <SalesManagement />;
       case 'purchases':

@@ -26,6 +26,7 @@ import { costCenterRoutes } from '@/routes/costCenter.routes';
 import cattlePurchaseRoutes from '@/routes/cattlePurchase.routes';
 import interventionRoutes from '@/routes/intervention.routes';
 import analyticsRoutes from '@/routes/analytics.routes';
+import financialRoutes from '@/routes/financial.routes';
 // import reportRoutes from '@/routes/report.routes';
 // import dashboardRoutes from '@/routes/dashboard.routes';
 
@@ -157,6 +158,9 @@ export function createApp(): Application {
   
   // Rotas de intervenções
   apiRouter.use('/interventions', interventionRoutes);
+  
+  // Rotas financeiras
+  apiRouter.use('/financial', financialRoutes);
 
   // Monta as rotas no prefixo da API
   app.use(env.API_PREFIX, apiRouter);

@@ -1,1006 +1,718 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, Plus, PieChart, TrendingUp, Calculator, Filter, Search, Calendar, FileText, X, ChevronRight, ChevronDown } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
-import { CostCenterForm } from '../Forms/CostCenterForm';
-import { ExpenseAllocationForm } from '../Forms/ExpenseAllocationForm';
-import { CostAllocationChart } from './CostAllocationChart';
-import { TableWithPagination } from '../Common/TableWithPagination';
-import { format } from 'date-fns';
-import { formatCurrency, formatCompactCurrency } from '@/utils/formatters';
+import {
+  Building2,
+  Plus,
+  Edit,
+  Trash2,
+  Save,
+  X,
+  ChevronRight,
+  ChevronDown,
+  Folder,
+  FolderOpen,
+  Hash,
+  DollarSign,
+  Package,
+  Users,
+  Truck,
+  Heart,
+  Settings,
+  Search,
+  Filter,
+  MoreVertical,
+  AlertCircle
+} from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+
+interface CostCenter {
+  id: string;
+  code: string;
+  name: string;
+  type: 'OPERATIONAL' | 'ADMINISTRATIVE' | 'LOT_SPECIFIC' | 'GLOBAL';
+  parentId?: string;
+  parent?: CostCenter;
+  children?: CostCenter[];
+  isActive: boolean;
+  description?: string;
+  allocationMethod?: 'DIRECT' | 'PROPORTIONAL' | 'BY_HEADCOUNT' | 'BY_WEIGHT';
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    expenses: number;
+    revenues: number;
+  };
+}
+
+const COST_CENTER_TYPES = {
+  OPERATIONAL: { label: 'Operacional', icon: Package, color: 'bg-blue-500' },
+  ADMINISTRATIVE: { label: 'Administrativo', icon: Building2, color: 'bg-purple-500' },
+  LOT_SPECIFIC: { label: 'Específico do Lote', icon: Hash, color: 'bg-green-500' },
+  GLOBAL: { label: 'Global', icon: Settings, color: 'bg-gray-500' }
+};
+
+const ALLOCATION_METHODS = {
+  DIRECT: 'Direto',
+  PROPORTIONAL: 'Proporcional',
+  BY_HEADCOUNT: 'Por Cabeça',
+  BY_WEIGHT: 'Por Peso'
+};
 
 export const CostCenterManagement: React.FC = () => {
-  const { 
-    costCenters, 
-    expenses, 
-    costAllocations,
-    cattlePurchases,
-    addCostCenter,
-    addExpense 
-  } = useAppStore();
-  
-  // Função getTotalAllocatedAmount definida antes de ser usada
-  const getTotalAllocatedAmount = (costCenterId: string) => {
-    // Considerar alocações diretas para o centro de custo
-    const directAllocations = costAllocations
-      .filter(allocation => 
-        allocation.targetType === 'cost_center' && 
-        allocation.targetId === costCenterId
-      )
-      .reduce((sum, allocation) => sum + allocation.amount, 0);
-    
-    // Considerar alocações onde este centro é o centro de custo da despesa
-    const indirectAllocations = costAllocations
-      .filter(allocation => allocation.costCenterId === costCenterId)
-      .reduce((sum, allocation) => sum + allocation.amount, 0);
-    
-    return directAllocations + indirectAllocations;
-  };
-  
-  const [showCostCenterForm, setShowCostCenterForm] = useState(false);
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
-  const [selectedCostCenter, setSelectedCostCenter] = useState<string>('');
-  const [selectedCostCenterType, setSelectedCostCenterType] = useState<string | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<'month' | 'quarter' | 'year'>('month');
+  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showExpenseDetails, setShowExpenseDetails] = useState(false);
-  const [selectedExpenseId, setSelectedExpenseId] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState<'all' | 'payable' | 'receivable'>('all');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid' | 'overdue'>('all');
-  const [filterLot, setFilterLot] = useState<string>('');
-  const [filterCenter, setFilterCenter] = useState<string>('');
-
-  const activeCostCenters = costCenters.filter(cc => cc.isActive);
-  
-  // Agrupar centros de custo por tipo
-  const costCentersByType = {
-    acquisition: activeCostCenters.filter(cc => cc.type === 'acquisition'),
-    fattening: activeCostCenters.filter(cc => cc.type === 'fattening'),
-    administrative: activeCostCenters.filter(cc => cc.type === 'administrative'),
-    financial: activeCostCenters.filter(cc => cc.type === 'financial')
-  };
-
-  // Calcular totais por tipo de centro de custo
-  const totalsByType = {
-    acquisition: costCentersByType.acquisition.reduce((sum, cc) => 
-      sum + getTotalAllocatedAmount(cc.id), 0),
-    fattening: costCentersByType.fattening.reduce((sum, cc) => 
-      sum + getTotalAllocatedAmount(cc.id), 0),
-    administrative: costCentersByType.administrative.reduce((sum, cc) => 
-      sum + getTotalAllocatedAmount(cc.id), 0),
-    financial: costCentersByType.financial.reduce((sum, cc) => 
-      sum + getTotalAllocatedAmount(cc.id), 0)
-  };
-
-  const getCostCenterExpenses = (costCenterId: string) => {
-    return expenses.filter(expense => 
-      expense.allocations.some(allocation => 
-        (allocation.targetType === 'cost_center' && allocation.targetId === costCenterId) ||
-        allocation.costCenterId === costCenterId
-      )
-    );
-  };
-
-  const getLotsForCostCenter = (costCenterId: string) => {
-    // Encontrar alocações que têm este centro de custo e são para lotes
-    const lotAllocations = costAllocations.filter(allocation => 
-      allocation.costCenterId === costCenterId && 
-      allocation.targetType === 'lot'
-    );
-    
-    // Obter IDs únicos de lotes
-    const lotIds = [...new Set(lotAllocations.map(allocation => allocation.targetId))];
-    
-    // Retornar os lotes correspondentes
-    return cattlePurchases.filter(lot => lotIds.includes(lot.id));
-  };
-
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.purchaseValue, 0);
-  const totalAllocated = costAllocations.reduce((sum, allocation) => sum + allocation.amount, 0);
-  const unallocatedAmount = totalExpenses - totalAllocated;
-
-  // Filtrar despesas com base nos critérios
-  const filteredExpenses = expenses.filter(expense => {
-    // Filtro de pesquisa
-    if (searchTerm && !expense.description.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
-    }
-    
-    // Filtro de centro de custo
-    if (filterCenter && !expense.allocations.some(allocation => 
-      (allocation.targetType === 'cost_center' && allocation.targetId === filterCenter) ||
-      allocation.costCenterId === filterCenter
-    )) {
-      return false;
-    }
-    
-    // Filtro de lote
-    if (filterLot && !expense.allocations.some(allocation => 
-      allocation.targetType === 'lot' && allocation.targetId === filterLot
-    )) {
-      return false;
-    }
-    
-    // Filtro de status
-    if (filterStatus !== 'all' && expense.paymentStatus !== filterStatus) {
-      return false;
-    }
-    
-    return true;
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingCenter, setEditingCenter] = useState<CostCenter | null>(null);
+  const [formData, setFormData] = useState({
+    code: '',
+    name: '',
+    type: 'OPERATIONAL' as CostCenter['type'],
+    parentId: '',
+    description: '',
+    allocationMethod: 'DIRECT' as CostCenter['allocationMethod'],
+    isActive: true
   });
 
-  // Obter despesa selecionada para detalhes
-  const selectedExpense = selectedExpenseId ? expenses.find(e => e.id === selectedExpenseId) : null;
-
-  // Função para lidar com o clique em um card de centro de custo
-  const handleCostCenterTypeClick = (type: string) => {
-    if (selectedCostCenterType === type) {
-      setSelectedCostCenterType(null); // Desselecionar se já estiver selecionado
-    } else {
-      setSelectedCostCenterType(type);
-      setSelectedCostCenter(''); // Limpar seleção de centro específico
-    }
-  };
-
-  // Função para lidar com o clique em um centro de custo específico
-  const handleCostCenterClick = (centerId: string) => {
-    if (selectedCostCenter === centerId) {
-      setSelectedCostCenter(''); // Desselecionar se já estiver selecionado
-    } else {
-      setSelectedCostCenter(centerId);
-    }
-  };
-
-  // Preparar dados para a tabela detalhada com base na seleção
-  const getDetailedCostData = () => {
-    if (selectedCostCenter) {
-      // Mostrar subcategorias para o centro de custo selecionado
-      const centerExpenses = getCostCenterExpenses(selectedCostCenter);
-      const subcategories = [...new Set(centerExpenses.map(exp => exp.category))];
+  // Buscar centros de custo
+  const fetchCostCenters = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/cost-centers`);
+      if (!response.ok) throw new Error('Erro ao buscar centros de custo');
       
-      return subcategories.map(subcategory => {
-        // Filtrar despesas desta subcategoria para este centro
-        const subcategoryExpenses = centerExpenses.filter(exp => exp.category === subcategory);
-        
-        // Calcular valor total para esta subcategoria
-        const purchaseValue = subcategoryExpenses.reduce((sum, exp) => {
-          // Encontrar alocações para este centro de custo
-          const allocations = exp.allocations.filter(alloc => 
-            (alloc.targetType === 'cost_center' && alloc.targetId === selectedCostCenter) ||
-            alloc.costCenterId === selectedCostCenter
-          );
-          
-          // Somar os valores das alocações
-          return sum + allocations.reduce((allocSum, alloc) => allocSum + alloc.amount, 0);
-        }, 0);
-        
-        // Obter lotes envolvidos
-        const involvedLots = getLotsForCostCenter(selectedCostCenter);
-        
-        // Calcular percentual sobre o total
-        const percentageOfTotal = totalExpenses > 0 ? (purchaseValue / totalExpenses) * 100 : 0;
-        
-        // Mapear categoria para nome legível
-        const categoryMap: Record<string, string> = {
-          'animal_purchase': 'Compra de Animais',
-          'commission': 'Comissão',
-          'freight': 'Frete',
-          'acquisition_other': 'Outros (Aquisição)',
-          'feed': 'Alimentação',
-          'health_costs': 'Custos Sanitários',
-          'operational_costs': 'Custos Operacionais',
-          'fattening_other': 'Outros (Engorda)',
-          'general_admin': 'Administrativo Geral',
-          'marketing': 'Marketing',
-          'accounting': 'Contabilidade',
-          'personnel': 'Pessoal',
-          'office': 'Escritório',
-          'services': 'Prestação de Serviço',
-          'technology': 'Tecnologia',
-          'admin_other': 'Outros (Administrativo)',
-          'taxes': 'Impostos',
-          'interest': 'Juros',
-          'fees': 'Taxas & Emolumentos',
-          'insurance': 'Seguros',
-          'capital_cost': 'Custo de Capital',
-          'financial_management': 'Gestão Financeira',
-          'deaths': 'Mortes',
-          'default': 'Inadimplência',
-          'financial_other': 'Outros (Financeiro)'
-        };
-        
-        return {
-          id: `${selectedCostCenter}-${subcategory}`,
-          center: costCenters.find(cc => cc.id === selectedCostCenter)?.name || '',
-          centerType: costCenters.find(cc => cc.id === selectedCostCenter)?.type || '',
-          subcategory: categoryMap[subcategory] || subcategory,
-          amount: purchaseValue,
-          percentage: percentageOfTotal,
-          lotsInvolved: involvedLots.length > 0 
-            ? involvedLots.map(lot => lot.lotNumber).join(', ')
-            : 'Indireto',
-          expenses: subcategoryExpenses
-        };
-      });
-    } else if (selectedCostCenterType) {
-      // Mostrar centros de custo do tipo selecionado
-      const centersOfType = costCenters.filter(cc => cc.type === selectedCostCenterType && cc.isActive);
+      const data = await response.json();
+      const centers = data.data?.items || [];
       
-      return centersOfType.map(center => {
-        const purchaseValue = getTotalAllocatedAmount(center.id);
-        const percentageOfTotal = totalExpenses > 0 ? (purchaseValue / totalExpenses) * 100 : 0;
-        const involvedLots = getLotsForCostCenter(center.id);
-        
-        return {
-          id: center.id,
-          center: center.name,
-          centerType: center.type,
-          subcategory: 'Total',
-          amount: purchaseValue,
-          percentage: percentageOfTotal,
-          lotsInvolved: involvedLots.length > 0 
-            ? involvedLots.map(lot => lot.lotNumber).join(', ')
-            : 'Indireto',
-          expenses: getCostCenterExpenses(center.id)
-        };
-      });
-    } else {
-      // Mostrar todos os centros de custo agrupados por tipo
-      return activeCostCenters.map(center => {
-        const purchaseValue = getTotalAllocatedAmount(center.id);
-        const percentageOfTotal = totalExpenses > 0 ? (purchaseValue / totalExpenses) * 100 : 0;
-        const involvedLots = getLotsForCostCenter(center.id);
-        
-        return {
-          id: center.id,
-          center: center.name,
-          centerType: center.type,
-          subcategory: 'Total',
-          amount: purchaseValue,
-          percentage: percentageOfTotal,
-          lotsInvolved: involvedLots.length > 0 
-            ? involvedLots.map(lot => lot.lotNumber).join(', ')
-            : 'Indireto',
-          expenses: getCostCenterExpenses(center.id)
-        };
-      });
+      // Organizar em hierarquia
+      const organized = organizeHierarchy(centers);
+      setCostCenters(organized);
+    } catch (error) {
+      console.error('Erro ao buscar centros de custo:', error);
+      toast.error('Erro ao carregar centros de custo');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const detailedCostData = getDetailedCostData();
+  // Organizar centros em hierarquia
+  const organizeHierarchy = (centers: CostCenter[]): CostCenter[] => {
+    const map = new Map<string, CostCenter>();
+    const roots: CostCenter[] = [];
 
-  // Colunas para a tabela detalhada
-  const detailedColumns = [
-    {
-      key: 'center',
-      label: 'Centro de Custo',
-      sortable: true,
-      render: (value: string, row: any) => (
-        <div>
-          <div className="font-medium text-b3x-navy-900 text-sm">{value}</div>
-          <div className="text-xs text-neutral-500">
-            {row.centerType === 'acquisition' ? 'Aquisição' :
-             row.centerType === 'fattening' ? 'Engorda' :
-             row.centerType === 'administrative' ? 'Administrativo' : 'Financeiro'}
-          </div>
-        </div>
-      )
-    },
-    {
-      key: 'subcategory',
-      label: 'Subcategoria',
-      sortable: true
-    },
-    {
-      key: 'amount',
-      label: 'Valor',
-      sortable: true,
-      render: (value: number) => (
-        <span className="font-medium text-b3x-navy-900">
-          R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-        </span>
-      )
-    },
-    {
-      key: 'percentage',
-      label: '% sobre total',
-      sortable: true,
-      render: (value: number) => (
-        <span className="font-medium text-b3x-navy-900">
-          {value.toFixed(1)}%
-        </span>
-      )
-    },
-    {
-      key: 'lotsInvolved',
-      label: 'Lotes/Indireto',
-      render: (value: string) => (
-        <span className={`text-sm ${value === 'Indireto' ? 'text-neutral-500 italic' : 'text-b3x-navy-900'}`}>
-          {value}
-        </span>
-      )
-    },
-    {
-      key: 'actions',
-      label: 'Ações',
-      render: (value: any, row: any) => (
-        <button
-          onClick={() => {
-            setShowExpenseDetails(true);
-            // Usar o primeiro ID de despesa associado a esta combinação
-            if (row.expenses.length > 0) {
-              setSelectedExpenseId(row.expenses[0].id);
-            }
-          }}
-          className="px-2 py-1 text-xs bg-b3x-lime-500 text-b3x-navy-900 rounded hover:bg-b3x-lime-600 transition-colors"
-        >
-          Ver Lançamentos
-        </button>
-      )
-    }
-  ];
+    // Primeiro, criar um mapa de todos os centros
+    centers.forEach(center => {
+      map.set(center.id, { ...center, children: [] });
+    });
 
-  // Colunas para a tabela de despesas
-  const expenseColumns = [
-    {
-      key: 'date',
-      label: 'Data',
-      sortable: true,
-      render: (value: Date) => format(value, 'dd/MM/yyyy')
-    },
-    {
-      key: 'description',
-      label: 'Descrição',
-      sortable: true,
-      render: (value: string, row: any) => (
-        <div>
-          <div className="font-medium text-b3x-navy-900 text-sm">{value}</div>
-          {row.invoiceNumber && (
-            <div className="text-xs text-neutral-600">NF: {row.invoiceNumber}</div>
-          )}
-        </div>
-      )
-    },
-    {
-      key: 'purchaseValue',
-      label: 'Valor',
-      sortable: true,
-      render: (value: number) => (
-        <span className="text-sm font-medium text-b3x-navy-900">
-          R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-        </span>
-      )
-    },
-    {
-      key: 'bankAccount',
-      label: 'Banco',
-      render: (value: any, row: any) => (
-        <span className="text-sm text-neutral-600">
-          {row.bankAccount || 'Não informado'}
-        </span>
-      )
-    },
-    {
-      key: 'paymentStatus',
-      label: 'Status',
-      sortable: true,
-      render: (value: string) => (
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-          value === 'paid' 
-            ? 'bg-success-100 text-success-700'
-            : value === 'overdue'
-            ? 'bg-error-100 text-error-700'
-            : 'bg-warning-100 text-warning-700'
-        }`}>
-          {value === 'paid' ? 'Pago' : 
-           value === 'overdue' ? 'Vencido' : 'Pendente'}
-        </span>
-      )
-    },
-    {
-      key: 'allocations',
-      label: 'Lote/CC',
-      render: (value: any, row: any) => {
-        const lotAllocations = row.allocations.filter(a => a.targetType === 'lot');
-        const ccAllocations = row.allocations.filter(a => a.targetType === 'cost_center');
-        
-        if (lotAllocations.length > 0) {
-          const lotIds = lotAllocations.map(a => a.targetId);
-          const lots = cattlePurchases.filter(lot => lotIds.includes(lot.id));
-          return (
-            <span className="text-sm text-b3x-navy-900">
-              {lots.map(lot => lot.lotNumber).join(', ')}
-            </span>
-          );
-        } else if (ccAllocations.length > 0) {
-          const ccIds = ccAllocations.map(a => a.targetId);
-          const centers = costCenters.filter(cc => ccIds.includes(cc.id));
-          return (
-            <span className="text-sm text-neutral-600 italic">
-              {centers.map(cc => cc.code).join(', ')}
-            </span>
-          );
+    // Depois, organizar a hierarquia
+    centers.forEach(center => {
+      const node = map.get(center.id);
+      if (node) {
+        if (center.parentId) {
+          const parent = map.get(center.parentId);
+          if (parent) {
+            if (!parent.children) parent.children = [];
+            parent.children.push(node);
+          }
+        } else {
+          roots.push(node);
         }
-        
-        return <span className="text-sm text-neutral-500">-</span>;
       }
-    },
-    {
-      key: 'actions',
-      label: 'Ações',
-      render: (value: any, row: any) => (
-        <button
-          className="px-2 py-1 text-xs bg-info-500 text-white rounded hover:bg-info-600 transition-colors"
-        >
-          Conciliar
-        </button>
-      )
-    }
-  ];
+    });
 
-  // Renderizar cards de centros de custo por tipo
-  const renderCostCenterCards = (type: 'acquisition' | 'fattening' | 'administrative' | 'financial') => {
-    const centers = costCentersByType[type];
-    const typeLabels = {
-      acquisition: 'Aquisição',
-      fattening: 'Engorda',
-      administrative: 'Administrativo',
-      financial: 'Financeiro'
-    };
+    return roots;
+  };
+
+  useEffect(() => {
+    fetchCostCenters();
+  }, []);
+
+  // Criar ou atualizar centro de custo
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    const typeColors = {
-      acquisition: 'bg-b3x-lime-50 border-b3x-lime-200 text-b3x-lime-700',
-      fattening: 'bg-success-50 border-success-200 text-success-700',
-      administrative: 'bg-info-50 border-info-200 text-info-700',
-      financial: 'bg-warning-50 border-warning-200 text-warning-700'
-    };
-    
-    const isTypeSelected = selectedCostCenterType === type;
-    
+    if (!formData.code || !formData.name) {
+      toast.error('Código e nome são obrigatórios');
+      return;
+    }
+
+    try {
+      const url = editingCenter 
+        ? `${API_BASE}/cost-centers/${editingCenter.id}`
+        : `${API_BASE}/cost-centers`;
+      
+      const method = editingCenter ? 'PUT' : 'POST';
+      
+      // Preparar dados, removendo parentId se estiver vazio
+      const dataToSend = {
+        ...formData,
+        parentId: formData.parentId || undefined
+      };
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSend)
+      });
+
+      if (!response.ok) throw new Error('Erro ao salvar centro de custo');
+
+      toast.success(editingCenter ? 'Centro de custo atualizado!' : 'Centro de custo criado!');
+      
+      setShowDialog(false);
+      resetForm();
+      fetchCostCenters();
+    } catch (error) {
+      console.error('Erro ao salvar centro de custo:', error);
+      toast.error('Erro ao salvar centro de custo');
+    }
+  };
+
+  // Deletar centro de custo
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este centro de custo?')) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/cost-centers/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) throw new Error('Erro ao excluir centro de custo');
+
+      toast.success('Centro de custo excluído!');
+      fetchCostCenters();
+    } catch (error) {
+      console.error('Erro ao excluir centro de custo:', error);
+      toast.error('Erro ao excluir centro de custo. Verifique se não há lançamentos vinculados.');
+    }
+  };
+
+  // Alternar ativação do centro
+  const toggleActive = async (center: CostCenter) => {
+    try {
+      const response = await fetch(`${API_BASE}/cost-centers/${center.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...center, isActive: !center.isActive })
+      });
+
+      if (!response.ok) throw new Error('Erro ao atualizar centro de custo');
+
+      toast.success(center.isActive ? 'Centro de custo desativado' : 'Centro de custo ativado');
+      fetchCostCenters();
+    } catch (error) {
+      console.error('Erro ao atualizar centro de custo:', error);
+      toast.error('Erro ao atualizar centro de custo');
+    }
+  };
+
+  // Resetar formulário
+  const resetForm = () => {
+    setFormData({
+      code: '',
+      name: '',
+      type: 'OPERATIONAL',
+      parentId: '',
+      description: '',
+      allocationMethod: 'DIRECT',
+      isActive: true
+    });
+    setEditingCenter(null);
+  };
+
+  // Abrir dialog para editar
+  const handleEdit = (center: CostCenter) => {
+    setEditingCenter(center);
+    setFormData({
+      code: center.code,
+      name: center.name,
+      type: center.type,
+      parentId: center.parentId || '',
+      description: center.description || '',
+      allocationMethod: center.allocationMethod || 'DIRECT',
+      isActive: center.isActive
+    });
+    setShowDialog(true);
+  };
+
+  // Toggle expandir/colapsar nó
+  const toggleExpand = (id: string) => {
+    const newExpanded = new Set(expandedNodes);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedNodes(newExpanded);
+  };
+
+  // Filtrar centros de custo
+  const filterCenters = (centers: CostCenter[]): CostCenter[] => {
+    return centers.filter(center => {
+      const matchesSearch = center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           center.code.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = selectedType === 'all' || center.type === selectedType;
+      
+      if (matchesSearch && matchesType) return true;
+      
+      // Verificar se algum filho corresponde
+      if (center.children && center.children.length > 0) {
+        const filteredChildren = filterCenters(center.children);
+        if (filteredChildren.length > 0) {
+          center.children = filteredChildren;
+          return true;
+        }
+      }
+      
+      return false;
+    });
+  };
+
+  // Componente para renderizar linha da árvore
+  const TreeRow: React.FC<{ center: CostCenter; level: number }> = ({ center, level }) => {
+    const hasChildren = center.children && center.children.length > 0;
+    const isExpanded = expandedNodes.has(center.id);
+    const TypeInfo = COST_CENTER_TYPES[center.type];
+    const Icon = TypeInfo.icon;
+
     return (
-      <div className="space-y-3">
-        {/* Cabeçalho do tipo */}
-        <div 
-          className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
-            isTypeSelected 
-              ? `${typeColors[type]} shadow-md` 
-              : 'border-neutral-200 hover:border-neutral-300'
-          }`}
-          onClick={() => handleCostCenterTypeClick(type)}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className={`p-2 rounded-lg ${typeColors[type]}`}>
-                <Building2 className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-b3x-navy-900 text-sm">{typeLabels[type]}</h3>
-                <p className="text-xs text-neutral-600">{centers.length} centros</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <div className="text-lg font-bold text-b3x-navy-900">
-                {formatCompactCurrency(totalsByType[type] )}
-              </div>
-              {isTypeSelected ? (
-                <ChevronDown className="w-4 h-4 text-neutral-600" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-neutral-600" />
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Lista de centros de custo deste tipo (visível apenas quando o tipo está selecionado) */}
-        {isTypeSelected && (
-          <div className="pl-4 space-y-2">
-            {centers.map(center => {
-              const purchaseValue = getTotalAllocatedAmount(center.id);
-              const isCenterSelected = selectedCostCenter === center.id;
-              
-              return (
-                <div 
-                  key={center.id}
-                  className={`p-3 rounded-lg border transition-all cursor-pointer ${
-                    isCenterSelected 
-                      ? 'border-b3x-lime-300 bg-b3x-lime-50 shadow-sm' 
-                      : 'border-neutral-200 hover:border-neutral-300'
-                  }`}
-                  onClick={() => handleCostCenterClick(center.id)}
+      <>
+        <TableRow className={!center.isActive ? 'opacity-50' : ''}>
+          <TableCell>
+            <div className="flex items-center" style={{ paddingLeft: `${level * 24}px` }}>
+              {hasChildren && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="p-0 h-6 w-6 mr-2"
+                  onClick={() => toggleExpand(center.id)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-b3x-navy-900 text-sm">{center.name}</h4>
-                      <p className="text-xs text-neutral-600">{center.code}</p>
-                    </div>
-                    <div className="text-sm font-bold text-b3x-navy-900">
-                      R$ {purchaseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </Button>
+              )}
+              {!hasChildren && <div className="w-8" />}
+              {isExpanded ? <FolderOpen className="h-4 w-4 mr-2 text-muted-foreground" /> : <Folder className="h-4 w-4 mr-2 text-muted-foreground" />}
+              <span className="font-medium">{center.code}</span>
+            </div>
+          </TableCell>
+          <TableCell>{center.name}</TableCell>
+          <TableCell>
+            <Badge variant="outline" className="gap-1">
+              <Icon className="h-3 w-3" />
+              {TypeInfo.label}
+            </Badge>
+          </TableCell>
+          <TableCell>
+            {center.allocationMethod && (
+              <Badge variant="secondary">
+                {ALLOCATION_METHODS[center.allocationMethod]}
+              </Badge>
+            )}
+          </TableCell>
+          <TableCell>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {center._count?.expenses || 0} despesas
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {center._count?.revenues || 0} receitas
+              </Badge>
+            </div>
+          </TableCell>
+          <TableCell>
+            <Badge variant={center.isActive ? 'default' : 'secondary'}>
+              {center.isActive ? 'Ativo' : 'Inativo'}
+            </Badge>
+          </TableCell>
+          <TableCell>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => handleEdit(center)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => toggleActive(center)}>
+                  {center.isActive ? (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      Desativar
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Ativar
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleDelete(center.id)}
+                  className="text-red-600"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TableCell>
+        </TableRow>
+        {hasChildren && isExpanded && center.children?.map(child => (
+          <TreeRow key={child.id} center={child} level={level + 1} />
+        ))}
+      </>
     );
   };
 
+  // Obter todos os centros planos para o select
+  const getFlatCenters = (centers: CostCenter[], level = 0): { value: string; label: string }[] => {
+    const result: { value: string; label: string }[] = [];
+    
+    centers.forEach(center => {
+      result.push({
+        value: center.id,
+        label: `${'  '.repeat(level)}${center.code} - ${center.name}`
+      });
+      
+      if (center.children && center.children.length > 0) {
+        result.push(...getFlatCenters(center.children, level + 1));
+      }
+    });
+    
+    return result;
+  };
+
+  const filteredCenters = filterCenters(costCenters);
+  const flatCenters = getFlatCenters(costCenters);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Carregando centros de custo...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-4">
-      {/* Header - Mais compacto */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-bold text-b3x-navy-900 mb-1">Controle de Custos por Centro</h2>
-          <p className="text-neutral-600 text-sm">Gerencie centros de custo e rateio de despesas</p>
+          <h2 className="text-2xl font-bold">Centros de Custo</h2>
+          <p className="text-muted-foreground">Gerencie a estrutura de centros de custo</p>
         </div>
-        
-        <div className="flex space-x-2">
-          <button
-            onClick={() => setShowCostCenterForm(true)}
-            className="flex items-center space-x-2 px-3 py-2 bg-info-500 text-white rounded-lg hover:bg-info-600 transition-colors text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Novo Centro de Custo</span>
-          </button>
+        <Button onClick={() => setShowDialog(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Centro de Custo
+        </Button>
+      </div>
+
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {Object.entries(COST_CENTER_TYPES).map(([key, info]) => {
+          const count = costCenters.filter(c => c.type === key).length;
+          const Icon = info.icon;
           
-          <button
-            onClick={() => setShowExpenseForm(true)}
-            className="flex items-center space-x-2 px-3 py-2 bg-b3x-lime-500 text-b3x-navy-900 font-medium rounded-lg hover:bg-b3x-lime-600 transition-colors text-sm"
-          >
-            <Calculator className="w-4 h-4" />
-            <span>Nova Despesa</span>
-          </button>
-        </div>
+          return (
+            <Card key={key}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">{info.label}</p>
+                    <p className="text-2xl font-bold">{count}</p>
+                  </div>
+                  <div className={`p-3 rounded-lg ${info.color} bg-opacity-20`}>
+                    <Icon className={`h-6 w-6 ${info.color.replace('bg-', 'text-')}`} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Summary Cards - Totais por tipo de centro de custo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="p-2 bg-b3x-lime-100 rounded-lg">
-              <Building2 className="w-4 h-4 text-b3x-lime-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-b3x-navy-900 text-sm">Aquisição</h3>
-              <p className="text-xs text-neutral-600">{costCentersByType.acquisition.length} centros</p>
-            </div>
-          </div>
-          <div className="text-xl font-bold text-b3x-lime-600">
-            {formatCompactCurrency(totalsByType.acquisition )}
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="p-2 bg-success-100 rounded-lg">
-              <Building2 className="w-4 h-4 text-success-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-b3x-navy-900 text-sm">Engorda</h3>
-              <p className="text-xs text-neutral-600">{costCentersByType.fattening.length} centros</p>
-            </div>
-          </div>
-          <div className="text-xl font-bold text-success-600">
-            {formatCompactCurrency(totalsByType.fattening )}
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="p-2 bg-info-100 rounded-lg">
-              <Building2 className="w-4 h-4 text-info-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-b3x-navy-900 text-sm">Administrativo</h3>
-              <p className="text-xs text-neutral-600">{costCentersByType.administrative.length} centros</p>
-            </div>
-          </div>
-          <div className="text-xl font-bold text-info-600">
-            {formatCompactCurrency(totalsByType.administrative )}
-          </div>
-        </div>
-
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-soft border border-neutral-200/50">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="p-2 bg-warning-100 rounded-lg">
-              <Building2 className="w-4 h-4 text-warning-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-b3x-navy-900 text-sm">Financeiro</h3>
-              <p className="text-xs text-neutral-600">{costCentersByType.financial.length} centros</p>
-            </div>
-          </div>
-          <div className="text-xl font-bold text-warning-600">
-            {formatCompactCurrency(totalsByType.financial )}
-          </div>
-        </div>
-      </div>
-
-      {/* Centros de Custo e Gráfico de Alocação */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {/* Lista de Centros de Custo - NOVA VISUALIZAÇÃO */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 p-4">
-          <h3 className="text-lg font-semibold text-b3x-navy-900 mb-4">Centros de Custo</h3>
-          
-          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-            {renderCostCenterCards('acquisition')}
-            {renderCostCenterCards('fattening')}
-            {renderCostCenterCards('administrative')}
-            {renderCostCenterCards('financial')}
-          </div>
-        </div>
-
-        {/* Cost Allocation Chart */}
-        <CostAllocationChart selectedCostCenter={selectedCostCenter} />
-      </div>
-
-      {/* Filtros e Tabela Detalhada */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50 mb-6">
-        <div className="p-4 border-b border-neutral-200/50 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-b3x-navy-900">Tabela Detalhada</h3>
-          
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Filtro de Período */}
-            <div className="flex items-center space-x-1 bg-neutral-100 rounded-lg p-1">
-              <button
-                onClick={() => setSelectedPeriod('month')}
-                className={`px-2 py-1 text-xs rounded ${
-                  selectedPeriod === 'month' 
-                    ? 'bg-white text-b3x-navy-900 shadow-sm' 
-                    : 'text-neutral-600'
-                }`}
-              >
-                Mês
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('quarter')}
-                className={`px-2 py-1 text-xs rounded ${
-                  selectedPeriod === 'quarter' 
-                    ? 'bg-white text-b3x-navy-900 shadow-sm' 
-                    : 'text-neutral-600'
-                }`}
-              >
-                Trimestre
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('year')}
-                className={`px-2 py-1 text-xs rounded ${
-                  selectedPeriod === 'year' 
-                    ? 'bg-white text-b3x-navy-900 shadow-sm' 
-                    : 'text-neutral-600'
-                }`}
-              >
-                Ano
-              </button>
-            </div>
-            
-            {/* Filtro de Lote */}
-            <select
-              value={filterLot}
-              onChange={(e) => setFilterLot(e.target.value)}
-              className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-            >
-              <option value="">Todos os Lotes</option>
-              {cattlePurchases.map(lot => (
-                <option key={lot.id} value={lot.id}>
-                  {lot.lotNumber}
-                </option>
-              ))}
-            </select>
-            
-            {/* Filtro de Centro */}
-            <select
-              value={filterCenter}
-              onChange={(e) => setFilterCenter(e.target.value)}
-              className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-            >
-              <option value="">Todos os Centros</option>
-              {activeCostCenters.map(center => (
-                <option key={center.id} value={center.id}>
-                  {center.name}
-                </option>
-              ))}
-            </select>
-            
-            {/* Busca */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Buscar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent w-40"
-              />
-            </div>
-          </div>
-        </div>
-        
-        <TableWithPagination
-          data={detailedCostData}
-          columns={detailedColumns}
-          itemsPerPage={10}
-        />
-      </div>
-
-      {/* Filtros e Tabela de Lançamentos */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-soft border border-neutral-200/50">
-        <div className="p-4 border-b border-neutral-200/50 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-b3x-navy-900">Lançamentos Financeiros</h3>
-          
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Filtro de Período */}
-            <div className="flex items-center space-x-1 bg-neutral-100 rounded-lg p-1">
-              <button
-                onClick={() => setSelectedPeriod('month')}
-                className={`px-2 py-1 text-xs rounded ${
-                  selectedPeriod === 'month' 
-                    ? 'bg-white text-b3x-navy-900 shadow-sm' 
-                    : 'text-neutral-600'
-                }`}
-              >
-                Mês
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('quarter')}
-                className={`px-2 py-1 text-xs rounded ${
-                  selectedPeriod === 'quarter' 
-                    ? 'bg-white text-b3x-navy-900 shadow-sm' 
-                    : 'text-neutral-600'
-                }`}
-              >
-                Trimestre
-              </button>
-              <button
-                onClick={() => setSelectedPeriod('year')}
-                className={`px-2 py-1 text-xs rounded ${
-                  selectedPeriod === 'year' 
-                    ? 'bg-white text-b3x-navy-900 shadow-sm' 
-                    : 'text-neutral-600'
-                }`}
-              >
-                Ano
-              </button>
-            </div>
-            
-            {/* Filtro de Tipo */}
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as any)}
-              className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-            >
-              <option value="all">Todos os Tipos</option>
-              <option value="payable">A Pagar</option>
-              <option value="receivable">A Receber</option>
-            </select>
-            
-            {/* Filtro de Status */}
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-            >
-              <option value="all">Todos os Status</option>
-              <option value="pending">Pendente</option>
-              <option value="paid">Pago</option>
-              <option value="overdue">Vencido</option>
-            </select>
-            
-            {/* Filtro de Lote */}
-            <select
-              value={filterLot}
-              onChange={(e) => setFilterLot(e.target.value)}
-              className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-            >
-              <option value="">Todos os Lotes</option>
-              {cattlePurchases.map(lot => (
-                <option key={lot.id} value={lot.id}>
-                  {lot.lotNumber}
-                </option>
-              ))}
-            </select>
-            
-            {/* Filtro de Centro */}
-            <select
-              value={filterCenter}
-              onChange={(e) => setFilterCenter(e.target.value)}
-              className="px-3 py-1.5 text-xs border border-neutral-200 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-            >
-              <option value="">Todos os Centros</option>
-              {activeCostCenters.map(center => (
-                <option key={center.id} value={center.id}>
-                  {center.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        
-        <TableWithPagination
-          data={filteredExpenses}
-          columns={expenseColumns}
-          itemsPerPage={10}
-        />
-      </div>
-
-      {/* Modal de Detalhes de Lançamentos */}
-      {showExpenseDetails && selectedExpense && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-soft-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-neutral-200 bg-gradient-to-r from-b3x-navy-900 to-b3x-navy-800 text-white rounded-t-xl">
-              <div>
-                <h2 className="text-lg font-semibold">Detalhes do Lançamento</h2>
-                <p className="text-b3x-navy-200 text-sm mt-1">
-                  {selectedExpense.description}
-                </p>
+      {/* Filtros */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Buscar por código ou nome..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-              <button
-                onClick={() => setShowExpenseDetails(false)}
-                className="p-2 hover:bg-b3x-navy-700 rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                {Object.entries(COST_CENTER_TYPES).map(([key, info]) => (
+                  <SelectItem key={key} value={key}>
+                    {info.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
-            <div className="p-4 space-y-4">
-              {/* Informações Básicas */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-neutral-50 rounded-lg p-3">
-                  <h3 className="text-sm font-medium text-b3x-navy-900 mb-2 flex items-center">
-                    <Calendar className="w-3 h-3 mr-2" />
-                    Data e Valor
-                  </h3>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Data:</span>
-                      <span className="font-medium">{format(selectedExpense.date, 'dd/MM/yyyy')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Valor Total:</span>
-                      <span className="font-medium">R$ {selectedExpense.purchaseValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Status:</span>
-                      <span className={`font-medium ${
-                        selectedExpense.paymentStatus === 'paid' ? 'text-success-600' :
-                        selectedExpense.paymentStatus === 'overdue' ? 'text-error-600' :
-                        'text-warning-600'
-                      }`}>
-                        {selectedExpense.paymentStatus === 'paid' ? 'Pago' :
-                         selectedExpense.paymentStatus === 'overdue' ? 'Vencido' : 'Pendente'}
-                      </span>
-                    </div>
-                  </div>
+      {/* Tabela de Centros de Custo */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Estrutura de Centros de Custo</CardTitle>
+          <CardDescription>
+            Visualize e gerencie a hierarquia de centros de custo
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {filteredCenters.length === 0 ? (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Nenhum centro de custo encontrado</AlertTitle>
+              <AlertDescription>
+                {searchTerm || selectedType !== 'all' 
+                  ? 'Tente ajustar os filtros de busca.'
+                  : 'Clique em "Novo Centro de Custo" para adicionar o primeiro.'}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Método de Alocação</TableHead>
+                  <TableHead>Lançamentos</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredCenters.map(center => (
+                  <TreeRow key={center.id} center={center} level={0} />
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Dialog de Criação/Edição */}
+      <Dialog open={showDialog} onOpenChange={(open) => {
+        if (!open) resetForm();
+        setShowDialog(open);
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCenter ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCenter 
+                ? 'Atualize as informações do centro de custo'
+                : 'Preencha as informações para criar um novo centro de custo'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {/* Código */}
+                <div>
+                  <Label htmlFor="code">Código *</Label>
+                  <Input
+                    id="code"
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    placeholder="Ex: 001, ADM-001"
+                    required
+                  />
                 </div>
 
-                <div className="bg-neutral-50 rounded-lg p-3">
-                  <h3 className="text-sm font-medium text-b3x-navy-900 mb-2 flex items-center">
-                    <FileText className="w-3 h-3 mr-2" />
-                    Categoria e Fornecedor
-                  </h3>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Categoria:</span>
-                      <span className="font-medium capitalize">{selectedExpense.category.replace('_', ' ')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Fornecedor:</span>
-                      <span className="font-medium">{selectedExpense.supplierId || 'Não informado'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Nota Fiscal:</span>
-                      <span className="font-medium">{selectedExpense.invoiceNumber || 'Não informada'}</span>
-                    </div>
-                  </div>
+                {/* Nome */}
+                <div>
+                  <Label htmlFor="name">Nome *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Nome do centro de custo"
+                    required
+                  />
                 </div>
 
-                <div className="bg-neutral-50 rounded-lg p-3">
-                  <h3 className="text-sm font-medium text-b3x-navy-900 mb-2 flex items-center">
-                    <PieChart className="w-3 h-3 mr-2" />
-                    Alocações
-                  </h3>
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Tipo:</span>
-                      <span className="font-medium">
-                        {selectedExpense.allocationType === 'direct' ? 'Direta (Lotes)' : 'Indireta (Centros)'}
-                      </span>
+                {/* Tipo */}
+                <div>
+                  <Label htmlFor="type">Tipo *</Label>
+                  <Select
+                    value={formData.type}
+                    onValueChange={(value) => setFormData({ ...formData, type: value as CostCenter['type'] })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(COST_CENTER_TYPES).map(([key, info]) => (
+                        <SelectItem key={key} value={key}>
+                          {info.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Método de Alocação */}
+                <div>
+                  <Label htmlFor="allocationMethod">Método de Alocação</Label>
+                  <Select
+                    value={formData.allocationMethod}
+                    onValueChange={(value) => setFormData({ ...formData, allocationMethod: value as CostCenter['allocationMethod'] })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(ALLOCATION_METHODS).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Centro Pai */}
+                <div className="col-span-2">
+                  <Label htmlFor="parentId">Centro de Custo Pai (opcional)</Label>
+                  <Select
+                    value={formData.parentId || 'none'}
+                    onValueChange={(value) => setFormData({ ...formData, parentId: value === 'none' ? '' : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um centro pai (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum (Centro raiz)</SelectItem>
+                      {flatCenters
+                        .filter(c => c.value !== editingCenter?.id) // Não pode ser pai de si mesmo
+                        .map(center => (
+                          <SelectItem key={center.value} value={center.value}>
+                            {center.label}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Descrição */}
+                <div className="col-span-2">
+                  <Label htmlFor="description">Descrição</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Descrição detalhada do centro de custo"
+                    rows={3}
+                  />
+                </div>
+
+                {/* Status Ativo */}
+                <div className="col-span-2">
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="isActive">Centro de Custo Ativo</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Centros inativos não podem receber novos lançamentos
+                      </p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-neutral-600">Quantidade:</span>
-                      <span className="font-medium">{selectedExpense.allocations.length} alocações</span>
-                    </div>
+                    <Switch
+                      id="isActive"
+                      checked={formData.isActive}
+                      onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+                    />
                   </div>
                 </div>
               </div>
-
-              {/* Detalhes das Alocações */}
-              <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-                <div className="p-3 bg-neutral-50 border-b border-neutral-200">
-                  <h3 className="text-sm font-medium text-b3x-navy-900">Detalhes das Alocações</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-neutral-50/70 border-b border-neutral-200/50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-neutral-600">Destino</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-neutral-600">Tipo</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-neutral-600">Valor</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-neutral-600">Percentual</th>
-                        <th className="px-3 py-2 text-left text-xs font-semibold text-neutral-600">Método</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-200/50">
-                      {selectedExpense.allocations.map((allocation, index) => {
-                        // Obter nome do destino
-                        let destinationName = '';
-                        if (allocation.targetType === 'lot') {
-                          const lot = cattlePurchases.find(l => l.id === allocation.targetId);
-                          destinationName = lot ? `Lote ${lot.lotNumber}` : 'Lote desconhecido';
-                        } else {
-                          const center = costCenters.find(cc => cc.id === allocation.targetId);
-                          destinationName = center ? center.name : 'Centro desconhecido';
-                        }
-                        
-                        // Mapear método para texto legível
-                        const methodMap = {
-                          'manual_value': 'Valor Manual',
-                          'percentage_allocation': 'Percentual',
-                          'equal_split': 'Divisão Igual'
-                        };
-                        
-                        return (
-                          <tr key={index} className="hover:bg-neutral-50/50">
-                            <td className="px-3 py-2 text-xs text-neutral-700">{destinationName}</td>
-                            <td className="px-3 py-2 text-xs text-neutral-700">
-                              {allocation.targetType === 'lot' ? 'Lote' : 'Centro de Custo'}
-                            </td>
-                            <td className="px-3 py-2 text-xs font-medium text-b3x-navy-900">
-                              R$ {allocation.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </td>
-                            <td className="px-3 py-2 text-xs text-neutral-700">
-                              {allocation.percentage.toFixed(1)}%
-                            </td>
-                            <td className="px-3 py-2 text-xs text-neutral-700">
-                              {methodMap[allocation.allocationMethod as keyof typeof methodMap]}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Botões de Ação */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-200">
-                <button
-                  onClick={() => setShowExpenseDetails(false)}
-                  className="px-3 py-1.5 text-sm text-neutral-600 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
-                >
-                  Fechar
-                </button>
-                <button
-                  className="px-4 py-1.5 bg-b3x-lime-500 text-b3x-navy-900 font-medium rounded-lg hover:bg-b3x-lime-600 transition-all duration-200 shadow-soft text-sm"
-                >
-                  Editar Lançamento
-                </button>
-              </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* Forms */}
-      <CostCenterForm
-        isOpen={showCostCenterForm}
-        onClose={() => setShowCostCenterForm(false)}
-      />
-
-      <ExpenseAllocationForm
-        isOpen={showExpenseForm}
-        onClose={() => setShowExpenseForm(false)}
-      />
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">
+                {editingCenter ? 'Atualizar' : 'Criar'} Centro de Custo
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

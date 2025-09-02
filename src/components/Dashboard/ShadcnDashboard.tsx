@@ -524,10 +524,10 @@ export function ShadcnDashboard() {
         type: 'expense',
         description: expense.description,
         user: 'Sistema',
-        time: formatSafeDateTime(expense.date),
-        amount: formatSafeCurrency(expense.value),
+        time: formatSafeDateTime(expense.date || expense.dueDate),
+        amount: formatSafeCurrency(expense.value || expense.purchaseValue || expense.totalAmount || 0),
         status: 'paid',
-        date: toSafeDate(expense.date),
+        date: toSafeDate(expense.date || expense.dueDate),
       });
     });
 
@@ -538,10 +538,10 @@ export function ShadcnDashboard() {
         type: 'sale',
         description: revenue.description,
         user: 'Sistema',
-        time: formatSafeDateTime(revenue.date),
-        amount: formatSafeCurrency(revenue.value),
+        time: formatSafeDateTime(revenue.date || revenue.receivedDate),
+        amount: formatSafeCurrency(revenue.value || revenue.totalAmount || 0),
         status: 'received',
-        date: toSafeDate(revenue.date),
+        date: toSafeDate(revenue.date || revenue.receivedDate),
       });
     });
 

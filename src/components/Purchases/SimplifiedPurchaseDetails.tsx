@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -49,6 +49,7 @@ interface SimplifiedPurchaseDetailsProps {
   data: CattlePurchase;
   onEdit: () => void;
   onDelete: () => void;
+  onRefresh?: () => void;
 }
 
 export function SimplifiedPurchaseDetails({
@@ -56,7 +57,8 @@ export function SimplifiedPurchaseDetails({
   onClose,
   data,
   onEdit,
-  onDelete
+  onDelete,
+  onRefresh
 }: SimplifiedPurchaseDetailsProps) {
   const { updateGMD } = useCattlePurchasesApi();
   const [showGMDModal, setShowGMDModal] = useState(false);
@@ -64,6 +66,16 @@ export function SimplifiedPurchaseDetails({
     expectedGMD: data?.expectedGMD || 1.2,
     targetWeight: data?.targetWeight || 550
   });
+  
+  // Atualizar gmdData quando os dados mudarem
+  useEffect(() => {
+    if (data) {
+      setGmdData({
+        expectedGMD: data.expectedGMD || 1.2,
+        targetWeight: data.targetWeight || 550
+      });
+    }
+  }, [data?.expectedGMD, data?.targetWeight]);
 
   if (!data) return null;
 
@@ -86,45 +98,54 @@ export function SimplifiedPurchaseDetails({
     );
   };
 
-  // Calcular métricas
-  const metrics = {
-    averageWeight: data.initialQuantity > 0 ? data.purchaseWeight / data.initialQuantity : 0,
-    liveWeightArrobas: data.purchaseWeight / 30,
-    carcassArrobas: (data.purchaseWeight * data.carcassYield / 100) / 15,
-    costPerHead: data.initialQuantity > 0 ? data.totalCost / data.initialQuantity : 0,
-    costPerKg: data.purchaseWeight > 0 ? data.totalCost / data.purchaseWeight : 0,
-    costPerLiveArroba: data.purchaseWeight > 0 ? data.totalCost / (data.purchaseWeight / 30) : 0,
-    costPerCarcassArroba: 0,
-    daysInConfinement: data.receivedDate ? 
-      Math.floor((new Date().getTime() - new Date(data.receivedDate).getTime()) / (1000 * 60 * 60 * 24)) : 0,
-    currentWeight: data.currentWeight || data.purchaseWeight,
-    estimatedWeight: 0,
-    daysToTarget: 0,
-    estimatedSlaughterDate: null as Date | null
-  };
-  
-  // Calcular custo por arroba de carcaça
-  metrics.costPerCarcassArroba = metrics.carcassArrobas > 0 ? data.totalCost / metrics.carcassArrobas : 0;
-
-  // Calcular peso estimado e dias para abate se tiver GMD
-  if (data.expectedGMD && data.targetWeight) {
-    metrics.estimatedWeight = metrics.averageWeight + (metrics.daysInConfinement * data.expectedGMD);
-    const currentWeightToGain = data.targetWeight - metrics.averageWeight;
-    metrics.daysToTarget = data.expectedGMD > 0 ? Math.ceil(currentWeightToGain / data.expectedGMD) : 0;
+  // Calcular métricas usando o estado gmdData atualizado
+  const metrics = useMemo(() => {
+    const baseMetrics = {
+      averageWeight: data.initialQuantity > 0 ? data.purchaseWeight / data.initialQuantity : 0,
+      liveWeightArrobas: data.purchaseWeight / 30,
+      carcassArrobas: (data.purchaseWeight * data.carcassYield / 100) / 15,
+      costPerHead: data.initialQuantity > 0 ? data.totalCost / data.initialQuantity : 0,
+      costPerKg: data.purchaseWeight > 0 ? data.totalCost / data.purchaseWeight : 0,
+      costPerLiveArroba: data.purchaseWeight > 0 ? data.totalCost / (data.purchaseWeight / 30) : 0,
+      costPerCarcassArroba: 0,
+      daysInConfinement: data.receivedDate ? 
+        Math.floor((new Date().getTime() - new Date(data.receivedDate).getTime()) / (1000 * 60 * 60 * 24)) : 0,
+      currentWeight: data.currentWeight || data.purchaseWeight,
+      estimatedWeight: 0,
+      daysToTarget: 0,
+      estimatedSlaughterDate: null as Date | null
+    };
     
-    if (metrics.daysToTarget > 0) {
-      metrics.estimatedSlaughterDate = new Date();
-      metrics.estimatedSlaughterDate.setDate(metrics.estimatedSlaughterDate.getDate() + metrics.daysToTarget);
+    // Calcular custo por arroba de carcaça
+    baseMetrics.costPerCarcassArroba = baseMetrics.carcassArrobas > 0 ? data.totalCost / baseMetrics.carcassArrobas : 0;
+
+    // Calcular peso estimado e dias para abate usando gmdData (estado atualizado)
+    if (gmdData.expectedGMD && gmdData.targetWeight) {
+      baseMetrics.estimatedWeight = baseMetrics.averageWeight + (baseMetrics.daysInConfinement * gmdData.expectedGMD);
+      const currentWeightToGain = gmdData.targetWeight - baseMetrics.averageWeight;
+      baseMetrics.daysToTarget = gmdData.expectedGMD > 0 ? Math.ceil(currentWeightToGain / gmdData.expectedGMD) : 0;
+      
+      if (baseMetrics.daysToTarget > 0) {
+        baseMetrics.estimatedSlaughterDate = new Date();
+        baseMetrics.estimatedSlaughterDate.setDate(baseMetrics.estimatedSlaughterDate.getDate() + baseMetrics.daysToTarget);
+      }
     }
-  }
+    
+    return baseMetrics;
+  }, [data, gmdData.expectedGMD, gmdData.targetWeight]);
 
   const handleGMDUpdate = async () => {
     try {
       await updateGMD(data.id, gmdData.expectedGMD, gmdData.targetWeight);
       setShowGMDModal(false);
       toast.success('GMD atualizado com sucesso!');
+      // Recarregar dados após atualizar
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (error) {
       console.error('Erro ao atualizar GMD:', error);
+      toast.error('Erro ao atualizar GMD');
     }
   };
 
@@ -163,7 +184,7 @@ export function SimplifiedPurchaseDetails({
                   </div>
                   <div>
                     <p className="text-muted-foreground">Local</p>
-                    <p className="font-semibold">{data.location || 'Não informado'}</p>
+                    <p className="font-semibold">{data.state || data.location || 'Não informado'}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Data da Compra</p>
@@ -261,10 +282,10 @@ export function SimplifiedPurchaseDetails({
                 </CardHeader>
                 <CardContent>
                   <div className="text-lg font-bold">
-                    {(data.expectedGMD || 0).toFixed(1)} kg/dia
+                    {gmdData.expectedGMD.toFixed(1)} kg/dia
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Alvo: {(data.targetWeight || 0).toFixed(0)} kg
+                    Alvo: {gmdData.targetWeight.toFixed(0)} kg
                   </p>
                   {metrics.estimatedSlaughterDate && (
                     <p className="text-xs text-primary font-medium mt-1">
@@ -552,7 +573,7 @@ export function SimplifiedPurchaseDetails({
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-muted-foreground">Conta Pagadora</p>
-                          <p className="font-medium">{data.payerAccount?.name || 'N/A'}</p>
+                          <p className="font-medium">{data.payerAccount?.accountName || data.payerAccount?.name || 'N/A'}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Tipo de Pagamento</p>

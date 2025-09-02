@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { cattlePurchaseService } from '../services/cattlePurchase.service';
+import { cattlePurchaseIntegration } from '../services/cattlePurchaseIntegration.service';
 import { AppError } from '../utils/AppError';
 import catchAsync from '../utils/catchAsync';
 
@@ -7,6 +8,15 @@ class CattlePurchaseController {
   // Criar nova compra
   create = catchAsync(async (req: Request, res: Response) => {
     const purchase = await cattlePurchaseService.create(req.body);
+    
+    // Criar despesas financeiras automaticamente
+    try {
+      await cattlePurchaseIntegration.createPurchaseExpenses(purchase.id);
+      console.log(`✅ Despesas financeiras criadas para Lote ${purchase.lotCode}`);
+    } catch (error) {
+      console.error('⚠️ Erro ao criar despesas automáticas:', error);
+      // Não falha a criação da compra se a integração falhar
+    }
     
     res.status(201).json({
       status: 'success',
@@ -77,6 +87,7 @@ class CattlePurchaseController {
     const {
       receivedWeight,
       receivedQuantity,
+      actualQuantity,
       freightDistance,
       freightCostPerKm,
       freightValue,
@@ -92,7 +103,7 @@ class CattlePurchaseController {
     const receptionData = {
       receivedDate: unloadingDate ? new Date(unloadingDate) : new Date(),
       receivedWeight: parseFloat(receivedWeight),
-      actualQuantity: parseInt(receivedQuantity),
+      actualQuantity: parseInt(actualQuantity || receivedQuantity),
       freightDistance: freightDistance ? parseFloat(freightDistance) : undefined,
       freightCostPerKm: freightCostPerKm ? parseFloat(freightCostPerKm) : undefined,
       freightValue: freightValue ? parseFloat(freightValue) : undefined,

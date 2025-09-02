@@ -38,8 +38,29 @@ export class CattlePurchaseRepository extends BaseRepository<CattlePurchase> {
                 }
               }
             }
+          },
+          payerAccount: {
+            select: {
+              id: true,
+              accountName: true,
+              accountNumber: true,
+              bankName: true
+            }
+          },
+          broker: {
+            select: {
+              id: true,
+              name: true,
+              type: true
+            }
+          },
+          transportCompany: {
+            select: {
+              id: true,
+              name: true,
+              type: true
+            }
           }
-          // payerAccount relação não existe no schema
         }
       }),
       this.prisma.cattlePurchase.count({ where })
@@ -106,7 +127,7 @@ export class CattlePurchaseRepository extends BaseRepository<CattlePurchase> {
     return await this.findMany(
       {
         status: {
-          in: ['CONFIRMED', 'RECEIVED', 'ACTIVE']
+          in: ['CONFIRMED', 'RECEIVED', 'CONFINED']
         }
       },
       {

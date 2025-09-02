@@ -83,13 +83,21 @@ export const Login: React.FC = () => {
     } catch (error: any) {
       console.error('❌ Erro no login:', error);
       
-      // Mensagens de erro mais amigáveis
-      if (error.message?.includes('Invalid login credentials')) {
+      // Mensagens de erro mais específicas e amigáveis
+      if (error.message?.toLowerCase().includes('failed to fetch')) {
+        setError('⚠️ Não foi possível conectar ao servidor. Possíveis causas:\n• O servidor backend não está rodando (porta 3001)\n• Problemas de conexão com a internet\n• Firewall ou antivírus bloqueando a conexão\n\nVerifique se o backend está rodando com: npm run dev (na pasta backend)');
+      } else if (error.message?.includes('Invalid login credentials')) {
         setError('Email ou senha incorretos.');
       } else if (error.message?.includes('Network')) {
         setError('Erro de conexão. Verifique sua internet e tente novamente.');
       } else if (error.message?.includes('timeout')) {
         setError('O servidor está demorando para responder. Tente novamente.');
+      } else if (error.message?.includes('CORS')) {
+        setError('Erro de configuração do servidor (CORS). Entre em contato com o suporte.');
+      } else if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        setError('Email ou senha incorretos. Verifique suas credenciais.');
+      } else if (error.message?.includes('500') || error.message?.includes('Internal Server Error')) {
+        setError('Erro no servidor. Tente novamente mais tarde.');
       } else {
         setError(error.message || 'Erro ao fazer login. Tente novamente.');
       }
@@ -146,7 +154,7 @@ export const Login: React.FC = () => {
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start space-x-2 animate-shake">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-              <span className="text-sm">{error}</span>
+              <span className="text-sm whitespace-pre-line">{error}</span>
             </div>
           )}
 

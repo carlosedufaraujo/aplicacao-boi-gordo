@@ -77,8 +77,9 @@ export class CattlePurchaseService {
       cycleId = activeCycle?.id;
     }
     
-    // Calcular valor da compra
-    const purchaseValue = (data.purchaseWeight / 30) * data.pricePerArroba;
+    // Calcular valor da compra - preço por arroba é aplicado sobre peso da carcaça
+    const carcassWeight = (data.purchaseWeight * (data.carcassYield || 50)) / 100;
+    const purchaseValue = (carcassWeight / 15) * data.pricePerArroba;
     
     // Calcular custos totais
     const totalCost = purchaseValue + 
@@ -115,11 +116,14 @@ export class CattlePurchaseService {
     if (data.farm) createData.farm = data.farm;
     if (data.animalAge) createData.animalAge = data.animalAge;
     if (data.paymentTerms) createData.paymentTerms = data.paymentTerms;
-    if (data.principalDueDate) createData.principalDueDate = data.principalDueDate;
     if (data.freightCost) createData.freightCost = data.freightCost;
     if (data.freightDistance) createData.freightDistance = data.freightDistance;
     if (data.commission) createData.commission = data.commission;
     if (data.notes) createData.notes = data.notes;
+    
+    // Mapear campos com nomes diferentes
+    if (data.paymentDate) createData.principalDueDate = data.paymentDate;
+    if (data.commissionType) createData.commissionPaymentType = data.commissionType;
 
     return await this.repository.create(createData);
   }
@@ -141,10 +145,14 @@ export class CattlePurchaseService {
     const purchase = await this.findById(id);
     
     // Recalcular custos se necessário
-    if (data.purchaseWeight || data.pricePerArroba) {
+    if (data.purchaseWeight || data.pricePerArroba || data.carcassYield) {
       const weight = data.purchaseWeight || purchase.purchaseWeight;
       const price = data.pricePerArroba || purchase.pricePerArroba;
-      data.purchaseValue = (weight / 30) * price;
+      const carcassYield = data.carcassYield || purchase.carcassYield || 50;
+      
+      // Preço por arroba é aplicado sobre o peso da carcaça (15kg/@), não peso vivo
+      const carcassWeight = (weight * carcassYield) / 100;
+      data.purchaseValue = (carcassWeight / 15) * price;
     }
 
     if (data.freightCost !== undefined || data.commission !== undefined) {
@@ -153,7 +161,55 @@ export class CattlePurchaseService {
                       (data.commission ?? purchase.commission);
     }
 
-    return await this.repository.update(id, data);
+    // Transformar IDs de relações em conexões Prisma
+    const updateData: any = {};
+    
+    // Campos simples (apenas campos que existem no schema)
+    const simpleFields = [
+      'purchaseDate', 'city', 'state', 'farm', 'location',
+      'animalType', 'animalAge', 'initialQuantity', 'purchaseWeight',
+      'carcassYield', 'pricePerArroba', 'purchaseValue', 'paymentType',
+      'freightCost', 'freightDistance', 'commission',
+      'notes', 'totalCost'
+    ];
+    
+    simpleFields.forEach(field => {
+      if (data[field] !== undefined) {
+        updateData[field] = data[field];
+      }
+    });
+    
+    // Mapear campos com nomes diferentes
+    if (data.commissionType !== undefined) {
+      updateData.commissionPaymentType = data.commissionType;
+    }
+    
+    if (data.paymentDate !== undefined) {
+      updateData.principalDueDate = data.paymentDate;
+    }
+
+    // Relações que precisam ser conectadas
+    if (data.vendorId) {
+      updateData.vendor = { connect: { id: data.vendorId } };
+    }
+    
+    if (data.payerAccountId) {
+      updateData.payerAccount = { connect: { id: data.payerAccountId } };
+    }
+    
+    if (data.brokerId) {
+      updateData.broker = { connect: { id: data.brokerId } };
+    } else if (data.hasBroker === false && purchase.brokerId) {
+      updateData.broker = { disconnect: true };
+    }
+    
+    if (data.transportCompanyId) {
+      updateData.transportCompany = { connect: { id: data.transportCompanyId } };
+    } else if (data.hasFreight === false && purchase.transportCompanyId) {
+      updateData.transportCompany = { disconnect: true };
+    }
+
+    return await this.repository.update(id, updateData);
   }
 
   async updateStatus(id: string, status: PurchaseStatus) {

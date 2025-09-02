@@ -42,7 +42,7 @@ const receptionValidation = [
 
 const statusValidation = [
   param('id').isString().notEmpty(),
-  body('status').isIn(['NEGOTIATING', 'CONFIRMED', 'IN_TRANSIT', 'RECEIVED', 'ACTIVE', 'SOLD', 'CANCELLED'])
+  body('status').isIn(['NEGOTIATING', 'CONFIRMED', 'RECEIVED', 'CONFINED', 'SOLD', 'CANCELLED'])
     .withMessage('Status inválido')
 ];
 

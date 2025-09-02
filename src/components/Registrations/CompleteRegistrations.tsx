@@ -176,6 +176,7 @@ const ItemCard: React.FC<{
       case 'BUYER': return 'Comprador';
       case 'INVESTOR': return 'Investidor';
       case 'SERVICE_PROVIDER': return 'Prestador de Serviço';
+      case 'FREIGHT_CARRIER': return 'Transportadora';
       case 'OTHER': return 'Outro';
       case 'FATTENING': return 'Engorda';
       case 'QUARANTINE': return 'Quarentena';
@@ -196,6 +197,7 @@ const ItemCard: React.FC<{
       case 'BUYER': return 'bg-info';
       case 'INVESTOR': return 'bg-warning';
       case 'SERVICE_PROVIDER': return 'bg-secondary';
+      case 'FREIGHT_CARRIER': return 'bg-primary';
       case 'OTHER': return 'bg-muted';
       case 'FATTENING': return 'bg-success';
       case 'QUARANTINE': return 'bg-warning';
@@ -215,6 +217,7 @@ const ItemCard: React.FC<{
       case 'broker': return <Building className="h-3 w-3" />;
       case 'slaughterhouse': return <Building2 className="h-3 w-3" />;
       case 'transporter': return <Truck className="h-3 w-3" />;
+      case 'FREIGHT_CARRIER': return <Truck className="h-3 w-3" />;
       case 'FATTENING': return <Home className="h-3 w-3" />;
       case 'QUARANTINE': return <Shield className="h-3 w-3" />;
       case 'AVAILABLE': return <CheckCircle className="h-3 w-3" />;
