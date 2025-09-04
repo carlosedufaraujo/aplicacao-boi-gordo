@@ -124,19 +124,9 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
           page: "financial",
         },
         {
-          title: "DRE",
-          icon: FileText,
-          page: "dre",
-        },
-        {
           title: "Calendário",
           icon: Calendar,
           page: "calendar",
-        },
-        {
-          title: "Conciliação",
-          icon: Calculator,
-          page: "financial-reconciliation",
         },
       ]
     },

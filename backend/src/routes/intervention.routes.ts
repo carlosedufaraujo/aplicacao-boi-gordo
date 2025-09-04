@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { interventionController } from '@/controllers/intervention.controller';
-import { validate } from '@/middlewares/validation';
+import { validateRequest } from '@/middlewares/validation';
 import { body, query } from 'express-validator';
 
 const router = Router();
 
 // Validações
 const healthInterventionValidation = [
-  body('cattlePurchaseId').notEmpty().withMessage('ID do lote é obrigatório'),
+  body('cattlePurchaseId').optional(), // Tornado opcional pois intervenções são por curral
   body('penId').notEmpty().withMessage('ID do curral é obrigatório'),
   body('interventionType').isIn(['vaccine', 'medication', 'treatment']).withMessage('Tipo de intervenção inválido'),
   body('productName').notEmpty().withMessage('Nome do produto é obrigatório'),
@@ -16,15 +16,15 @@ const healthInterventionValidation = [
 ];
 
 const mortalityRecordValidation = [
-  body('cattlePurchaseId').notEmpty().withMessage('ID do lote é obrigatório'),
+  body('cattlePurchaseId').optional(), // Tornado opcional pois intervenções são por curral
   body('penId').notEmpty().withMessage('ID do curral é obrigatório'),
   body('quantity').isInt({ min: 1 }).withMessage('Quantidade deve ser maior que zero'),
   body('deathDate').isISO8601().withMessage('Data do óbito inválida'),
-  body('cause').isIn(['disease', 'accident', 'predator', 'poisoning', 'unknown', 'other']).withMessage('Causa inválida')
+  body('cause').optional().isIn(['disease', 'accident', 'predator', 'poisoning', 'unknown', 'other']).withMessage('Causa inválida')
 ];
 
 const penMovementValidation = [
-  body('cattlePurchaseId').notEmpty().withMessage('ID do lote é obrigatório'),
+  body('cattlePurchaseId').optional(), // Tornado opcional pois intervenções são por curral
   body('fromPenId').notEmpty().withMessage('Curral de origem é obrigatório'),
   body('toPenId').notEmpty().withMessage('Curral de destino é obrigatório'),
   body('quantity').isInt({ min: 1 }).withMessage('Quantidade deve ser maior que zero'),
@@ -33,7 +33,7 @@ const penMovementValidation = [
 ];
 
 const weightReadingValidation = [
-  body('cattlePurchaseId').notEmpty().withMessage('ID do lote é obrigatório'),
+  body('cattlePurchaseId').optional(), // Tornado opcional pois intervenções são por curral
   body('penId').notEmpty().withMessage('ID do curral é obrigatório'),
   body('averageWeight').isFloat({ min: 0 }).withMessage('Peso médio deve ser um número positivo'),
   body('sampleSize').isInt({ min: 1 }).withMessage('Tamanho da amostra deve ser maior que zero'),
@@ -43,45 +43,51 @@ const weightReadingValidation = [
 // Rotas
 router.post(
   '/health',
-  validate(healthInterventionValidation),
+  healthInterventionValidation,
+  validateRequest,
   interventionController.createHealthIntervention
 );
 
 router.post(
   '/mortality',
-  validate(mortalityRecordValidation),
+  mortalityRecordValidation,
+  validateRequest,
   interventionController.createMortalityRecord
 );
 
 router.post(
   '/movement',
-  validate(penMovementValidation),
+  penMovementValidation,
+  validateRequest,
   interventionController.createPenMovement
 );
 
 router.post(
   '/weight',
-  validate(weightReadingValidation),
+  weightReadingValidation,
+  validateRequest,
   interventionController.createWeightReading
 );
 
 router.get(
   '/history',
-  validate([
+  [
     query('cattlePurchaseId').optional(),
     query('penId').optional(),
     query('startDate').optional().isISO8601(),
     query('endDate').optional().isISO8601(),
     query('type').optional().isIn(['health', 'mortality', 'movement', 'weight'])
-  ]),
+  ],
+  validateRequest,
   interventionController.getInterventionHistory
 );
 
 router.get(
   '/statistics',
-  validate([
+  [
     query('cycleId').optional()
-  ]),
+  ],
+  validateRequest,
   interventionController.getInterventionStatistics
 );
 

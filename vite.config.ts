@@ -44,7 +44,8 @@ export default defineConfig({
       'tailwind-merge',
       'framer-motion',
       'lucide-react',
-      '@tabler/icons-react'
+      '@tabler/icons-react',
+      'axios'
     ],
     // Forçar re-otimização
     force: true

@@ -36,18 +36,18 @@ export class CattlePurchaseIntegrationService {
         lotCostCenter = await prisma.costCenter.create({
           data: {
             code: `LOT-${purchase.lotCode}`,
-            name: `Lote ${purchase.lotCode}`,
+            name: `${purchase.lotCode}`,
             type: 'ACQUISITION',
             isActive: true
           }
         });
-        console.log(`✅ Centro de custo criado para Lote ${purchase.lotCode}`);
+        console.log(`✅ Centro de custo criado para ${purchase.lotCode}`);
       }
 
       // 2. Despesa principal - Compra do Gado
       const cattleExpense = await prisma.expense.create({
         data: {
-          description: `Compra de Gado - Lote ${purchase.lotCode}`,
+          description: `Compra de Gado - ${purchase.lotCode}`,
           category: 'COMPRA_GADO',
           totalAmount: purchase.purchaseValue,
           dueDate: purchase.principalDueDate || purchase.purchaseDate,
@@ -67,7 +67,7 @@ export class CattlePurchaseIntegrationService {
       if (purchase.commission > 0) {
         const commissionExpense = await prisma.expense.create({
           data: {
-            description: `Comissão - Lote ${purchase.lotCode}`,
+            description: `Comissão - ${purchase.lotCode}`,
             category: 'COMISSAO',
             totalAmount: purchase.commission,
             dueDate: purchase.commissionDueDate || purchase.purchaseDate,
@@ -88,7 +88,7 @@ export class CattlePurchaseIntegrationService {
       if (purchase.freightCost > 0) {
         const freightExpense = await prisma.expense.create({
           data: {
-            description: `Frete - Lote ${purchase.lotCode}`,
+            description: `Frete - ${purchase.lotCode}`,
             category: 'TRANSPORTE',
             totalAmount: purchase.freightCost,
             dueDate: purchase.freightDueDate || purchase.purchaseDate,

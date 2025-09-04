@@ -33,7 +33,7 @@ class InterventionController {
       necropsy: req.body.necropsy || false
     };
 
-    const mortality = await interventionService.createMortalityRecord(data);
+    const mortality = await interventionService.createMortalityRecord(data, req.user?.id);
 
     res.status(201).json({
       status: 'success',

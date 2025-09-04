@@ -7,12 +7,11 @@ import { prisma } from '@/config/database';
 interface CreateExpenseData {
   category: string;
   costCenterId?: string;
-  cycleId?: string;
   description: string;
   totalAmount: number;
   dueDate: Date;
   impactsCashFlow?: boolean;
-  lotId?: string;
+  purchaseId?: string;
   penId?: string;
   vendorId?: string;
   payerAccountId?: string;
@@ -27,10 +26,9 @@ interface UpdateExpenseData extends Partial<CreateExpenseData> {
 interface ExpenseFilters {
   category?: string;
   costCenterId?: string;
-  cycleId?: string;
   isPaid?: boolean;
   impactsCashFlow?: boolean;
-  lotId?: string;
+  purchaseId?: string;
   startDate?: Date;
   endDate?: Date;
   search?: string;
@@ -66,10 +64,6 @@ export class ExpenseService {
       where.costCenterId = filters.costCenterId;
     }
     
-    if (filters.cycleId) {
-      where.cycleId = filters.cycleId;
-    }
-
     if (filters.isPaid !== undefined) {
       where.isPaid = filters.isPaid;
     }
@@ -78,8 +72,8 @@ export class ExpenseService {
       where.impactsCashFlow = filters.impactsCashFlow;
     }
 
-    if (filters.lotId) {
-      where.purchaseId = filters.lotId;
+    if (filters.purchaseId) {
+      where.purchaseId = filters.purchaseId;
     }
 
     if (filters.startDate || filters.endDate) {
@@ -130,6 +124,10 @@ export class ExpenseService {
   async findOverdue() {
     return this.expenseRepository.findOverdue();
   }
+  
+  async findByPurchaseId(purchaseId: string) {
+    return this.expenseRepository.findAll({ purchaseId });
+  }
 
   async create(data: CreateExpenseData, userId: string, allocations?: AllocationData[]) {
     // Valida categoria
@@ -144,30 +142,24 @@ export class ExpenseService {
       throw new ValidationError('Categoria inválida');
     }
 
-    // Se não foi especificado um ciclo, buscar o ciclo ativo
-    let cycleId = data.cycleId;
-    if (!cycleId) {
-      const activeCycle = await prisma.cycle.findFirst({
-        where: { status: 'ACTIVE' }
-      });
-      cycleId = activeCycle?.id;
-    }
-
     // Define impactsCashFlow baseado na categoria se não fornecido
     const impactsCashFlow = data.impactsCashFlow ?? 
       !['deaths', 'weight_loss'].includes(data.category);
 
-    const expenseData = {
-      ...data,
-      cycleId,
+    const expenseData: any = {
+      category: data.category,
+      description: data.description,
+      totalAmount: data.totalAmount,
+      dueDate: data.dueDate,
       impactsCashFlow,
       isPaid: false,
       userId,
-      user: { connect: { id: userId } },
-      costCenter: data.costCenterId ? { connect: { id: data.costCenterId } } : undefined,
-      cycle: cycleId ? { connect: { id: cycleId } } : undefined,
-      lot: (data as any).purchaseId ? { connect: { id: (data as any).purchaseId } } : undefined,
-      payerAccount: data.payerAccountId ? { connect: { id: data.payerAccountId } } : undefined,
+      notes: data.notes || null,
+      purchaseId: data.purchaseId || null,
+      penId: data.penId || null,
+      vendorId: data.vendorId || null,
+      payerAccountId: data.payerAccountId || null,
+      costCenterId: data.costCenterId || null,
     };
 
     return this.expenseRepository.createWithAllocations(expenseData, allocations);

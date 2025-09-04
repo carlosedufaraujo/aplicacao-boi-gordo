@@ -15,8 +15,7 @@ import {
   Heart, DollarSign, Percent, AlertCircle
 } from 'lucide-react';
 import { useAnalyticsApi } from '@/hooks/api/useAnalyticsApi';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { formatBrazilianDate, formatBrazilianCurrency, formatBrazilianNumber, formatWeight, formatPercentage } from '@/config/dateConfig';
 
 const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899'];
 
@@ -455,7 +454,7 @@ export const AnalyticsDashboard: React.FC = () => {
                       </li>
                       <li className="flex items-center gap-2">
                         <MapPin className="h-3 w-3 text-yellow-500" />
-                        Distância > 500km
+                        Distância &gt; 500km
                       </li>
                     </ul>
                   </div>
@@ -510,7 +509,7 @@ export const AnalyticsDashboard: React.FC = () => {
                   <Info className="h-4 w-4" />
                   <AlertDescription>
                     <strong>Média Prioridade:</strong> Implementar protocolo de hidratação 
-                    intensiva para transportes > 8 horas
+                    intensiva para transportes &gt; 8 horas
                   </AlertDescription>
                 </Alert>
                 <Alert>

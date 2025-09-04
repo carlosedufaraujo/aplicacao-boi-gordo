@@ -5,8 +5,8 @@
 
 export const APP_CONFIG = {
   api: {
-    baseUrl: 'http://localhost:3001/api/v1',
-    backendUrl: 'http://localhost:3001',
+    baseUrl: 'http://localhost:3002/api/v1',
+    backendUrl: 'http://localhost:3002',
   },
   supabase: {
     url: 'https://vffxtvuqhlhcbbyqmynz.supabase.co',
@@ -16,6 +16,6 @@ export const APP_CONFIG = {
     port: 5173,
   },
   backend: {
-    port: 3001,
+    port: 3002,
   },
 } as const;

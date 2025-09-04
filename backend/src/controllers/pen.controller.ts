@@ -195,6 +195,19 @@ export class PenController {
   }
 
   /**
+   * GET /pens/occupancy
+   * Retorna dados de ocupação de todos os currais
+   */
+  async allOccupancy(_req: Request, res: Response): Promise<void> {
+    const pens = await penService.getAllWithOccupancy();
+
+    res.json({
+      status: 'success',
+      data: pens,
+    });
+  }
+
+  /**
    * POST /pens/:id/health-protocol
    * Aplica protocolo sanitário no curral
    */

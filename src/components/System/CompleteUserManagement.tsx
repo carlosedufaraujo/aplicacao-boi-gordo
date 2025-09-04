@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Users, 
   Plus, 
@@ -30,6 +30,8 @@ import {
   Smartphone
 } from 'lucide-react';
 import { useBackend } from '@/providers/BackendProvider';
+import { usersService } from '@/services/api/users';
+import { useToast } from '@/hooks/use-toast';
 
 // Componentes shadcn/ui
 import { Button } from '@/components/ui/button';
@@ -171,97 +173,49 @@ export const CompleteUserManagement: React.FC = () => {
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showActivityDialog, setShowActivityDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Dados mockados (em produção viriam do Supabase)
-  const [users] = useState<User[]>([
-    {
-      id: '1',
-      name: 'Carlos Eduardo',
-      email: 'carlosedufaraujo@outlook.com',
-      role: 'MASTER',
-      status: 'active',
-      lastLogin: new Date('2025-01-27T10:30:00'),
-      createdAt: new Date('2024-01-15'),
-      avatar: null,
-      phone: '(62) 99999-9999',
-      department: 'Gestão',
-      permissions: modules.map(m => ({ module: m.id, actions: m.actions })),
-      twoFactorEnabled: true,
-      loginAttempts: 0,
-      lastActivity: new Date('2025-01-27T11:45:00'),
-      notes: 'Usuário master do sistema'
-    },
-    {
-      id: '2',
-      name: 'João Silva',
-      email: 'joao@ceac.com.br',
-      role: 'ADMIN',
-      status: 'active',
-      lastLogin: new Date('2025-01-26T16:20:00'),
-      createdAt: new Date('2024-03-20'),
-      avatar: null,
-      phone: '(62) 98888-8888',
-      department: 'Operações',
-      permissions: [
-        { module: 'dashboard', actions: ['view'] },
-        { module: 'lots', actions: ['view', 'create', 'edit'] },
-        { module: 'pipeline', actions: ['view', 'create', 'edit', 'approve'] },
-        { module: 'sales', actions: ['view', 'create', 'edit'] },
-        { module: 'financial', actions: ['view', 'create', 'edit'] },
-        { module: 'dre', actions: ['view', 'generate'] },
-        { module: 'calendar', actions: ['view', 'create', 'edit'] },
-        { module: 'registrations', actions: ['view', 'create', 'edit'] }
-      ],
-      twoFactorEnabled: false,
-      loginAttempts: 0,
-      lastActivity: new Date('2025-01-26T17:30:00'),
-      invitedBy: '1'
-    },
-    {
-      id: '3',
-      name: 'Maria Santos',
-      email: 'maria@ceac.com.br',
-      role: 'USER',
-      status: 'active',
-      lastLogin: new Date('2025-01-25T14:15:00'),
-      createdAt: new Date('2024-06-10'),
-      avatar: null,
-      phone: '(62) 97777-7777',
-      department: 'Financeiro',
-      permissions: [
-        { module: 'dashboard', actions: ['view'] },
-        { module: 'financial', actions: ['view', 'create', 'edit'] },
-        { module: 'dre', actions: ['view'] },
-        { module: 'reconciliation', actions: ['view', 'execute'] },
-        { module: 'calendar', actions: ['view'] }
-      ],
-      twoFactorEnabled: true,
-      loginAttempts: 0,
-      lastActivity: new Date('2025-01-25T15:45:00'),
-      invitedBy: '1'
-    },
-    {
-      id: '4',
-      name: 'Pedro Costa',
-      email: 'pedro@ceac.com.br',
-      role: 'USER',
-      status: 'pending',
-      createdAt: new Date('2025-01-20'),
-      avatar: null,
-      phone: '(62) 96666-6666',
-      department: 'Operações',
-      permissions: [
-        { module: 'dashboard', actions: ['view'] },
-        { module: 'lots', actions: ['view'] },
-        { module: 'pipeline', actions: ['view'] }
-      ],
-      twoFactorEnabled: false,
-      loginAttempts: 0,
-      invitedBy: '2',
-      notes: 'Aguardando primeiro acesso'
+  // Estado para armazenar os usuários da API
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
+
+  // Função para carregar usuários da API
+  const loadUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const response = await usersService.getAll();
+      // Converter dados da API para o formato do componente
+      const mappedUsers = response.map((user: any) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.isActive ? 'active' : 'inactive',
+        lastLogin: user.lastLogin ? new Date(user.lastLogin) : undefined,
+        createdAt: new Date(user.createdAt),
+        avatar: null,
+        phone: user.phone || '',
+        department: '',
+        permissions: [],
+        twoFactorEnabled: false,
+        loginAttempts: 0,
+        lastActivity: user.updatedAt ? new Date(user.updatedAt) : undefined,
+        notes: ''
+      }));
+      setUsers(mappedUsers);
+    } catch (error) {
+      console.error('Erro ao carregar usuários:', error);
+    } finally {
+      setLoadingUsers(false);
     }
-  ]);
+  };
+
+  // Carregar usuários ao montar o componente
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   const [userActivities] = useState<UserActivity[]>([
     {
@@ -334,43 +288,109 @@ export const CompleteUserManagement: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Simular ação no Supabase
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       switch (action) {
         case 'activate':
-          console.log(`Ativando usuário ${userId}`);
+          await usersService.activate(userId);
+          console.log(`Usuário ${userId} ativado`);
+          await loadUsers();
           break;
         case 'deactivate':
-          console.log(`Desativando usuário ${userId}`);
+          await usersService.deactivate(userId);
+          console.log(`Usuário ${userId} desativado`);
+          await loadUsers();
           break;
         case 'delete':
-          console.log(`Excluindo usuário ${userId}`);
+          if (confirm('Tem certeza que deseja excluir este usuário?')) {
+            await usersService.delete(userId);
+            console.log(`Usuário ${userId} excluído`);
+            await loadUsers();
+          }
           break;
         case 'reset_password':
-          console.log(`Resetando senha do usuário ${userId}`);
+          const result = await usersService.resetPassword(userId);
+          alert(`Senha temporária gerada: ${result.temporaryPassword}`);
           break;
         case 'resend_invite':
           console.log(`Reenviando convite para usuário ${userId}`);
+          alert('Funcionalidade de reenviar convite ainda não implementada');
           break;
       }
     } catch (error) {
       console.error('Erro ao executar ação:', error);
+      alert(`Erro ao executar ação: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleInviteUser = async (email: string, role: string, department: string) => {
+  const handleInviteUser = async () => {
     setIsLoading(true);
     
     try {
-      // Simular envio de convite
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log(`Convite enviado para ${email} como ${role}`);
+      const emailInput = document.getElementById('invite-email') as HTMLInputElement;
+      const nameInput = document.getElementById('invite-name') as HTMLInputElement;
+      const passwordInput = document.getElementById('invite-password') as HTMLInputElement;
+      const roleSelect = document.getElementById('invite-role') as HTMLSelectElement;
+      
+      if (!emailInput?.value || !nameInput?.value || !passwordInput?.value) {
+        throw new Error('Preencha todos os campos obrigatórios');
+      }
+      
+      // Criar o usuário via API
+      await usersService.create({
+        email: emailInput.value,
+        name: nameInput.value,
+        password: passwordInput.value,
+        role: roleSelect?.value || 'USER'
+      });
+      
+      console.log(`Usuário criado: ${emailInput.value}`);
       setShowInviteDialog(false);
+      
+      // Limpar campos
+      emailInput.value = '';
+      nameInput.value = '';
+      passwordInput.value = '';
+      
+      // Recarregar lista de usuários
+      await loadUsers();
     } catch (error) {
-      console.error('Erro ao enviar convite:', error);
+      console.error('Erro ao criar usuário:', error);
+      alert(error.message || 'Erro ao criar usuário');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+    setIsLoading(true);
+    
+    try {
+      const nameInput = document.getElementById('edit-name') as HTMLInputElement;
+      const emailInput = document.getElementById('edit-email') as HTMLInputElement;
+      const roleSelect = document.getElementById('edit-role') as HTMLSelectElement;
+      
+      if (!nameInput?.value || !emailInput?.value) {
+        throw new Error('Preencha todos os campos obrigatórios');
+      }
+      
+      // Atualizar o usuário via API
+      await usersService.update(editingUser.id, {
+        name: nameInput.value,
+        email: emailInput.value,
+        role: roleSelect?.value || editingUser.role
+      });
+      
+      console.log(`Usuário atualizado: ${editingUser.id}`);
+      setShowEditDialog(false);
+      setEditingUser(null);
+      
+      // Recarregar lista de usuários
+      await loadUsers();
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      alert(error.message || 'Erro ao atualizar usuário');
     } finally {
       setIsLoading(false);
     }
@@ -650,6 +670,13 @@ export const CompleteUserManagement: React.FC = () => {
                           Ver Detalhes
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
+                          setEditingUser(user);
+                          setShowEditDialog(true);
+                        }}>
+                          <Edit className="h-3 w-3 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
                           setSelectedUser(user);
                           setShowPermissionsDialog(true);
                         }}>
@@ -895,65 +922,47 @@ export const CompleteUserManagement: React.FC = () => {
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Convidar Novo Usuário</DialogTitle>
+            <DialogTitle>Criar Novo Usuário</DialogTitle>
             <DialogDescription>
-              Envie um convite por email para um novo usuário
+              Adicione um novo usuário ao sistema
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="usuario@exemplo.com" />
+              <Label htmlFor="invite-name">Nome</Label>
+              <Input id="invite-name" type="text" placeholder="Nome Completo" required />
             </div>
             
             <div>
-              <Label htmlFor="role">Papel</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o papel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USER">Usuário</SelectItem>
-                  <SelectItem value="ADMIN">Administrador</SelectItem>
-                  {currentUser?.role === 'MASTER' && (
-                    <SelectItem value="MASTER">Master</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="invite-email">Email</Label>
+              <Input id="invite-email" type="email" placeholder="usuario@exemplo.com" required />
             </div>
             
             <div>
-              <Label htmlFor="department">Departamento</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o departamento" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Gestão">Gestão</SelectItem>
-                  <SelectItem value="Operações">Operações</SelectItem>
-                  <SelectItem value="Financeiro">Financeiro</SelectItem>
-                  <SelectItem value="Comercial">Comercial</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="invite-password">Senha</Label>
+              <Input id="invite-password" type="password" placeholder="Senha inicial" required />
             </div>
             
             <div>
-              <Label htmlFor="message">Mensagem (Opcional)</Label>
-              <Textarea 
-                id="message" 
-                placeholder="Adicione uma mensagem personalizada ao convite..."
-                rows={3}
-              />
+              <Label htmlFor="invite-role">Papel</Label>
+              <select id="invite-role" className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <option value="USER">Usuário</option>
+                <option value="ADMIN">Administrador</option>
+                {currentUser?.role === 'MASTER' && (
+                  <option value="MASTER">Master</option>
+                )}
+              </select>
             </div>
+            
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
               Cancelar
             </Button>
-            <Button disabled={isLoading}>
-              {isLoading ? 'Enviando...' : 'Enviar Convite'}
+            <Button onClick={handleInviteUser} disabled={isLoading}>
+              {isLoading ? 'Criando...' : 'Criar Usuário'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1014,6 +1023,67 @@ export const CompleteUserManagement: React.FC = () => {
             <Button variant="outline">
               <Download className="h-4 w-4 mr-2" />
               Exportar Log
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Edição */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do usuário
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-name">Nome</Label>
+              <Input 
+                id="edit-name" 
+                type="text" 
+                defaultValue={editingUser?.name || ''} 
+                required 
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-email">Email</Label>
+              <Input 
+                id="edit-email" 
+                type="email" 
+                defaultValue={editingUser?.email || ''} 
+                required 
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-role">Papel</Label>
+              <select 
+                id="edit-role" 
+                defaultValue={editingUser?.role || 'USER'}
+                className="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="USER">Usuário</option>
+                <option value="ADMIN">Administrador</option>
+                {currentUser?.role === 'MASTER' && (
+                  <option value="MASTER">Master</option>
+                )}
+              </select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowEditDialog(false);
+              setEditingUser(null);
+            }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateUser} disabled={isLoading}>
+              {isLoading ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </DialogFooter>
         </DialogContent>

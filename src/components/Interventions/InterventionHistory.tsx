@@ -158,7 +158,7 @@ const InterventionHistory: React.FC<InterventionHistoryProps> = ({ isOpen = true
                     <SelectValue placeholder="Selecione o lote" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os lotes</SelectItem>
+                    <SelectItem value="all">Todos os lotes</SelectItem>
                     {cattlePurchases.map(purchase => (
                       <SelectItem key={purchase.id} value={purchase.id}>
                         Lote {purchase.lotNumber || purchase.id.slice(-4)}
@@ -178,7 +178,7 @@ const InterventionHistory: React.FC<InterventionHistoryProps> = ({ isOpen = true
                     <SelectValue placeholder="Selecione o curral" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os currais</SelectItem>
+                    <SelectItem value="all">Todos os currais</SelectItem>
                     {pens.map(pen => (
                       <SelectItem key={pen.id} value={pen.id}>
                         {pen.name}
@@ -198,7 +198,7 @@ const InterventionHistory: React.FC<InterventionHistoryProps> = ({ isOpen = true
                     <SelectValue placeholder="Tipo de intervenção" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os tipos</SelectItem>
+                    <SelectItem value="all">Todos os tipos</SelectItem>
                     <SelectItem value="health">Protocolo Sanitário</SelectItem>
                     <SelectItem value="mortality">Mortalidade</SelectItem>
                     <SelectItem value="movement">Movimentação</SelectItem>

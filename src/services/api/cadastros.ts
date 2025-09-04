@@ -3,8 +3,7 @@ import { apiRequest } from './index';
 import { 
   PenRegistration, 
   Partner, 
-  PayerAccount, 
-  FatteningCycle,
+  PayerAccount,
   Transporter,
   FinancialInstitution 
 } from '../../types';
@@ -140,53 +139,6 @@ export const cadastrosService = {
       return apiRequest<PayerAccount>(`/payer-accounts/${id}/balance`, {
         method: 'PATCH',
         body: JSON.stringify({ balance }),
-      });
-    },
-  },
-
-  // ===== CICLOS =====
-  cycles: {
-    getAll: async (): Promise<FatteningCycle[]> => {
-      return apiRequest<FatteningCycle[]>('/cycles');
-    },
-
-    getById: async (id: string): Promise<FatteningCycle> => {
-      return apiRequest<FatteningCycle>(`/cycles/${id}`);
-    },
-
-    create: async (data: Omit<FatteningCycle, 'id' | 'createdAt'>): Promise<FatteningCycle> => {
-      return apiRequest<FatteningCycle>('/cycles', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
-    },
-
-    update: async (id: string, data: Partial<FatteningCycle>): Promise<FatteningCycle> => {
-      return apiRequest<FatteningCycle>(`/cycles/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data),
-      });
-    },
-
-    delete: async (id: string): Promise<void> => {
-      return apiRequest<void>(`/cycles/${id}`, {
-        method: 'DELETE',
-      });
-    },
-
-    getActive: async (): Promise<FatteningCycle> => {
-      return apiRequest<FatteningCycle>('/cycles/active');
-    },
-
-    activate: async (id: string): Promise<FatteningCycle> => {
-      return apiRequest<FatteningCycle>(`/cycles/${id}/activate`, {
-        method: 'PATCH',
-      });
-    },
-
-    complete: async (id: string): Promise<FatteningCycle> => {
-      return apiRequest<FatteningCycle>(`/cycles/${id}/complete`, {
-        method: 'PATCH',
       });
     },
   },

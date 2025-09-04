@@ -295,14 +295,14 @@ export function ShadcnDashboard() {
       // Calcular animais confirmados vs pendentes
       const animalsConfirmed = cattlePurchases
         .filter(order => order.status !== 'PENDING')
-        .reduce((total, order) => total + order.animalCount, 0);
+        .reduce((total, order) => total + (order.currentQuantity || order.initialQuantity || order.animalCount || 0), 0);
       
       const animalsPending = cattlePurchases
         .filter(order => order.status === 'PENDING')
-        .reduce((total, order) => total + order.animalCount, 0);
+        .reduce((total, order) => total + (order.currentQuantity || order.initialQuantity || order.animalCount || 0), 0);
       
-      setConfirmedAnimals(animalsConfirmed);
-      setPendingAnimals(animalsPending);
+      setConfirmedAnimals(animalsConfirmed || 0);
+      setPendingAnimals(animalsPending || 0);
       
       // Calcular custo total de aquisição
       const acquisitionCost = cattlePurchases
@@ -508,7 +508,7 @@ export function ShadcnDashboard() {
       activities.push({
         id: `order-${order.id}`,
         type: 'purchase',
-        description: `Compra de ${order.animalCount} animais`,
+        description: `Compra de ${order.currentQuantity || order.initialQuantity || order.animalCount || 0} animais`,
         user: order.vendor?.name || 'Fornecedor',
         time: formatSafeDateTime(order.createdAt),
         amount: formatSafeCurrency(order.totalValue),

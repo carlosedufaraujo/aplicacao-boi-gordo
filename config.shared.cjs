@@ -8,7 +8,7 @@
 const config = {
   // Configurações de Porta
   backend: {
-    port: process.env.PORT || 3001,
+    port: process.env.PORT || 3002,
     host: 'localhost'
   },
   

@@ -4,6 +4,7 @@ import { PenRepository } from '@/repositories/pen.repository';
 import { AppError } from '@/utils/AppError';
 import { prisma } from '@/config/database';
 import { CodeGeneratorService } from '@/services/codeGenerator.service';
+import { ExpenseService } from '@/services/expense.service';
 
 interface CreateCattlePurchaseData {
   vendorId: string;
@@ -28,6 +29,7 @@ interface CreateCattlePurchaseData {
   freightCost?: number;
   freightDistance?: number;
   commission?: number;
+  userId?: string;
   notes?: string;
 }
 
@@ -54,28 +56,18 @@ interface MarkAsConfinedData {
 export class CattlePurchaseService {
   private repository: CattlePurchaseRepository;
   private penRepository: PenRepository;
+  private expenseService: ExpenseService;
 
   constructor() {
     this.repository = new CattlePurchaseRepository();
     this.penRepository = new PenRepository();
+    this.expenseService = new ExpenseService();
   }
 
   async create(data: CreateCattlePurchaseData) {
     // Gerar códigos únicos
     const lotCode = await this.generateLotCode();
     // Removido internalCode - usando apenas lotCode
-    
-    // Se não foi especificado um ciclo, buscar o ciclo ativo
-    let cycleId = data.cycleId;
-    if (!cycleId) {
-      const activeCycle = await prisma.cycle.findFirst({
-        where: { 
-          status: 'ACTIVE',
-          isActive: true 
-        }
-      });
-      cycleId = activeCycle?.id;
-    }
     
     // Calcular valor da compra - preço por arroba é aplicado sobre peso da carcaça
     const carcassWeight = (data.purchaseWeight * (data.carcassYield || 50)) / 100;
@@ -90,7 +82,7 @@ export class CattlePurchaseService {
     const createData: any = {
       vendorId: data.vendorId,
       payerAccountId: data.payerAccountId,
-      cycleId,
+      userId: data.userId,
       lotCode,
       purchaseDate: data.purchaseDate,
       animalType: data.animalType,
@@ -125,7 +117,92 @@ export class CattlePurchaseService {
     if (data.paymentDate) createData.principalDueDate = data.paymentDate;
     if (data.commissionType) createData.commissionPaymentType = data.commissionType;
 
-    return await this.repository.create(createData);
+    // Criar a compra
+    const purchase = await this.repository.create(createData);
+    
+    // Status de integração financeira
+    const integrationStatus = {
+      success: true,
+      expensesCreated: 0,
+      errors: [] as string[]
+    };
+    
+    // Criar despesas no centro financeiro
+    try {
+      // 1. Despesa principal da compra
+      try {
+        await this.expenseService.create({
+        category: 'animal_purchase',
+        description: `Compra de gado - Lote ${lotCode}`,
+        totalAmount: purchaseValue,
+        dueDate: data.paymentDate || data.principalDueDate || data.purchaseDate,
+        impactsCashFlow: true,
+        purchaseId: purchase.id,
+        vendorId: data.vendorId,
+        payerAccountId: data.payerAccountId,
+        notes: `Compra de ${data.initialQuantity} animais - ${data.purchaseWeight}kg total`
+      }, data.userId || purchase.userId);
+        integrationStatus.expensesCreated++;
+      } catch (err: any) {
+        integrationStatus.success = false;
+        integrationStatus.errors.push(`Despesa principal não criada: ${err.message}`);
+        console.error('Erro ao criar despesa principal:', err);
+      }
+      
+      // 2. Despesa de frete se houver
+      if (data.freightCost && data.freightCost > 0) {
+        try {
+          await this.expenseService.create({
+          category: 'freight',
+          description: `Frete - Lote ${lotCode}`,
+          totalAmount: data.freightCost,
+          dueDate: data.freightDueDate || data.purchaseDate,
+          impactsCashFlow: true,
+          purchaseId: purchase.id,
+          vendorId: data.transportCompanyId,
+          payerAccountId: data.payerAccountId,
+          notes: data.freightDistance ? `Distância: ${data.freightDistance}km` : null
+        }, data.userId || purchase.userId);
+          integrationStatus.expensesCreated++;
+        } catch (err: any) {
+          integrationStatus.success = false;
+          integrationStatus.errors.push(`Despesa de frete não criada: ${err.message}`);
+          console.error('Erro ao criar despesa de frete:', err);
+        }
+      }
+      
+      // 3. Despesa de comissão se houver
+      if (data.commission && data.commission > 0) {
+        try {
+          await this.expenseService.create({
+          category: 'commission',
+          description: `Comissão - Lote ${lotCode}`,
+          totalAmount: data.commission,
+          dueDate: data.commissionDueDate || data.purchaseDate,
+          impactsCashFlow: true,
+          purchaseId: purchase.id,
+          vendorId: data.brokerId,
+          payerAccountId: data.payerAccountId,
+          notes: `Comissão sobre compra do lote ${lotCode}`
+        }, data.userId || purchase.userId);
+          integrationStatus.expensesCreated++;
+        } catch (err: any) {
+          integrationStatus.success = false;
+          integrationStatus.errors.push(`Despesa de comissão não criada: ${err.message}`);
+          console.error('Erro ao criar despesa de comissão:', err);
+        }
+      }
+    } catch (error: any) {
+      console.error('Erro geral ao criar despesas no centro financeiro:', error);
+      integrationStatus.success = false;
+      integrationStatus.errors.push(`Erro na integração: ${error.message}`);
+    }
+    
+    // Retornar compra com status de integração
+    return {
+      ...purchase,
+      financialIntegration: integrationStatus
+    };
   }
 
   async findAll(filters: any = {}, pagination?: any) {
@@ -329,6 +406,105 @@ export class CattlePurchaseService {
         ].filter(Boolean).join('\n').trim() || null
       });
     }
+  }
+  
+  async syncFinancialExpenses(purchaseId: string, userId: string) {
+    // Buscar a compra
+    const purchase = await this.findById(purchaseId);
+    
+    // Verificar se já existem despesas
+    const existingExpenses = await this.expenseService.findByPurchaseId(purchaseId);
+    
+    const syncStatus = {
+      purchaseId,
+      expensesCreated: 0,
+      expensesExisting: existingExpenses.length,
+      errors: [] as string[],
+      success: true
+    };
+    
+    // Se já existem despesas, retornar status
+    if (existingExpenses.length >= 3) {
+      return {
+        ...syncStatus,
+        message: 'Despesas já estão sincronizadas'
+      };
+    }
+    
+    const lotCode = purchase.lotCode || `LOT-${purchase.id.slice(-6)}`;
+    
+    // Verificar e criar despesa principal se não existir
+    const hasMainExpense = existingExpenses.some(exp => exp.category === 'animal_purchase');
+    if (!hasMainExpense && purchase.purchaseValue > 0) {
+      try {
+        await this.expenseService.create({
+          category: 'animal_purchase',
+          description: `Compra de gado - ${lotCode}`,
+          totalAmount: purchase.purchaseValue,
+          dueDate: purchase.principalDueDate || purchase.purchaseDate,
+          impactsCashFlow: true,
+          purchaseId: purchase.id,
+          vendorId: purchase.vendorId,
+          payerAccountId: purchase.payerAccountId,
+          notes: `Compra de ${purchase.initialQuantity} animais - ${purchase.purchaseWeight}kg total`
+        }, userId);
+        syncStatus.expensesCreated++;
+      } catch (err: any) {
+        syncStatus.errors.push(`Erro ao criar despesa principal: ${err.message}`);
+        syncStatus.success = false;
+      }
+    }
+    
+    // Verificar e criar despesa de frete se não existir
+    const hasFreightExpense = existingExpenses.some(exp => exp.category === 'freight');
+    if (!hasFreightExpense && purchase.freightCost && purchase.freightCost > 0) {
+      try {
+        await this.expenseService.create({
+          category: 'freight',
+          description: `Frete - ${lotCode}`,
+          totalAmount: purchase.freightCost,
+          dueDate: purchase.freightDueDate || purchase.purchaseDate,
+          impactsCashFlow: true,
+          purchaseId: purchase.id,
+          vendorId: purchase.transportCompanyId,
+          payerAccountId: purchase.payerAccountId,
+          notes: purchase.freightDistance ? `Distância: ${purchase.freightDistance}km` : null
+        }, userId);
+        syncStatus.expensesCreated++;
+      } catch (err: any) {
+        syncStatus.errors.push(`Erro ao criar despesa de frete: ${err.message}`);
+        syncStatus.success = false;
+      }
+    }
+    
+    // Verificar e criar despesa de comissão se não existir
+    const hasCommissionExpense = existingExpenses.some(exp => exp.category === 'commission');
+    if (!hasCommissionExpense && purchase.commission && purchase.commission > 0) {
+      try {
+        await this.expenseService.create({
+          category: 'commission',
+          description: `Comissão - ${lotCode}`,
+          totalAmount: purchase.commission,
+          dueDate: purchase.commissionDueDate || purchase.purchaseDate,
+          impactsCashFlow: true,
+          purchaseId: purchase.id,
+          vendorId: purchase.brokerId,
+          payerAccountId: purchase.payerAccountId,
+          notes: `Comissão sobre compra - ${lotCode}`
+        }, userId);
+        syncStatus.expensesCreated++;
+      } catch (err: any) {
+        syncStatus.errors.push(`Erro ao criar despesa de comissão: ${err.message}`);
+        syncStatus.success = false;
+      }
+    }
+    
+    return {
+      ...syncStatus,
+      message: syncStatus.expensesCreated > 0 
+        ? `${syncStatus.expensesCreated} despesa(s) criada(s) com sucesso`
+        : 'Nenhuma despesa nova foi necessária'
+    };
   }
 
   async markAsConfined(id: string, data: MarkAsConfinedData) {

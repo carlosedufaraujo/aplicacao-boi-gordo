@@ -296,6 +296,8 @@ export const CompleteLots: React.FC = () => {
     createMortalityRecord, 
     createPenMovement, 
     createWeightReading,
+    getInterventionHistory,
+    getInterventionStatistics,
     loading: interventionLoading 
   } = useInterventionsApi();
   const { 
@@ -324,8 +326,31 @@ export const CompleteLots: React.FC = () => {
   const [showInterventionModal, setShowInterventionModal] = useState(false);
   const [showInterventionHistory, setShowInterventionHistory] = useState(false);
   const [interventionType, setInterventionType] = useState<'health' | 'mortality' | 'movement' | 'weighing' | null>(null);
-  const [selectedLotId, setSelectedLotId] = useState<string>('');
+  // Removido selectedLotId - intervenções agora são feitas apenas por curral
   const [selectedPenIdForIntervention, setSelectedPenIdForIntervention] = useState<string>('');
+  const [selectedDeathCause, setSelectedDeathCause] = useState<string>('unknown');
+  const [interventionHistory, setInterventionHistory] = useState<any[]>([]);
+  const [interventionStats, setInterventionStats] = useState<any>(null);
+
+  // Carregar histórico de intervenções
+  useEffect(() => {
+    const loadInterventions = async () => {
+      try {
+        const [history, stats] = await Promise.all([
+          getInterventionHistory({ 
+            startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() // Últimos 30 dias
+          }),
+          getInterventionStatistics()
+        ]);
+        setInterventionHistory(history || []);
+        setInterventionStats(stats || {});
+      } catch (error) {
+        console.error('Erro ao carregar intervenções:', error);
+      }
+    };
+    
+    loadInterventions();
+  }, [getInterventionHistory, getInterventionStatistics]);
 
   // Escutar eventos globais para refresh
   useEffect(() => {
@@ -677,25 +702,48 @@ export const CompleteLots: React.FC = () => {
       
       // Dados comuns
       const baseData = {
-        cattlePurchaseId: selectedLotId,
         penId: selectedPenIdForIntervention
       };
       
       if (interventionType === 'health') {
+        // Validar data de aplicação
+        const applicationDateValue = data['application-date'];
+        const applicationDate = applicationDateValue && applicationDateValue !== '' 
+          ? new Date(applicationDateValue) 
+          : new Date();
+          
         await createHealthIntervention({
           ...baseData,
           interventionType: 'vaccine',
           productName: data['vaccine-type'] || '',
           dose: parseFloat(data.dose) || 0,
-          applicationDate: new Date(data['application-date']),
+          applicationDate: applicationDate,
           veterinarian: data.veterinarian || undefined,
           notes: data.notes || undefined
         });
       } else if (interventionType === 'mortality') {
+        // Validar e processar a data
+        const deathDateValue = data['death-date'];
+        let deathDate: Date;
+        
+        if (deathDateValue && deathDateValue !== '') {
+          // Adicionar 'T12:00:00' para evitar problemas de timezone
+          // Isso garante que a data seja interpretada como meio-dia no timezone local
+          deathDate = new Date(deathDateValue + 'T12:00:00');
+          // Verificar se a data é válida
+          if (isNaN(deathDate.getTime())) {
+            toast.error('Data de óbito inválida');
+            return;
+          }
+        } else {
+          // Se não houver data, usar a data atual
+          deathDate = new Date();
+        }
+        
         await createMortalityRecord({
           ...baseData,
           quantity: parseInt(data['death-count']) || 1,
-          deathDate: new Date(data['death-date']),
+          deathDate: deathDate,
           cause: data['death-cause'] as any || 'unknown',
           notes: data['death-notes'] || undefined
         });
@@ -709,11 +757,17 @@ export const CompleteLots: React.FC = () => {
           reason: data['move-reason'] || ''
         });
       } else if (interventionType === 'weighing') {
+        // Validar data de pesagem
+        const weighingDateValue = data['weight-date'];
+        const weighingDate = weighingDateValue && weighingDateValue !== ''
+          ? new Date(weighingDateValue)
+          : new Date();
+          
         await createWeightReading({
           ...baseData,
           averageWeight: parseFloat(data['weight-average']) || 0,
           sampleSize: parseInt(data['weight-sample']) || 1,
-          weighingDate: new Date(data['weight-date']),
+          weighingDate: weighingDate,
           notes: data['weight-notes'] || undefined
         });
       }
@@ -1042,6 +1096,159 @@ export const CompleteLots: React.FC = () => {
                         <span className="text-body-sm">Em Manutenção</span>
                       </div>
                       <span className="text-body-sm font-medium">{occupancyData.filter(p => p.status === 'maintenance').length}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Cards de Intervenções */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {/* Intervenções Recentes */}
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="card-title flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Intervenções Recentes
+                  </CardTitle>
+                  <CardDescription>
+                    Últimas intervenções realizadas nos currais
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {interventionHistory?.slice(0, 5).map((intervention: any, index: number) => {
+                      const getInterventionIcon = (type: string) => {
+                        switch (type) {
+                          case 'health': return <Activity className="h-4 w-4 text-success" />;
+                          case 'mortality': return <AlertTriangle className="h-4 w-4 text-error" />;
+                          case 'movement': return <ArrowRightLeft className="h-4 w-4 text-info" />;
+                          case 'weight': return <Weight className="h-4 w-4 text-warning" />;
+                          default: return <Activity className="h-4 w-4" />;
+                        }
+                      };
+
+                      const getInterventionLabel = (type: string) => {
+                        switch (type) {
+                          case 'health': return 'Protocolo Sanitário';
+                          case 'mortality': return 'Mortalidade';
+                          case 'movement': return 'Movimentação';
+                          case 'weight': return 'Pesagem';
+                          default: return 'Intervenção';
+                        }
+                      };
+
+                      const formatDate = (date: string) => {
+                        return new Date(date).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        });
+                      };
+
+                      return (
+                        <div key={index} className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                          <div className="p-2 bg-muted rounded-lg">
+                            {getInterventionIcon(intervention.type)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="text-body-sm font-medium">
+                                  {getInterventionLabel(intervention.type)}
+                                </p>
+                                <p className="text-caption text-muted-foreground">
+                                  Curral {intervention.penNumber || 'N/A'} • {intervention.quantity || 0} animais
+                                </p>
+                                {intervention.notes && (
+                                  <p className="text-caption text-muted-foreground mt-1">
+                                    {intervention.notes}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="text-caption text-muted-foreground">
+                                {formatDate(intervention.date || intervention.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {(!interventionHistory || interventionHistory.length === 0) && (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-body-sm">Nenhuma intervenção registrada</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Estatísticas de Intervenções */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="card-title flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4" />
+                    Estatísticas
+                  </CardTitle>
+                  <CardDescription>
+                    Resumo das intervenções do período
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-success" />
+                        <span className="text-body-sm">Protocolos Sanitários</span>
+                      </div>
+                      <span className="text-body-sm font-medium">
+                        {interventionStats?.healthInterventions || 0}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-error" />
+                        <span className="text-body-sm">Mortalidades</span>
+                      </div>
+                      <span className="text-body-sm font-medium">
+                        {interventionStats?.totalMortalities || 0}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ArrowRightLeft className="h-4 w-4 text-info" />
+                        <span className="text-body-sm">Movimentações</span>
+                      </div>
+                      <span className="text-body-sm font-medium">
+                        {interventionStats?.movements || 0}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Weight className="h-4 w-4 text-warning" />
+                        <span className="text-body-sm">Pesagens</span>
+                      </div>
+                      <span className="text-body-sm font-medium">
+                        {interventionStats?.weightReadings || 0}
+                      </span>
+                    </div>
+                    <Separator className="my-3" />
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-caption text-muted-foreground">Taxa de Mortalidade</span>
+                        <span className="text-body-sm font-medium">
+                          {((interventionStats?.mortalityRate || 0) * 100).toFixed(2)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-caption text-muted-foreground">Custo Total (Mortalidade)</span>
+                        <span className="text-body-sm font-medium">
+                          {formatCurrency(interventionStats?.totalMortalityCost || 0)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -1684,30 +1891,10 @@ export const CompleteLots: React.FC = () => {
               </DialogDescription>
             </DialogHeader>
             
-            <form id="intervention-form" className="space-y-4 py-4">
-              {/* Seleção de Curral */}
-              {/* Seleção de Lote */}
-              <div>
-                <Label htmlFor="lot-select">Selecione o Lote</Label>
-                <Select value={selectedLotId} onValueChange={setSelectedLotId}>
-                  <SelectTrigger id="lot-select">
-                    <SelectValue placeholder="Escolha um lote" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allProcessedLots?.filter(lot => lot.status === 'CONFINED').map(lot => (
-                      <SelectItem key={lot.id} value={lot.id}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{lot.lotCode}</span>
-                          <span className="text-sm text-muted-foreground ml-2">
-                            {lot.currentQuantity} animais
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+            <form id="intervention-form" className="space-y-4 py-4" onSubmit={(e) => {
+              e.preventDefault();
+              handleInterventionSubmit(e);
+            }}>
               {/* Seleção de Curral */}
               <div>
                 <Label htmlFor="pen-select">Selecione o Curral</Label>
@@ -1717,37 +1904,60 @@ export const CompleteLots: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {(() => {
-                      if (!selectedLotId) {
-                        // Se nenhum lote selecionado, mostrar todos os currais com ocupação
-                        return pens?.map(pen => {
-                          const occupancy = occupancyData?.find(o => o.penId === pen.id);
-                          return (
-                            <SelectItem key={pen.id} value={pen.id}>
-                              <div className="flex items-center justify-between w-full">
-                                <span>Curral {pen.penNumber}</span>
+                      console.log('🔍 Modal Intervenção - pens:', pens);
+                      console.log('🔍 Modal Intervenção - occupancyData:', occupancyData);
+                      console.log('🔍 Modal Intervenção - allProcessedLots:', allProcessedLots);
+                      
+                      const pensWithAnimals = pens?.map(pen => {
+                        const occupancy = occupancyData?.find(o => o.penId === pen.id);
+                        const hasAnimals = occupancy && occupancy.currentOccupancy > 0;
+                        
+                        console.log(`🐮 Curral ${pen.penNumber}:`, {
+                          penId: pen.id,
+                          status: pen.status,
+                          occupancy: occupancy?.currentOccupancy || 0,
+                          capacity: pen.capacity,
+                          hasAnimals
+                        });
+                        
+                        // Só mostra currais que têm animais
+                        if (!hasAnimals) return null;
+                        
+                        // Buscar os lotes que estão neste curral
+                        const lotsInPen = allProcessedLots?.filter(lot => 
+                          lot.penAllocations?.some(alloc => 
+                            alloc.penId === pen.id && alloc.status === 'ACTIVE'
+                          )
+                        ) || [];
+                        
+                        return (
+                          <SelectItem key={pen.id} value={pen.id}>
+                            <div className="flex flex-col">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">Curral {pen.penNumber}</span>
                                 <span className="text-sm text-muted-foreground ml-2">
                                   ({occupancy?.currentOccupancy || 0}/{pen.capacity} animais)
                                 </span>
                               </div>
-                            </SelectItem>
-                          );
-                        });
-                      } else {
-                        // Se lote selecionado, mostrar apenas currais onde este lote tem alocação
-                        const selectedLot = allProcessedLots?.find(lot => lot.id === selectedLotId);
-                        const lotPens = selectedLot?.penAllocations?.filter(alloc => alloc.status === 'ACTIVE') || [];
-                        
-                        return lotPens.map(allocation => (
-                          <SelectItem key={allocation.penId} value={allocation.penId}>
-                            <div className="flex items-center justify-between w-full">
-                              <span>Curral {allocation.pen?.penNumber}</span>
-                              <span className="text-sm text-muted-foreground ml-2">
-                                ({allocation.quantity} animais do lote)
-                              </span>
+                              {lotsInPen.length > 0 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Lotes: {lotsInPen.map(l => l.lotCode).join(', ')}
+                                </div>
+                              )}
                             </div>
                           </SelectItem>
-                        ));
+                        );
+                      }).filter(Boolean);
+                      
+                      if (!pensWithAnimals || pensWithAnimals.length === 0) {
+                        return (
+                          <div className="p-4 text-center text-muted-foreground">
+                            Nenhum curral com animais encontrado
+                          </div>
+                        );
                       }
+                      
+                      return pensWithAnimals;
                     })()}
                   </SelectContent>
                 </Select>
@@ -1801,15 +2011,18 @@ export const CompleteLots: React.FC = () => {
                     <div>
                       <Label htmlFor="death-count">Quantidade de Mortes</Label>
                       <Input 
-                        id="death-count" 
+                        id="death-count"
+                        name="death-count" 
                         type="number" 
                         placeholder="1"
+                        defaultValue="1"
                       />
                     </div>
                     <div>
                       <Label htmlFor="death-date">Data do Óbito</Label>
                       <Input 
-                        id="death-date" 
+                        id="death-date"
+                        name="death-date" 
                         type="date" 
                         defaultValue={new Date().toISOString().split('T')[0]}
                       />
@@ -1817,7 +2030,7 @@ export const CompleteLots: React.FC = () => {
                   </div>
                   <div>
                     <Label htmlFor="death-cause">Causa da Morte</Label>
-                    <Select defaultValue="">
+                    <Select value={selectedDeathCause} onValueChange={setSelectedDeathCause}>
                       <SelectTrigger id="death-cause">
                         <SelectValue placeholder="Selecione a causa" />
                       </SelectTrigger>
@@ -1830,11 +2043,13 @@ export const CompleteLots: React.FC = () => {
                         <SelectItem value="other">Outra</SelectItem>
                       </SelectContent>
                     </Select>
+                    <input type="hidden" name="death-cause" value={selectedDeathCause} />
                   </div>
                   <div>
                     <Label htmlFor="death-notes">Observações</Label>
                     <Textarea 
-                      id="death-notes" 
+                      id="death-notes"
+                      name="death-notes" 
                       placeholder="Detalhes adicionais sobre o óbito..."
                       rows={3}
                     />

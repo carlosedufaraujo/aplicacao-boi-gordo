@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { ExpenseService } from './expense.service';
+import { logger } from '@/config/logger';
 
 const prisma = new PrismaClient();
 const expenseService = new ExpenseService();
@@ -134,6 +135,74 @@ export class MortalityAnalysisService {
       userId: 'system', // Ou pegar do contexto
       notes: `Perda por mortalidade. ${data.veterinaryDiagnosis || ''}`
     });
+
+    // INTEGRAR COM DRE - Adicionar dedução
+    const referenceMonth = new Date(data.mortalityDate);
+    referenceMonth.setDate(1); // Primeiro dia do mês
+    referenceMonth.setHours(0, 0, 0, 0);
+
+    // Buscar ou criar DRE do mês
+    let dreStatement = await prisma.dREStatement.findFirst({
+      where: {
+        referenceMonth: referenceMonth,
+        cycleId: purchase.cycleId || null
+      }
+    });
+
+    if (!dreStatement) {
+      // Criar novo DRE se não existir
+      dreStatement = await prisma.dREStatement.create({
+        data: {
+          referenceMonth: referenceMonth,
+          cycleId: purchase.cycleId || null,
+          deductions: totalLoss,
+          grossRevenue: 0,
+          netRevenue: -totalLoss,
+          animalCost: 0,
+          feedCost: 0,
+          healthCost: 0,
+          laborCost: 0,
+          otherCosts: 0,
+          totalCosts: 0,
+          grossProfit: -totalLoss,
+          grossMargin: 0,
+          adminExpenses: 0,
+          salesExpenses: 0,
+          financialExpenses: 0,
+          otherExpenses: 0,
+          totalExpenses: 0,
+          operationalProfit: -totalLoss,
+          operationalMargin: 0,
+          netProfit: -totalLoss,
+          netMargin: 0,
+          status: 'DRAFT'
+        }
+      });
+      logger.info(`DRE criado para ${referenceMonth.toISOString()} com dedução de mortalidade: R$ ${totalLoss.toFixed(2)}`);
+    } else {
+      // Atualizar DRE existente
+      await prisma.dREStatement.update({
+        where: { id: dreStatement.id },
+        data: {
+          deductions: {
+            increment: totalLoss
+          },
+          netRevenue: {
+            decrement: totalLoss
+          },
+          grossProfit: {
+            decrement: totalLoss
+          },
+          operationalProfit: {
+            decrement: totalLoss
+          },
+          netProfit: {
+            decrement: totalLoss
+          }
+        }
+      });
+      logger.info(`DRE atualizado para ${referenceMonth.toISOString()} com dedução de mortalidade: R$ ${totalLoss.toFixed(2)}`);
+    }
 
     // Atualizar quantidade do lote
     await prisma.cattlePurchase.update({

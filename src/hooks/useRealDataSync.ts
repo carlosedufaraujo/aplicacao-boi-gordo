@@ -42,7 +42,7 @@ export function useRealDataSync() {
 
       // Buscar TODOS os dados do backend
       const [allData, statsData] = await Promise.all([
-        fetch('http://localhost:3001/api/v1/all-data').then(r => r.json()),
+        fetch('http://localhost:3002/api/v1/all-data').then(r => r.json()),
         apiService.getStats()
       ]);
 

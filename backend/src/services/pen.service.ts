@@ -239,4 +239,26 @@ export class PenService {
       totalCost: protocols.reduce((sum: number, p: any) => sum + p.totalCost, 0),
     };
   }
+
+  async getAllWithOccupancy() {
+    const pens = await this.penRepository.findAll();
+    const occupancyData = await this.penRepository.getOccupationData();
+    
+    return pens.items.map(pen => {
+      const occupancy = occupancyData.find(o => o.penId === pen.id) || {
+        penId: pen.id,
+        penNumber: pen.penNumber,
+        capacity: pen.capacity,
+        currentOccupancy: 0,
+        percentageOccupied: 0,
+        availableSpace: pen.capacity
+      };
+      
+      return {
+        ...occupancy,
+        status: pen.status,
+        type: pen.type
+      };
+    });
+  }
 } 

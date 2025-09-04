@@ -3,7 +3,11 @@ import { UserService } from '@/services/user.service';
 import { AppError } from '@/utils/AppError';
 
 export class UserController {
-  private userService = new UserService();
+  private userService: UserService;
+
+  constructor() {
+    this.userService = new UserService();
+  }
 
   /**
    * Obtém o perfil do usuário autenticado
@@ -70,17 +74,49 @@ export class UserController {
   }
 
   /**
+   * Cria um novo usuário (apenas para admins)
+   */
+  async createUser(req: Request, res: Response) {
+    try {
+      const userData = req.body;
+      const user = await this.userService.createUser(userData);
+
+      res.status(201).json({
+        status: 'success',
+        data: user
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({
+          status: 'error',
+          message: error.message,
+          statusCode: error.statusCode
+        });
+      } else {
+        res.status(500).json({
+          status: 'error',
+          message: 'Erro interno do servidor',
+          statusCode: 500
+        });
+      }
+    }
+  }
+
+  /**
    * Lista todos os usuários (apenas para admins)
    */
   async getAllUsers(_req: Request, res: Response) {
     try {
+      console.log('[UserController] getAllUsers - Usuário autenticado:', _req.user);
       const users = await this.userService.getAllUsers();
+      console.log('[UserController] getAllUsers - Usuários encontrados:', users.length);
 
       res.json({
         status: 'success',
         data: users
       });
     } catch (error) {
+      console.error('[UserController] getAllUsers - Erro:', error);
       if (error instanceof AppError) {
         res.status(error.statusCode).json({
           status: 'error',

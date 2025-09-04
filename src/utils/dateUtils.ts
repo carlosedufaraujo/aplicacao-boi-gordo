@@ -1,5 +1,16 @@
-import { format, isValid, differenceInDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+/**
+ * Este arquivo agora importa e re-exporta as funções do dateConfig
+ * para manter compatibilidade com código existente
+ */
+
+import { differenceInDays, isValid } from 'date-fns';
+import {
+  formatBrazilianDate,
+  formatBrazilianCurrency,
+  formatBrazilianNumber,
+  toSaoPauloTime,
+  isDateValid
+} from '@/config/dateConfig';
 
 /**
  * Formata uma data de forma segura, tratando valores inválidos
@@ -11,17 +22,20 @@ export const formatSafeDate = (
 ): string => {
   if (!dateValue) return fallback;
   
-  const date = new Date(dateValue);
-  if (!isValid(date)) {
-    console.warn('Data inválida recebida:', dateValue);
-    return 'Data inválida';
-  }
-  
   try {
-    return format(date, formatString, { locale: ptBR });
+    // Mapear formato antigo para o novo
+    const formatMap: Record<string, keyof typeof import('@/config/dateConfig').DATE_CONFIG.FORMATS> = {
+      'dd/MM/yyyy': 'DATE_FULL',
+      'dd/MM/yy': 'DATE_SHORT',
+      "dd/MM/yyyy 'às' HH:mm": 'DATETIME_DISPLAY',
+      "dd 'de' MMMM 'de' yyyy": 'DATE_LONG'
+    };
+    
+    const newFormat = formatMap[formatString] || 'DATE_FULL';
+    return formatBrazilianDate(dateValue, newFormat);
   } catch (error) {
     console.error('Erro ao formatar data:', dateValue, error);
-    return 'Erro na formatação';
+    return fallback;
   }
 };
 
@@ -32,7 +46,14 @@ export const formatSafeDateTime = (
   dateValue: any,
   fallback: string = 'Data não informada'
 ): string => {
-  return formatSafeDate(dateValue, "dd/MM/yyyy 'às' HH:mm", fallback);
+  if (!dateValue) return fallback;
+  
+  try {
+    return formatBrazilianDate(dateValue, 'DATETIME_DISPLAY');
+  } catch (error) {
+    console.error('Erro ao formatar data/hora:', dateValue, error);
+    return fallback;
+  }
 };
 
 /**
@@ -42,7 +63,14 @@ export const formatSafeShortDate = (
   dateValue: any,
   fallback: string = 'Data não informada'
 ): string => {
-  return formatSafeDate(dateValue, "dd/MM/yy", fallback);
+  if (!dateValue) return fallback;
+  
+  try {
+    return formatBrazilianDate(dateValue, 'DATE_SHORT');
+  } catch (error) {
+    console.error('Erro ao formatar data curta:', dateValue, error);
+    return fallback;
+  }
 };
 
 /**
@@ -61,7 +89,10 @@ export const safeDifferenceInDays = (
   }
   
   try {
-    return Math.max(0, differenceInDays(later, earlier));
+    // Converter para horário de SP antes de calcular
+    const laterSP = toSaoPauloTime(later);
+    const earlierSP = toSaoPauloTime(earlier);
+    return Math.max(0, differenceInDays(laterSP, earlierSP));
   } catch (error) {
     console.error('Erro ao calcular diferença de dias:', error);
     return 0;
@@ -73,8 +104,13 @@ export const safeDifferenceInDays = (
  */
 export const isValidDate = (dateValue: any): boolean => {
   if (!dateValue) return false;
-  const date = new Date(dateValue);
-  return isValid(date);
+  
+  try {
+    const date = new Date(dateValue);
+    return isValid(date) && isDateValid(date);
+  } catch {
+    return false;
+  }
 };
 
 /**
@@ -83,13 +119,19 @@ export const isValidDate = (dateValue: any): boolean => {
 export const toSafeDate = (dateValue: any, fallback: Date = new Date()): Date => {
   if (!dateValue) return fallback;
   
-  const date = new Date(dateValue);
-  if (!isValid(date)) {
-    console.warn('Data inválida convertida para fallback:', dateValue);
+  try {
+    const date = new Date(dateValue);
+    if (!isValid(date)) {
+      console.warn('Data inválida convertida para fallback:', dateValue);
+      return fallback;
+    }
+    
+    // Converter para horário de SP
+    return toSaoPauloTime(date);
+  } catch (error) {
+    console.error('Erro ao converter data:', dateValue, error);
     return fallback;
   }
-  
-  return date;
 };
 
 /**
@@ -100,7 +142,6 @@ export const formatSafeCurrency = (
   fallback: string = 'R$ 0,00'
 ): string => {
   if (value === null || value === undefined) {
-    console.warn('Valor monetário undefined/null:', value);
     return fallback;
   }
   
@@ -112,7 +153,7 @@ export const formatSafeCurrency = (
   }
   
   try {
-    return `R$ ${numValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    return formatBrazilianCurrency(numValue);
   } catch (error) {
     console.error('Erro ao formatar valor monetário:', value, error);
     return fallback;
@@ -126,22 +167,19 @@ export const formatSafeNumber = (
   value: any,
   fallback: string = '0'
 ): string => {
-  if (value === null || value === undefined) {
-    console.warn('Número undefined/null:', value);
+  if (value === null || value === undefined || value === '') {
     return fallback;
   }
   
   const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
   
   if (isNaN(numValue)) {
-    console.warn('Número inválido:', value);
-    return '--';
+    return fallback;
   }
   
   try {
-    return numValue.toLocaleString('pt-BR');
+    return formatBrazilianNumber(numValue);
   } catch (error) {
-    console.error('Erro ao formatar número:', value, error);
     return fallback;
   }
 };
@@ -167,7 +205,7 @@ export const formatSafeDecimal = (
   }
   
   try {
-    return numValue.toFixed(decimals);
+    return formatBrazilianNumber(numValue, decimals);
   } catch (error) {
     console.error('Erro ao formatar decimal:', value, error);
     return fallback;
@@ -204,7 +242,6 @@ export const safeDivision = (
   const den = toSafeNumber(denominator, 0);
   
   if (den === 0) {
-    console.warn('Divisão por zero evitada:', { numerator, denominator });
     return fallback;
   }
   
@@ -237,3 +274,16 @@ export const safeMultiplication = (...values: any[]): number => {
   
   return result;
 };
+
+// Re-export funções do dateConfig
+export {
+  formatBrazilianDate,
+  formatBrazilianCurrency,
+  formatBrazilianNumber,
+  formatWeight,
+  formatPercentage,
+  toSaoPauloTime,
+  fromSaoPauloToUTC,
+  getCurrentSaoPauloTime,
+  DATE_CONFIG
+} from '@/config/dateConfig';

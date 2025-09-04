@@ -65,10 +65,10 @@ export function ModernSidebar({ currentPage, setCurrentPage }: ModernSidebarProp
       ),
     },
     {
-      label: "DRE",
-      href: "dre",
+      label: "Análise Integrada",
+      href: "integrated-analysis",
       icon: (
-        <IconFileText className="text-neutral-200 h-5 w-5 flex-shrink-0" />
+        <IconCalculator className="text-neutral-200 h-5 w-5 flex-shrink-0" />
       ),
     },
     {
@@ -76,13 +76,6 @@ export function ModernSidebar({ currentPage, setCurrentPage }: ModernSidebarProp
       href: "calendar",
       icon: (
         <IconCalendar className="text-neutral-200 h-5 w-5 flex-shrink-0" />
-      ),
-    },
-    {
-      label: "Conciliação",
-      href: "financial-reconciliation",
-      icon: (
-        <IconCalculator className="text-neutral-200 h-5 w-5 flex-shrink-0" />
       ),
     },
     {

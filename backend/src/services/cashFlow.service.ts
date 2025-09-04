@@ -1,0 +1,248 @@
+import { PrismaClient, CashFlow, FinancialType, PaymentStatus } from '@prisma/client';
+import { logger } from '@/config/logger';
+
+const prisma = new PrismaClient();
+
+export interface CashFlowFilters {
+  startDate?: Date;
+  endDate?: Date;
+  type?: FinancialType;
+  categoryId?: string;
+  accountId?: string;
+  status?: PaymentStatus;
+}
+
+export interface CashFlowCreateInput {
+  type: FinancialType;
+  categoryId: string;
+  accountId: string;
+  description: string;
+  amount: number;
+  date: Date;
+  dueDate?: Date;
+  paymentDate?: Date;
+  status?: PaymentStatus;
+  paymentMethod?: string;
+  reference?: string;
+  supplier?: string;
+  notes?: string;
+  attachments?: string[];
+  tags?: string[];
+  userId?: string;
+}
+
+export interface CashFlowUpdateInput extends Partial<CashFlowCreateInput> {}
+
+class CashFlowService {
+  async create(data: CashFlowCreateInput): Promise<CashFlow> {
+    try {
+      const cashFlow = await prisma.cashFlow.create({
+        data,
+        include: {
+          // category removida - agora é apenas string
+          account: true,
+        },
+      });
+
+      // Atualizar saldo da conta se já foi pago/recebido
+      if (data.status === 'PAID' || data.status === 'RECEIVED') {
+        await this.updateAccountBalance(data.accountId, data.amount, data.type);
+      }
+
+      logger.info(`CashFlow created: ${cashFlow.id}`);
+      return cashFlow;
+    } catch (error) {
+      logger.error('Error creating cash flow:', error);
+      throw error;
+    }
+  }
+
+  async findAll(filters: CashFlowFilters = {}) {
+    try {
+      const where: any = {};
+
+      if (filters.startDate && filters.endDate) {
+        where.date = {
+          gte: filters.startDate,
+          lte: filters.endDate,
+        };
+      }
+
+      if (filters.type) where.type = filters.type;
+      if (filters.categoryId) where.categoryId = filters.categoryId;
+      if (filters.accountId) where.accountId = filters.accountId;
+      if (filters.status) where.status = filters.status;
+
+      const cashFlows = await prisma.cashFlow.findMany({
+        where,
+        include: {
+          // category removida - agora é apenas string
+          account: true,
+        },
+        orderBy: {
+          date: 'desc',
+        },
+      });
+
+      return cashFlows;
+    } catch (error) {
+      logger.error('Error fetching cash flows:', error);
+      throw error;
+    }
+  }
+
+  async findById(id: string) {
+    try {
+      const cashFlow = await prisma.cashFlow.findUnique({
+        where: { id },
+        include: {
+          // category removida - agora é apenas string
+          account: true,
+        },
+      });
+
+      if (!cashFlow) {
+        throw new Error('CashFlow not found');
+      }
+
+      return cashFlow;
+    } catch (error) {
+      logger.error(`Error fetching cash flow ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async update(id: string, data: CashFlowUpdateInput): Promise<CashFlow> {
+    try {
+      const oldCashFlow = await this.findById(id);
+      
+      const cashFlow = await prisma.cashFlow.update({
+        where: { id },
+        data,
+        include: {
+          // category removida - agora é apenas string
+          account: true,
+        },
+      });
+
+      // Atualizar saldo da conta se mudou o status
+      if (oldCashFlow.status !== cashFlow.status) {
+        if (cashFlow.status === 'PAID' || cashFlow.status === 'RECEIVED') {
+          await this.updateAccountBalance(cashFlow.accountId, cashFlow.amount, cashFlow.type);
+        } else if (oldCashFlow.status === 'PAID' || oldCashFlow.status === 'RECEIVED') {
+          // Reverter o saldo
+          await this.updateAccountBalance(
+            oldCashFlow.accountId, 
+            -oldCashFlow.amount, 
+            oldCashFlow.type
+          );
+        }
+      }
+
+      logger.info(`CashFlow updated: ${id}`);
+      return cashFlow;
+    } catch (error) {
+      logger.error(`Error updating cash flow ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async delete(id: string): Promise<void> {
+    try {
+      const cashFlow = await this.findById(id);
+
+      // Reverter saldo se estava pago/recebido
+      if (cashFlow.status === 'PAID' || cashFlow.status === 'RECEIVED') {
+        await this.updateAccountBalance(
+          cashFlow.accountId, 
+          -cashFlow.amount, 
+          cashFlow.type
+        );
+      }
+
+      await prisma.cashFlow.delete({
+        where: { id },
+      });
+
+      logger.info(`CashFlow deleted: ${id}`);
+    } catch (error) {
+      logger.error(`Error deleting cash flow ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async updateStatus(id: string, status: PaymentStatus, paymentDate?: Date): Promise<CashFlow> {
+    try {
+      const data: any = { status };
+      if (paymentDate) {
+        data.paymentDate = paymentDate;
+      }
+
+      return await this.update(id, data);
+    } catch (error) {
+      logger.error(`Error updating cash flow status ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async getSummary(filters: CashFlowFilters = {}) {
+    try {
+      const cashFlows = await this.findAll(filters);
+
+      const summary = {
+        totalIncome: 0,
+        totalExpense: 0,
+        pendingIncome: 0,
+        pendingExpense: 0,
+        paidIncome: 0,
+        paidExpense: 0,
+        balance: 0,
+      };
+
+      cashFlows.forEach((cf) => {
+        if (cf.type === 'INCOME') {
+          summary.totalIncome += cf.amount;
+          if (cf.status === 'RECEIVED') {
+            summary.paidIncome += cf.amount;
+          } else if (cf.status === 'PENDING') {
+            summary.pendingIncome += cf.amount;
+          }
+        } else {
+          summary.totalExpense += cf.amount;
+          if (cf.status === 'PAID') {
+            summary.paidExpense += cf.amount;
+          } else if (cf.status === 'PENDING') {
+            summary.pendingExpense += cf.amount;
+          }
+        }
+      });
+
+      summary.balance = summary.paidIncome - summary.paidExpense;
+
+      return summary;
+    } catch (error) {
+      logger.error('Error getting cash flow summary:', error);
+      throw error;
+    }
+  }
+
+  private async updateAccountBalance(accountId: string, amount: number, type: FinancialType) {
+    try {
+      const adjustment = type === 'INCOME' ? amount : -amount;
+      
+      await prisma.payerAccount.update({
+        where: { id: accountId },
+        data: {
+          balance: {
+            increment: adjustment,
+          },
+        },
+      });
+    } catch (error) {
+      logger.error('Error updating account balance:', error);
+      throw error;
+    }
+  }
+}
+
+export default new CashFlowService();

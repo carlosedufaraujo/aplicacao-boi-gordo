@@ -35,9 +35,8 @@ const updateValidation = [
 
 const receptionValidation = [
   param('id').isString().notEmpty(),
-  body('receivedDate').isISO8601().withMessage('Data de recepção inválida'),
-  body('receivedWeight').isFloat({ min: 1 }).withMessage('Peso recebido deve ser maior que zero'),
-  body('actualQuantity').isInt({ min: 0 }).withMessage('Quantidade deve ser maior ou igual a zero')
+  body('receivedWeight').optional().isFloat({ min: 1 }).withMessage('Peso recebido deve ser maior que zero'),
+  body('actualQuantity').optional().isInt({ min: 0 }).withMessage('Quantidade deve ser maior ou igual a zero')
 ];
 
 const statusValidation = [
@@ -77,6 +76,7 @@ router.post('/:id/reception', receptionValidation, validateRequest, cattlePurcha
 router.post('/:id/confined', confinedValidation, validateRequest, cattlePurchaseController.markAsConfined);
 router.post('/:id/death', deathValidation, validateRequest, cattlePurchaseController.registerDeath);
 router.patch('/:id/gmd', gmdValidation, validateRequest, cattlePurchaseController.updateGMD);
+router.post('/:id/sync-expenses', cattlePurchaseController.syncExpenses);
 router.delete('/:id', cattlePurchaseController.delete);
 
 export default router;

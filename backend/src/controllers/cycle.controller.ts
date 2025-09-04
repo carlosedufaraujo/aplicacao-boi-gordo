@@ -157,10 +157,9 @@ export class CycleController {
     console.log('[CycleController] Dados recebidos:', req.body);
     console.log('[CycleController] Usuário:', req.user);
     
-    const cycleData = {
-      ...req.body,
-      userId: req.user?.id || 'cmewmjotu0001p0l539z1uwfc', // Usa ID do admin como fallback
-    };
+    // Remove userId pois não existe no modelo Cycle
+    const { userId, ...cleanData } = req.body;
+    const cycleData = cleanData;
     
     console.log('[CycleController] Dados processados:', cycleData);
     

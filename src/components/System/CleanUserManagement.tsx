@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usersService } from '@/services/api/users';
 import {
   Card,
   CardContent,
@@ -105,7 +106,7 @@ export const CleanUserManagement: React.FC = () => {
     const loadUsers = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3001/api/v1/users', {
+        const response = await fetch('http://localhost:3002/api/v1/users', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
             'Content-Type': 'application/json'
@@ -198,7 +199,44 @@ export const CleanUserManagement: React.FC = () => {
     };
   }, [users]);
 
-  // Handlers simplificados (sem funcionalidades de aprovação)
+  // Função para recarregar usuários
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:3002/api/v1/users', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'success') {
+          // Mapear dados do backend para interface
+          const mappedUsers = data.data.map((user: any) => ({
+            id: user.id,
+            name: user.name || 'Usuário',
+            email: user.email,
+            role: user.role || 'USER',
+            status: user.isActive ? 'active' : 'inactive',
+            lastLogin: user.updatedAt ? new Date(user.updatedAt) : new Date(),
+            createdAt: user.createdAt ? new Date(user.createdAt) : new Date(),
+            phone: user.phone || '',
+            department: user.department || 'Geral',
+            notes: user.notes || ''
+          }));
+          setUsers(mappedUsers);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar usuários:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handlers com integração real à API
   const handleDeleteUser = async (userId: string) => {
     if (userId === currentUser?.id) {
       alert('Não é possível excluir seu próprio usuário');
@@ -207,8 +245,63 @@ export const CleanUserManagement: React.FC = () => {
     
     const confirmed = confirm('Tem certeza que deseja excluir este usuário?');
     if (confirmed) {
-      // TODO: Implementar exclusão via API Backend
-      console.log('Excluindo usuário:', userId);
+      try {
+        setIsLoading(true);
+        await usersService.delete(userId);
+        // Recarregar a lista de usuários
+        await loadUsers();
+        alert('Usuário excluído com sucesso!');
+      } catch (error) {
+        console.error('Erro ao excluir usuário:', error);
+        alert('Erro ao excluir usuário. Por favor, tente novamente.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleEditUser = async (user: User) => {
+    setSelectedUser(user);
+    // O dialog de edição será aberto automaticamente quando selectedUser for definido
+  };
+
+  const handleUpdateUser = async (updatedData: Partial<User>) => {
+    if (!selectedUser) return;
+    
+    try {
+      setIsLoading(true);
+      await usersService.update(selectedUser.id, {
+        name: updatedData.name,
+        email: updatedData.email,
+        role: updatedData.role,
+        isActive: updatedData.status === 'active',
+        phone: updatedData.phone,
+        department: updatedData.department,
+        notes: updatedData.notes
+      });
+      await loadUsers();
+      setSelectedUser(null);
+      alert('Usuário atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      alert('Erro ao atualizar usuário. Por favor, tente novamente.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateUser = async (userData: { name: string; email: string; password: string; role: string }) => {
+    try {
+      setIsLoading(true);
+      await usersService.create(userData);
+      await loadUsers();
+      setShowCreateDialog(false);
+      alert('Usuário criado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error);
+      alert('Erro ao criar usuário. Por favor, tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -412,7 +505,7 @@ export const CleanUserManagement: React.FC = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setSelectedUser(user)}>
+                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
                           <Edit className="h-3 w-3 mr-2" />
                           Editar
                         </DropdownMenuItem>
@@ -447,7 +540,7 @@ export const CleanUserManagement: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Dialog de Criação de Usuário Simplificado */}
+      {/* Dialog de Criação de Usuário */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -458,31 +551,143 @@ export const CleanUserManagement: React.FC = () => {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">Nome</Label>
-              <Input id="name" placeholder="Nome completo" className="col-span-3" />
+              <Label htmlFor="create-name" className="text-right">Nome</Label>
+              <Input id="create-name" placeholder="Nome completo" className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">Email</Label>
-              <Input id="email" type="email" placeholder="email@exemplo.com" className="col-span-3" />
+              <Label htmlFor="create-email" className="text-right">Email</Label>
+              <Input id="create-email" type="email" placeholder="email@exemplo.com" className="col-span-3" required />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="role" className="text-right">Papel</Label>
-              <Select>
+              <Label htmlFor="create-password" className="text-right">Senha</Label>
+              <Input id="create-password" type="password" placeholder="Senha" className="col-span-3" required />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="create-role" className="text-right">Papel</Label>
+              <Select defaultValue="USER">
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Selecione o papel" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USER">Usuário</SelectItem>
                   <SelectItem value="ADMIN">Administrador</SelectItem>
+                  <SelectItem value="MASTER">Master</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit" onClick={() => setShowCreateDialog(false)}>
-              Criar Usuário
+            <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={async () => {
+                const nameInput = document.getElementById('create-name') as HTMLInputElement;
+                const emailInput = document.getElementById('create-email') as HTMLInputElement;
+                const passwordInput = document.getElementById('create-password') as HTMLInputElement;
+                const roleSelect = document.querySelector('[role="combobox"]') as HTMLElement;
+                
+                if (nameInput && emailInput && passwordInput) {
+                  await handleCreateUser({
+                    name: nameInput.value,
+                    email: emailInput.value,
+                    password: passwordInput.value,
+                    role: 'USER' // Default to USER for now
+                  });
+                }
+              }}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Criando...' : 'Criar Usuário'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Edição de Usuário */}
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Atualize as informações do usuário
+            </DialogDescription>
+          </DialogHeader>
+          {selectedUser && (
+            <>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-name" className="text-right">Nome</Label>
+                  <Input id="edit-name" defaultValue={selectedUser.name} className="col-span-3" required />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-email" className="text-right">Email</Label>
+                  <Input id="edit-email" type="email" defaultValue={selectedUser.email} className="col-span-3" required />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-role" className="text-right">Papel</Label>
+                  <Select defaultValue={selectedUser.role}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USER">Usuário</SelectItem>
+                      <SelectItem value="ADMIN">Administrador</SelectItem>
+                      <SelectItem value="MASTER">Master</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-status" className="text-right">Status</Label>
+                  <Select defaultValue={selectedUser.status}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Ativo</SelectItem>
+                      <SelectItem value="inactive">Inativo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-phone" className="text-right">Telefone</Label>
+                  <Input id="edit-phone" defaultValue={selectedUser.phone} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="edit-department" className="text-right">Depto</Label>
+                  <Input id="edit-department" defaultValue={selectedUser.department} className="col-span-3" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setSelectedUser(null)}>
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={async () => {
+                    const nameInput = document.getElementById('edit-name') as HTMLInputElement;
+                    const emailInput = document.getElementById('edit-email') as HTMLInputElement;
+                    const phoneInput = document.getElementById('edit-phone') as HTMLInputElement;
+                    const deptInput = document.getElementById('edit-department') as HTMLInputElement;
+                    
+                    if (nameInput && emailInput) {
+                      await handleUpdateUser({
+                        name: nameInput.value,
+                        email: emailInput.value,
+                        role: selectedUser.role, // Keep existing for now
+                        status: selectedUser.status, // Keep existing for now
+                        phone: phoneInput?.value || '',
+                        department: deptInput?.value || '',
+                        notes: ''
+                      });
+                    }
+                  }}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Salvando...' : 'Salvar Alterações'}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

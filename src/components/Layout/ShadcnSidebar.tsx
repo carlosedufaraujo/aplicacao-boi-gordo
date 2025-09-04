@@ -82,19 +82,14 @@ export function ShadcnSidebar({ currentPage, setCurrentPage }: ShadcnSidebarProp
       page: "financial",
     },
     {
-      title: "DRE",
-      icon: FileText,
-      page: "dre",
+      title: "Análise Integrada",
+      icon: Calculator,
+      page: "integrated-analysis",
     },
     {
       title: "Calendário",
       icon: Calendar,
       page: "calendar",
-    },
-    {
-      title: "Conciliação",
-      icon: Calculator,
-      page: "financial-reconciliation",
     },
   ];
 

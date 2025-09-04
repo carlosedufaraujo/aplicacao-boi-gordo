@@ -15,12 +15,11 @@ import { registerExistingUpdates } from '@/utils/systemUpdates';
 const ShadcnDashboard = lazy(() => import('@/components/Dashboard/ShadcnDashboard').then(module => ({ default: module.ShadcnDashboard })));
 const CompleteLots = lazy(() => import('@/components/Lots/CompleteLots').then(module => ({ default: module.CompleteLots })));
 const CompleteRegistrations = lazy(() => import('@/components/Registrations/CompleteRegistrations').then(module => ({ default: module.CompleteRegistrations })));
-const ModernDREWithSupabase = lazy(() => import('@/components/DRE/ModernDREWithSupabase').then(module => ({ default: module.ModernDREWithSupabase })));
-const EnhancedFinancialDashboard = lazy(() => import('@/components/Financial/EnhancedFinancialDashboard').then(module => ({ default: module.EnhancedFinancialDashboard })));
+const CashFlowDashboard = lazy(() => import('@/components/CashFlow/CashFlowDashboard').then(module => ({ default: module.CashFlowDashboard })));
+const IntegratedDashboard = lazy(() => import('@/components/FinancialAnalysis/IntegratedDashboard').then(module => ({ default: module.IntegratedDashboard })));
 const SalesManagement = lazy(() => import('@/components/Sales/SalesManagement').then(module => ({ default: module.SalesManagement })));
 const PurchaseManagement = lazy(() => import('@/components/Purchases/SimplifiedPurchaseManagement').then(module => ({ default: module.SimplifiedPurchaseManagement })));
 const CompleteCalendar = lazy(() => import('@/components/Calendar/CompleteCalendar').then(module => ({ default: module.CompleteCalendar })));
-const CompleteFinancialReconciliation = lazy(() => import('@/components/Financial/CompleteFinancialReconciliation').then(module => ({ default: module.CompleteFinancialReconciliation })));
 const CleanUserManagement = lazy(() => import('@/components/System/CleanUserManagement'));
 
 // Componentes de configurações - TODOS MODERNOS
@@ -33,6 +32,7 @@ const SystemUpdates = lazy(() => import('@/components/System/SystemUpdates').the
 
 // Página de Login
 const Login02 = lazy(() => import('@/pages/Login02').then(module => ({ default: module.Login02 })));
+
 
 // Componente de teste da integração API
 const ApiIntegrationTest = lazy(() => import('@/components/Test/ApiIntegrationTest').then(module => ({ default: module.ApiIntegrationTest })));
@@ -56,7 +56,7 @@ const PageLoader = () => (
 // ============================================================================
 const AppContent: React.FC = () => {
   const [currentPage, setCurrentPage] = React.useState('dashboard');
-  const { isAuthenticated, loading, user } = useBackend();
+  const { isAuthenticated, loading } = useBackend();
 
   useEffect(() => {
     registerExistingUpdates();
@@ -85,18 +85,16 @@ const AppContent: React.FC = () => {
         return <CompleteLots />;
       case 'registrations':
         return <CompleteRegistrations />;
-      case 'dre':
-        return <ModernDREWithSupabase />;
+      case 'integrated-analysis':
+        return <IntegratedDashboard />;
       case 'financial':
-        return <EnhancedFinancialDashboard />;
+        return <CashFlowDashboard />;
       case 'sales':
         return <SalesManagement />;
       case 'purchases':
         return <PurchaseManagement />;
       case 'calendar':
         return <CompleteCalendar />;
-      case 'financial-reconciliation':
-        return <CompleteFinancialReconciliation />;
       case 'users':
         return <CleanUserManagement />;
       case 'settings':
@@ -143,7 +141,7 @@ const AppContent: React.FC = () => {
 // ============================================================================
 function App() {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="bovicontrol-ui-theme">
+    <ThemeProvider defaultTheme="light" storageKey="bovicontrol-ui-theme">
       <BackendProvider>
         <SettingsProvider>
           <NotificationProvider>

@@ -1,14 +1,3 @@
-export interface FatteningCycle {
-  id: string;
-  name: string;
-  startDate: Date;
-  endDate?: Date;
-  status: 'active' | 'completed' | 'planned';
-  description?: string;
-  budget?: number;
-  targetAnimals?: number;
-}
-
 export interface Partner {
   id: string;
   name: string;
@@ -134,7 +123,6 @@ export interface SaleRecord {
 export interface CattlePurchase {
   id: string;
   code: string; // ACXENG0001, ACXENG0002, etc.
-  cycleId: string;
   date: Date;
   vendorId: string;
   brokerId?: string;
@@ -608,7 +596,6 @@ export const EXPENSE_CATEGORIES: ExpenseCategoryConfig[] = [
 
 export interface BudgetPlan {
   id: string;
-  cycleId: string;
   costCenterId: string;
   category: string;
   plannedAmount: number;
@@ -694,7 +681,6 @@ export interface UpdateFeedback {
 
 // Form types for better type safety
 export interface CattlePurchaseFormData {
-  cycleId: string;
   date: Date;
   vendorId: string;
   brokerId?: string;

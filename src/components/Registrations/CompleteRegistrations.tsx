@@ -30,10 +30,15 @@ import {
   Settings,
   Star,
   Shield,
-  Zap
+  Zap,
+  ShoppingCart,
+  DollarSign,
+  Wrench,
+  Package,
+  LogIn,
+  Wallet
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { formatBrazilianDate, formatBrazilianCurrency, formatBrazilianNumber, DATE_CONFIG } from '@/config/dateConfig';
 import { cleanCpfCnpj, formatCpfCnpj } from '@/utils/cpfCnpjUtils';
 
 // Componentes shadcn/ui
@@ -113,7 +118,6 @@ import {
 import { usePartnersApi } from '@/hooks/api/usePartnersApi';
 import { usePensApi } from '@/hooks/api/usePensApi';
 import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
-import { useCyclesApi } from '@/hooks/api/useCyclesApi';
 import { useEffect } from 'react';
 
 // Tipos de cadastro
@@ -144,14 +148,6 @@ const registrationTypes = [
     bgColor: 'bg-purple-100'
   },
   {
-    id: 'cycles',
-    title: 'Ciclos',
-    description: 'Ciclos de engorda e operação',
-    icon: Calendar,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-100'
-  },
-  {
     id: 'properties',
     title: 'Propriedades',
     description: 'Fazendas e propriedades rurais',
@@ -171,6 +167,8 @@ const ItemCard: React.FC<{
 }> = ({ item, type, onEdit, onView, onDelete }) => {
   const getPartnerTypeLabel = (type: string) => {
     switch (type) {
+      // Tipos de parceiros
+      case 'SELLER': return 'Vendedor';
       case 'VENDOR': return 'Fornecedor';
       case 'BROKER': return 'Corretor';
       case 'BUYER': return 'Comprador';
@@ -178,12 +176,19 @@ const ItemCard: React.FC<{
       case 'SERVICE_PROVIDER': return 'Prestador de Serviço';
       case 'FREIGHT_CARRIER': return 'Transportadora';
       case 'OTHER': return 'Outro';
+      // Tipos de currais
       case 'FATTENING': return 'Engorda';
       case 'QUARANTINE': return 'Quarentena';
+      case 'RECEPTION': return 'Recepção';
+      case 'HOSPITAL': return 'Hospital';
+      // Status de currais
       case 'AVAILABLE': return 'Disponível';
       case 'OCCUPIED': return 'Ocupado';
+      case 'MAINTENANCE': return 'Manutenção';
+      // Tipos de contas
       case 'SAVINGS': return 'Poupança';
       case 'CHECKING': return 'Corrente';
+      // Status gerais
       case 'ACTIVE': return 'Ativo';
       case 'INACTIVE': return 'Inativo';
       default: return type || 'Item';
@@ -192,38 +197,57 @@ const ItemCard: React.FC<{
 
   const getPartnerTypeColor = (type: string) => {
     switch (type) {
-      case 'VENDOR': return 'status-active';
-      case 'BROKER': return 'status-pending';
-      case 'BUYER': return 'bg-info';
-      case 'INVESTOR': return 'bg-warning';
-      case 'SERVICE_PROVIDER': return 'bg-secondary';
-      case 'FREIGHT_CARRIER': return 'bg-primary';
-      case 'OTHER': return 'bg-muted';
-      case 'FATTENING': return 'bg-success';
-      case 'QUARANTINE': return 'bg-warning';
-      case 'AVAILABLE': return 'status-active';
-      case 'OCCUPIED': return 'status-pending';
-      case 'SAVINGS': return 'bg-success';
-      case 'CHECKING': return 'bg-info';
-      case 'ACTIVE': return 'status-active';
-      case 'INACTIVE': return 'status-inactive';
-      default: return 'status-inactive';
+      case 'SELLER': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200';
+      case 'VENDOR': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200';
+      case 'BROKER': return 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200';
+      case 'BUYER': return 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200';
+      case 'INVESTOR': return 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-200';
+      case 'SERVICE_PROVIDER': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200';
+      case 'FREIGHT_CARRIER': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-200';
+      case 'OTHER': return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
+      // Tipos de currais
+      case 'FATTENING': return 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-200';
+      case 'QUARANTINE': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-200';
+      case 'RECEPTION': return 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-200';
+      case 'HOSPITAL': return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200';
+      // Status de currais
+      case 'AVAILABLE': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200';
+      case 'OCCUPIED': return 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-200';
+      case 'MAINTENANCE': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200';
+      // Tipos de contas
+      case 'SAVINGS': return 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-200';
+      case 'CHECKING': return 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200';
+      // Status gerais
+      case 'ACTIVE': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200';
+      case 'INACTIVE': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
     }
   };
 
   const getPartnerIcon = (type: string) => {
     switch (type) {
-      case 'vendor': return <Users className="h-3 w-3" />;
-      case 'broker': return <Building className="h-3 w-3" />;
-      case 'slaughterhouse': return <Building2 className="h-3 w-3" />;
-      case 'transporter': return <Truck className="h-3 w-3" />;
+      // Tipos de parceiros
+      case 'SELLER': return <Users className="h-3 w-3" />;
+      case 'VENDOR': return <Users className="h-3 w-3" />;
+      case 'BROKER': return <Building className="h-3 w-3" />;
+      case 'BUYER': return <ShoppingCart className="h-3 w-3" />;
+      case 'INVESTOR': return <DollarSign className="h-3 w-3" />;
+      case 'SERVICE_PROVIDER': return <Wrench className="h-3 w-3" />;
       case 'FREIGHT_CARRIER': return <Truck className="h-3 w-3" />;
+      case 'OTHER': return <Package className="h-3 w-3" />;
+      // Tipos de currais
       case 'FATTENING': return <Home className="h-3 w-3" />;
       case 'QUARANTINE': return <Shield className="h-3 w-3" />;
+      case 'RECEPTION': return <LogIn className="h-3 w-3" />;
+      case 'HOSPITAL': return <Plus className="h-3 w-3" />;
+      // Status de currais
       case 'AVAILABLE': return <CheckCircle className="h-3 w-3" />;
       case 'OCCUPIED': return <Clock className="h-3 w-3" />;
-      case 'SAVINGS': return <CreditCard className="h-3 w-3" />;
+      case 'MAINTENANCE': return <Settings className="h-3 w-3" />;
+      // Tipos de contas
+      case 'SAVINGS': return <Wallet className="h-3 w-3" />;
       case 'CHECKING': return <CreditCard className="h-3 w-3" />;
+      // Status gerais
       case 'ACTIVE': return <Activity className="h-3 w-3" />;
       case 'INACTIVE': return <XCircle className="h-3 w-3" />;
       default: return <Users className="h-3 w-3" />;
@@ -257,9 +281,9 @@ const ItemCard: React.FC<{
           </div>
           
           <div className="flex items-center gap-2">
-            <Badge className={getPartnerTypeColor(item.type || item.status || 'default')}>
-              {getPartnerIcon(item.type || item.status || 'default')}
-              <span className="ml-1">{getPartnerTypeLabel(item.type || item.status || 'default')}</span>
+            <Badge className={getPartnerTypeColor(item.type || item.accountType || item.status || 'default')}>
+              {getPartnerIcon(item.type || item.accountType || item.status || 'default')}
+              <span className="ml-1">{getPartnerTypeLabel(item.type || item.accountType || item.status || 'default')}</span>
             </Badge>
             
             <DropdownMenu>
@@ -344,9 +368,7 @@ const ItemCard: React.FC<{
             Desde {(() => {
               try {
                 if (!item.createdAt) return 'Data não informada';
-                const date = new Date(item.createdAt);
-                if (isNaN(date.getTime())) return 'Data inválida';
-                return format(date, 'MMM/yy', { locale: ptBR });
+                return formatBrazilianDate(item.createdAt, 'DATE_MONTH_YEAR');
               } catch (err) {
                 console.warn('Erro ao formatar data:', { date: item.createdAt, error: err });
                 return 'Data inválida';
@@ -375,7 +397,6 @@ const ItemDetailModal: React.FC<{
       case 'partners': return 'Parceiro';
       case 'pens': return 'Curral';
       case 'accounts': return 'Conta Pagadora';
-      case 'cycles': return 'Ciclo';
       default: return 'Item';
     }
   };
@@ -477,27 +498,6 @@ const ItemDetailModal: React.FC<{
               </div>
             </>
           )}
-          
-          {type === 'cycles' && (
-            <>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="form-label">Nome</Label>
-                  <p className="text-body-sm">{item.name || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="form-label">Status</Label>
-                  <Badge variant={item.isActive ? 'default' : 'secondary'}>
-                    {item.isActive ? 'Ativo' : 'Inativo'}
-                  </Badge>
-                </div>
-              </div>
-              <div>
-                <Label className="form-label">Descrição</Label>
-                <p className="text-body-sm">{item.description || 'N/A'}</p>
-              </div>
-            </>
-          )}
         </div>
         
         <div className="flex justify-end">
@@ -525,7 +525,6 @@ const DeleteConfirmModal: React.FC<{
       case 'partners': return 'parceiro';
       case 'pens': return 'curral';
       case 'accounts': return 'conta pagadora';
-      case 'cycles': return 'ciclo';
       default: return 'item';
     }
   };
@@ -535,7 +534,6 @@ const DeleteConfirmModal: React.FC<{
       case 'partners': return item.name;
       case 'pens': return `Curral ${item.penNumber}`;
       case 'accounts': return item.accountName;
-      case 'cycles': return item.name;
       default: return 'Item';
     }
   };
@@ -548,8 +546,6 @@ const DeleteConfirmModal: React.FC<{
         return 'Esta ação removerá o curral e pode afetar lotes que estão alocados neste curral.';
       case 'accounts':
         return 'Esta ação removerá a conta pagadora e pode afetar transações financeiras associadas.';
-      case 'cycles':
-        return 'Esta ação removerá o ciclo e pode afetar lotes e operações associadas a este período.';
       default:
         return 'Esta ação não pode ser desfeita.';
     }
@@ -576,7 +572,6 @@ const DeleteConfirmModal: React.FC<{
                 {type === 'partners' && <Users className="h-4 w-4 text-destructive" />}
                 {type === 'pens' && <Home className="h-4 w-4 text-destructive" />}
                 {type === 'accounts' && <CreditCard className="h-4 w-4 text-destructive" />}
-                {type === 'cycles' && <Calendar className="h-4 w-4 text-destructive" />}
               </div>
               <div>
                 <p className="text-body-sm font-medium">{getItemName(item, type)}</p>
@@ -584,7 +579,6 @@ const DeleteConfirmModal: React.FC<{
                   {type === 'partners' && item.type}
                   {type === 'pens' && `Capacidade: ${item.capacity}`}
                   {type === 'accounts' && item.bankName}
-                  {type === 'cycles' && item.description}
                 </p>
               </div>
             </div>
@@ -1195,7 +1189,6 @@ export const CompleteRegistrations: React.FC = () => {
   const { partners, loading: partnersLoading, deletePartner, updatePartner, createPartner } = usePartnersApi();
   const { pens, loading: pensLoading, deletePen, updatePen, createPen } = usePensApi();
   const { payerAccounts, loading: accountsLoading, deletePayerAccount, updatePayerAccount, createPayerAccount } = usePayerAccountsApi();
-  const { cycles, loading: cyclesLoading, deleteCycle, updateCycle, createCycle } = useCyclesApi();
   
   const [activeTab, setActiveTab] = useState('partners');
   const [searchTerm, setSearchTerm] = useState('');
@@ -1222,9 +1215,6 @@ export const CompleteRegistrations: React.FC = () => {
       case 'accounts':
         data = payerAccounts || [];
         break;
-      case 'cycles':
-        data = cycles || [];
-        break;
       default:
         data = [];
     }
@@ -1242,9 +1232,6 @@ export const CompleteRegistrations: React.FC = () => {
         case 'accounts':
           searchText = `${item.accountName || ''} ${item.bankName || ''} ${item.accountNumber || ''}`.toLowerCase();
           break;
-        case 'cycles':
-          searchText = `${item.name || ''} ${item.description || ''}`.toLowerCase();
-          break;
         default:
           searchText = '';
       }
@@ -1257,7 +1244,7 @@ export const CompleteRegistrations: React.FC = () => {
       
       return matchesSearch && matchesType && matchesStatus;
     });
-  }, [activeTab, partners, pens, payerAccounts, cycles, searchTerm, typeFilter, statusFilter]);
+  }, [activeTab, partners, pens, payerAccounts, searchTerm, typeFilter, statusFilter]);
 
   // Métricas calculadas
   const metrics = useMemo(() => {
@@ -1271,8 +1258,6 @@ export const CompleteRegistrations: React.FC = () => {
     const accountsArray = Array.isArray(payerAccounts) ? payerAccounts : [];
     const totalAccounts = accountsArray.length;
     
-    const cyclesArray = Array.isArray(cycles) ? cycles : [];
-    const activeCycles = cyclesArray.filter(c => c.isActive).length;
 
     return {
       totalPartners: partners?.length || 0,
@@ -1280,10 +1265,9 @@ export const CompleteRegistrations: React.FC = () => {
       totalPens,
       activePens,
       totalAccounts,
-      activeCycles,
       penOccupancy: totalPens > 0 ? (activePens / totalPens) * 100 : 0
     };
-  }, [partners, pens, payerAccounts, cycles]);
+  }, [partners, pens, payerAccounts]);
 
   const handleItemView = (item: any) => {
     setSelectedItem(item);
@@ -1313,9 +1297,6 @@ export const CompleteRegistrations: React.FC = () => {
           break;
         case 'accounts':
           await deletePayerAccount(itemToDelete.id);
-          break;
-        case 'cycles':
-          await deleteCycle(itemToDelete.id);
           break;
         default:
           console.log('Tipo de item não reconhecido');
@@ -1357,13 +1338,6 @@ export const CompleteRegistrations: React.FC = () => {
             await createPayerAccount(data);
           }
           break;
-        case 'cycles':
-          if (editingItem) {
-            await updateCycle(editingItem.id, data);
-          } else {
-            await createCycle(data);
-          }
-          break;
         default:
           console.log('Tipo de item não reconhecido');
       }
@@ -1388,8 +1362,6 @@ export const CompleteRegistrations: React.FC = () => {
         return pens?.length || 0;
       case 'accounts':
         return payerAccounts?.length || 0;
-      case 'cycles':
-        return cycles?.length || 0;
       case 'properties':
         return 0; // Ainda não implementado
       default:
@@ -1397,7 +1369,7 @@ export const CompleteRegistrations: React.FC = () => {
     }
   };
 
-  const isLoading = partnersLoading || pensLoading || accountsLoading || cyclesLoading;
+  const isLoading = partnersLoading || pensLoading || accountsLoading;
 
   // DEBUG - Removido para mostrar a página normal
   // Descomente se precisar debugar novamente
@@ -1633,35 +1605,6 @@ export const CompleteRegistrations: React.FC = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="cycles" className="space-y-4">
-            {filteredData.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredData.map(item => (
-                  <ItemCard 
-                    key={item.id} 
-                    item={item}
-                    type={activeTab}
-                    onEdit={handleItemEdit}
-                    onView={handleItemView}
-                    onDelete={handleItemDelete}
-                  />
-                ))}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium text-muted-foreground">
-                    Nenhum ciclo encontrado
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Tente ajustar os filtros ou criar um novo ciclo
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
           <TabsContent value="properties" className="space-y-4">
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -1708,14 +1651,6 @@ export const CompleteRegistrations: React.FC = () => {
             {activeTab === 'accounts' && (
               <PayerAccountForm
                 account={editingItem}
-                onSave={handleFormSave}
-                onCancel={handleFormCancel}
-              />
-            )}
-            
-            {activeTab === 'cycles' && (
-              <CycleForm
-                cycle={editingItem}
                 onSave={handleFormSave}
                 onCancel={handleFormCancel}
               />

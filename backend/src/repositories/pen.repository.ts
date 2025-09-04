@@ -221,6 +221,41 @@ export class PenRepository extends BaseRepository<Pen> {
     return stats;
   }
 
+  async getOccupationData() {
+    const pens = await this.findMany(
+      { isActive: true },
+      {
+        include: {
+          lotAllocations: {
+            where: { status: 'ACTIVE' },
+            include: {
+              purchase: true
+            }
+          }
+        }
+      }
+    );
+
+    return pens.map(pen => {
+      const allocations = (pen as any).lotAllocations || [];
+      const currentOccupancy = allocations.reduce(
+        (sum: number, a: any) => sum + (a.quantity || 0), 
+        0
+      );
+      
+      return {
+        penId: pen.id,
+        penNumber: pen.penNumber,
+        capacity: pen.capacity,
+        currentOccupancy,
+        percentageOccupied: pen.capacity > 0 ? (currentOccupancy / pen.capacity) * 100 : 0,
+        availableSpace: pen.capacity - currentOccupancy,
+        status: pen.status,
+        type: pen.type
+      };
+    });
+  }
+
   async updateStatus(id: string, status: PenStatus) {
     return await this.update(id, { status });
   }

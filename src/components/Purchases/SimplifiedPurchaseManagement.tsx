@@ -13,7 +13,8 @@ import {
   ChevronUp,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  Info
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -58,6 +59,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import { OptimizedPurchaseForm } from '../Forms/OptimizedPurchaseForm';
 import { SimplifiedPurchaseDetails } from './SimplifiedPurchaseDetails';
 import { StatusChangeModal } from '../Modals/StatusChangeModal';
@@ -232,7 +234,7 @@ export function SimplifiedPurchaseManagement() {
   return (
     <div className="space-y-6">
       {/* Cabeçalho com Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -264,6 +266,40 @@ export function SimplifiedPurchaseManagement() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
+              Arrobas Total
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {purchases.reduce((sum, p) => {
+                const carcassWeight = (p.purchaseWeight * p.carcassYield) / 100;
+                return sum + (carcassWeight / 15);
+              }, 0).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+            </div>
+            <p className="text-xs text-muted-foreground">@ carcaça</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Peso Médio
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {statistics.totalAnimals > 0 ? 
+                (purchases.reduce((sum, p) => sum + p.purchaseWeight, 0) / statistics.totalAnimals).toFixed(1) : 
+                '0'
+              } kg
+            </div>
+            <p className="text-xs text-muted-foreground">por cabeça</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               Investimento Total
             </CardTitle>
           </CardHeader>
@@ -283,11 +319,21 @@ export function SimplifiedPurchaseManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(
-                purchases.reduce((sum, p) => sum + p.pricePerArroba, 0) / purchases.length || 0
-              )}
+              {(() => {
+                // Calcular total de arrobas de carcaça
+                const totalArrobas = purchases.reduce((sum, p) => {
+                  const carcassWeight = (p.purchaseWeight * p.carcassYield) / 100;
+                  return sum + (carcassWeight / 15);
+                }, 0);
+                
+                // Calcular valor total investido
+                const totalValue = purchases.reduce((sum, p) => sum + p.totalCost, 0);
+                
+                // Preço médio real: valor total / total de arrobas
+                return totalArrobas > 0 ? formatCurrency(totalValue / totalArrobas) : formatCurrency(0);
+              })()}
             </div>
-            <p className="text-xs text-muted-foreground">por arroba</p>
+            <p className="text-xs text-muted-foreground">valor real pago</p>
           </CardContent>
         </Card>
       </div>
@@ -405,7 +451,9 @@ export function SimplifiedPurchaseManagement() {
                           <div>
                             <div className="font-medium">{purchase.currentQuantity} cab</div>
                             <div className="text-sm text-muted-foreground">
-                              {purchase.purchaseWeight.toLocaleString('pt-BR')} kg
+                              {purchase.currentQuantity > 0 ? 
+                                `${(purchase.purchaseWeight / purchase.currentQuantity).toFixed(1)} kg/cab` : 
+                                '0 kg/cab'}
                             </div>
                           </div>
                         </TableCell>
@@ -453,99 +501,179 @@ export function SimplifiedPurchaseManagement() {
                       {/* Linha Expandida com Detalhes */}
                       {expandedRows.has(purchase.id) && (
                         <TableRow>
-                          <TableCell colSpan={9} className="bg-muted/30">
-                            <div className="p-4 space-y-4">
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div>
-                                  <p className="text-sm font-medium text-muted-foreground">Localização</p>
-                                  <p className="text-sm">{purchase.location || 'N/A'}</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-muted-foreground">Tipo de Animal</p>
-                                  <p className="text-sm">
-                                    {purchase.animalType === 'MALE' ? 'Macho' : 
-                                     purchase.animalType === 'FEMALE' ? 'Fêmea' : 'Misto'}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-muted-foreground">Rendimento</p>
-                                  <p className="text-sm">{purchase.carcassYield}%</p>
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-muted-foreground">Mortalidade</p>
-                                  <p className="text-sm">{purchase.deathCount} cabeças</p>
-                                </div>
-                              </div>
-                              
-                              {/* Custos Detalhados */}
-                              <div>
-                                <p className="text-sm font-medium text-muted-foreground mb-2">Composição de Custos</p>
-                                <div className="flex gap-4 text-sm">
-                                  <span>Compra: {formatCurrency(purchase.purchaseValue)}</span>
-                                  <span>Frete: {formatCurrency(purchase.freightCost)}</span>
-                                  <span>Comissão: {formatCurrency(purchase.commission)}</span>
-                                  {purchase.healthCost > 0 && (
-                                    <span>Sanidade: {formatCurrency(purchase.healthCost)}</span>
-                                  )}
-                                  {purchase.feedCost > 0 && (
-                                    <span>Alimentação: {formatCurrency(purchase.feedCost)}</span>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              {/* GMD se existir */}
-                              {purchase.expectedGMD && (
-                                <div>
-                                  <p className="text-sm font-medium text-muted-foreground mb-2">Projeções</p>
-                                  <div className="flex gap-4 text-sm">
-                                    <span>GMD: {purchase.expectedGMD} kg/dia</span>
-                                    <span>Peso Alvo: {purchase.targetWeight} kg</span>
-                                    {purchase.estimatedSlaughterDate && (
-                                      <span>
-                                        Abate: {format(new Date(purchase.estimatedSlaughterDate), 'dd/MM/yyyy', { locale: ptBR })}
+                          <TableCell colSpan={9} className="bg-muted/20 border-l-4 border-l-primary/20">
+                            <div className="p-6">
+                              {/* Grid Principal com Cards */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                {/* Card de Informações Gerais */}
+                                <Card className="border-0 shadow-sm">
+                                  <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm flex items-center gap-2">
+                                      <Info className="h-4 w-4 text-muted-foreground" />
+                                      Informações Gerais
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-2">
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">Local:</span>
+                                      <span className="text-sm font-medium">{purchase.state || purchase.location || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">Tipo:</span>
+                                      <span className="text-sm font-medium">
+                                        {purchase.animalType === 'MALE' ? 'Macho' : 
+                                         purchase.animalType === 'FEMALE' ? 'Fêmea' : 'Misto'}
                                       </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">Rendimento:</span>
+                                      <span className="text-sm font-medium">{purchase.carcassYield}%</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">Mortalidade:</span>
+                                      <span className="text-sm font-medium text-red-600">{purchase.deathCount} cab</span>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+
+                                {/* Card de Custos */}
+                                <Card className="border-0 shadow-sm">
+                                  <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm flex items-center gap-2">
+                                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                                      Composição de Custos
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-2">
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">Compra:</span>
+                                      <span className="text-sm font-medium">{formatCurrency(purchase.purchaseValue)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">Frete:</span>
+                                      <span className="text-sm font-medium">{formatCurrency(purchase.freightCost)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">Comissão:</span>
+                                      <span className="text-sm font-medium">{formatCurrency(purchase.commission)}</span>
+                                    </div>
+                                    <Separator className="my-2" />
+                                    <div className="flex justify-between">
+                                      <span className="text-sm font-medium">Total:</span>
+                                      <span className="text-sm font-bold text-primary">{formatCurrency(purchase.totalCost)}</span>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+
+                                {/* Card de Projeções */}
+                                <Card className="border-0 shadow-sm">
+                                  <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm flex items-center gap-2">
+                                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                                      Projeções e Métricas
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-2">
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">GMD:</span>
+                                      <span className="text-sm font-medium">
+                                        {purchase.expectedGMD ? `${purchase.expectedGMD} kg/dia` : '1.2 kg/dia (padrão)'}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">Peso Alvo:</span>
+                                      <span className="text-sm font-medium">
+                                        {purchase.targetWeight ? `${purchase.targetWeight} kg` : '550 kg (padrão)'}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">Peso Médio:</span>
+                                      <span className="text-sm font-medium">
+                                        {purchase.currentQuantity > 0 ? 
+                                          `${(purchase.purchaseWeight / purchase.currentQuantity).toFixed(1)} kg` : 'N/A'}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-sm text-muted-foreground">Dias p/ Abate:</span>
+                                      <span className="text-sm font-medium">
+                                        {(() => {
+                                          const avgWeight = purchase.currentQuantity > 0 ? purchase.purchaseWeight / purchase.currentQuantity : 0;
+                                          const targetWeight = purchase.targetWeight || 550;
+                                          const gmd = purchase.expectedGMD || 1.2;
+                                          const daysToTarget = avgWeight > 0 && gmd > 0 ? Math.ceil((targetWeight - avgWeight) / gmd) : 0;
+                                          
+                                          if (daysToTarget > 0) {
+                                            const estimatedDate = new Date();
+                                            estimatedDate.setDate(estimatedDate.getDate() + daysToTarget);
+                                            return `${daysToTarget} dias (${format(estimatedDate, 'dd/MM', { locale: ptBR })})`;
+                                          }
+                                          return 'N/A';
+                                        })()}
+                                      </span>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </div>
                               
-                              {/* Ações Rápidas */}
-                              <div className="flex gap-2">
-                                {purchase.status === 'CONFIRMED' && (
+                              {/* Seção de Ações */}
+                              <Separator className="my-4" />
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium">Ações Disponíveis:</span>
+                                  {purchase.status === 'CONFINED' && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      Lote já confinado
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex gap-2">
+                                  {purchase.status === 'CONFIRMED' && (
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      onClick={() => handleQuickStatusUpdate(purchase.id, 'RECEIVED')}
+                                      className="gap-2"
+                                    >
+                                      <Truck className="h-4 w-4" />
+                                      Registrar Recepção
+                                    </Button>
+                                  )}
+                                  {purchase.status === 'RECEIVED' && (
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      onClick={() => handleQuickStatusUpdate(purchase.id, 'CONFINED')}
+                                      className="gap-2"
+                                    >
+                                      <Package className="h-4 w-4" />
+                                      Alocar em Currais
+                                    </Button>
+                                  )}
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleQuickStatusUpdate(purchase.id, 'RECEIVED')}
+                                    onClick={() => {
+                                      setSelectedPurchase(purchase);
+                                      setShowDetails(true);
+                                    }}
+                                    className="gap-2"
                                   >
-                                    <Truck className="h-3 w-3 mr-2" />
-                                    Marcar em Trânsito
+                                    <Eye className="h-4 w-4" />
+                                    Ver Detalhes Completos
                                   </Button>
-                                )}
-                                {purchase.status === 'RECEIVED' && (
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleQuickStatusUpdate(purchase.id, 'RECEIVED')}
+                                    onClick={() => {
+                                      setSelectedPurchase(purchase);
+                                      setShowForm(true);
+                                    }}
+                                    className="gap-2"
                                   >
-                                    <Package className="h-3 w-3 mr-2" />
-                                    Receber e Alocar
+                                    <Edit className="h-4 w-4" />
+                                    Editar
                                   </Button>
-                                )}
-                                {purchase.status === 'CONFINED' && (
-                                  <div className="text-sm text-muted-foreground">
-                                    Já recepcionado e confinado
-                                  </div>
-                                )}
-                                {purchase.status === 'RECEIVED' && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleQuickStatusUpdate(purchase.id, 'ACTIVE')}
-                                  >
-                                    <TrendingUp className="h-3 w-3 mr-2" />
-                                    Ativar Lote
-                                  </Button>
-                                )}
+                                </div>
                               </div>
                             </div>
                           </TableCell>

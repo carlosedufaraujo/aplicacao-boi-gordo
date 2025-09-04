@@ -8,6 +8,7 @@ import 'express-async-errors';
 
 import { env } from '@/config/env';
 import { errorHandler, notFoundHandler } from '@/middlewares/errorHandler';
+import { dateConverterMiddleware } from '@/middlewares/dateConverter';
 import { httpLogger } from '@/config/logger';
 import { swaggerSpecs } from '@/config/swagger';
 
@@ -21,13 +22,18 @@ import { penRoutes } from '@/routes/pen.routes';
 import expenseRoutes from '@/routes/expense.routes';
 import revenueRoutes from '@/routes/revenue.routes';
 import { saleRecordRoutes } from '@/routes/saleRecord.routes';
-import { cycleRoutes } from '@/routes/cycle.routes';
 import { costCenterRoutes } from '@/routes/costCenter.routes';
 import cattlePurchaseRoutes from '@/routes/cattlePurchase.routes';
 import interventionRoutes from '@/routes/intervention.routes';
 import analyticsRoutes from '@/routes/analytics.routes';
-import financialRoutes from '@/routes/financial.routes';
-// import reportRoutes from '@/routes/report.routes';
+import reportRoutes from '@/routes/report.routes';
+import cashFlowRoutes from '@/routes/cashFlow.routes';
+// import financialCategoryRoutes from '@/routes/financialCategory.routes';
+// import financialAccountRoutes from '@/routes/financialAccount.routes';
+// Rotas antigas removidas - focando apenas na análise integrada
+import { calendarEventRoutes } from '@/routes/calendarEvent.routes';
+import integratedInterventionRoutes from '@/routes/integratedIntervention.routes';
+import integratedFinancialAnalysisRoutes from '@/routes/integratedFinancialAnalysis.routes';
 // import dashboardRoutes from '@/routes/dashboard.routes';
 
 // Rotas removidas - usando apenas Prisma agora
@@ -86,6 +92,9 @@ export function createApp(): Application {
   // Body parsing
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  
+  // Middleware de conversão de datas BR-SP
+  app.use(dateConverterMiddleware);
 
   // Logging
   if (env.NODE_ENV === 'development') {
@@ -150,7 +159,6 @@ export function createApp(): Application {
   apiRouter.use('/sale-records', saleRecordRoutes);
   apiRouter.use('/sales', saleRecordRoutes); // Alias para compatibilidade
   apiRouter.use('/analytics', analyticsRoutes);
-  apiRouter.use('/cycles', cycleRoutes);
   apiRouter.use('/cost-centers', costCenterRoutes);
   
   // Rota unificada para compras de gado (substitui purchase-orders e cattle-lots)
@@ -160,7 +168,22 @@ export function createApp(): Application {
   apiRouter.use('/interventions', interventionRoutes);
   
   // Rotas financeiras
-  apiRouter.use('/financial', financialRoutes);
+  apiRouter.use('/cash-flows', cashFlowRoutes);
+  // apiRouter.use('/financial-categories', financialCategoryRoutes);
+  // apiRouter.use('/financial-accounts', financialAccountRoutes);
+  // Rotas antigas removidas - focando apenas na análise integrada
+  
+  // Rotas de calendário
+  apiRouter.use('/calendar-events', calendarEventRoutes);
+  
+  // Rotas de intervenções integradas
+  apiRouter.use('/integrated-interventions', integratedInterventionRoutes);
+  
+  // Rotas de análise financeira integrada
+  apiRouter.use('/integrated-analysis', integratedFinancialAnalysisRoutes);
+  
+  // Rotas de relatórios
+  apiRouter.use('/reports', reportRoutes);
 
   // Monta as rotas no prefixo da API
   app.use(env.API_PREFIX, apiRouter);

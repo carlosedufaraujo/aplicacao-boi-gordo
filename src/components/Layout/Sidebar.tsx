@@ -84,22 +84,16 @@ const navigation: NavigationSection[] = [
         description: 'Gestão financeira completa'
       },
       { 
-        id: 'dre', 
-        name: 'DRE', 
-        icon: FileText,
-        description: 'Demonstrativo de resultados'
+        id: 'integrated-analysis', 
+        name: 'Análise Integrada', 
+        icon: Calculator,
+        description: 'Análise financeira integrada'
       },
       { 
         id: 'calendar', 
         name: 'Calendário', 
         icon: Calendar,
         description: 'Calendário financeiro'
-      },
-      { 
-        id: 'financial-reconciliation', 
-        name: 'Conciliação', 
-        icon: Calculator,
-        description: 'Conciliação bancária'
       },
     ]
   },

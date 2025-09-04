@@ -346,6 +346,29 @@ export function OptimizedPurchaseForm({
         <form onSubmit={handleSubmit(handleFormSubmit)}>
           <ScrollArea className="h-[calc(90vh-140px)]">
             <div className="px-6 py-4">
+              {/* Avisos sobre pré-requisitos */}
+              {(vendors.length === 0 || payerAccounts.length === 0) && (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="font-medium text-amber-900">Atenção: Cadastros necessários</p>
+                      <p className="text-sm text-amber-700">
+                        Para criar uma compra, você precisa ter cadastrado:
+                      </p>
+                      <ul className="text-sm text-amber-700 list-disc list-inside space-y-1 mt-2">
+                        {vendors.length === 0 && (
+                          <li>Pelo menos um fornecedor (Cadastros → Parceiros → Tipo: Fornecedor)</li>
+                        )}
+                        {payerAccounts.length === 0 && (
+                          <li>Pelo menos uma conta pagadora (Cadastros → Contas)</li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-4 mb-6">
                   <TabsTrigger value="origin" className="flex items-center gap-2">
@@ -391,11 +414,20 @@ export function OptimizedPurchaseForm({
                                   <SelectValue placeholder="Selecione o vendedor" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {vendors.map((vendor) => (
-                                    <SelectItem key={vendor.id} value={vendor.id}>
-                                      {vendor.name}
-                                    </SelectItem>
-                                  ))}
+                                  {vendors.length === 0 ? (
+                                    <div className="p-3 text-sm text-muted-foreground text-center">
+                                      <AlertCircle className="h-4 w-4 mx-auto mb-2" />
+                                      Nenhum fornecedor cadastrado.
+                                      <br />
+                                      Cadastre um fornecedor primeiro.
+                                    </div>
+                                  ) : (
+                                    vendors.map((vendor) => (
+                                      <SelectItem key={vendor.id} value={vendor.id}>
+                                        {vendor.name}
+                                      </SelectItem>
+                                    ))
+                                  )}
                                 </SelectContent>
                               </Select>
                             )}
@@ -463,11 +495,20 @@ export function OptimizedPurchaseForm({
                                 <SelectValue placeholder="Selecione a conta para pagamento" />
                               </SelectTrigger>
                               <SelectContent>
-                                {payerAccounts.map((account) => (
-                                  <SelectItem key={account.id} value={account.id}>
-                                    {account.accountName} - {account.bankName}
-                                  </SelectItem>
-                                ))}
+                                {payerAccounts.length === 0 ? (
+                                  <div className="p-3 text-sm text-muted-foreground text-center">
+                                    <AlertCircle className="h-4 w-4 mx-auto mb-2" />
+                                    Nenhuma conta cadastrada.
+                                    <br />
+                                    Cadastre uma conta pagadora primeiro.
+                                  </div>
+                                ) : (
+                                  payerAccounts.map((account) => (
+                                    <SelectItem key={account.id} value={account.id}>
+                                      {account.accountName} - {account.bankName}
+                                    </SelectItem>
+                                  ))
+                                )}
                               </SelectContent>
                             </Select>
                           )}
@@ -1235,7 +1276,7 @@ export function OptimizedPurchaseForm({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmitting || !isValid}
+                  disabled={isSubmitting || !isValid || vendors.length === 0 || payerAccounts.length === 0}
                   className="min-w-[140px]"
                 >
                   {isSubmitting ? (

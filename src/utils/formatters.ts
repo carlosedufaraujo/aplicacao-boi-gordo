@@ -1,17 +1,23 @@
 /**
+ * Este arquivo agora importa e re-exporta as funções do dateConfig
+ * para manter compatibilidade com código existente
+ */
+
+import {
+  formatBrazilianCurrency,
+  formatBrazilianNumber,
+  formatWeight as formatWeightBR,
+  formatPercentage as formatPercentageBR
+} from '@/config/dateConfig';
+
+/**
  * Formata um valor numérico para o padrão de moeda brasileira
  * @param value - Valor numérico a ser formatado
  * @returns String formatada em R$ com separadores corretos
  */
 export const formatCurrency = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return 'R$ 0,00';
-  
-  return value.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
+  return formatBrazilianCurrency(value);
 };
 
 /**
@@ -23,9 +29,9 @@ export const formatCompactCurrency = (value: number | null | undefined): string 
   if (value === null || value === undefined) return 'R$ 0,00';
   
   if (value >= 1000000) {
-    return `R$ ${(value / 1000000).toFixed(1).replace('.', ',')}M`;
+    return `R$ ${formatBrazilianNumber(value / 1000000, 1)}M`;
   } else if (value >= 1000) {
-    return `R$ ${(value / 1000).toFixed(1).replace('.', ',')}K`;
+    return `R$ ${formatBrazilianNumber(value / 1000, 1)}K`;
   }
   
   return formatCurrency(value);
@@ -38,8 +44,7 @@ export const formatCompactCurrency = (value: number | null | undefined): string 
  */
 export const formatNumber = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '0';
-  
-  return value.toLocaleString('pt-BR');
+  return formatBrazilianNumber(value);
 };
 
 /**
@@ -48,9 +53,8 @@ export const formatNumber = (value: number | null | undefined): string => {
  * @returns String formatada com "kg"
  */
 export const formatWeight = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '0 kg';
-  
-  return `${value.toLocaleString('pt-BR')} kg`;
+  if (value === null || value === undefined) return '0,00 kg';
+  return formatWeightBR(value);
 };
 
 /**
@@ -59,7 +63,13 @@ export const formatWeight = (value: number | null | undefined): string => {
  * @returns String formatada com "%"
  */
 export const formatPercentage = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '0%';
-  
-  return `${value.toFixed(2).replace('.', ',')}%`;
+  if (value === null || value === undefined) return '0,00%';
+  return formatPercentageBR(value);
 };
+
+// Re-export das novas funções para facilitar importação
+export {
+  formatBrazilianCurrency,
+  formatBrazilianNumber,
+  formatBrazilianDate
+} from '@/config/dateConfig';

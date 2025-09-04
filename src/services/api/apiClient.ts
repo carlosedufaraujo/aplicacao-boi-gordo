@@ -6,7 +6,7 @@ export class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api/v1';
   }
 
   /**
@@ -86,17 +86,24 @@ export class ApiClient {
    * GET request
    */
   async get<T>(endpoint: string, params?: Record<string, any>): Promise<T> {
-    const url = new URL(`${this.baseURL}${endpoint}`);
+    // If the endpoint already has query parameters, don't process params
+    if (endpoint.includes('?') && params) {
+      console.warn('Endpoint already contains query parameters, ignoring params object');
+      return this.request<T>(endpoint);
+    }
     
+    // Build query string from params if provided
     if (params) {
+      const url = new URL(`${this.baseURL}${endpoint}`);
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           url.searchParams.append(key, String(value));
         }
       });
+      return this.request<T>(endpoint + url.search);
     }
 
-    return this.request<T>(endpoint + url.search);
+    return this.request<T>(endpoint);
   }
 
   /**

@@ -28,6 +28,11 @@ router.get(
 );
 
 router.get(
+  '/occupancy',
+  penController.allOccupancy
+);
+
+router.get(
   '/status/:status',
   penController.byStatus
 );

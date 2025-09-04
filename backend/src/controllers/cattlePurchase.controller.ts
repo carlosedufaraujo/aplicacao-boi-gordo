@@ -7,16 +7,13 @@ import catchAsync from '../utils/catchAsync';
 class CattlePurchaseController {
   // Criar nova compra
   create = catchAsync(async (req: Request, res: Response) => {
-    const purchase = await cattlePurchaseService.create(req.body);
+    // Adicionar userId do token de autenticação
+    const purchaseData = {
+      ...req.body,
+      userId: (req as any).user?.id
+    };
     
-    // Criar despesas financeiras automaticamente
-    try {
-      await cattlePurchaseIntegration.createPurchaseExpenses(purchase.id);
-      console.log(`✅ Despesas financeiras criadas para Lote ${purchase.lotCode}`);
-    } catch (error) {
-      console.error('⚠️ Erro ao criar despesas automáticas:', error);
-      // Não falha a criação da compra se a integração falhar
-    }
+    const purchase = await cattlePurchaseService.create(purchaseData);
     
     res.status(201).json({
       status: 'success',
@@ -142,6 +139,19 @@ class CattlePurchaseController {
     res.json({
       status: 'success',
       data: purchase
+    });
+  });
+  
+  // Sincronizar despesas com centro financeiro
+  syncExpenses = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userId = (req as any).user?.id;
+    
+    const result = await cattlePurchaseService.syncFinancialExpenses(id, userId);
+    
+    res.json({
+      status: 'success',
+      data: result
     });
   });
   
