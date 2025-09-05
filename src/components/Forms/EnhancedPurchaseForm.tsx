@@ -217,7 +217,7 @@ export function EnhancedPurchaseForm({
   const calculations = useMemo(() => {
     const quantity = Number(watchedValues.initialQuantity) || 0;
     const weight = Number(watchedValues.purchaseWeight) || 0;
-    const yield_ = Number(watchedValues.carcassYield) || 52;
+    const yield_ = Number(watchedValues.carcassYield) || 0; // Usa valor da tabela, 0 se não informado
     const pricePerArroba = Number(watchedValues.pricePerArroba) || 0;
     const commission = Number(watchedValues.commission) || 0;
     
@@ -1209,7 +1209,7 @@ export function EnhancedPurchaseForm({
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Rendimento:</span>
-                          <span className="font-medium">{form.watch('carcassYield') || 52}%</span>
+                          <span className="font-medium">{form.watch('carcassYield') || 0}%</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Preço/@:</span>

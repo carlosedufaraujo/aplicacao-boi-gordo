@@ -32,7 +32,7 @@ export class PenController {
 
     const pagination = {
       page: page ? parseInt(page as string) : 1,
-      limit: limit ? parseInt(limit as string) : 10,
+      limit: limit ? parseInt(limit as string) : 100,
       sortBy: sortBy as string || 'createdAt',
       sortOrder: sortOrder as 'asc' | 'desc' || 'desc',
     };

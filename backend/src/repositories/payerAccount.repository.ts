@@ -51,12 +51,6 @@ export class PayerAccountRepository extends BaseRepository<PayerAccount> {
         revenues: {
           where: startDate || endDate ? { createdAt: dateFilter } : undefined,
         },
-        contributions: {
-          where: startDate || endDate ? { createdAt: dateFilter } : undefined,
-          include: {
-            partner: true,
-          },
-        },
         bankStatements: {
           where: startDate || endDate ? { statementDate: dateFilter } : undefined,
           orderBy: { statementDate: 'desc' },
@@ -71,7 +65,7 @@ export class PayerAccountRepository extends BaseRepository<PayerAccount> {
 
     const totalExpenses = account.expenses.reduce((sum: number, e: any) => sum + (e.isPaid ? e.totalAmount : 0), 0);
     const totalRevenues = account.revenues.reduce((sum: number, r: any) => sum + (r.isReceived ? r.totalAmount : 0), 0);
-    const totalContributions = account.contributions.reduce((sum: number, c: any) => sum + c.amount, 0);
+    const totalContributions = 0; // contributions não existe mais no modelo
     const pendingExpenses = account.expenses.filter((e: any) => !e.isPaid).reduce((sum: number, e: any) => sum + e.totalAmount, 0);
     const pendingRevenues = account.revenues.filter((r: any) => !r.isReceived).reduce((sum: number, r: any) => sum + r.totalAmount, 0);
 
@@ -81,7 +75,7 @@ export class PayerAccountRepository extends BaseRepository<PayerAccount> {
         currentBalance: account.balance,
         totalExpenses,
         totalRevenues,
-        totalContributions,
+        totalContributions: 0,
         pendingExpenses,
         pendingRevenues,
         projectedBalance: account.balance - pendingExpenses + pendingRevenues,

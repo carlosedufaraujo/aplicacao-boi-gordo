@@ -1,27 +1,41 @@
 import React, { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from 'recharts';
-import { useAppStore } from '../../stores/useAppStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft, MapPin, Package } from "lucide-react";
+import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
+import { formatSafeCurrency, formatSafeNumber } from '@/utils/dateUtils';
 
 export const PurchaseByStateChart: React.FC = () => {
-  const { cattlePurchases } = useAppStore();
+  // Buscar compras de gado do sistema
+  const { cattlePurchases, loading } = useCattlePurchasesApi();
   const [selectedState, setSelectedState] = useState<string | null>(null);
   const [drillDownLevel, setDrillDownLevel] = useState<'state' | 'details'>('state');
 
   // Agrupar compras por estado
   const data = React.useMemo(() => {
-    const stateMap = new Map<string, { currentQuantity: number, value: number }>();
+    if (!cattlePurchases || cattlePurchases.length === 0) {
+      return [];
+    }
+
+    const stateMap = new Map<string, { 
+      quantity: number, 
+      value: number,
+      lotCount: number 
+    }>();
     
-    cattlePurchases.forEach(order => {
-      const state = order.state;
-      const current = stateMap.get(state) || { currentQuantity: 0, value: 0 };
+    cattlePurchases.forEach(purchase => {
+      const state = purchase.state || 'N/A';
+      const current = stateMap.get(state) || { quantity: 0, value: 0, lotCount: 0 };
+      
+      const quantity = Number(purchase.currentQuantity || purchase.initialQuantity || 0);
+      const value = Number(purchase.purchaseValue || purchase.totalValue || 0);
       
       stateMap.set(state, {
-        currentQuantity: current.currentQuantity + order.currentQuantity,
-        value: current.value + ((order.totalWeight / 15) * order.pricePerArroba)
+        quantity: current.quantity + quantity,
+        value: current.value + value,
+        lotCount: current.lotCount + 1
       });
     });
     
@@ -29,41 +43,57 @@ export const PurchaseByStateChart: React.FC = () => {
     return Array.from(stateMap.entries())
       .map(([state, data]) => ({
         state,
-        currentQuantity: data.currentQuantity,
-        value: data.value
+        quantity: data.quantity,
+        value: data.value,
+        lotCount: data.lotCount
       }))
-      .sort((a, b) => b.currentQuantity - a.currentQuantity);
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 10); // Top 10 estados
   }, [cattlePurchases]);
-
-  // Usar dados reais ou array vazio
-  const chartData = data;
 
   // Dados detalhados para drill-down
   const detailData = React.useMemo(() => {
-    if (!selectedState) return [];
+    if (!selectedState || !cattlePurchases) return [];
     
     return cattlePurchases
-      .filter(order => order.state === selectedState)
-      .map(order => ({
-        id: order.id,
-        broker: order.brokerId || 'Direto',
-        currentQuantity: order.currentQuantity,
-        value: (order.totalWeight / 15) * order.pricePerArroba,
-        date: order.date
+      .filter(purchase => purchase.state === selectedState)
+      .map(purchase => ({
+        id: purchase.id,
+        lotCode: purchase.lotCode,
+        vendor: purchase.vendor?.name || 'Direto',
+        quantity: Number(purchase.currentQuantity || purchase.initialQuantity || 0),
+        value: Number(purchase.purchaseValue || purchase.totalValue || 0),
+        date: purchase.purchaseDate || purchase.createdAt,
+        city: purchase.city || 'N/A'
       }))
-      .slice(0, 10); // Limitar a 10 itens
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10); // Top 10 compras do estado
   }, [cattlePurchases, selectedState]);
 
   const chartConfig = {
-    currentQuantity: {
-      label: "Quantidade",
-      color: "hsl(var(--chart-1))",
+    quantity: {
+      label: "Quantidade de Animais",
+      color: "hsl(142, 76%, 36%)",
     },
   } satisfies ChartConfig;
 
+  // Cores para os estados
+  const COLORS = [
+    'hsl(142, 76%, 36%)', // Verde
+    'hsl(221, 83%, 53%)', // Azul
+    'hsl(39, 100%, 50%)',  // Amarelo
+    'hsl(271, 76%, 53%)', // Roxo
+    'hsl(186, 76%, 36%)', // Cyan
+    'hsl(24, 100%, 50%)', // Laranja
+    'hsl(0, 84%, 60%)',   // Vermelho
+    'hsl(330, 76%, 53%)', // Rosa
+    'hsl(150, 60%, 40%)', // Verde escuro
+    'hsl(200, 18%, 46%)', // Cinza
+  ];
+
   // Função para drill-down
   const handleBarClick = (data: any) => {
-    if (drillDownLevel === 'state') {
+    if (drillDownLevel === 'state' && data) {
       setSelectedState(data.state);
       setDrillDownLevel('details');
     }
@@ -74,6 +104,24 @@ export const PurchaseByStateChart: React.FC = () => {
     setSelectedState(null);
     setDrillDownLevel('state');
   };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Compra de Animais por Estado</CardTitle>
+          <CardDescription>
+            Quantidade de animais adquiridos filtrados por estado
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-[300px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -95,64 +143,100 @@ export const PurchaseByStateChart: React.FC = () => {
             </CardTitle>
             <CardDescription>
               {drillDownLevel === 'state' 
-                ? 'Distribuição das compras de gado por estado de origem (clique para detalhar)'
-                : `Ordens de compra detalhadas para ${selectedState}`
+                ? 'Quantidade de animais adquiridos por estado (clique para detalhar)'
+                : `Lotes de compra detalhados para ${selectedState}`
               }
             </CardDescription>
           </div>
           
           {drillDownLevel === 'state' && (
-            <Eye className="h-4 w-4 text-muted-foreground" />
+            <MapPin className="h-4 w-4 text-muted-foreground" />
           )}
         </div>
       </CardHeader>
       <CardContent>
         {drillDownLevel === 'state' ? (
           // Vista principal por estados
-          chartData.length > 0 ? (
-            <ChartContainer config={chartConfig}>
-              <BarChart data={chartData} layout="vertical" margin={{ left: 20 }} onClick={handleBarClick}>
-                <CartesianGrid horizontal={false} />
-                <XAxis 
-                  type="number" 
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                />
-                <YAxis 
-                  dataKey="state" 
-                  type="category" 
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  width={40}
-                />
-                <ChartTooltip 
-                  cursor={false}
-                  content={<ChartTooltipContent 
-                    formatter={(value: number, name, props) => [
-                      `${value} animais`,
-                      chartConfig[name as keyof typeof chartConfig]?.label || name
-                    ]}
-                    labelFormatter={(label) => `Estado: ${label} (clique para detalhar)`}
-                  />}
-                />
-                <Bar 
-                  dataKey="currentQuantity" 
-                  fill="var(--color-currentQuantity)"
-                  radius={[0, 4, 4, 0]}
-                  animationDuration={1200}
-                  animationBegin={200}
-                  onClick={handleBarClick}
-                  style={{ cursor: 'pointer' }}
-                />
-              </BarChart>
-            </ChartContainer>
+          data.length > 0 ? (
+            <div>
+              <ChartContainer config={chartConfig} className="h-[250px]">
+                <BarChart data={data} layout="vertical" margin={{ left: 30 }}>
+                  <CartesianGrid horizontal={false} />
+                  <XAxis 
+                    type="number" 
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={(value) => formatSafeNumber(value)}
+                  />
+                  <YAxis 
+                    dataKey="state" 
+                    type="category" 
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    width={25}
+                  />
+                  <ChartTooltip 
+                    cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2 }}
+                    content={<ChartTooltipContent 
+                      formatter={(value: number, name, props) => {
+                        const item = props.payload;
+                        return [
+                          <div key="tooltip" className="space-y-1">
+                            <div>{formatSafeNumber(value)} animais</div>
+                            <div className="text-xs text-muted-foreground">
+                              {item.lotCount} lote(s) • {formatSafeCurrency(item.value)}
+                            </div>
+                          </div>,
+                          'Quantidade'
+                        ];
+                      }}
+                      labelFormatter={(label) => `Estado: ${label}`}
+                    />}
+                  />
+                  <Bar 
+                    dataKey="quantity" 
+                    radius={[0, 4, 4, 0]}
+                    animationDuration={1200}
+                    animationBegin={200}
+                    onClick={handleBarClick}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
+
+              <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold">
+                    {formatSafeNumber(data.reduce((sum, item) => sum + item.quantity, 0))}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Total de animais</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">
+                    {data.length}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Estados</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">
+                    {formatSafeCurrency(data.reduce((sum, item) => sum + item.value, 0), true)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">Valor total</div>
+                </div>
+              </div>
+            </div>
           ) : (
-            <div className="flex items-center justify-center h-[250px] text-neutral-400">
+            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
               <div className="text-center">
+                <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">Sem dados para exibir</p>
-                <p className="text-xs mt-1">Registre ordens de compra para visualizar por estado</p>
+                <p className="text-xs mt-1">Registre compras de gado para visualizar por estado</p>
               </div>
             </div>
           )
@@ -160,55 +244,77 @@ export const PurchaseByStateChart: React.FC = () => {
           // Vista detalhada
           <div className="space-y-4">
             {detailData.length > 0 ? (
-              <div className="space-y-2">
-                {detailData.map((order, index) => (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {detailData.map((purchase, index) => (
                   <div 
-                    key={order.id} 
+                    key={purchase.id} 
                     className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors"
                     style={{ 
-                      animationDelay: `${index * 100}ms`,
-                      animation: 'fadeInUp 0.5s ease-out forwards'
+                      animationDelay: `${index * 50}ms`,
+                      animation: 'fadeInUp 0.5s ease-out forwards',
+                      opacity: 0
                     }}
                   >
-                    <div>
-                      <div className="font-medium">Ordem #{order.id}</div>
+                    <div className="space-y-1">
+                      <div className="font-medium">{purchase.lotCode}</div>
                       <div className="text-sm text-muted-foreground">
-                        Corretor: {order.broker} • {order.currentQuantity} animais
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold">
-                        R$ {order.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
+                        {purchase.vendor} • {purchase.city}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {new Date(order.date).toLocaleDateString('pt-BR')}
+                        {new Date(purchase.date).toLocaleDateString('pt-BR')}
+                      </div>
+                    </div>
+                    <div className="text-right space-y-1">
+                      <div className="font-bold">
+                        {formatSafeNumber(purchase.quantity)} animais
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatSafeCurrency(purchase.value)}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="flex items-center justify-center h-[200px] text-neutral-400">
+              <div className="flex items-center justify-center h-[200px] text-muted-foreground">
                 <div className="text-center">
-                  <p className="text-sm">Nenhuma ordem encontrada</p>
+                  <p className="text-sm">Nenhum lote encontrado</p>
                   <p className="text-xs mt-1">para o estado {selectedState}</p>
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {drillDownLevel === 'state' && (
-          <div className="mt-4 text-center">
-            <div className="text-lg font-bold">
-              {chartData.reduce((sum, item) => sum + item.currentQuantity, 0)} animais
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Total de animais comprados
-            </div>
+            {detailData.length > 0 && (
+              <div className="pt-4 border-t">
+                <div className="text-center">
+                  <div className="text-lg font-bold">
+                    {formatSafeNumber(detailData.reduce((sum, item) => sum + item.quantity, 0))} animais
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Total em {detailData.length} lote(s) • {formatSafeCurrency(detailData.reduce((sum, item) => sum + item.value, 0))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
     </Card>
   );
 };
+
+// Adicionar estilos de animação
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+`;
+document.head.appendChild(style);

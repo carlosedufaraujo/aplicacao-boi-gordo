@@ -65,7 +65,7 @@ export abstract class BaseRepository<T> {
     options?: QueryOptions
   ): Promise<PaginatedResult<T>> {
     const page = pagination?.page || 1;
-    const limit = pagination?.limit || 10;
+    const limit = pagination?.limit || 50;
     const skip = (page - 1) * limit;
 
     const orderBy = pagination?.orderBy

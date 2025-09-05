@@ -21,6 +21,7 @@ const SalesManagement = lazy(() => import('@/components/Sales/SalesManagement').
 const PurchaseManagement = lazy(() => import('@/components/Purchases/SimplifiedPurchaseManagement').then(module => ({ default: module.SimplifiedPurchaseManagement })));
 const CompleteCalendar = lazy(() => import('@/components/Calendar/CompleteCalendar').then(module => ({ default: module.CompleteCalendar })));
 const CleanUserManagement = lazy(() => import('@/components/System/CleanUserManagement'));
+const DataImport = lazy(() => import('@/pages/DataImport').then(module => ({ default: module.DataImport })));
 
 // Componentes de configurações - TODOS MODERNOS
 const NotificationSettings = lazy(() => import('@/components/System/NotificationSettings').then(module => ({ default: module.NotificationSettings })));
@@ -29,6 +30,7 @@ const OrganizationSettings = lazy(() => import('@/components/System/Organization
 const GeneralSettings = lazy(() => import('@/components/System/GeneralSettings').then(module => ({ default: module.GeneralSettings })));
 const ChangePassword = lazy(() => import('@/components/Profile/ChangePassword').then(module => ({ default: module.ChangePassword })));
 const SystemUpdates = lazy(() => import('@/components/System/SystemUpdates').then(module => ({ default: module.SystemUpdates })));
+const Reports = lazy(() => import('@/pages/Reports').then(module => ({ default: module.Reports })));
 
 // Página de Login
 const Login02 = lazy(() => import('@/pages/Login02').then(module => ({ default: module.Login02 })));
@@ -95,6 +97,10 @@ const AppContent: React.FC = () => {
         return <PurchaseManagement />;
       case 'calendar':
         return <CompleteCalendar />;
+      case 'reports':
+        return <Reports />;
+      case 'data-import':
+        return <DataImport />;
       case 'users':
         return <CleanUserManagement />;
       case 'settings':

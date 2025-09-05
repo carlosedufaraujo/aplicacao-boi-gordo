@@ -1547,6 +1547,64 @@ export const CompleteRegistrations: React.FC = () => {
 
           {/* Currais */}
           <TabsContent value="pens" className="space-y-4">
+            {/* Estatísticas de Currais por Linha */}
+            {filteredData.length > 0 && (
+              <Card className="mb-4">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-medium">Distribuição por Linha</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {(() => {
+                      // Agrupar currais por localização (linha)
+                      const pensByLocation = filteredData.reduce((acc: any, pen: any) => {
+                        const location = pen.location || 'Sem localização';
+                        if (!acc[location]) {
+                          acc[location] = [];
+                        }
+                        acc[location].push(pen.penNumber);
+                        return acc;
+                      }, {});
+                      
+                      // Ordenar as linhas alfabeticamente
+                      const sortedLocations = Object.keys(pensByLocation).sort();
+                      
+                      return sortedLocations.map(location => (
+                        <div key={location} className="flex flex-col space-y-2 p-3 bg-muted/50 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-sm">{location}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {pensByLocation[location].length} currais
+                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {pensByLocation[location].sort().map((pen: string) => (
+                              <Badge key={pen} variant="outline" className="text-xs">
+                                {pen}
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Capacidade: {pensByLocation[location].length * 140} animais
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                  <div className="mt-4 pt-3 border-t">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Total Geral: {filteredData.length} currais
+                      </span>
+                      <span className="text-sm font-medium">
+                        Capacidade Total: {filteredData.length * 140} animais
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {filteredData.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredData.map(item => (

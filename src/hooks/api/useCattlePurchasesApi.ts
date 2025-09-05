@@ -166,6 +166,10 @@ export function useCattlePurchasesApi() {
   const [purchases, setPurchases] = useState<CattlePurchase[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
 
   // Listar todas as compras
   const loadPurchases = useCallback(async (filters?: {
@@ -173,6 +177,8 @@ export function useCattlePurchasesApi() {
     vendorId?: string;
     startDate?: string;
     endDate?: string;
+    page?: number;
+    limit?: number;
   }) => {
     try {
       setLoading(true);
@@ -183,6 +189,8 @@ export function useCattlePurchasesApi() {
       if (filters?.vendorId) params.append('vendorId', filters.vendorId);
       if (filters?.startDate) params.append('startDate', filters.startDate);
       if (filters?.endDate) params.append('endDate', filters.endDate);
+      params.append('page', String(filters?.page || currentPage));
+      params.append('limit', String(filters?.limit || pageSize));
       
       const queryString = params.toString();
       const url = `/cattle-purchases${queryString ? `?${queryString}` : ''}`;
@@ -193,6 +201,12 @@ export function useCattlePurchasesApi() {
         // Backend retorna 'items' para listagens
         const purchases = response.items || [];
         setPurchases(purchases);
+        
+        // Atualizar informações de paginação
+        setTotalItems(response.results || response.total || purchases.length);
+        setTotalPages(response.totalPages || Math.ceil((response.results || purchases.length) / pageSize));
+        setCurrentPage(response.page || 1);
+        
         return purchases;
       } else {
         throw new Error('Resposta inválida do servidor');
@@ -563,9 +577,21 @@ export function useCattlePurchasesApi() {
     }
   }, []);
 
+  // Fun\u00e7\u00f5es de pagina\u00e7\u00e3o
+  const changePage = useCallback((page: number) => {
+    setCurrentPage(page);
+    loadPurchases({ page, limit: pageSize });
+  }, [loadPurchases, pageSize]);
+
+  const changePageSize = useCallback((size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+    loadPurchases({ page: 1, limit: size });
+  }, [loadPurchases]);
+
   // Carregar dados ao montar o hook
   React.useEffect(() => {
-    loadPurchases();
+    loadPurchases({ page: 1, limit: pageSize });
   }, []);
 
   return {
@@ -589,5 +615,13 @@ export function useCattlePurchasesApi() {
     deleteCattlePurchase: deletePurchase, // Alias para manter compatibilidade
     deletePurchase,
     getStatistics,
+    
+    // Pagina\u00e7\u00e3o
+    currentPage,
+    totalPages,
+    totalItems,
+    pageSize,
+    changePage,
+    changePageSize,
   };
 }

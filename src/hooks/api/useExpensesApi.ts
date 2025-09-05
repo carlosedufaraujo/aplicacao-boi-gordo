@@ -11,6 +11,10 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<ExpenseStats | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
 
   /**
    * Carrega as despesas
@@ -20,7 +24,12 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
       setLoading(true);
       setError(null);
 
-      const response = await expenseApi.getAll({ ...initialFilters, ...filters });
+      const response = await expenseApi.getAll({ 
+        ...initialFilters, 
+        ...filters,
+        page: filters.page || currentPage,
+        limit: filters.limit || pageSize 
+      });
       
       if (response.status === 'success' && response.data) {
         // Se response.data for um objeto paginado, extrair o array
@@ -28,6 +37,13 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
           ? response.data 
           : response.data.items || [];
         setExpenses(items);
+        
+        // Atualizar informações de paginação
+        if (response.data && !Array.isArray(response.data)) {
+          setTotalItems(response.data.total || items.length);
+          setTotalPages(response.data.totalPages || Math.ceil((response.data.total || items.length) / pageSize));
+          setCurrentPage(response.data.page || 1);
+        }
       } else {
         throw new Error(response.message || 'Erro ao carregar despesas');
       }
@@ -54,6 +70,13 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
           ? response.data 
           : response.data.items || [];
         setExpenses(items);
+        
+        // Atualizar informações de paginação
+        if (response.data && !Array.isArray(response.data)) {
+          setTotalItems(response.data.total || items.length);
+          setTotalPages(response.data.totalPages || Math.ceil((response.data.total || items.length) / pageSize));
+          setCurrentPage(response.data.page || 1);
+        }
       }
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
@@ -276,9 +299,21 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
 
   // Carregamento inicial (SEM DEPENDÊNCIAS para evitar loops)
   useEffect(() => {
-    loadExpenses();
+    loadExpenses({ page: 1, limit: 50 });
     loadStats();
   }, []); // ← CORRIGIDO: sem dependências para evitar loops infinitos
+
+  // Funções de paginação
+  const changePage = useCallback((page: number) => {
+    setCurrentPage(page);
+    loadExpenses({ page, limit: pageSize });
+  }, [loadExpenses, pageSize]);
+
+  const changePageSize = useCallback((size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+    loadExpenses({ page: 1, limit: size });
+  }, [loadExpenses]);
 
   return {
     expenses,
@@ -294,5 +329,12 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
     getExpensesByCategory,
     getExpensesByCattlePurchase,
     refresh,
+    // Paginação
+    currentPage,
+    totalPages,
+    totalItems,
+    pageSize,
+    changePage,
+    changePageSize,
   };
 };

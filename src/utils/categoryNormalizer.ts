@@ -57,6 +57,50 @@ export const CATEGORY_COLORS: Record<string, string> = {
 };
 
 /**
+ * Normaliza uma categoria para o formato padrão
+ */
+export function normalizeCategory(category: string | undefined | null): string {
+  if (!category) return 'other';
+  
+  // Normaliza variações conhecidas
+  const normalizedInput = category.toLowerCase().replace(/[\s_-]+/g, '_');
+  
+  // Mapeamento de variações para categorias padrão
+  const variations: Record<string, string> = {
+    'compra_gado': 'animal_purchase',
+    'compra_animais': 'animal_purchase',
+    'aquisição_de_animais': 'animal_purchase',
+    'aquisicao_de_animais': 'animal_purchase',
+    'transporte': 'freight',
+    'frete': 'freight',
+    'comissao': 'commission',
+    'comissão': 'commission',
+    'mortalidade': 'deaths',
+    'mortes': 'deaths',
+    'alimentacao': 'feed',
+    'alimentação': 'feed',
+    'racao': 'feed',
+    'ração': 'feed',
+    'medicamentos': 'health_costs',
+    'saude': 'health_costs',
+    'saúde': 'health_costs',
+    'veterinario': 'health_costs',
+    'veterinário': 'health_costs',
+  };
+  
+  // Verifica se é uma variação conhecida
+  const standardKey = variations[normalizedInput] || normalizedInput;
+  
+  // Verifica se a categoria padrão existe no mapeamento
+  if (CATEGORY_DISPLAY_NAMES[standardKey]) {
+    return standardKey;
+  }
+  
+  // Retorna a categoria normalizada ou 'other' se não for reconhecida
+  return standardKey || 'other';
+}
+
+/**
  * Normaliza uma categoria técnica para nome de exibição
  */
 export function getCategoryDisplayName(technicalName: string | undefined | null): string {
@@ -67,30 +111,12 @@ export function getCategoryDisplayName(technicalName: string | undefined | null)
     return technicalName;
   }
   
-  // Normaliza variações conhecidas
-  const normalizedInput = technicalName.toLowerCase().replace(/[\s_-]+/g, '_');
-  
-  // Mapeamento de variações para categorias padrão
-  const variations: Record<string, string> = {
-    'compra_gado': 'animal_purchase',
-    'compra_animais': 'animal_purchase',
-    'transporte': 'freight',
-    'frete': 'freight',
-    'comissao': 'commission',
-    'comissão': 'commission',
-  };
-  
-  // Verifica se é uma variação conhecida
-  const standardKey = variations[normalizedInput] || normalizedInput;
+  // Normaliza a categoria primeiro
+  const normalizedCategory = normalizeCategory(technicalName);
   
   // Tenta encontrar no mapeamento
-  const displayName = CATEGORY_DISPLAY_NAMES[standardKey];
+  const displayName = CATEGORY_DISPLAY_NAMES[normalizedCategory];
   if (displayName) return displayName;
-  
-  // Tenta com o nome original também
-  if (CATEGORY_DISPLAY_NAMES[technicalName]) {
-    return CATEGORY_DISPLAY_NAMES[technicalName];
-  }
   
   // Se não encontrar, formata o nome técnico
   return technicalName

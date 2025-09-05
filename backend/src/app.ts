@@ -34,6 +34,7 @@ import cashFlowRoutes from '@/routes/cashFlow.routes';
 import { calendarEventRoutes } from '@/routes/calendarEvent.routes';
 import integratedInterventionRoutes from '@/routes/integratedIntervention.routes';
 import integratedFinancialAnalysisRoutes from '@/routes/integratedFinancialAnalysis.routes';
+// import dataImportRoutes from '@/routes/dataImport.routes';
 // import dashboardRoutes from '@/routes/dashboard.routes';
 
 // Rotas removidas - usando apenas Prisma agora
@@ -184,6 +185,9 @@ export function createApp(): Application {
   
   // Rotas de relatórios
   apiRouter.use('/reports', reportRoutes);
+  
+  // Rotas de importação de dados
+  // apiRouter.use('/data-import', dataImportRoutes);
 
   // Monta as rotas no prefixo da API
   app.use(env.API_PREFIX, apiRouter);

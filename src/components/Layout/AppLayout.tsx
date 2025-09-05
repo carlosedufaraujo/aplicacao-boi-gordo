@@ -33,6 +33,8 @@ import {
   ChevronRight,
   Moon,
   Sun,
+  BarChart3,
+  FileUp,
 } from "lucide-react";
 import { useBackend } from "@/providers/BackendProvider";
 import { useTheme } from "@/providers/ThemeProvider";
@@ -138,6 +140,16 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
           title: "Cadastros",
           icon: Users,
           page: "registrations",
+        },
+        {
+          title: "Relatórios",
+          icon: BarChart3,
+          page: "reports",
+        },
+        {
+          title: "Importar Dados",
+          icon: FileUp,
+          page: "data-import",
         },
       ]
     },

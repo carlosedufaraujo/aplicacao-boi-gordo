@@ -12,6 +12,10 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<PartnerStats | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
 
   /**
    * Carrega os parceiros
@@ -21,7 +25,12 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       setLoading(true);
       setError(null);
 
-      const response = await partnerApi.getAll({ ...initialFilters, ...filters });
+      const response = await partnerApi.getAll({ 
+        ...initialFilters, 
+        ...filters,
+        page: filters.page || currentPage,
+        limit: filters.limit || pageSize 
+      });
       
       if (response.status === 'success' && response.data) {
         // Se response.data for um objeto paginado, extrair o array
@@ -31,6 +40,13 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
           : response.data.items || [];
         console.log('[usePartnersApi] Items extraídos:', items);
         setPartners(items);
+        
+        // Atualizar informações de paginação
+        if (response.data && !Array.isArray(response.data)) {
+          setTotalItems(response.data.total || items.length);
+          setTotalPages(response.data.totalPages || Math.ceil((response.data.total || items.length) / pageSize));
+          setCurrentPage(response.data.page || 1);
+        }
       } else {
         throw new Error(response.message || 'Erro ao carregar parceiros');
       }
@@ -283,7 +299,7 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
         
         // Carregar partners e stats em paralelo
         const [partnersResponse, statsResponse] = await Promise.all([
-          partnerApi.getAll(initialFilters),
+          partnerApi.getAll({ ...initialFilters, page: 1, limit: pageSize }),
           partnerApi.getStats()
         ]);
         
@@ -294,6 +310,12 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
             : partnersResponse.data.items || [];
           console.log('[usePartnersApi] Initial load - Items extraídos:', items);
           setPartners(items);
+          
+          // Atualizar informações de paginação no carregamento inicial
+          if (!Array.isArray(partnersResponse.data)) {
+            setTotalItems(partnersResponse.data.total || items.length);
+            setTotalPages(partnersResponse.data.totalPages || Math.ceil((partnersResponse.data.total || items.length) / pageSize));
+          }
         }
         
         if (statsResponse.status === 'success' && statsResponse.data) {
@@ -309,6 +331,18 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
     
     loadInitialData();
   }, []); // Executar apenas na montagem
+
+  // Fun\u00e7\u00f5es de pagina\u00e7\u00e3o
+  const changePage = useCallback((page: number) => {
+    setCurrentPage(page);
+    loadPartners({ page, limit: pageSize });
+  }, [loadPartners, pageSize]);
+
+  const changePageSize = useCallback((size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+    loadPartners({ page: 1, limit: size });
+  }, [loadPartners]);
 
   return {
     partners,
@@ -327,5 +361,12 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
     getActivePartners,
     refresh,
     reload: refresh, // Alias para compatibilidade com DebugRegistrations
+    // Pagina\u00e7\u00e3o
+    currentPage,
+    totalPages,
+    totalItems,
+    pageSize,
+    changePage,
+    changePageSize,
   };
 };

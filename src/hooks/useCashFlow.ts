@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import cashFlowService, { 
   CashFlow, 
@@ -7,6 +7,8 @@ import cashFlowService, {
   FinancialAccount 
 } from '@/services/api/cashFlow';
 import { getCategoryDisplayName } from '@/utils/categoryNormalizer';
+import { useExpensesApi } from '@/hooks/api/useExpensesApi';
+import { useRevenuesApi } from '@/hooks/api/useRevenuesApi';
 
 export const useCashFlow = () => { // Sem filtros - sempre busca todos os dados
   const [cashFlows, setCashFlows] = useState<CashFlow[]>([]);
@@ -16,28 +18,31 @@ export const useCashFlow = () => { // Sem filtros - sempre busca todos os dados
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  // Usar os hooks com paginação configurada para 50 itens
+  const { 
+    expenses, 
+    loading: expensesLoading,
+    currentPage: expensesPage,
+    totalPages: expensesTotalPages,
+    changePage: changeExpensesPage,
+    changePageSize: changeExpensesPageSize
+  } = useExpensesApi();
+  
+  const { 
+    revenues, 
+    loading: revenuesLoading,
+    currentPage: revenuesPage,
+    totalPages: revenuesTotalPages,
+    changePage: changeRevenuesPage,
+    changePageSize: changeRevenuesPageSize
+  } = useRevenuesApi();
 
-  const fetchCashFlows = useCallback(async () => { // Sem filtros - busca tudo
-    setLoading(true);
-    setError(null);
-    try {
-      // Buscar despesas e receitas das APIs reais
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-
-      // Buscar despesas
-      const expensesResponse = await fetch('http://localhost:3002/api/v1/expenses', { headers });
-      const expensesResult = await expensesResponse.json();
-      
-      // Buscar receitas
-      const revenuesResponse = await fetch('http://localhost:3002/api/v1/revenues', { headers });
-      const revenuesResult = await revenuesResponse.json();
-
+  // Transformar e combinar dados quando os hooks carregarem
+  useEffect(() => {
+    if (!expensesLoading && !revenuesLoading) {
       // Transformar despesas para o formato CashFlow
-      const expenses = (expensesResult.data?.items || []).map((expense: any) => ({
+      const expensesData = expenses.map((expense: any) => ({
         id: expense.id,
         type: 'EXPENSE' as const,
         categoryId: expense.costCenterId || '',
@@ -55,7 +60,7 @@ export const useCashFlow = () => { // Sem filtros - sempre busca todos os dados
       }));
 
       // Transformar receitas para o formato CashFlow
-      const revenues = (revenuesResult.data?.items || []).map((revenue: any) => ({
+      const revenuesData = revenues.map((revenue: any) => ({
         id: revenue.id,
         type: 'INCOME' as const,
         categoryId: revenue.costCenterId || '',
@@ -73,25 +78,22 @@ export const useCashFlow = () => { // Sem filtros - sempre busca todos os dados
       }));
 
       // Combinar todas as movimentações
-      const data = [...expenses, ...revenues];
+      const data = [...expensesData, ...revenuesData];
       
-      console.log('[useCashFlow] Despesas:', expenses.length);
-      console.log('[useCashFlow] Receitas:', revenues.length);
+      console.log('[useCashFlow] Despesas:', expensesData.length);
+      console.log('[useCashFlow] Receitas:', revenuesData.length);
       console.log('[useCashFlow] Total de movimentações:', data.length);
-      console.log('[useCashFlow] Primeiras 3 movimentações:', data.slice(0, 3));
       
       setCashFlows(data);
-    } catch (err: any) {
-      setError(err.message);
-      toast({
-        title: 'Erro ao carregar movimentações',
-        description: err.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
     }
-  }, [toast]); // Removido initialFilters
+    
+    setLoading(expensesLoading || revenuesLoading);
+  }, [expenses, revenues, expensesLoading, revenuesLoading]);
+
+  const fetchCashFlows = useCallback(async () => {
+    // Agora não precisa mais fazer fetch manual, os dados vêm dos hooks
+    // Mantendo a função para compatibilidade
+  }, []); // Removido toast das dependências
 
   const fetchSummary = useCallback(async () => { // Sem filtros
     try {
@@ -303,5 +305,15 @@ export const useCashFlow = () => { // Sem filtros - sempre busca todos os dados
     updateCashFlow,
     deleteCashFlow,
     updateStatus,
+    // Paginação para despesas
+    expensesPage,
+    expensesTotalPages,
+    changeExpensesPage,
+    changeExpensesPageSize,
+    // Paginação para receitas
+    revenuesPage,
+    revenuesTotalPages,
+    changeRevenuesPage,
+    changeRevenuesPageSize,
   };
 };

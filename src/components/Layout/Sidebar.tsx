@@ -21,7 +21,9 @@ import {
   Building2,
   UserCog,
   HelpCircle,
-  LogOut
+  LogOut,
+  BarChart3,
+  FileUp
 } from 'lucide-react';
 import { useSupabase } from '../../providers/SupabaseProvider';
 import { clsx } from 'clsx';
@@ -105,6 +107,18 @@ const navigation: NavigationSection[] = [
         name: 'Cadastros', 
         icon: Users,
         description: 'Parceiros e fornecedores'
+      },
+      { 
+        id: 'reports', 
+        name: 'Relatórios', 
+        icon: BarChart3,
+        description: 'Análises e relatórios completos'
+      },
+      { 
+        id: 'data-import', 
+        name: 'Importar Dados', 
+        icon: FileUp,
+        description: 'Importação de dados em lote'
       },
     ]
   }
@@ -196,6 +210,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {navigation.map((section, sectionIndex) => (
               <React.Fragment key={section.label}>
                 {sectionIndex > 0 && <div className="h-px bg-gray-200 my-2" />}
+                {/* Section Label */}
+                {!sidebarCollapsed && (
+                  <div className="px-3 py-1">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {section.label}
+                    </span>
+                  </div>
+                )}
                 <div className="space-y-1">
                   {section.items.map((item) => {
                     // Skip admin items for non-admin users

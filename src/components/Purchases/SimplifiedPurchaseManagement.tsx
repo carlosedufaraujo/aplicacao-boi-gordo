@@ -63,6 +63,7 @@ import { Separator } from '@/components/ui/separator';
 import { OptimizedPurchaseForm } from '../Forms/OptimizedPurchaseForm';
 import { SimplifiedPurchaseDetails } from './SimplifiedPurchaseDetails';
 import { StatusChangeModal } from '../Modals/StatusChangeModal';
+import { EnhancedPurchaseTable } from './EnhancedPurchaseTable';
 
 export function SimplifiedPurchaseManagement() {
   // Estados
@@ -391,300 +392,32 @@ export function SimplifiedPurchaseManagement() {
             </Button>
           </div>
 
-          {/* Tabela de Compras */}
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]"></TableHead>
-                  <TableHead>Código/Lote</TableHead>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Qtd/Peso</TableHead>
-                  <TableHead>Preço/@</TableHead>
-                  <TableHead>Investimento</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
-                      <div className="flex items-center justify-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                        <span>Carregando...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredPurchases.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                      Nenhuma compra encontrada
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPurchases.map(purchase => (
-                    <React.Fragment key={purchase.id}>
-                      <TableRow className="hover:bg-muted/50">
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleRowExpansion(purchase.id)}
-                          >
-                            {expandedRows.has(purchase.id) ? (
-                              <ChevronUp className="h-3 w-3" />
-                            ) : (
-                              <ChevronDown className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{purchase.lotCode}</div>
-                        </TableCell>
-                        <TableCell>{purchase.vendor?.name || 'N/A'}</TableCell>
-                        <TableCell>
-                          {format(new Date(purchase.purchaseDate), 'dd/MM/yyyy', { locale: ptBR })}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{purchase.currentQuantity} cab</div>
-                            <div className="text-sm text-muted-foreground">
-                              {purchase.currentQuantity > 0 ? 
-                                `${(purchase.purchaseWeight / purchase.currentQuantity).toFixed(1)} kg/cab` : 
-                                '0 kg/cab'}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{formatCurrency(purchase.pricePerArroba)}</TableCell>
-                        <TableCell className="font-medium">
-                          {formatCurrency(purchase.totalCost)}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(purchase.status, purchase)}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedPurchase(purchase);
-                                setShowDetails(true);
-                              }}
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedPurchase(purchase);
-                                setShowForm(true);
-                              }}
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setPurchaseToDelete(purchase.id);
-                                setShowDeleteDialog(true);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      
-                      {/* Linha Expandida com Detalhes */}
-                      {expandedRows.has(purchase.id) && (
-                        <TableRow>
-                          <TableCell colSpan={9} className="bg-muted/20 border-l-4 border-l-primary/20">
-                            <div className="p-6">
-                              {/* Grid Principal com Cards */}
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                {/* Card de Informações Gerais */}
-                                <Card className="border-0 shadow-sm">
-                                  <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm flex items-center gap-2">
-                                      <Info className="h-4 w-4 text-muted-foreground" />
-                                      Informações Gerais
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2">
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">Local:</span>
-                                      <span className="text-sm font-medium">{purchase.state || purchase.location || 'N/A'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">Tipo:</span>
-                                      <span className="text-sm font-medium">
-                                        {purchase.animalType === 'MALE' ? 'Macho' : 
-                                         purchase.animalType === 'FEMALE' ? 'Fêmea' : 'Misto'}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">Rendimento:</span>
-                                      <span className="text-sm font-medium">{purchase.carcassYield}%</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">Mortalidade:</span>
-                                      <span className="text-sm font-medium text-red-600">{purchase.deathCount} cab</span>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-
-                                {/* Card de Custos */}
-                                <Card className="border-0 shadow-sm">
-                                  <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm flex items-center gap-2">
-                                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                                      Composição de Custos
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2">
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">Compra:</span>
-                                      <span className="text-sm font-medium">{formatCurrency(purchase.purchaseValue)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">Frete:</span>
-                                      <span className="text-sm font-medium">{formatCurrency(purchase.freightCost)}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">Comissão:</span>
-                                      <span className="text-sm font-medium">{formatCurrency(purchase.commission)}</span>
-                                    </div>
-                                    <Separator className="my-2" />
-                                    <div className="flex justify-between">
-                                      <span className="text-sm font-medium">Total:</span>
-                                      <span className="text-sm font-bold text-primary">{formatCurrency(purchase.totalCost)}</span>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-
-                                {/* Card de Projeções */}
-                                <Card className="border-0 shadow-sm">
-                                  <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm flex items-center gap-2">
-                                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                                      Projeções e Métricas
-                                    </CardTitle>
-                                  </CardHeader>
-                                  <CardContent className="space-y-2">
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">GMD:</span>
-                                      <span className="text-sm font-medium">
-                                        {purchase.expectedGMD ? `${purchase.expectedGMD} kg/dia` : '1.2 kg/dia (padrão)'}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">Peso Alvo:</span>
-                                      <span className="text-sm font-medium">
-                                        {purchase.targetWeight ? `${purchase.targetWeight} kg` : '550 kg (padrão)'}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">Peso Médio:</span>
-                                      <span className="text-sm font-medium">
-                                        {purchase.currentQuantity > 0 ? 
-                                          `${(purchase.purchaseWeight / purchase.currentQuantity).toFixed(1)} kg` : 'N/A'}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-sm text-muted-foreground">Dias p/ Abate:</span>
-                                      <span className="text-sm font-medium">
-                                        {(() => {
-                                          const avgWeight = purchase.currentQuantity > 0 ? purchase.purchaseWeight / purchase.currentQuantity : 0;
-                                          const targetWeight = purchase.targetWeight || 550;
-                                          const gmd = purchase.expectedGMD || 1.2;
-                                          const daysToTarget = avgWeight > 0 && gmd > 0 ? Math.ceil((targetWeight - avgWeight) / gmd) : 0;
-                                          
-                                          if (daysToTarget > 0) {
-                                            const estimatedDate = new Date();
-                                            estimatedDate.setDate(estimatedDate.getDate() + daysToTarget);
-                                            return `${daysToTarget} dias (${format(estimatedDate, 'dd/MM', { locale: ptBR })})`;
-                                          }
-                                          return 'N/A';
-                                        })()}
-                                      </span>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              </div>
-                              
-                              {/* Seção de Ações */}
-                              <Separator className="my-4" />
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium">Ações Disponíveis:</span>
-                                  {purchase.status === 'CONFINED' && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      Lote já confinado
-                                    </Badge>
-                                  )}
-                                </div>
-                                <div className="flex gap-2">
-                                  {purchase.status === 'CONFIRMED' && (
-                                    <Button
-                                      size="sm"
-                                      variant="default"
-                                      onClick={() => handleQuickStatusUpdate(purchase.id, 'RECEIVED')}
-                                      className="gap-2"
-                                    >
-                                      <Truck className="h-4 w-4" />
-                                      Registrar Recepção
-                                    </Button>
-                                  )}
-                                  {purchase.status === 'RECEIVED' && (
-                                    <Button
-                                      size="sm"
-                                      variant="default"
-                                      onClick={() => handleQuickStatusUpdate(purchase.id, 'CONFINED')}
-                                      className="gap-2"
-                                    >
-                                      <Package className="h-4 w-4" />
-                                      Alocar em Currais
-                                    </Button>
-                                  )}
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedPurchase(purchase);
-                                      setShowDetails(true);
-                                    }}
-                                    className="gap-2"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                    Ver Detalhes Completos
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => {
-                                      setSelectedPurchase(purchase);
-                                      setShowForm(true);
-                                    }}
-                                    className="gap-2"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                    Editar
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </React.Fragment>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          {/* Tabela de Compras Aprimorada */}
+          <EnhancedPurchaseTable
+            searchTerm={searchTerm}
+            filterStatus={filterStatus}
+            onView={(purchase) => {
+              setSelectedPurchase(purchase);
+              setShowDetails(true);
+            }}
+            onEdit={(purchase) => {
+              setSelectedPurchase(purchase);
+              setShowForm(true);
+            }}
+            onDelete={(purchase) => {
+              setPurchaseToDelete(purchase.id);
+              setShowDeleteDialog(true);
+            }}
+            onStatusChange={(purchase) => {
+              setStatusModalData({
+                purchaseId: purchase.id,
+                currentStatus: purchase.status,
+                currentStage: purchase.stage,
+                purchase: purchase
+              });
+              setShowStatusModal(true);
+            }}
+          />
         </CardContent>
       </Card>
 

@@ -631,15 +631,7 @@ export class CattlePurchaseService {
     
     try {
       // Verificar apenas as tabelas que existem
-      const [penAllocations, expenses, revenues] = await Promise.all([
-        prisma.lotPenLink.count({ where: { purchaseId: id } }),
-        prisma.expense.count({ where: { purchaseId: id } }).catch(() => 0),
-        prisma.revenue.count({ where: { purchaseId: id } }).catch(() => 0)
-      ]);
-      
-      relatedData.penAllocations = penAllocations;
-      relatedData.expenses = expenses;
-      relatedData.revenues = revenues;
+      relatedData.penAllocations = await prisma.lotPenLink.count({ where: { purchaseId: id } }).catch(() => 0);
     } catch (error) {
       console.log('Erro ao verificar dados relacionados:', error);
     }
@@ -651,32 +643,18 @@ export class CattlePurchaseService {
       console.log(`⚠️ Excluindo lote ${purchase.lotCode} com dados relacionados:`, relatedData);
     }
     
-    // Executar exclusão em cascata usando transação
-    return await prisma.$transaction(async (tx) => {
-      // 1. Remover alocações de currais (sempre existe)
-      await tx.lotPenLink.deleteMany({ where: { purchaseId: id } });
-      
-      // 2. Tentar remover despesas se a tabela existir
-      try {
-        await tx.expense.deleteMany({ where: { purchaseId: id } });
-      } catch (error) {
-        console.log('Tabela expense não existe ou erro ao deletar:', error);
-      }
-      
-      // 3. Tentar remover receitas se a tabela existir
-      try {
-        await tx.revenue.deleteMany({ where: { purchaseId: id } });
-      } catch (error) {
-        console.log('Tabela revenue não existe ou erro ao deletar:', error);
-      }
-      
-      // 4. Finalmente, excluir a compra
-      const deleted = await tx.cattlePurchase.delete({ where: { id } });
-      
-      console.log(`✅ Lote ${purchase.lotCode} excluído com sucesso, incluindo todos os dados relacionados`);
-      
-      return deleted;
+    // Executar exclusões sem transação para evitar erro de transaction aborted
+    // 1. Remover alocações de currais
+    await prisma.lotPenLink.deleteMany({ where: { purchaseId: id } }).catch((error) => {
+      console.log('Erro ao deletar alocações de currais:', error);
     });
+    
+    // 2. Finalmente, excluir a compra
+    const deleted = await prisma.cattlePurchase.delete({ where: { id } });
+    
+    console.log(`✅ Lote ${purchase.lotCode} excluído com sucesso`);
+    
+    return deleted;
   }
 
   async getStatistics() {

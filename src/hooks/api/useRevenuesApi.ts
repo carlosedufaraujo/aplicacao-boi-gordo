@@ -11,6 +11,10 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<RevenueStats | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
 
   /**
    * Carrega as receitas
@@ -20,7 +24,12 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
       setLoading(true);
       setError(null);
 
-      const response = await revenueApi.getAll({ ...initialFilters, ...filters });
+      const response = await revenueApi.getAll({ 
+        ...initialFilters, 
+        ...filters,
+        page: filters.page || currentPage,
+        limit: filters.limit || pageSize 
+      });
       
       if (response.status === 'success' && response.data) {
         // Se response.data for um objeto paginado, extrair o array
@@ -28,6 +37,13 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
           ? response.data 
           : response.data.items || [];
         setRevenues(items);
+        
+        // Atualizar informações de paginação
+        if (response.data && !Array.isArray(response.data)) {
+          setTotalItems(response.data.total || items.length);
+          setTotalPages(response.data.totalPages || Math.ceil((response.data.total || items.length) / pageSize));
+          setCurrentPage(response.data.page || 1);
+        }
       } else {
         throw new Error(response.message || 'Erro ao carregar receitas');
       }
@@ -49,11 +65,7 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
       const response = await revenueApi.getStats();
       
       if (response.status === 'success' && response.data) {
-        // Se response.data for um objeto paginado, extrair o array
-        const items = Array.isArray(response.data) 
-          ? response.data 
-          : response.data.items || [];
-        setRevenues(items);
+        setStats(response.data);
       }
     } catch (err) {
       console.error('Erro ao carregar estatísticas:', err);
@@ -276,9 +288,21 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
 
   // Carregamento inicial (SEM DEPENDÊNCIAS para evitar loops)
   useEffect(() => {
-    loadRevenues();
+    loadRevenues({ page: 1, limit: 50 });
     loadStats();
   }, []); // ← CORRIGIDO: sem dependências para evitar loops infinitos
+
+  // Funções de paginação
+  const changePage = useCallback((page: number) => {
+    setCurrentPage(page);
+    loadRevenues({ page, limit: pageSize });
+  }, [loadRevenues, pageSize]);
+
+  const changePageSize = useCallback((size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+    loadRevenues({ page: 1, limit: size });
+  }, [loadRevenues]);
 
   return {
     revenues,
@@ -294,5 +318,12 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
     getRevenuesByCategory,
     getRevenuesBySaleRecord,
     refresh,
+    // Paginação
+    currentPage,
+    totalPages,
+    totalItems,
+    pageSize,
+    changePage,
+    changePageSize,
   };
 };

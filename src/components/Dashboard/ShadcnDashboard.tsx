@@ -122,6 +122,7 @@ import { HerdValueChart } from './HerdValueChart';
 import { CostAllocationPieChart } from './CostAllocationPieChart';
 import { PurchaseByStateChart } from './PurchaseByStateChart';
 import { PurchaseByBrokerChart } from './PurchaseByBrokerChart';
+import { AdvancedSensitivityAnalysis } from './AdvancedSensitivityAnalysis';
 
 // Componente de integração
 import { FinancialIntegrationStatus } from '../Integration/FinancialIntegrationStatus';
@@ -137,12 +138,6 @@ export function ShadcnDashboard() {
   
   // Estados
   const [marketPrice, setMarketPrice] = useState<number>(320);
-  const [dateFilter, setDateFilter] = useState('30');
-  const [customDateRange, setCustomDateRange] = useState<DateRange>({
-    from: subDays(new Date(), 30),
-    to: new Date(),
-  });
-  const [isCustomDate, setIsCustomDate] = useState(false);
   const [activityFilter, setActivityFilter] = useState('all');
   const [showAllActivities, setShowAllActivities] = useState(false);
 
@@ -439,21 +434,11 @@ export function ShadcnDashboard() {
     }
   }, [revenues, expenses, payerAccounts]);
 
-  // Atualizar período quando mudar o filtro
-  useEffect(() => {
-    if (!isCustomDate) {
-      const days = parseInt(dateFilter);
-      setCustomDateRange({
-        from: subDays(new Date(), days),
-        to: new Date(),
-      });
-    }
-  }, [dateFilter, isCustomDate]);
 
   // Loading geral
   const isLoading = lotsLoading || ordersLoading || expensesLoading || revenuesLoading || accountsLoading || partnersLoading;
 
-  // Dados para o gráfico de Receita vs Custos (últimos 6 meses)
+  // Dados para o gráfico de Receita vs Custos - TODOS OS DADOS DO SISTEMA
   const revenueData = useMemo(() => {
     const months = [];
     const today = new Date();
@@ -465,23 +450,23 @@ export function ShadcnDashboard() {
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
       
-      // Calcular receitas do mês
+      // Calcular receitas do mês - TODOS OS DADOS SEM FILTRO
       const monthRevenues = revenues.filter(r => {
-        const date = toSafeDate(r.date || r.createdAt);
+        const date = toSafeDate(r.date || r.createdAt || r.dueDate);
         return date >= monthStart && date <= monthEnd;
-      }).reduce((sum, r) => sum + toSafeNumber(r.amount || r.value || r.purchaseValue, 0), 0);
+      }).reduce((sum, r) => sum + toSafeNumber(r.amount || r.value || r.purchaseValue || r.totalAmount, 0), 0);
 
-      // Calcular despesas do mês
+      // Calcular despesas do mês - TODOS OS DADOS SEM FILTRO
       const monthExpenses = expenses.filter(e => {
-        const date = toSafeDate(e.date || e.createdAt);
+        const date = toSafeDate(e.date || e.createdAt || e.dueDate);
         return date >= monthStart && date <= monthEnd;
-      }).reduce((sum, e) => sum + toSafeNumber(e.amount || e.value || e.purchaseValue, 0), 0);
+      }).reduce((sum, e) => sum + toSafeNumber(e.amount || e.value || e.purchaseValue || e.totalAmount, 0), 0);
 
-      // Calcular compras do mês (ordens de compra)
+      // Calcular compras do mês (ordens de compra) - TODOS OS DADOS SEM FILTRO
       const monthPurchases = (cattlePurchases || []).filter(order => {
         const date = toSafeDate(order.createdAt || order.purchaseDate);
         return date >= monthStart && date <= monthEnd;
-      }).reduce((sum, order) => sum + toSafeNumber(order.totalValue, 0), 0);
+      }).reduce((sum, order) => sum + toSafeNumber(order.totalValue || order.purchaseValue, 0), 0);
 
       const totalCosts = monthExpenses + monthPurchases;
       const profit = monthRevenues - totalCosts;
@@ -545,7 +530,7 @@ export function ShadcnDashboard() {
       });
     });
 
-    // Ordenar por data e filtrar
+    // Ordenar por data e filtrar apenas por tipo (SEM FILTRO DE DATA)
     return activities
       .sort((a, b) => b.date.getTime() - a.date.getTime())
       .filter(activity => {
@@ -553,14 +538,10 @@ export function ShadcnDashboard() {
         if (activityFilter !== 'all' && activity.type !== activityFilter) {
           return false;
         }
-        // Filtro de data
-        if (customDateRange.from && customDateRange.to) {
-          return activity.date >= customDateRange.from && activity.date <= customDateRange.to;
-        }
         return true;
       })
       .slice(0, showAllActivities ? undefined : 5);
-  }, [cattlePurchases, expenses, revenues, activityFilter, showAllActivities, customDateRange]);
+  }, [cattlePurchases, expenses, revenues, activityFilter, showAllActivities]);
 
   // Handler para exportar dados
   const handleExport = () => {
@@ -575,7 +556,7 @@ export function ShadcnDashboard() {
         averageWeightLoss,
       },
       recentActivities,
-      period: isCustomDate ? customDateRange : `Últimos ${dateFilter} dias`,
+      period: 'Todos os dados do sistema',
       exportDate: new Date().toISOString(),
     };
 
@@ -643,100 +624,6 @@ export function ShadcnDashboard() {
           </div>
           
           <div className="flex flex-wrap items-center gap-2">
-            {/* Seletor de período ou data personalizada */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="justify-start text-left font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {isCustomDate && customDateRange.from && customDateRange.to ? (
-                    <>
-                      {formatSafeShortDate(customDateRange.from)} - {formatSafeShortDate(customDateRange.to)}
-                    </>
-                  ) : (
-                    <span>Selecionar período</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <div className="p-3 space-y-3">
-                  {/* Opções rápidas */}
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Período rápido</p>
-                    <div className="grid grid-cols-2 gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setDateFilter('7');
-                          setIsCustomDate(false);
-                        }}
-                      >
-                        Últimos 7 dias
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setDateFilter('30');
-                          setIsCustomDate(false);
-                        }}
-                      >
-                        Últimos 30 dias
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setDateFilter('90');
-                          setIsCustomDate(false);
-                        }}
-                      >
-                        Últimos 90 dias
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setCustomDateRange({
-                            from: startOfMonth(new Date()),
-                            to: endOfMonth(new Date()),
-                          });
-                          setIsCustomDate(true);
-                        }}
-                      >
-                        Este mês
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  {/* Calendário para seleção personalizada */}
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium">Período personalizado</p>
-                    <Calendar
-                      mode="range"
-                      selected={{
-                        from: customDateRange.from,
-                        to: customDateRange.to,
-                      }}
-                      onSelect={(range) => {
-                        if (range) {
-                          setCustomDateRange({
-                            from: range.from,
-                            to: range.to,
-                          });
-                          setIsCustomDate(true);
-                        }
-                      }}
-                      numberOfMonths={2}
-                      locale={ptBR}
-                    />
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
             <Button variant="outline" size="sm" onClick={handleGenerateDashboardPDF}>
               <FileDown className="h-4 w-4 mr-2" />
               PDF Visual
@@ -989,13 +876,12 @@ export function ShadcnDashboard() {
                     <TrendingUp className="h-4 w-4 icon-success icon-transition" />
                   </div>
                   <div className="leading-none text-muted-foreground">
-                    Mostrando dados dos últimos 6 meses
+                    Mostrando todos os dados do sistema - últimos 6 meses
                   </div>
                 </CardFooter>
               </Card>
 
-              {/* Capital Alocado vs Valor de Mercado */}
-              <HerdValueChart marketPrice={marketPrice} setMarketPrice={setMarketPrice} />
+              {/* Espaço removido - gráfico movido para aba Análise */}
             </div>
 
             {/* Segunda linha de gráficos */}
@@ -1006,6 +892,23 @@ export function ShadcnDashboard() {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
+            {/* Análise de Valor do Rebanho - Destaque principal */}
+            <HerdValueChart marketPrice={marketPrice} setMarketPrice={setMarketPrice} />
+            
+            {/* Análise de Sensibilidade Avançada - Nova ferramenta */}
+            <AdvancedSensitivityAnalysis 
+              defaultValues={{
+                purchasePrice: 280,
+                purchaseWeight: 400,
+                purchaseYield: 50,
+                salePrice: marketPrice,
+                saleWeight: 550,
+                saleYield: 52,
+                productionCost: 200
+              }}
+            />
+            
+            {/* Segunda linha com gráficos complementares */}
             <div className="grid gap-4 md:grid-cols-2">
               <PurchaseByBrokerChart />
               
