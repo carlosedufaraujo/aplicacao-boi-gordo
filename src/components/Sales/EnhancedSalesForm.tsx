@@ -42,9 +42,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Slider } from '@/components/ui/slider';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -55,7 +53,6 @@ import {
   Calculator,
   Calendar as CalendarIcon,
   DollarSign,
-  Truck,
   Users,
   MapPin,
   FileText,
@@ -67,24 +64,19 @@ import {
   TrendingUp,
   Building2,
   Hash,
-  Phone,
-  Mail,
   Beef,
   AlertTriangle,
   Target,
   Receipt,
   CreditCard,
   Percent,
-  PiggyBank,
   ChevronRight,
   Loader2,
   Check,
   Clock,
-  FileSearch,
-  Plus,
-  Minus,
   Home,
-  BarChart3
+  BarChart3,
+  Banknote
 } from 'lucide-react';
 
 // Hooks e APIs
@@ -93,11 +85,12 @@ import { usePartnersApi } from '@/hooks/api/usePartnersApi';
 import { useSaleRecordsApi } from '@/hooks/api/useSaleRecordsApi';
 import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
 import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
+import { usePenOccupancyApi } from '@/hooks/api/usePenOccupancyApi';
 import { formatCurrency, formatWeight, formatPercentage } from '@/utils/formatters';
 import { showErrorNotification, showSuccessNotification } from '@/utils/errorHandler';
 import { cn } from '@/lib/utils';
 
-// Schema de validação
+// Schema de validação atualizado
 const saleFormSchema = z.object({
   // Informações básicas
   internalCode: z.string().optional(),
@@ -105,47 +98,28 @@ const saleFormSchema = z.object({
     required_error: "Data da venda é obrigatória",
   }),
   
-  // Seleção de animais
+  // Seleção de curral e tipo de venda
   penId: z.string().min(1, "Selecione um curral"),
   saleType: z.enum(['total', 'partial'], {
     required_error: "Selecione o tipo de venda",
   }),
-  quantity: z.number().min(1, "Quantidade deve ser maior que 0"),
-  selectedAnimals: z.object({
-    common: z.number().min(0),
-    china: z.number().min(0),
-    angus: z.number().min(0),
-  }),
+  quantity: z.number().min(1, "Quantidade deve ser maior que 0").optional(),
   
   // Comprador
   buyerId: z.string().min(1, "Selecione um comprador"),
-  buyerType: z.enum(['slaughterhouse', 'dealer', 'final'], {
-    required_error: "Selecione o tipo de comprador",
-  }),
   
-  // Valores e pesos
+  // Pesos e rendimento
   exitWeight: z.number().min(1, "Peso de saída é obrigatório"),
-  carcassYield: z.number().min(40).max(65),
+  carcassWeight: z.number().min(1, "Peso de carcaça é obrigatório"),
+  carcassYield: z.number().min(40).max(65), // Calculado automaticamente
   pricePerArroba: z.number().min(1, "Preço por arroba é obrigatório"),
   
-  // Logística
-  transportType: z.enum(['buyer', 'seller', 'third_party']),
-  transporterId: z.string().optional(),
-  freightValue: z.number().min(0),
-  deliveryDate: z.date().optional(),
-  deliveryLocation: z.string().optional(),
-  
   // Pagamento
-  paymentType: z.enum(['cash', 'installment', 'barter']),
-  paymentTerms: z.number().min(0).max(180),
-  payerAccountId: z.string().optional(),
-  installments: z.number().min(1).max(12).optional(),
-  
-  // Comissões e descontos
-  commissionType: z.enum(['percentage', 'fixed', 'none']),
-  commissionValue: z.number().min(0),
-  discountType: z.enum(['percentage', 'fixed', 'none']),
-  discountValue: z.number().min(0),
+  paymentType: z.enum(['cash', 'installment'], {
+    required_error: "Selecione a forma de pagamento",
+  }),
+  paymentDate: z.date().optional(), // Para pagamento a prazo
+  receiverAccountId: z.string().optional(),
   
   // Documentação
   invoiceNumber: z.string().optional(),
@@ -169,64 +143,58 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [selectedPen, setSelectedPen] = useState<any>(null);
-  const [availableAnimals, setAvailableAnimals] = useState({
-    total: 0,
-    common: 0,
-    china: 0,
-    angus: 0
-  });
 
   // Hooks de API
   const { pens, loading: pensLoading } = usePensApi();
+  const { occupancyData } = usePenOccupancyApi();
   const { partners, loading: partnersLoading } = usePartnersApi();
   const { createSaleRecord, updateSaleRecord } = useSaleRecordsApi();
   const { cattlePurchases } = useCattlePurchasesApi();
   const { accounts } = usePayerAccountsApi();
 
-  // Filtrar apenas currais com animais
-  const availablePens = useMemo(() => {
-    return pens.filter(pen => pen.currentOccupancy > 0);
-  }, [pens]);
+  // Combinar dados de currais com ocupação
+  const pensWithOccupancy = useMemo(() => {
+    return pens.map(pen => {
+      const occupancy = occupancyData.find(o => o.penId === pen.id);
+      return {
+        ...pen,
+        currentOccupancy: occupancy?.currentOccupancy || 0,
+        availableAnimals: occupancy?.currentOccupancy || 0,
+        lots: occupancy?.lots || []
+      };
+    }).filter(pen => pen.currentOccupancy > 0); // Apenas currais com animais
+  }, [pens, occupancyData]);
 
   // Filtrar compradores ativos
   const buyers = useMemo(() => {
     return partners.filter(p => 
-      (p.type === 'slaughterhouse' || p.type === 'dealer' || p.type === 'buyer') && 
-      p.isActive
+      (p.type === 'BUYER' || p.partnerType === 'buyer') && 
+      p.isActive !== false
     );
   }, [partners]);
 
-  // Filtrar transportadoras
-  const transporters = useMemo(() => {
-    return partners.filter(p => p.type === 'transporter' && p.isActive);
-  }, [partners]);
-
-  // Filtrar contas pagadoras ativas
+  // Filtrar contas recebedoras ativas
   const activeAccounts = useMemo(() => {
-    return accounts.filter(a => a.isActive);
+    return accounts.filter(a => a.isActive !== false);
   }, [accounts]);
 
   const form = useForm<SaleFormData>({
     resolver: zodResolver(saleFormSchema),
     defaultValues: {
+      internalCode: '',
       saleDate: new Date(),
+      penId: '',
       saleType: 'total',
-      quantity: 0,
-      selectedAnimals: {
-        common: 0,
-        china: 0,
-        angus: 0
-      },
-      carcassYield: 54,
+      buyerId: '',
+      exitWeight: 0,
+      carcassWeight: 0,
+      carcassYield: 50,
       pricePerArroba: 320,
-      transportType: 'buyer',
-      freightValue: 0,
       paymentType: 'cash',
-      paymentTerms: 30,
-      commissionType: 'none',
-      commissionValue: 0,
-      discountType: 'none',
-      discountValue: 0,
+      receiverAccountId: '',
+      invoiceNumber: '',
+      contractNumber: '',
+      observations: '',
     }
   });
 
@@ -239,1197 +207,749 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
       const year = now.getFullYear().toString().slice(-2);
       const month = (now.getMonth() + 1).toString().padStart(2, '0');
       const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-      const code = `V${year}${month}${randomNum}`;
+      const code = `VD${year}${month}${randomNum}`;
       form.setValue('internalCode', code);
     }
   }, [saleToEdit, form]);
 
-  // Atualizar animais disponíveis quando curral for selecionado
+  // Atualizar informações quando curral for selecionado
   useEffect(() => {
     if (watchedValues.penId) {
-      const pen = pens.find(p => p.id === watchedValues.penId);
+      const pen = pensWithOccupancy.find(p => p.id === watchedValues.penId);
       if (pen) {
         setSelectedPen(pen);
         
-        // Buscar informações dos lotes no curral
-        const lotsInPen = cattlePurchases.filter(purchase => 
-          purchase.penId === pen.id && purchase.status === 'active'
-        );
-        
-        // Calcular totais por tipo de animal
-        let totalCommon = 0;
-        let totalChina = 0;
-        let totalAngus = 0;
-        
-        lotsInPen.forEach(lot => {
-          // Aqui você precisaria ter os campos de tipo de animal no lote
-          // Por enquanto vamos simular uma distribuição
-          const total = lot.quantity || 0;
-          totalCommon += Math.floor(total * 0.6);
-          totalChina += Math.floor(total * 0.25);
-          totalAngus += Math.floor(total * 0.15);
-        });
-        
-        setAvailableAnimals({
-          total: pen.currentOccupancy,
-          common: totalCommon || pen.currentOccupancy,
-          china: totalChina || 0,
-          angus: totalAngus || 0
-        });
-        
-        // Se venda total, preencher automaticamente
+        // Se venda total, preencher quantidade automaticamente
         if (watchedValues.saleType === 'total') {
           form.setValue('quantity', pen.currentOccupancy);
-          form.setValue('selectedAnimals', {
-            common: totalCommon || pen.currentOccupancy,
-            china: totalChina || 0,
-            angus: totalAngus || 0
-          });
         }
       }
     }
-  }, [watchedValues.penId, watchedValues.saleType, pens, cattlePurchases, form]);
+  }, [watchedValues.penId, watchedValues.saleType, pensWithOccupancy, form]);
+
+  // Calcular rendimento de carcaça automaticamente
+  useEffect(() => {
+    const exitWeight = watchedValues.exitWeight || 0;
+    const carcassWeight = watchedValues.carcassWeight || 0;
+    
+    if (exitWeight > 0 && carcassWeight > 0) {
+      const yieldPercentage = (carcassWeight / exitWeight) * 100;
+      form.setValue('carcassYield', Math.round(yieldPercentage * 100) / 100);
+    }
+  }, [watchedValues.exitWeight, watchedValues.carcassWeight, form]);
 
   // Cálculos automáticos
   const calculations = useMemo(() => {
-    const quantity = watchedValues.quantity || 0;
+    const quantity = watchedValues.saleType === 'total' 
+      ? selectedPen?.currentOccupancy || 0 
+      : watchedValues.quantity || 0;
     const exitWeight = watchedValues.exitWeight || 0;
-    const carcassYield = watchedValues.carcassYield || 54;
+    const carcassWeight = watchedValues.carcassWeight || 0;
     const pricePerArroba = watchedValues.pricePerArroba || 0;
-    const freightValue = watchedValues.freightValue || 0;
     
-    // Peso médio por animal
-    const averageWeight = quantity > 0 ? exitWeight / quantity : 0;
-    
-    // Peso de carcaça
-    const carcassWeight = (exitWeight * carcassYield) / 100;
-    
-    // Arrobas totais
-    const totalArrobas = carcassWeight / 15;
-    
-    // Valor bruto
-    const grossValue = totalArrobas * pricePerArroba;
-    
-    // Calcular comissão
-    let commission = 0;
-    if (watchedValues.commissionType === 'percentage') {
-      commission = (grossValue * watchedValues.commissionValue) / 100;
-    } else if (watchedValues.commissionType === 'fixed') {
-      commission = watchedValues.commissionValue * quantity;
-    }
-    
-    // Calcular desconto
-    let discount = 0;
-    if (watchedValues.discountType === 'percentage') {
-      discount = (grossValue * watchedValues.discountValue) / 100;
-    } else if (watchedValues.discountType === 'fixed') {
-      discount = watchedValues.discountValue;
-    }
-    
-    // Valor líquido
-    const netValue = grossValue - freightValue - commission - discount;
-    
-    // Valor por animal
-    const valuePerAnimal = quantity > 0 ? netValue / quantity : 0;
+    // Cálculos baseados no peso de carcaça
+    const arrobas = carcassWeight / 15; // 1 arroba = 15kg
+    const grossValue = arrobas * pricePerArroba;
+    const averageWeightPerHead = quantity > 0 ? exitWeight / quantity : 0;
+    const valuePerHead = quantity > 0 ? grossValue / quantity : 0;
     
     return {
-      averageWeight,
-      carcassWeight,
-      totalArrobas,
+      quantity,
+      arrobas: Math.round(arrobas * 100) / 100,
       grossValue,
-      commission,
-      discount,
-      netValue,
-      valuePerAnimal,
-      totalCosts: freightValue + commission + discount
+      netValue: grossValue, // Sem comissão para vendas
+      averageWeight: averageWeightPerHead,
+      valuePerHead,
+      carcassYield: watchedValues.carcassYield || 0
     };
-  }, [watchedValues]);
+  }, [watchedValues, selectedPen]);
 
   const handleSubmit = async (data: SaleFormData) => {
     try {
       setIsSubmitting(true);
-      
-      // Preparar dados para API
+
+      // Debug: Verificar dados antes de enviar
+      console.log('🔍 DEBUG - Dados do formulário:', data);
+      console.log('🔍 DEBUG - Cálculos:', calculations);
+      console.log('🔍 DEBUG - Curral selecionado:', selectedPen);
+
+      // Preparar dados para envio
       const saleData = {
         ...data,
-        penId: data.penId,
-        lotId: selectedPen?.lotId || '', // Precisamos do ID do lote
-        slaughterhouseId: data.buyerId,
-        saleDate: data.saleDate.toISOString(),
-        animalType: 'mixed' as any, // Ajustar conforme necessário
-        currentQuantity: data.quantity,
-        totalWeight: data.exitWeight,
-        pricePerArroba: data.pricePerArroba,
-        paymentType: data.paymentType as any,
-        paymentDate: data.paymentTerms ? 
-          new Date(Date.now() + data.paymentTerms * 24 * 60 * 60 * 1000).toISOString() : 
-          undefined,
-        commonAnimals: data.selectedAnimals.common,
-        chinaAnimals: data.selectedAnimals.china,
-        angusAnimals: data.selectedAnimals.angus,
-        observations: data.observations,
-        // Valores calculados
-        grossRevenue: calculations.grossValue,
-        netProfit: calculations.netValue,
-        profitMargin: (calculations.netValue / calculations.grossValue) * 100
+        quantity: data.saleType === 'total' ? selectedPen?.currentOccupancy : data.quantity,
+        arrobas: calculations.arrobas,
+        totalValue: calculations.grossValue,
+        netValue: calculations.netValue,
+        deductions: 0, // Adicionar campo obrigatório
+        status: 'PENDING', // Usar enum correto em maiúsculo
       };
-      
-      let result;
+
+      // Remover campos que podem estar undefined ou strings vazias
+      if (!saleData.purchaseId) {
+        delete saleData.purchaseId;
+      }
+      if (!saleData.receiverAccountId || saleData.receiverAccountId === '') {
+        delete saleData.receiverAccountId;
+      }
+      if (!saleData.observations || saleData.observations === '') {
+        delete saleData.observations;
+      }
+      if (!saleData.invoiceNumber || saleData.invoiceNumber === '') {
+        delete saleData.invoiceNumber;
+      }
+      if (!saleData.contractNumber || saleData.contractNumber === '') {
+        delete saleData.contractNumber;
+      }
+
+      console.log('📤 DEBUG - Dados preparados para envio:', saleData);
+
       if (saleToEdit) {
-        result = await updateSaleRecord(saleToEdit.id, saleData);
+        console.log('🔄 DEBUG - Atualizando venda:', saleToEdit.id);
+        await updateSaleRecord(saleToEdit.id, saleData);
+        showSuccessNotification('Venda atualizada com sucesso!');
       } else {
-        result = await createSaleRecord(saleData);
+        console.log('➕ DEBUG - Criando nova venda');
+        const result = await createSaleRecord(saleData);
+        console.log('✅ DEBUG - Venda criada:', result);
+        if (result) {
+          showSuccessNotification('Venda registrada com sucesso!');
+        }
       }
-      
-      if (result) {
-        showSuccessNotification(
-          saleToEdit ? 'Venda atualizada com sucesso!' : 'Venda registrada com sucesso!'
-        );
-        form.reset();
-        onClose();
-      }
-    } catch (error) {
-      console.error('Erro ao salvar venda:', error);
-      showErrorNotification(error, 'Erro ao salvar venda');
+
+      onClose();
+    } catch (error: any) {
+      console.error('❌ DEBUG - Erro ao salvar venda:', error);
+      console.error('❌ DEBUG - Detalhes do erro:', error.response?.data);
+      showErrorNotification('Erro ao salvar venda', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const isLoading = pensLoading || partnersLoading;
+  const handleClose = () => {
+    form.reset();
+    setSelectedPen(null);
+    setActiveTab('basic');
+    onClose();
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Beef className="h-5 w-5" />
-            {saleToEdit ? 'Editar Venda' : 'Nova Venda de Gado'}
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+            <Beef className="h-6 w-6 text-primary" />
+            {saleToEdit ? 'Editar Venda de Gado' : 'Nova Venda de Gado'}
           </DialogTitle>
           <DialogDescription>
-            Registre a venda de animais dos currais para compradores
+            Registre uma nova venda de animais do confinamento
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic" className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Seleção
-                </TabsTrigger>
-                <TabsTrigger value="buyer" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Comprador
-                </TabsTrigger>
-                <TabsTrigger value="logistics" className="flex items-center gap-2">
-                  <Truck className="h-4 w-4" />
-                  Logística
-                </TabsTrigger>
-                <TabsTrigger value="summary" className="flex items-center gap-2">
-                  <Calculator className="h-4 w-4" />
-                  Resumo
-                </TabsTrigger>
-              </TabsList>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full">
+            <ScrollArea className="flex-1 p-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="basic">
+                    <Home className="h-4 w-4 mr-2" />
+                    Básico
+                  </TabsTrigger>
+                  <TabsTrigger value="weight">
+                    <Scale className="h-4 w-4 mr-2" />
+                    Pesos
+                  </TabsTrigger>
+                  <TabsTrigger value="buyer">
+                    <Users className="h-4 w-4 mr-2" />
+                    Comprador
+                  </TabsTrigger>
+                  <TabsTrigger value="payment">
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Pagamento
+                  </TabsTrigger>
+                </TabsList>
 
-              <ScrollArea className="h-[500px] mt-4">
-                {/* Tab: Seleção de Animais */}
-                <TabsContent value="basic" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Informações da Venda</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="internalCode"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Código Interno</FormLabel>
-                              <FormControl>
-                                <Input {...field} disabled placeholder="Gerado automaticamente" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="saleDate"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Data da Venda</FormLabel>
-                              <Popover>
-                                <PopoverTrigger asChild>
-                                  <FormControl>
-                                    <Button
-                                      variant="outline"
-                                      className={cn(
-                                        "w-full pl-3 text-left font-normal",
-                                        !field.value && "text-muted-foreground"
-                                      )}
-                                    >
-                                      {field.value ? (
-                                        format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                                      ) : (
-                                        <span>Selecione a data</span>
-                                      )}
-                                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                  </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                  <Calendar
-                                    mode="single"
-                                    selected={field.value}
-                                    onSelect={field.onChange}
-                                    disabled={(date) =>
-                                      date > new Date() || date < new Date("1900-01-01")
-                                    }
-                                    initialFocus
-                                    locale={ptBR}
-                                  />
-                                </PopoverContent>
-                              </Popover>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <Separator />
-
-                      <FormField
-                        control={form.control}
-                        name="penId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Curral de Origem</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione o curral" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {availablePens.map((pen) => (
-                                  <SelectItem key={pen.id} value={pen.id}>
-                                    <div className="flex items-center justify-between w-full">
-                                      <span>{pen.name}</span>
-                                      <Badge variant="secondary" className="ml-2">
-                                        {pen.currentOccupancy} animais
-                                      </Badge>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {selectedPen && (
-                        <Alert>
-                          <Info className="h-4 w-4" />
-                          <AlertDescription>
-                            <div className="space-y-1">
-                              <p>Curral: <strong>{selectedPen.name}</strong></p>
-                              <p>Capacidade: {selectedPen.currentOccupancy}/{selectedPen.capacity}</p>
-                              <p>Animais disponíveis: {availableAnimals.total}</p>
-                            </div>
-                          </AlertDescription>
-                        </Alert>
+                <TabsContent value="basic" className="space-y-4 mt-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Código Interno */}
+                    <FormField
+                      control={form.control}
+                      name="internalCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Código Interno</FormLabel>
+                          <FormControl>
+                            <Input {...field} disabled className="bg-muted" />
+                          </FormControl>
+                        </FormItem>
                       )}
+                    />
 
-                      <FormField
-                        control={form.control}
-                        name="saleType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tipo de Venda</FormLabel>
-                            <FormControl>
-                              <RadioGroup
-                                onValueChange={field.onChange}
-                                defaultValue={field.value}
-                                className="flex flex-col space-y-1"
-                              >
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="total" id="total" />
-                                  <Label htmlFor="total">Venda Total (todos os animais do curral)</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <RadioGroupItem value="partial" id="partial" />
-                                  <Label htmlFor="partial">Venda Parcial (selecionar quantidade)</Label>
-                                </div>
-                              </RadioGroup>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {watchedValues.saleType === 'partial' && (
-                        <div className="space-y-4 p-4 border rounded-lg">
-                          <FormField
-                            control={form.control}
-                            name="quantity"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Quantidade Total</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    {...field}
-                                    onChange={(e) => field.onChange(Number(e.target.value))}
-                                    max={availableAnimals.total}
-                                  />
-                                </FormControl>
-                                <FormDescription>
-                                  Máximo disponível: {availableAnimals.total} animais
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <div className="space-y-2">
-                            <Label>Tipos de Animais</Label>
-                            <div className="grid grid-cols-3 gap-4">
-                              <FormField
-                                control={form.control}
-                                name="selectedAnimals.common"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-xs">Comum</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        type="number"
-                                        {...field}
-                                        onChange={(e) => field.onChange(Number(e.target.value))}
-                                        max={availableAnimals.common}
-                                      />
-                                    </FormControl>
-                                    <FormDescription className="text-xs">
-                                      Máx: {availableAnimals.common}
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
+                    {/* Data da Venda */}
+                    <FormField
+                      control={form.control}
+                      name="saleDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Data da Venda</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {field.value ? (
+                                    format(field.value, "dd/MM/yyyy", { locale: ptBR })
+                                  ) : (
+                                    <span>Selecione a data</span>
+                                  )}
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                  date > new Date() || date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                                locale={ptBR}
                               />
-
-                              <FormField
-                                control={form.control}
-                                name="selectedAnimals.china"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-xs">China</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        type="number"
-                                        {...field}
-                                        onChange={(e) => field.onChange(Number(e.target.value))}
-                                        max={availableAnimals.china}
-                                      />
-                                    </FormControl>
-                                    <FormDescription className="text-xs">
-                                      Máx: {availableAnimals.china}
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="selectedAnimals.angus"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel className="text-xs">Angus</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        type="number"
-                                        {...field}
-                                        onChange={(e) => field.onChange(Number(e.target.value))}
-                                        max={availableAnimals.angus}
-                                      />
-                                    </FormControl>
-                                    <FormDescription className="text-xs">
-                                      Máx: {availableAnimals.angus}
-                                    </FormDescription>
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          </div>
-                        </div>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                    </CardContent>
-                  </Card>
+                    />
+                  </div>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Pesos e Rendimento</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="exitWeight"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Peso Total de Saída (kg)</FormLabel>
-                            <FormControl>
+                  {/* Seleção de Curral */}
+                  <FormField
+                    control={form.control}
+                    name="penId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Curral de Origem</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o curral" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {pensWithOccupancy.map((pen) => (
+                              <SelectItem key={pen.id} value={pen.id}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span className="font-medium">{pen.penNumber || pen.name}</span>
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Badge variant="secondary">
+                                      {pen.currentOccupancy} animais
+                                    </Badge>
+                                    <Badge variant="outline">
+                                      Capacidade: {pen.capacity}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        {selectedPen && (
+                          <Alert className="mt-2">
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                              <div className="space-y-1">
+                                <div>Curral: <strong>{selectedPen.penNumber || selectedPen.name}</strong></div>
+                                <div>Animais disponíveis: <strong>{selectedPen.currentOccupancy}</strong></div>
+                                <div>Capacidade total: <strong>{selectedPen.capacity}</strong></div>
+                                {selectedPen.lots && selectedPen.lots.length > 0 && (
+                                  <div>Lotes no curral: <strong>{selectedPen.lots.length}</strong></div>
+                                )}
+                              </div>
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Tipo de Venda */}
+                  <FormField
+                    control={form.control}
+                    name="saleType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tipo de Venda</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            defaultValue="total"
+                            className="flex flex-col space-y-2"
+                          >
+                            <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent">
+                              <RadioGroupItem value="total" id="sale-type-total" />
+                              <Label htmlFor="sale-type-total" className="flex-1 cursor-pointer">
+                                <div>
+                                  <div className="font-medium">Venda Total</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    Vender todos os animais do curral
+                                  </div>
+                                </div>
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent">
+                              <RadioGroupItem value="partial" id="sale-type-partial" />
+                              <Label htmlFor="sale-type-partial" className="flex-1 cursor-pointer">
+                                <div>
+                                  <div className="font-medium">Venda Parcial</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    Vender apenas parte dos animais
+                                  </div>
+                                </div>
+                              </Label>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Quantidade (apenas para venda parcial) */}
+                  {watchedValues.saleType === 'partial' && (
+                    <FormField
+                      control={form.control}
+                      name="quantity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Quantidade de Animais</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                              max={selectedPen?.currentOccupancy || 0}
+                              placeholder="Digite a quantidade"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Máximo disponível: {selectedPen?.currentOccupancy || 0} animais
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </TabsContent>
+
+                <TabsContent value="weight" className="space-y-4 mt-4">
+                  <div className="space-y-4">
+                    {/* Peso de Saída da Fazenda */}
+                    <FormField
+                      control={form.control}
+                      name="exitWeight"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Peso Total de Saída da Fazenda (kg)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Scale className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                               <Input
                                 type="number"
+                                className="pl-10"
                                 {...field}
                                 onChange={(e) => field.onChange(Number(e.target.value))}
                                 placeholder="Ex: 15000"
                               />
-                            </FormControl>
-                            <FormDescription>
-                              Peso médio por animal: {formatWeight(calculations.averageWeight)}
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Peso total dos animais na saída da fazenda
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control}
-                        name="carcassYield"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Rendimento de Carcaça (%)</FormLabel>
-                            <FormControl>
-                              <div className="space-y-2">
-                                <Slider
-                                  min={40}
-                                  max={65}
-                                  step={0.5}
-                                  value={[field.value]}
-                                  onValueChange={(value) => field.onChange(value[0])}
-                                />
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                  <span>40%</span>
-                                  <span className="font-medium text-foreground">{field.value}%</span>
-                                  <span>65%</span>
-                                </div>
-                              </div>
-                            </FormControl>
-                            <FormDescription>
-                              Peso de carcaça: {formatWeight(calculations.carcassWeight)} ({calculations.totalArrobas.toFixed(2)}@)
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Tab: Comprador e Valores */}
-                <TabsContent value="buyer" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Informações do Comprador</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="buyerType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tipo de Comprador</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione o tipo" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="slaughterhouse">Frigorífico</SelectItem>
-                                <SelectItem value="dealer">Intermediário</SelectItem>
-                                <SelectItem value="final">Consumidor Final</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="buyerId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Comprador</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione o comprador" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {buyers
-                                  .filter(b => {
-                                    if (watchedValues.buyerType === 'slaughterhouse') {
-                                      return b.type === 'slaughterhouse';
-                                    }
-                                    return b.type === 'dealer' || b.type === 'buyer';
-                                  })
-                                  .map((buyer) => (
-                                    <SelectItem key={buyer.id} value={buyer.id}>
-                                      <div className="flex flex-col">
-                                        <span>{buyer.name}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                          {buyer.city} - {buyer.state}
-                                        </span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Valores e Pagamento</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="pricePerArroba"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Preço por Arroba (R$)</FormLabel>
-                            <FormControl>
+                    {/* Peso de Carcaça */}
+                    <FormField
+                      control={form.control}
+                      name="carcassWeight"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Peso Total de Carcaça (kg)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Beef className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                               <Input
                                 type="number"
+                                className="pl-10"
                                 {...field}
                                 onChange={(e) => field.onChange(Number(e.target.value))}
-                                placeholder="Ex: 320.00"
+                                placeholder="Ex: 7800"
                               />
-                            </FormControl>
-                            <FormDescription>
-                              Valor bruto total: {formatCurrency(calculations.grossValue)}
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="commissionType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Tipo de Comissão</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="none">Sem Comissão</SelectItem>
-                                  <SelectItem value="percentage">Percentual</SelectItem>
-                                  <SelectItem value="fixed">Valor Fixo</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        {watchedValues.commissionType !== 'none' && (
-                          <FormField
-                            control={form.control}
-                            name="commissionValue"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  {watchedValues.commissionType === 'percentage' ? 'Comissão (%)' : 'Comissão (R$/cabeça)'}
-                                </FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    {...field}
-                                    onChange={(e) => field.onChange(Number(e.target.value))}
-                                  />
-                                </FormControl>
-                                <FormDescription>
-                                  Total: {formatCurrency(calculations.commission)}
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="discountType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Tipo de Desconto</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="none">Sem Desconto</SelectItem>
-                                  <SelectItem value="percentage">Percentual</SelectItem>
-                                  <SelectItem value="fixed">Valor Fixo</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        {watchedValues.discountType !== 'none' && (
-                          <FormField
-                            control={form.control}
-                            name="discountValue"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>
-                                  {watchedValues.discountType === 'percentage' ? 'Desconto (%)' : 'Desconto (R$)'}
-                                </FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    {...field}
-                                    onChange={(e) => field.onChange(Number(e.target.value))}
-                                  />
-                                </FormControl>
-                                <FormDescription>
-                                  Total: {formatCurrency(calculations.discount)}
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
-                      </div>
-
-                      <Separator />
-
-                      <FormField
-                        control={form.control}
-                        name="paymentType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Forma de Pagamento</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="cash">À Vista</SelectItem>
-                                <SelectItem value="installment">Parcelado</SelectItem>
-                                <SelectItem value="barter">Permuta</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {watchedValues.paymentType === 'installment' && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="installments"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Número de Parcelas</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    {...field}
-                                    onChange={(e) => field.onChange(Number(e.target.value))}
-                                    min="1"
-                                    max="12"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="paymentTerms"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Prazo (dias)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    {...field}
-                                    onChange={(e) => field.onChange(Number(e.target.value))}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Peso total de carcaça informado pelo frigorífico
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
                       )}
+                    />
 
-                      <FormField
-                        control={form.control}
-                        name="payerAccountId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Conta Recebedora</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Selecione a conta" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {activeAccounts.map((account) => (
-                                  <SelectItem key={account.id} value={account.id}>
-                                    <div className="flex items-center justify-between">
-                                      <span>{account.name}</span>
-                                      <Badge variant="outline" className="ml-2">
-                                        {account.type}
-                                      </Badge>
+                    {/* Rendimento de Carcaça (Calculado) */}
+                    <FormField
+                      control={form.control}
+                      name="carcassYield"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Rendimento de Carcaça (%)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Percent className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                {...field}
+                                disabled
+                                className="pl-10 bg-muted"
+                                value={`${field.value?.toFixed(2) || '0.00'}%`}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Calculado automaticamente com base nos pesos informados
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Card de Resumo */}
+                    {calculations.arrobas > 0 && (
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-sm">Resumo dos Cálculos</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Total de Arrobas:</span>
+                              <span className="font-medium">{calculations.arrobas.toFixed(2)} @</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">Peso Médio/Cabeça:</span>
+                              <span className="font-medium">
+                                {calculations.averageWeight.toFixed(2)} kg
+                              </span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="buyer" className="space-y-4 mt-4">
+                  {/* Seleção do Comprador */}
+                  <FormField
+                    control={form.control}
+                    name="buyerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Comprador</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o comprador" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {buyers.map((buyer) => (
+                              <SelectItem key={buyer.id} value={buyer.id}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{buyer.name}</span>
+                                  {buyer.type && (
+                                    <Badge variant="outline" className="ml-2">
+                                      {buyer.type}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Preço por Arroba */}
+                  <FormField
+                    control={form.control}
+                    name="pricePerArroba"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preço por Arroba (R$/@)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="number"
+                              className="pl-10"
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                              placeholder="Ex: 320.00"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Valor acordado por arroba com o comprador
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Card de Valores Calculados */}
+                  {calculations.grossValue > 0 && (
+                    <Card className="border-primary/20 bg-primary/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Calculator className="h-5 w-5" />
+                          Valores Calculados
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Arrobas (@):</span>
+                            <span className="font-medium text-lg">
+                              {calculations.arrobas.toFixed(2)} @
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Preço por Arroba:</span>
+                            <span className="font-medium text-lg">
+                              {formatCurrency(watchedValues.pricePerArroba || 0)}
+                            </span>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">Valor Total da Venda:</span>
+                            <span className="font-bold text-xl text-primary">
+                              {formatCurrency(calculations.grossValue)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-muted-foreground">Valor por Cabeça:</span>
+                            <span className="font-medium">
+                              {formatCurrency(calculations.valuePerHead)}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="payment" className="space-y-4 mt-4">
+                  {/* Forma de Pagamento */}
+                  <FormField
+                    control={form.control}
+                    name="paymentType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Forma de Pagamento</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            value={field.value}
+                            defaultValue="cash"
+                            className="flex flex-col space-y-2"
+                          >
+                            <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent">
+                              <RadioGroupItem value="cash" id="payment-type-cash" />
+                              <Label htmlFor="payment-type-cash" className="flex-1 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <Banknote className="h-4 w-4" />
+                                  <div>
+                                    <div className="font-medium">À Vista</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Pagamento imediato
                                     </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormDescription>
-                              Conta onde o valor será recebido
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                                  </div>
+                                </div>
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent">
+                              <RadioGroupItem value="installment" id="payment-type-installment" />
+                              <Label htmlFor="payment-type-installment" className="flex-1 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="h-4 w-4" />
+                                  <div>
+                                    <div className="font-medium">A Prazo</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Pagamento com data futura
+                                    </div>
+                                  </div>
+                                </div>
+                              </Label>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                {/* Tab: Logística */}
-                <TabsContent value="logistics" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Transporte e Entrega</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="transportType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Responsável pelo Transporte</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  {/* Data de Recebimento (para pagamento a prazo) */}
+                  {watchedValues.paymentType === 'installment' && (
+                    <FormField
+                      control={form.control}
+                      name="paymentDate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Data Estimada de Recebimento</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  <CalendarIcon className="mr-2 h-4 w-4" />
+                                  {field.value ? (
+                                    format(field.value, "dd/MM/yyyy", { locale: ptBR })
+                                  ) : (
+                                    <span>Selecione a data de recebimento</span>
+                                  )}
+                                </Button>
                               </FormControl>
-                              <SelectContent>
-                                <SelectItem value="buyer">Comprador</SelectItem>
-                                <SelectItem value="seller">Vendedor</SelectItem>
-                                <SelectItem value="third_party">Terceirizado</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {watchedValues.transportType === 'third_party' && (
-                        <FormField
-                          control={form.control}
-                          name="transporterId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Transportadora</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione a transportadora" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {transporters.map((transporter) => (
-                                    <SelectItem key={transporter.id} value={transporter.id}>
-                                      {transporter.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) => date < new Date()}
+                                initialFocus
+                                locale={ptBR}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
                       )}
+                    />
+                  )}
 
-                      <FormField
-                        control={form.control}
-                        name="freightValue"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Valor do Frete (R$)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                {...field}
-                                onChange={(e) => field.onChange(Number(e.target.value))}
-                                placeholder="0.00"
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Custo por animal: {formatCurrency(watchedValues.quantity > 0 ? field.value / watchedValues.quantity : 0)}
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  {/* Conta para Recebimento */}
+                  <FormField
+                    control={form.control}
+                    name="receiverAccountId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Conta para Recebimento</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a conta" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {activeAccounts.map((account) => (
+                              <SelectItem key={account.id} value={account.id}>
+                                <div className="flex items-center justify-between w-full">
+                                  <span>{account.accountName}</span>
+                                  <Badge variant="outline" className="ml-2">
+                                    {account.bankName}
+                                  </Badge>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Conta bancária onde o valor será recebido
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                      <FormField
-                        control={form.control}
-                        name="deliveryDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Data de Entrega Prevista</FormLabel>
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <FormControl>
-                                  <Button
-                                    variant="outline"
-                                    className={cn(
-                                      "w-full pl-3 text-left font-normal",
-                                      !field.value && "text-muted-foreground"
-                                    )}
-                                  >
-                                    {field.value ? (
-                                      format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                                    ) : (
-                                      <span>Selecione a data</span>
-                                    )}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                  </Button>
-                                </FormControl>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={field.value}
-                                  onSelect={field.onChange}
-                                  disabled={(date) =>
-                                    date < new Date()
-                                  }
-                                  initialFocus
-                                  locale={ptBR}
-                                />
-                              </PopoverContent>
-                            </Popover>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="deliveryLocation"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Local de Entrega</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                {...field}
-                                placeholder="Endereço completo de entrega"
-                                rows={2}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Documentação</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="invoiceNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Número da Nota Fiscal</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Ex: NF-2024-001234" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="contractNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Número do Contrato</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="Ex: CTR-2024-0456" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="observations"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Observações</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                {...field}
-                                placeholder="Informações adicionais sobre a venda"
-                                rows={3}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                  </Card>
+                  {/* Observações */}
+                  <FormField
+                    control={form.control}
+                    name="observations"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Observações</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Adicione observações sobre a venda..."
+                            className="resize-none"
+                            rows={4}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Informações adicionais sobre a venda
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
                 </TabsContent>
+              </Tabs>
+            </ScrollArea>
 
-                {/* Tab: Resumo Final */}
-                <TabsContent value="summary" className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" />
-                        Resumo da Venda
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
-                        {/* Informações Gerais */}
-                        <div>
-                          <h4 className="font-medium text-sm mb-3">Informações Gerais</h4>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Código:</span>
-                              <span className="font-medium">{watchedValues.internalCode}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Data:</span>
-                              <span className="font-medium">
-                                {watchedValues.saleDate && format(watchedValues.saleDate, "dd/MM/yyyy", { locale: ptBR })}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Curral:</span>
-                              <span className="font-medium">{selectedPen?.name || '-'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Tipo:</span>
-                              <span className="font-medium">
-                                {watchedValues.saleType === 'total' ? 'Venda Total' : 'Venda Parcial'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Animais */}
-                        <div>
-                          <h4 className="font-medium text-sm mb-3">Animais</h4>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Quantidade Total:</span>
-                              <span className="font-medium">{watchedValues.quantity} cabeças</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Peso Total:</span>
-                              <span className="font-medium">{formatWeight(watchedValues.exitWeight)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Peso Médio:</span>
-                              <span className="font-medium">{formatWeight(calculations.averageWeight)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Rendimento:</span>
-                              <span className="font-medium">{watchedValues.carcassYield}%</span>
-                            </div>
-                          </div>
-                          
-                          {watchedValues.saleType === 'partial' && (
-                            <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
-                              <div className="flex justify-between">
-                                <span>Comum: {watchedValues.selectedAnimals.common}</span>
-                                <span>China: {watchedValues.selectedAnimals.china}</span>
-                                <span>Angus: {watchedValues.selectedAnimals.angus}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <Separator />
-
-                        {/* Valores */}
-                        <div>
-                          <h4 className="font-medium text-sm mb-3">Valores</h4>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Peso de Carcaça:</span>
-                              <span className="font-medium">{formatWeight(calculations.carcassWeight)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Total em Arrobas:</span>
-                              <span className="font-medium">{calculations.totalArrobas.toFixed(2)}@</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Preço por Arroba:</span>
-                              <span className="font-medium">{formatCurrency(watchedValues.pricePerArroba)}</span>
-                            </div>
-                            
-                            <div className="pt-2 space-y-1">
-                              <div className="flex justify-between font-medium">
-                                <span>Valor Bruto:</span>
-                                <span className="text-green-600">{formatCurrency(calculations.grossValue)}</span>
-                              </div>
-                              
-                              {watchedValues.freightValue > 0 && (
-                                <div className="flex justify-between text-xs">
-                                  <span className="text-muted-foreground">(-) Frete:</span>
-                                  <span className="text-red-600">-{formatCurrency(watchedValues.freightValue)}</span>
-                                </div>
-                              )}
-                              
-                              {calculations.commission > 0 && (
-                                <div className="flex justify-between text-xs">
-                                  <span className="text-muted-foreground">(-) Comissão:</span>
-                                  <span className="text-red-600">-{formatCurrency(calculations.commission)}</span>
-                                </div>
-                              )}
-                              
-                              {calculations.discount > 0 && (
-                                <div className="flex justify-between text-xs">
-                                  <span className="text-muted-foreground">(-) Desconto:</span>
-                                  <span className="text-red-600">-{formatCurrency(calculations.discount)}</span>
-                                </div>
-                              )}
-                              
-                              <Separator className="my-2" />
-                              
-                              <div className="flex justify-between font-bold text-base">
-                                <span>Valor Líquido:</span>
-                                <span className="text-green-600">{formatCurrency(calculations.netValue)}</span>
-                              </div>
-                              
-                              <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>Valor por Animal:</span>
-                                <span>{formatCurrency(calculations.valuePerAnimal)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Separator />
-
-                        {/* Comprador e Pagamento */}
-                        <div>
-                          <h4 className="font-medium text-sm mb-3">Comprador e Pagamento</h4>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Comprador:</span>
-                              <span className="font-medium">
-                                {buyers.find(b => b.id === watchedValues.buyerId)?.name || '-'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Tipo:</span>
-                              <span className="font-medium">
-                                {watchedValues.buyerType === 'slaughterhouse' ? 'Frigorífico' :
-                                 watchedValues.buyerType === 'dealer' ? 'Intermediário' : 'Consumidor Final'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Pagamento:</span>
-                              <span className="font-medium">
-                                {watchedValues.paymentType === 'cash' ? 'À Vista' :
-                                 watchedValues.paymentType === 'installment' ? `Parcelado (${watchedValues.installments}x)` : 'Permuta'}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">Prazo:</span>
-                              <span className="font-medium">{watchedValues.paymentTerms} dias</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Alerta de confirmação */}
-                        <Alert>
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            Verifique todos os dados antes de confirmar a venda. 
-                            Esta operação irá atualizar o estoque de animais no curral selecionado.
-                          </AlertDescription>
-                        </Alert>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </ScrollArea>
-            </Tabs>
-
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isSubmitting}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || isLoading}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    {saleToEdit ? 'Atualizar' : 'Registrar'} Venda
-                  </>
-                )}
-              </Button>
+            <DialogFooter className="p-6 pt-0">
+              <div className="flex items-center justify-between w-full">
+                <div className="text-sm text-muted-foreground">
+                  {calculations.quantity > 0 && (
+                    <span>
+                      {calculations.quantity} animais • {calculations.arrobas.toFixed(2)} @ • {formatCurrency(calculations.grossValue)}
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleClose}
+                    disabled={isSubmitting}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || pensLoading || partnersLoading}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        {saleToEdit ? 'Atualizar' : 'Registrar'} Venda
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </DialogFooter>
           </form>
         </Form>

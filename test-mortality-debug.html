@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mortality API</title>
+</head>
+<body>
+    <h1>Testing Mortality API</h1>
+    <div id="result"></div>
+    <script>
+        async function testMortalityAPI() {
+            try {
+                console.log('🔍 Testando API de mortalidade...');
+                
+                // Test mortality patterns endpoint
+                const response = await fetch('http://localhost:3001/api/v1/analytics/mortality/patterns');
+                const data = await response.json();
+                
+                console.log('📊 API Response:', data);
+                document.getElementById('result').innerHTML = `
+                    <h2>API Response:</h2>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                document.getElementById('result').innerHTML = `
+                    <h2>Erro:</h2>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+        
+        // Execute on page load
+        window.onload = testMortalityAPI;
+    </script>
+</body>
+</html>

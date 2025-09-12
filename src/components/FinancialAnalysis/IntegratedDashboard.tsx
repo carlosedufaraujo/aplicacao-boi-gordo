@@ -296,7 +296,7 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Despesas:</span>
+                      <span>Despesas + Perdas Operacionais:</span>
                       <span className="font-medium text-red-600">
                         {formatCurrency(currentAnalysis.totalExpenses)}
                       </span>
@@ -594,3 +594,5 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
     </div>
   );
 };
+
+export default IntegratedDashboard;

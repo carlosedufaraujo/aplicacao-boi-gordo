@@ -31,39 +31,41 @@ export const usePenOccupancyApi = () => {
       setLoading(true);
       setError(null);
 
-      // Busca todos os currais com suas estatísticas
-      const response = await penApi.getAll({ includeStats: true });
+      // Busca dados de ocupação dos currais
+      const response = await penApi.getOccupancy();
       
       if (response.status === 'success' && response.data) {
         // Se response.data for um objeto paginado, extrair o array
-        const pens = Array.isArray(response.data) 
+        const occupancyInfo = Array.isArray(response.data) 
           ? response.data 
           : response.data.items || [];
 
         // Mapear para formato de ocupação
-        const occupancy: PenOccupancy[] = pens.map(pen => {
-          const occupancyRate = pen.capacity > 0 
-            ? (pen.currentOccupancy / pen.capacity) * 100 
-            : 0;
+        const occupancy: PenOccupancy[] = occupancyInfo.map(pen => {
+          const occupancyRate = pen.percentageOccupied || (
+            pen.capacity > 0 
+              ? ((pen.currentOccupancy || 0) / pen.capacity) * 100 
+              : 0
+          );
 
           let status: PenOccupancy['status'] = 'available';
-          if (!pen.isActive) {
+          if (pen.status === 'MAINTENANCE' || pen.status === 'QUARANTINE') {
             status = 'maintenance';
-          } else if (occupancyRate >= 95) {
+          } else if (pen.status === 'OCCUPIED' && occupancyRate >= 95) {
             status = 'full';
-          } else if (occupancyRate > 0) {
+          } else if (pen.status === 'OCCUPIED' && occupancyRate > 0) {
             status = 'partial';
           }
 
           return {
-            penId: pen.id,
+            penId: pen.penId || pen.id,
             penNumber: pen.penNumber,
             capacity: pen.capacity,
             currentOccupancy: pen.currentOccupancy || 0,
             occupancyRate,
             status,
-            lastUpdated: new Date(pen.updatedAt),
-            activeLots: pen.activeLots || 0
+            lastUpdated: new Date(),
+            activeLots: pen.activeLots || Math.ceil((pen.currentOccupancy || 0) > 0 ? 1 : 0)
           };
         });
 

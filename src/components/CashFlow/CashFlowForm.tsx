@@ -48,12 +48,55 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
 }) => {
   const { toast } = useToast();
   const [errors, setErrors] = useState<any>({});
+  
+  // Debug: log dos dados recebidos
+  console.log('🔧 [CashFlowForm] Categories:', categories);
+  console.log('🔧 [CashFlowForm] Accounts:', accounts);
+  
+  // Funções para formatação de moeda
+  const formatCurrency = (value: string | number): string => {
+    if (!value) return '';
+    const numericValue = typeof value === 'string' ? parseFloat(value.toString().replace(/[^\d.-]/g, '')) : value;
+    if (isNaN(numericValue)) return '';
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+    }).format(numericValue);
+  };
+
+  const formatCurrencyInput = (value: string): string => {
+    // Remove tudo exceto números
+    const numbersOnly = value.replace(/[^\d]/g, '');
+    
+    if (!numbersOnly) return '';
+    
+    // Converte para centavos (últimos 2 dígitos são decimais)
+    const numericValue = parseInt(numbersOnly) / 100;
+    
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+    }).format(numericValue);
+  };
+
+  const parseCurrencyToNumber = (value: string): number => {
+    if (!value) return 0;
+    // Remove tudo exceto números
+    const numbersOnly = value.replace(/[^\d]/g, '');
+    if (!numbersOnly) return 0;
+    // Converte de centavos para reais
+    return parseInt(numbersOnly) / 100;
+  };
+  
   const [formData, setFormData] = useState({
     type: cashFlow?.type || 'EXPENSE',
     categoryId: cashFlow?.categoryId || '',
     accountId: cashFlow?.accountId || '',
     description: cashFlow?.description || '',
-    amount: cashFlow?.amount || '',
+    amount: cashFlow?.amount || 0,
+    displayAmount: cashFlow?.amount ? formatCurrency(cashFlow.amount) : '', // Valor formatado para exibição
     date: cashFlow?.date ? new Date(cashFlow.date) : new Date(),
     dueDate: cashFlow?.dueDate ? new Date(cashFlow.dueDate) : null,
     status: cashFlow?.status || 'PENDING',
@@ -63,7 +106,24 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
     notes: cashFlow?.notes || '',
   });
 
-  const filteredCategories = categories.filter(cat => cat.type === formData.type);
+  const filteredCategories = categories?.filter(cat => cat.type === formData.type) || [];
+  
+  // Debug: log das categorias filtradas
+  console.log('🔧 [CashFlowForm] FormData.type:', formData.type);
+  console.log('🔧 [CashFlowForm] Filtered categories:', filteredCategories);
+
+  // Função para lidar com mudança no valor
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    const formattedValue = formatCurrencyInput(inputValue);
+    const numericValue = parseCurrencyToNumber(inputValue);
+    
+    setFormData({
+      ...formData,
+      amount: numericValue,
+      displayAmount: formattedValue
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,10 +146,18 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
     // Limpar erros e preparar dados
     setErrors({});
     const dataToSubmit = {
-      ...formData,
-      amount: parseFloat(formData.amount),
+      type: formData.type,
+      categoryId: formData.categoryId,
+      accountId: formData.accountId,
+      description: formData.description,
+      amount: formData.amount,
       date: formData.date.toISOString(),
       dueDate: formData.dueDate?.toISOString(),
+      status: formData.status,
+      paymentMethod: formData.paymentMethod,
+      reference: formData.reference,
+      supplier: formData.supplier,
+      notes: formData.notes,
     };
     
     onSubmit(dataToSubmit);
@@ -155,19 +223,25 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center gap-2">
-                        {category.color && (
-                          <div 
-                            className="w-3 h-3 rounded-full" 
-                            style={{ backgroundColor: category.color }}
-                          />
-                        )}
-                        {category.name}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {filteredCategories.length > 0 ? (
+                    filteredCategories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        <div className="flex items-center gap-2">
+                          {category.color && (
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                          )}
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      Nenhuma categoria disponível para {formData.type === 'INCOME' ? 'receitas' : 'despesas'}
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -182,11 +256,17 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
                   <SelectValue placeholder="Selecione uma conta" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.name}
-                    </SelectItem>
-                  ))}
+                  {accounts && accounts.length > 0 ? (
+                    accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.accountName || account.name} - {account.bankName}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      Nenhuma conta disponível
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -212,12 +292,11 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
               <Label htmlFor="amount" className={errors.amount ? 'text-destructive' : ''}>Valor</Label>
               <Input
                 id="amount"
-                type="number"
-                step="0.01"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                type="text"
+                value={formData.displayAmount}
+                onChange={handleAmountChange}
                 className={errors.amount ? 'border-destructive' : ''}
-                placeholder="0,00"
+                placeholder="R$ 0,00"
                 required
               />
               {errors.amount && (
@@ -226,20 +305,23 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="paymentMethod">Forma de Pagamento</Label>
+              <Label htmlFor="paymentMethod">Modalidade de Pagamento</Label>
               <Select
                 value={formData.paymentMethod}
-                onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}
+                onValueChange={(value) => {
+                  setFormData({ 
+                    ...formData, 
+                    paymentMethod: value,
+                    dueDate: value === 'A_VISTA' ? null : formData.dueDate
+                  });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PIX">PIX</SelectItem>
-                  <SelectItem value="TED">TED</SelectItem>
-                  <SelectItem value="DINHEIRO">Dinheiro</SelectItem>
-                  <SelectItem value="CARTAO">Cartão</SelectItem>
-                  <SelectItem value="BOLETO">Boleto</SelectItem>
+                  <SelectItem value="A_VISTA">À Vista</SelectItem>
+                  <SelectItem value="A_PRAZO">A Prazo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -278,21 +360,31 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label>Data de Vencimento</Label>
+              <Label className={errors.dueDate ? 'text-destructive' : ''}>
+                Data de Vencimento
+                {formData.paymentMethod === 'A_PRAZO' && <span className="text-red-500 ml-1">*</span>}
+              </Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
+                    disabled={formData.paymentMethod === 'A_VISTA'}
                     className={cn(
                       'w-full justify-start text-left font-normal',
-                      !formData.dueDate && 'text-muted-foreground'
+                      !formData.dueDate && 'text-muted-foreground',
+                      formData.paymentMethod === 'A_VISTA' && 'opacity-50 cursor-not-allowed',
+                      errors.dueDate && 'border-destructive'
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formData.dueDate ? (
                       format(formData.dueDate, 'dd/MM/yyyy', { locale: ptBR })
+                    ) : formData.paymentMethod === 'A_VISTA' ? (
+                      'Não aplicável (À Vista)'
+                    ) : formData.paymentMethod === 'A_PRAZO' ? (
+                      'Selecione a data de vencimento'
                     ) : (
-                      'Opcional'
+                      'Selecione modalidade primeiro'
                     )}
                   </Button>
                 </PopoverTrigger>
@@ -302,10 +394,14 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
                     selected={formData.dueDate}
                     onSelect={(date) => setFormData({ ...formData, dueDate: date })}
                     locale={ptBR}
+                    disabled={(date) => date < new Date()}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
+              {errors.dueDate && (
+                <p className="text-sm text-destructive">{errors.dueDate}</p>
+              )}
             </div>
           </div>
 

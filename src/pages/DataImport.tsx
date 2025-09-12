@@ -1082,3 +1082,5 @@ export function DataImport() {
     </div>
   );
 }
+
+export default DataImport;

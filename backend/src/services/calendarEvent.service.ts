@@ -100,6 +100,15 @@ export class CalendarEventService {
   }
 
   /**
+   * Busca evento por ID relacionado (para integração com outros módulos)
+   */
+  async findEventByRelatedId(relatedId: string): Promise<CalendarEvent | null> {
+    return await prisma.calendarEvent.findFirst({
+      where: { relatedId }
+    });
+  }
+
+  /**
    * Cria um novo evento de calendário
    */
   async createEvent(data: CreateCalendarEventData): Promise<CalendarEvent> {

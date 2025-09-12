@@ -103,15 +103,14 @@ export class PartnerService {
     }
 
     // Conta relacionamentos diretamente no banco (sem include problemático)
-    const [vendorCount, brokerCount, transportCount, salesCount, contributionsCount] = await Promise.all([
+    const [vendorCount, brokerCount, transportCount, salesCount] = await Promise.all([
       prisma.cattlePurchase.count({ where: { vendorId: id } }),
       prisma.cattlePurchase.count({ where: { brokerId: id } }),
       prisma.cattlePurchase.count({ where: { transportCompanyId: id } }),
-      prisma.saleRecord.count({ where: { buyerId: id } }),
-      prisma.financialContribution.count({ where: { partnerId: id } })
+      prisma.saleRecord.count({ where: { buyerId: id } })
     ]);
 
-    const totalRelations = vendorCount + brokerCount + transportCount + salesCount + contributionsCount;
+    const totalRelations = vendorCount + brokerCount + transportCount + salesCount;
 
     if (totalRelations > 0) {
       // Inativa ao invés de deletar quando há relacionamentos
@@ -124,7 +123,7 @@ export class PartnerService {
           `${vendorCount} compras como vendedor, ` +
           `${brokerCount} como corretor, ` +
           `${transportCount} como transportador, ` +
-          `${salesCount} vendas e ${contributionsCount} contribuições.`
+          `${salesCount} vendas.`
       };
     }
 

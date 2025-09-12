@@ -16,14 +16,19 @@ export const useSaleRecordsApi = () => {
       console.log('🔄 Carregando registros de venda via API...');
       
       const data = await saleRecordsApi.findAll(filters);
-      console.log('✅ Registros de venda carregados via API:', data?.length || 0);
+      console.log('✅ Registros de venda carregados via API:', data);
+      console.log('📊 Tipo de dados recebidos:', typeof data, Array.isArray(data));
       
-      setSaleRecords(data || []);
+      // Garantir que sempre temos um array
+      const salesArray = Array.isArray(data) ? data : [];
+      setSaleRecords(salesArray);
+      console.log('💾 Estado atualizado com', salesArray.length, 'vendas');
     } catch (err: any) {
       console.error('❌ Erro ao carregar registros de venda:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao carregar registros de venda';
       setError(errorMessage);
       toast.error(errorMessage);
+      setSaleRecords([]); // Garantir array vazio em caso de erro
     } finally {
       setLoading(false);
     }

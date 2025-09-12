@@ -38,7 +38,6 @@ interface AppState {
   cycles: FatteningCycle[];
   partners: Partner[];
   cattlePurchases: CattlePurchase[];
-  cattlePurchases: CattlePurchase[];
   currentWeightReadings: WeightReading[];
   healthRecords: HealthRecord[];
   feedCosts: FeedCost[];
@@ -112,18 +111,13 @@ interface AppState {
   updatePartner: (id: string, data: Partial<Partner>) => void;
   deletePartner: (id: string) => void;
   
-  // Ações - Ordens de Compra
-  addCattlePurchase: (order: Omit<CattlePurchase, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  // Ações - Lotes/Compras de Gado
+  addCattlePurchase: (lot: Omit<CattlePurchase, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateCattlePurchase: (id: string, data: Partial<CattlePurchase>) => void;
   deleteCattlePurchase: (id: string) => void;
   moveCattlePurchaseToNextStage: (id: string) => void;
   moveCattlePurchaseToPreviousStage: (id: string) => void;
   generateCattlePurchaseCode: () => string;
-  
-  // Ações - Lotes
-  addCattlePurchase: (lot: Omit<CattlePurchase, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateCattlePurchase: (id: string, data: Partial<CattlePurchase>) => void;
-  deleteCattlePurchase: (id: string) => void;
   generateLotNumber: () => string;
   
   // Ações - Pesagens
@@ -377,7 +371,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   cycles: [],
   partners: [],
   cattlePurchases: [],
-  cattlePurchases: [],
   currentWeightReadings: [],
   healthRecords: [],
   feedCosts: [],
@@ -489,261 +482,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       partner.id === id ? { ...partner, isActive: false } : partner
     )
   })),
-  
-  // Ações - Ordens de Compra
-  addCattlePurchase: (order) => set((state) => {
-    const orderId = uuidv4();
-    const orderWithId = { 
-      ...order, 
-      id: orderId, 
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    // 🆕 NOVO: Calcular valor dos animais com base no RC% e preço por arroba
-    const rcPercentage = order.rcPercentage || 50;
-    const carcassWeight = order.totalWeight * (rcPercentage / 100);
-    const arrobas = carcassWeight / 15;
-    const animalValue = arrobas * order.pricePerArroba;
-    
-    // 🆕 NOVO: Criar lote automaticamente ao criar a ordem
-    const newLot: CattlePurchase = {
-      id: uuidv4(),
-      lotNumber: order.code,
-      purchaseId: orderId,
-      entryWeight: order.totalWeight,
-      entryQuantity: order.currentQuantity,
-      freightKm: 0,
-      freightCostPerKm: 0,
-      entryDate: new Date(),
-      estimatedGmd: 1.5,
-      deaths: 0,
-      status: 'active',
-      observations: 'Lote pendente - Aguardando validação de pagamento',
-      custoAcumulado: {
-        aquisicao: animalValue,
-        sanidade: 0,
-        alimentacao: 0,
-        operacional: 0,
-        frete: 0,
-        outros: 0,
-        total: animalValue
-      },
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    // 🆕 NOVO: Criar contas a pagar ao criar a ordem
-    const newAccounts: FinancialAccount[] = [];
-    const newExpenses: Expense[] = [];
-    
-    // Conta principal - valor dos animais
-    const mainAccount: FinancialAccount = {
-      id: uuidv4(),
-      type: 'payable',
-      description: `Compra de gado - ${order.code} - ${order.currentQuantity} animais`,
-      amount: animalValue,
-      dueDate: order.paymentDate || new Date(),
-      status: 'pending',
-      relatedEntityType: 'purchase_order',
-      relatedEntityId: orderId,
-      createdAt: new Date()
-    };
-    newAccounts.push(mainAccount);
-    
-    // Despesa de aquisição
-    const acquisitionExpense: Expense = {
-      id: uuidv4(),
-      date: order.date,
-      description: `Aquisição de gado - ${order.code}`,
-      category: 'animal_purchase',
-      purchaseValue: animalValue,
-      supplierId: order.vendorId,
-      dueDate: order.paymentDate || order.date,
-      paymentDate: undefined,
-      isPaid: false, // Começa como previsto
-      allocations: [],
-      impactsCashFlow: true, // Compra de animais impacta o caixa
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    newExpenses.push(acquisitionExpense);
-    
-    // Conta para comissão
-    if (order.commission > 0) {
-      const commissionAccount: FinancialAccount = {
-        id: uuidv4(),
-        type: 'payable',
-        description: `Comissão - ${order.code}`,
-        amount: order.commission,
-        dueDate: order.commissionPaymentDate || order.paymentDate || new Date(),
-        status: 'pending',
-        relatedEntityType: 'commission',
-        relatedEntityId: orderId,
-        createdAt: new Date()
-      };
-      newAccounts.push(commissionAccount);
-      
-      // Despesa de comissão
-      const commissionExpense: Expense = {
-        id: uuidv4(),
-        date: order.date,
-        description: `Comissão - ${order.code}`,
-        category: 'commission',
-        purchaseValue: order.commission,
-        supplierId: order.brokerId,
-        dueDate: order.commissionPaymentDate || order.paymentDate || order.date,
-        paymentDate: undefined,
-        isPaid: false, // Começa como previsto
-        allocations: [],
-        impactsCashFlow: true, // Comissão impacta o caixa
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      newExpenses.push(commissionExpense);
-    }
-    
-    // Conta para outros custos
-    if (order.otherCosts > 0) {
-      const otherCostsAccount: FinancialAccount = {
-        id: uuidv4(),
-        type: 'payable',
-        description: `${order.otherCostsDescription || 'Outros custos'} - ${order.code}`,
-        amount: order.otherCosts,
-        dueDate: order.otherCostsPaymentDate || order.paymentDate || new Date(),
-        status: 'pending',
-        relatedEntityType: 'other_costs',
-        relatedEntityId: orderId,
-        createdAt: new Date()
-      };
-      newAccounts.push(otherCostsAccount);
-      
-      // Despesa de outros custos
-      const otherCostsExpense: Expense = {
-        id: uuidv4(),
-        date: order.date,
-        description: `${order.otherCostsDescription || 'Outros custos'} - ${order.code}`,
-        category: 'acquisition_other',
-        purchaseValue: order.otherCosts,
-        dueDate: order.otherCostsPaymentDate || order.paymentDate || order.date,
-        paymentDate: undefined,
-        isPaid: false, // Começa como previsto
-        allocations: [],
-        impactsCashFlow: true, // Outros custos impactam o caixa
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      newExpenses.push(otherCostsExpense);
-    }
-    
-    // Notificação
-    const notification: Notification = {
-      id: uuidv4(),
-      title: 'Nova Ordem de Compra',
-      message: `Ordem ${order.code} criada com sucesso. Lote e contas a pagar foram gerados automaticamente.`,
-      type: 'success',
-      isRead: false,
-      relatedEntityType: 'purchase_order',
-      relatedEntityId: orderId,
-      createdAt: new Date()
-    };
-    
-    return {
-      cattlePurchases: [...state.cattlePurchases, orderWithId],
-      cattlePurchases: [...state.cattlePurchases, newLot],
-      financialAccounts: [...state.financialAccounts, ...newAccounts],
-      expenses: [...state.expenses, ...newExpenses],
-      notifications: [...state.notifications, notification]
-    };
-  }),
-  updateCattlePurchase: (id, data) => set((state) => ({
-    cattlePurchases: state.cattlePurchases.map(order => 
-      order.id === id ? { ...order, ...data, updatedAt: new Date() } : order
-    )
-  })),
-  deleteCattlePurchase: (id) => set((state) => {
-    // Encontrar o lote associado à ordem
-    const relatedLot = state.cattlePurchases.find(lot => lot.purchaseId === id);
-    
-    // Remover lote e suas alocações
-    const updatedLoteCurralLinks = relatedLot 
-      ? state.loteCurralLinks.filter(link => link.loteId !== relatedLot.id)
-      : state.loteCurralLinks;
-    
-    // Remover contas financeiras relacionadas à ordem
-    const updatedFinancialAccounts = state.financialAccounts.filter(
-      account => account.relatedEntityId !== id
-    );
-    
-    // Remover despesas relacionadas à ordem
-    const order = state.cattlePurchases.find(o => o.id === id);
-    const updatedExpenses = order 
-      ? state.expenses.filter(expense => !expense.description?.includes(order.code))
-      : state.expenses;
-    
-    // Remover alocações de custo do lote
-    const updatedCostAllocations = relatedLot
-      ? state.costProportionalAllocations.filter(alloc => alloc.loteId !== relatedLot.id)
-      : state.costProportionalAllocations;
-    
-    // Remover registros de saúde do lote
-    const updatedHealthRecords = relatedLot
-      ? state.healthRecords.filter(record => record.lotId !== relatedLot.id)
-      : state.healthRecords;
-    
-    // Remover custos de alimentação do lote
-    const updatedFeedCosts = relatedLot
-      ? state.feedCosts.filter(cost => cost.lotId !== relatedLot.id)
-      : state.feedCosts;
-    
-    // Remover movimentações do lote
-    const updatedLotMovements = relatedLot
-      ? state.lotMovements.filter(movement => movement.lotId !== relatedLot.id)
-      : state.lotMovements;
-    
-    // Remover registros de venda do lote
-    const updatedSaleRecords = relatedLot
-      ? state.saleRecords.filter(record => record.lotId !== relatedLot.id)
-      : state.saleRecords;
-    
-    // Remover designações de venda que referenciam o lote
-    const updatedSaleDesignations = relatedLot
-      ? state.saleDesignations.filter(designation => {
-          // Verificar se a designação está relacionada ao lote através da composição
-          const relatedToLot = designation.lotesComposicao?.some(
-            comp => comp.loteId === relatedLot.id
-          ) || false;
-          return !relatedToLot;
-        })
-      : state.saleDesignations;
-    
-    // Adicionar notificação
-    const notification: Notification = {
-      id: uuidv4(),
-      title: 'Ordem de Compra Excluída',
-      message: `Ordem ${order?.code || id} e todos os dados relacionados foram removidos do sistema`,
-      type: 'warning',
-      isRead: false,
-      createdAt: new Date()
-    };
-    
-    return {
-      cattlePurchases: state.cattlePurchases.filter(order => order.id !== id),
-      cattlePurchases: relatedLot 
-        ? state.cattlePurchases.filter(lot => lot.id !== relatedLot.id)
-        : state.cattlePurchases,
-      loteCurralLinks: updatedLoteCurralLinks,
-      financialAccounts: updatedFinancialAccounts,
-      expenses: updatedExpenses,
-      costProportionalAllocations: updatedCostAllocations,
-      healthRecords: updatedHealthRecords,
-      feedCosts: updatedFeedCosts,
-      lotMovements: updatedLotMovements,
-      saleRecords: updatedSaleRecords,
-      saleDesignations: updatedSaleDesignations,
-      notifications: [...state.notifications, notification]
-    };
-  }),
   moveCattlePurchaseToNextStage: (id) => set((state) => {
     const order = state.cattlePurchases.find(o => o.id === id);
     if (!order) return state;

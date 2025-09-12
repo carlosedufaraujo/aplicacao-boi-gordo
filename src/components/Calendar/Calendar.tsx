@@ -7,6 +7,7 @@ import { TableWithPagination } from '../Common/TableWithPagination';
 import { clsx } from 'clsx';
 
 export const Calendar: React.FC = () => {
+  console.log('📅 Calendar component loaded - ESTE É O CALENDÁRIO ANTIGO!');
   const { bankStatements } = useBankStatementsApi();
   
   // TODO: Implementar financialAccounts quando necessário
@@ -684,7 +685,8 @@ export const Calendar: React.FC = () => {
               >
                 <option value="all">Todos os Status</option>
                 <option value="pending">Pendente</option>
-                <option value="overdue">Vencido</option>
+                <option value="paid">Pago</option>
+                <option value="overdue">A Vencer</option>
               </select>
             </div>
           </div>

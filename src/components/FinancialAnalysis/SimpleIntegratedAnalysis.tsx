@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -7,61 +7,128 @@ import {
   TrendingDown, 
   DollarSign, 
   PieChart,
-  AlertCircle
+  AlertCircle,
+  Skull
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { getCategoryDisplayName, getCategoryColor, groupByCategory } from '@/utils/categoryNormalizer';
 import { DREStatement } from './DREStatement';
+import { useCashFlow } from '@/hooks/useCashFlow';
+import { useIntegratedFinancialAnalysis } from '@/hooks/useIntegratedFinancialAnalysis';
 
 export const SimpleIntegratedAnalysis: React.FC = () => {
+  const { cashFlows, categories, loading: cashFlowLoading } = useCashFlow();
   const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [operationalLosses, setOperationalLosses] = useState<number>(0);
+  
+  // Hook para buscar análise integrada que inclui mortalidades
+  const { 
+    currentAnalysis, 
+    generateAnalysis, 
+    loadAnalysisByPeriod,
+    loading: analysisLoading 
+  } = useIntegratedFinancialAnalysis({ autoLoad: false });
 
+  // Processar dados do cash flow quando disponíveis
   useEffect(() => {
-    fetchFinancialData();
-  }, []);
+    if (cashFlows && categories && !cashFlowLoading) {
+      processFinancialData();
+    }
+  }, [cashFlows, categories, cashFlowLoading, operationalLosses]); // Reprocessar quando perdas operacionais mudarem
 
-  const fetchFinancialData = async () => {
-    setLoading(true);
-    setError(null);
+  // Buscar análise integrada para obter perdas operacionais (mortalidades)
+  useEffect(() => {
+    const fetchOperationalLosses = async () => {
+      try {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+        
+        // Tentar carregar análise do período atual
+        const analysis = await loadAnalysisByPeriod(year, month).catch(() => null);
+        
+        if (analysis && analysis.nonCashBreakdown) {
+          // Definir perdas operacionais (mortalidade)
+          setOperationalLosses(analysis.nonCashBreakdown.mortality || 0);
+          console.log('[SimpleIntegratedAnalysis] Perdas operacionais carregadas:', analysis.nonCashBreakdown.mortality);
+        }
+      } catch (error) {
+        console.log('[SimpleIntegratedAnalysis] Análise integrada não disponível, perdas operacionais não incluídas');
+      }
+    };
     
+    fetchOperationalLosses();
+  }, [loadAnalysisByPeriod]);
+
+  const processFinancialData = () => {
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-
-      // Buscar despesas (todos os registros para análise)
-      const expensesResponse = await fetch('http://localhost:3001/api/v1/expenses?limit=10000', { headers });
-      const expensesData = await expensesResponse.json();
+      console.log('[SimpleIntegratedAnalysis] Processando dados:', { 
+        cashFlowsCount: cashFlows?.length,
+        categoriesCount: categories?.length,
+        operationalLosses 
+      });
       
-      // Buscar receitas (todos os registros para análise)
-      const revenuesResponse = await fetch('http://localhost:3001/api/v1/revenues?limit=10000', { headers });
-      const revenuesData = await revenuesResponse.json();
-
-      // Processar dados
-      const expenses = expensesData.data?.items || [];
-      const revenues = revenuesData.data?.items || [];
-
-      // Calcular totais
-      const totalExpenses = expenses.reduce((sum: number, exp: any) => sum + exp.totalAmount, 0);
-      const totalRevenues = revenues.reduce((sum: number, rev: any) => sum + rev.totalAmount, 0);
-      const balance = totalRevenues - totalExpenses;
-
-      // Agrupar despesas por categoria normalizada
-      const expensesByCategory: { [key: string]: number } = {};
-      expenses.forEach((exp: any) => {
-        const category = getCategoryDisplayName(exp.category);
-        expensesByCategory[category] = (expensesByCategory[category] || 0) + exp.totalAmount;
+      // Separar receitas e despesas
+      const expenses = cashFlows.filter(cf => cf.type === 'EXPENSE');
+      const revenues = cashFlows.filter(cf => cf.type === 'INCOME');
+      
+      console.log('[SimpleIntegratedAnalysis] Dados filtrados:', {
+        expensesCount: expenses.length,
+        revenuesCount: revenues.length,
+        operationalLosses,
+        expenses: expenses.slice(0, 3), // Mostrar primeiras 3 para debug
+        revenues: revenues.slice(0, 3)
       });
 
-      // Agrupar receitas por categoria normalizada
+      // Calcular totais (incluindo perdas operacionais)
+      const totalCashExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+      const totalExpenses = totalCashExpenses + operationalLosses; // Adicionar perdas operacionais
+      const totalRevenues = revenues.reduce((sum, rev) => sum + rev.amount, 0);
+      const balance = totalRevenues - totalExpenses;
+
+      // Mapear categoryId para nome da categoria
+      const getCategoryName = (categoryId: string) => {
+        const category = categories.find(cat => cat.id === categoryId);
+        return category ? category.name : categoryId;
+      };
+
+      // Agrupar despesas por categoria
+      const expensesByCategory: { [key: string]: number } = {};
+      expenses.forEach((exp) => {
+        const categoryName = getCategoryName(exp.categoryId);
+        expensesByCategory[categoryName] = (expensesByCategory[categoryName] || 0) + exp.amount;
+      });
+      
+      // Adicionar perdas operacionais como categoria separada se houver
+      if (operationalLosses > 0) {
+        expensesByCategory['Perdas Operacionais (Mortalidade)'] = operationalLosses;
+      }
+
+      // Agrupar receitas por categoria
       const revenuesByCategory: { [key: string]: number } = {};
-      revenues.forEach((rev: any) => {
-        const category = getCategoryDisplayName(rev.category);
-        revenuesByCategory[category] = (revenuesByCategory[category] || 0) + rev.totalAmount;
+      revenues.forEach((rev) => {
+        const categoryName = getCategoryName(rev.categoryId);
+        revenuesByCategory[categoryName] = (revenuesByCategory[categoryName] || 0) + rev.amount;
+      });
+
+      // Preparar dados para o DRE no formato esperado
+      // Despesas devem ser negativas para o DRE calcular corretamente
+      const expensesForDRE = Object.entries(expensesByCategory).map(([category, totalAmount]) => ({
+        category,
+        totalAmount: -Math.abs(totalAmount as number)
+      }));
+      
+      const revenuesForDRE = Object.entries(revenuesByCategory).map(([category, totalAmount]) => ({
+        category,
+        totalAmount: Math.abs(totalAmount as number)
+      }));
+      
+      console.log('[SimpleIntegratedAnalysis] Dados para DRE:', {
+        expensesForDRE,
+        revenuesForDRE,
+        totalExpenses,
+        totalRevenues
       });
 
       setData({
@@ -72,19 +139,21 @@ export const SimpleIntegratedAnalysis: React.FC = () => {
         revenueCount: revenues.length,
         expensesByCategory,
         revenuesByCategory,
-        expenses,
-        revenues
+        expenses: expensesForDRE,  // Formato correto para DRE
+        revenues: revenuesForDRE,  // Formato correto para DRE
+        rawExpenses: expenses,     // Dados originais se necessário
+        rawRevenues: revenues      // Dados originais se necessário
       });
+      
+      setError(null);
 
     } catch (err: any) {
-      console.error('Erro ao carregar dados:', err);
-      setError('Erro ao carregar dados financeiros');
-    } finally {
-      setLoading(false);
+      console.error('Erro ao processar dados:', err);
+      setError('Erro ao processar dados financeiros');
     }
   };
 
-  if (loading) {
+  if (cashFlowLoading || !data) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
@@ -116,7 +185,7 @@ export const SimpleIntegratedAnalysis: React.FC = () => {
   return (
     <div className="space-y-6 p-4">
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Receitas</CardTitle>
@@ -134,15 +203,30 @@ export const SimpleIntegratedAnalysis: React.FC = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Despesas</CardTitle>
+            <CardTitle className="text-sm font-medium">Despesas em Caixa</CardTitle>
             <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(data.totalExpenses)}
+              {formatCurrency(data.totalExpenses - operationalLosses)}
             </div>
             <p className="text-xs text-muted-foreground">
               {data.expenseCount} transações
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Perdas Operacionais</CardTitle>
+            <Skull className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">
+              {formatCurrency(operationalLosses)}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Mortalidade do período
             </p>
           </CardContent>
         </Card>

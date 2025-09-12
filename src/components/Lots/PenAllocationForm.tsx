@@ -2,16 +2,54 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { X, Home, Users, AlertTriangle } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
-import { PenAllocationFormData } from '../../types';
-import { usePensApi } from '../../hooks/api/usePensApi';
+import { Home, Users, AlertTriangle, Package } from 'lucide-react';
+import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
+import { usePensApi } from '@/hooks/api/usePensApi';
+import { usePenAllocationsApi } from '@/hooks/api/usePenAllocationsApi';
+import { toast } from 'sonner';
+import { formatCurrency } from '@/utils/formatters';
+
+// Componentes shadcn/ui
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 
 const penAllocationSchema = z.object({
-  penNumber: z.string().min(1, 'Número do curral é obrigatório'),
   lotId: z.string().min(1, 'Selecione um lote'),
-  currentQuantity: z.number().min(1, 'Quantidade deve ser maior que 0'),
+  quantity: z.number()
+    .min(1, 'Quantidade deve ser maior que 0')
+    .int('Quantidade deve ser um número inteiro'),
 });
+
+type PenAllocationFormData = z.infer<typeof penAllocationSchema>;
 
 interface PenAllocationFormProps {
   isOpen: boolean;
@@ -24,323 +62,363 @@ export const PenAllocationForm: React.FC<PenAllocationFormProps> = ({
   onClose,
   penNumber
 }) => {
-  const { cattlePurchases, penAllocations, addPenAllocation, updateCattlePurchase } = useAppStore();
-  const { pens, loading: pensLoading } = usePensApi();
+  const { cattlePurchases, loading: lotsLoading } = useCattlePurchasesApi();
+  const { pens } = usePensApi();
+  const { allocations, createAllocation, loading: allocationsLoading } = usePenAllocationsApi();
   const [availableLots, setAvailableLots] = useState<any[]>([]);
-  const [existingAllocations, setExistingAllocations] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    watch,
-    setValue
-  } = useForm<PenAllocationFormData>({
+  const pen = pens.find(p => p.penNumber === penNumber);
+  const penId = pen?.id;
+
+  const form = useForm<PenAllocationFormData>({
     resolver: zodResolver(penAllocationSchema),
     defaultValues: {
-      penNumber,
       lotId: '',
-      currentQuantity: 1
+      quantity: 1
     }
   });
 
-  const selectedLotId = watch('lotId');
+  const selectedLotId = form.watch('lotId');
   const selectedLot = cattlePurchases.find(lot => lot.id === selectedLotId);
-  const pen = pens.find(p => p.penNumber === penNumber);
-  
+
   // Atualizar a lista de lotes disponíveis quando o componente montar
   useEffect(() => {
-    if (penNumber) {
-      // Obter todos os lotes ativos (status 'confined' para lotes já confinados)
-      const activeLots = cattlePurchases.filter(lot => lot.status === 'confined' || lot.status === 'reception');
-      
-      // Obter alocações existentes para este curral
-      const currentPenAllocations = penAllocations.filter(alloc => alloc.penNumber === penNumber);
-      setExistingAllocations(currentPenAllocations);
-      
-      // Obter IDs de lotes já alocados neste curral
-      const lotsInThisPen = currentPenAllocations.map(alloc => alloc.lotId);
-      
-      // Filtrar lotes que ainda não foram totalmente alocados
-      const lotsWithAvailableAnimals = activeLots.filter(lot => {
-        // Obter todas as alocações existentes para este lote
-        const lotAllocations = penAllocations.filter(alloc => alloc.lotId === lot.id);
+    if (cattlePurchases && allocations && pen) {
+      // Filtrar lotes com status adequado para confinamento
+      const eligibleLots = cattlePurchases.filter(lot => 
+        lot.status === 'CONFIRMED' || lot.status === 'CONFINED'
+      );
+
+      // Para cada lote, calcular quantos animais ainda estão disponíveis
+      const lotsWithAvailability = eligibleLots.map(lot => {
+        // Obter todas as alocações deste lote
+        const lotAllocations = allocations.filter(alloc => 
+          alloc.lotId === lot.id && alloc.status === 'ACTIVE'
+        );
         
-        // Calcular o total de animais já alocados
-        const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.currentQuantity, 0);
+        // Calcular o total já alocado
+        const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.quantity, 0);
         
-        // Incluir lotes que:
-        // 1. Já estão neste curral (para permitir adicionar mais animais)
-        // 2. OU ainda têm animais disponíveis para alocar
-        return lotsInThisPen.includes(lot.id) || totalAllocated < lot.entryQuantity;
-      });
-      
-      setAvailableLots(lotsWithAvailableAnimals);
+        // Calcular disponível
+        const available = lot.currentQuantity - totalAllocated;
+        
+        return {
+          ...lot,
+          availableQuantity: available,
+          totalAllocated,
+          isInThisPen: lotAllocations.some(alloc => alloc.penId === penId)
+        };
+      }).filter(lot => lot.availableQuantity > 0); // Apenas lotes com animais disponíveis
+
+      setAvailableLots(lotsWithAvailability);
     }
-  }, [penNumber, cattlePurchases, penAllocations]);
+  }, [cattlePurchases, allocations, pen, penId]);
 
   // Quando o lote é selecionado, atualizar a quantidade máxima
   useEffect(() => {
-    if (selectedLotId) {
-      const lot = cattlePurchases.find(l => l.id === selectedLotId);
-      if (lot) {
-        // Obter todas as alocações existentes para este lote
-        const lotAllocations = penAllocations.filter(alloc => alloc.lotId === lot.id);
+    if (selectedLotId && availableLots.length > 0) {
+      const lotData = availableLots.find(l => l.id === selectedLotId);
+      if (lotData && pen) {
+        // Capacidade restante do curral
+        const penCapacityRemaining = pen.capacity - pen.currentOccupancy;
         
-        // Calcular o total de animais já alocados
-        const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.currentQuantity, 0);
+        // Quantidade máxima é o menor entre disponível no lote e capacidade do curral
+        const maxQuantity = Math.min(lotData.availableQuantity, penCapacityRemaining);
         
-        // Calcular quantos animais ainda estão disponíveis para alocar
-        const availableQuantity = lot.entryQuantity - totalAllocated;
-        
-        // Definir a quantidade como o mínimo entre os animais disponíveis e a capacidade restante do curral
-        const penCapacityRemaining = pen ? pen.capacity - pen.currentOccupancy : 0;
-        const maxQuantity = Math.min(availableQuantity, penCapacityRemaining);
-        
-        setValue('currentQuantity', maxQuantity);
+        // Definir o valor inicial como o máximo possível
+        if (maxQuantity > 0) {
+          form.setValue('quantity', maxQuantity);
+        }
       }
     }
-  }, [selectedLotId, cattlePurchases, penAllocations, pen, setValue]);
+  }, [selectedLotId, availableLots, pen, form]);
 
-  const handleFormSubmit = (data: PenAllocationFormData) => {
-    if (!selectedLot) return;
-
-    // Verificar se a quantidade não excede o disponível
-    const lotAllocations = penAllocations.filter(alloc => alloc.lotId === data.lotId);
-    const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.currentQuantity, 0);
-    const availableQuantity = selectedLot.entryQuantity - totalAllocated;
-    
-    if (data.currentQuantity > availableQuantity) {
-      alert(`Quantidade excede o disponível. Máximo disponível: ${availableQuantity} animais.`);
+  const handleFormSubmit = async (data: PenAllocationFormData) => {
+    if (!pen || !selectedLot) {
+      toast.error('Informações incompletas');
       return;
     }
 
-    // Verificar se a capacidade do curral não será excedida
-    if (pen && pen.currentOccupancy + data.currentQuantity > pen.capacity) {
-      alert(`Capacidade do curral será excedida. Capacidade restante: ${pen.capacity - pen.currentOccupancy} animais.`);
-      return;
-    }
-
-    // Calcular o peso proporcional
-    const currentWeightProportion = selectedLot.entryWeight / selectedLot.entryQuantity * data.currentQuantity;
-
-    // Adicionar alocação
-    addPenAllocation({
-      penNumber: data.penNumber,
-      lotId: data.lotId,
-      currentQuantity: data.currentQuantity,
-      entryWeight: currentWeightProportion,
-      entryDate: new Date()
-    });
-
-    // Atualizar o lote com informações de alocação
-    updateCattlePurchase(selectedLot.id, { 
-      status: 'confined',
-      currentQuantity: selectedLot.currentQuantity ? selectedLot.currentQuantity - data.currentQuantity : selectedLot.entryQuantity - data.currentQuantity
-    });
+    setIsSubmitting(true);
     
-    reset();
-    onClose();
+    try {
+      // Criar alocação via API
+      await createAllocation({
+        penId: pen.id,
+        lotId: data.lotId,
+        quantity: data.quantity,
+        entryDate: new Date().toISOString()
+      });
+
+      toast.success(`${data.quantity} animais alocados com sucesso no curral ${penNumber}`);
+      form.reset();
+      onClose();
+    } catch (error: any) {
+      console.error('Erro ao alocar animais:', error);
+      toast.error(error.message || 'Erro ao alocar animais');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  if (!isOpen) return null;
+  if (!pen) return null;
+
+  const occupancyRate = (pen.currentOccupancy / pen.capacity) * 100;
+  const availableSpace = pen.capacity - pen.currentOccupancy;
+
+  // Calcular alocações existentes neste curral
+  const existingAllocations = allocations.filter(alloc => 
+    alloc.penId === penId && alloc.status === 'ACTIVE'
+  );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[10000] flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-soft-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header - Mais compacto */}
-        <div className="flex items-center justify-between p-4 border-b border-neutral-200 bg-gradient-to-r from-b3x-lime-500 to-b3x-lime-600 text-b3x-navy-900 rounded-t-xl">
-          <div>
-            <h2 className="text-lg font-semibold">Alocar Animais no Curral</h2>
-            <p className="text-b3x-navy-700 text-sm mt-1">Curral {penNumber}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-b3x-lime-400 rounded-lg transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Home className="h-5 w-5" />
+            Alocar Animais no Curral {penNumber}
+          </DialogTitle>
+          <DialogDescription>
+            Selecione um lote e a quantidade de animais para alocar neste curral
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit(handleFormSubmit)} className="p-4 space-y-4">
-          {/* Pen Info - Mais compacto */}
-          {pen && (
-            <div className="bg-gradient-to-br from-b3x-lime-50 to-b3x-lime-100 rounded-xl p-4 border border-b3x-lime-200">
-              <h3 className="text-base font-semibold text-b3x-navy-900 mb-3 flex items-center">
-                <Home className="w-4 h-4 mr-2 text-b3x-lime-600" />
-                Informações do Curral {penNumber}
-              </h3>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="bg-white/80 rounded-lg p-3">
-                  <div className="text-base font-bold text-b3x-navy-900">{pen.capacity}</div>
-                  <div className="text-xs text-neutral-600">Capacidade</div>
-                </div>
-                <div className="bg-white/80 rounded-lg p-3">
-                  <div className="text-base font-bold text-success-600">{pen.currentOccupancy}</div>
-                  <div className="text-xs text-neutral-600">Ocupação Atual</div>
-                </div>
-                <div className="bg-white/80 rounded-lg p-3">
-                  <div className="text-base font-bold text-warning-600">{pen.capacity - pen.currentOccupancy}</div>
-                  <div className="text-xs text-neutral-600">Disponível</div>
-                </div>
-              </div>
-              
-              {/* Mostrar alocações existentes neste curral */}
-              {existingAllocations.length > 0 && (
-                <div className="mt-3 p-2 bg-neutral-50 rounded-lg border border-neutral-200">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <Users className="w-3 h-3 text-neutral-600" />
-                    <span className="font-medium text-neutral-700 text-xs">Lotes Alocados Neste Curral</span>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+            {/* Informações do Curral */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Status do Curral</span>
+                    <Badge variant={
+                      occupancyRate === 100 ? 'destructive' :
+                      occupancyRate > 80 ? 'secondary' : 'outline'
+                    }>
+                      {occupancyRate === 100 ? 'Lotado' :
+                       occupancyRate > 80 ? 'Quase Cheio' : 'Disponível'}
+                    </Badge>
                   </div>
-                  <div className="space-y-1">
-                    {existingAllocations.map(alloc => {
-                      const lot = cattlePurchases.find(l => l.id === alloc.lotId);
-                      return (
-                        <div key={alloc.id} className="flex justify-between text-xs">
-                          <span>Lote {lot?.lotNumber || 'Desconhecido'}:</span>
-                          <span className="font-medium">{alloc.currentQuantity} animais</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Lot Selection - Mais compacto */}
-          <div>
-            <label className="block text-xs font-medium text-neutral-700 mb-1">
-              Lote *
-            </label>
-            <select
-              {...register('lotId')}
-              className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-              disabled={pensLoading}
-            >
-              <option value="">{pensLoading ? 'Carregando...' : 'Selecione um lote'}</option>
-              {availableLots.map(lot => {
-                // Calcular animais já alocados
-                const lotAllocations = penAllocations.filter(alloc => alloc.lotId === lot.id);
-                const totalAllocated = lotAllocations.reduce((sum, alloc) => sum + alloc.currentQuantity, 0);
-                const availableQuantity = lot.entryQuantity - totalAllocated;
-                
-                // Verificar se este lote já está alocado neste curral
-                const isAllocatedInThisPen = lotAllocations.some(alloc => alloc.penNumber === penNumber);
-                
-                return (
-                  <option key={lot.id} value={lot.id}>
-                    {lot.lotNumber} - {availableQuantity} animais disponíveis
-                    {isAllocatedInThisPen ? ' (já neste curral)' : ''}
-                  </option>
-                );
-              })}
-            </select>
-            {errors.lotId && (
-              <p className="text-error-500 text-xs mt-1">{errors.lotId.message}</p>
-            )}
-            
-            {availableLots.length === 0 && (
-              <p className="text-warning-500 text-xs mt-1">
-                Não há lotes disponíveis para alocação. Todos os lotes já estão totalmente alocados.
-              </p>
-            )}
-          </div>
-
-          {/* Quantity - Mais compacto */}
-          <div>
-            <label className="block text-xs font-medium text-neutral-700 mb-1">
-              Quantidade de Animais *
-            </label>
-            <input
-              type="number"
-              {...register('currentQuantity', { valueAsNumber: true })}
-              className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg focus:ring-2 focus:ring-b3x-lime-500 focus:border-transparent"
-              placeholder={selectedLot ? `Máximo: ${selectedLot.entryQuantity}` : 'Selecione um lote primeiro'}
-            />
-            {errors.currentQuantity && (
-              <p className="text-error-500 text-xs mt-1">{errors.currentQuantity.message}</p>
-            )}
-          </div>
-
-          {/* Lot Details - Mais compacto */}
-          {selectedLot && (
-            <div className="bg-neutral-50 rounded-lg p-3">
-              <h4 className="font-medium text-b3x-navy-900 mb-2 text-xs flex items-center">
-                <Users className="w-3 h-3 mr-2" />
-                Detalhes do Lote {selectedLot.lotNumber}
-              </h4>
-              <div className="grid grid-cols-2 gap-3 text-xs">
-                <div>
-                  <span className="text-neutral-600">Quantidade Total:</span>
-                  <div className="font-medium">{selectedLot.entryQuantity} animais</div>
-                </div>
-                <div>
-                  <span className="text-neutral-600">Peso Total:</span>
-                  <div className="font-medium">{selectedLot.entryWeight.toLocaleString('pt-BR')} kg</div>
-                </div>
-                <div>
-                  <span className="text-neutral-600">Data de Entrada:</span>
-                  <div className="font-medium">{selectedLot.entryDate.toLocaleDateString('pt-BR')}</div>
-                </div>
-                <div>
-                  <span className="text-neutral-600">Peso Médio:</span>
-                  <div className="font-medium">
-                    {(selectedLot.entryWeight / selectedLot.entryQuantity).toFixed(1)} kg/animal
-                  </div>
-                </div>
-              </div>
-              
-              {/* Mostrar alocações existentes */}
-              {penAllocations.filter(alloc => alloc.lotId === selectedLot.id).length > 0 && (
-                <div className="mt-3 p-2 bg-warning-50 rounded-lg border border-warning-200">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <AlertTriangle className="w-3 h-3 text-warning-600" />
-                    <span className="font-medium text-warning-700 text-xs">Alocações Existentes</span>
-                  </div>
-                  <div className="space-y-1">
-                    {penAllocations.filter(alloc => alloc.lotId === selectedLot.id).map(alloc => (
-                      <div key={alloc.id} className="flex justify-between text-xs">
-                        <span>Curral {alloc.penNumber}:</span>
-                        <span className="font-medium">{alloc.currentQuantity} animais</span>
-                      </div>
-                    ))}
-                    <div className="border-t border-warning-200 pt-1 mt-1 flex justify-between text-xs font-medium">
-                      <span>Total Alocado:</span>
-                      <span>
-                        {penAllocations
-                          .filter(alloc => alloc.lotId === selectedLot.id)
-                          .reduce((sum, alloc) => sum + alloc.currentQuantity, 0)} 
-                        de {selectedLot.entryQuantity} animais
-                      </span>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Ocupação</span>
+                      <span className="font-medium">{pen.currentOccupancy}/{pen.capacity} animais</span>
                     </div>
+                    <Progress value={occupancyRate} className="h-2" />
+                    <p className="text-xs text-muted-foreground text-right">
+                      {availableSpace} vagas disponíveis ({(100 - occupancyRate).toFixed(1)}%)
+                    </p>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
 
-          {/* Actions */}
-          <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 text-sm text-neutral-600 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={!selectedLot || availableLots.length === 0}
-              className="px-4 py-1.5 bg-gradient-to-r from-b3x-lime-500 to-b3x-lime-600 text-b3x-navy-900 font-medium rounded-lg hover:from-b3x-lime-600 hover:to-b3x-lime-700 transition-all duration-200 shadow-soft flex items-center space-x-2 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Home className="w-3 h-3" />
-              <span>Alocar Animais</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+                  {/* Lotes já alocados neste curral */}
+                  {existingAllocations.length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Package className="h-4 w-4" />
+                          Lotes Alocados ({existingAllocations.length})
+                        </div>
+                        <div className="space-y-1">
+                          {existingAllocations.map((alloc) => {
+                            const lot = cattlePurchases.find(l => l.id === alloc.lotId);
+                            return (
+                              <div key={alloc.id} className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                  {lot?.lotCode || 'Lote desconhecido'}
+                                </span>
+                                <span className="font-medium">{alloc.quantity} animais</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Seleção de Lote */}
+            <FormField
+              control={form.control}
+              name="lotId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Lote</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                    disabled={lotsLoading || availableLots.length === 0}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={
+                          lotsLoading ? "Carregando lotes..." : 
+                          availableLots.length === 0 ? "Nenhum lote disponível" :
+                          "Selecione um lote"
+                        } />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {availableLots.map((lot) => (
+                        <SelectItem key={lot.id} value={lot.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>
+                              {lot.lotCode} - {lot.availableQuantity} disponíveis
+                              {lot.isInThisPen && (
+                                <Badge variant="secondary" className="ml-2 text-xs">
+                                  Já neste curral
+                                </Badge>
+                              )}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {availableLots.length > 0 
+                      ? `${availableLots.length} lotes com animais disponíveis`
+                      : "Todos os lotes estão totalmente alocados"}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Quantidade */}
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantidade de Animais</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="1"
+                      max={
+                        selectedLot && availableLots.length > 0
+                          ? Math.min(
+                              availableLots.find(l => l.id === selectedLotId)?.availableQuantity || 0,
+                              availableSpace
+                            )
+                          : availableSpace
+                      }
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    {selectedLot && availableLots.length > 0 && (
+                      <>
+                        Máximo: {Math.min(
+                          availableLots.find(l => l.id === selectedLotId)?.availableQuantity || 0,
+                          availableSpace
+                        )} animais
+                      </>
+                    )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Detalhes do Lote Selecionado */}
+            {selectedLot && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 font-medium">
+                      <Users className="h-4 w-4" />
+                      Detalhes do Lote {selectedLot.lotCode}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Fornecedor</p>
+                        <p className="font-medium">{selectedLot.partnerName}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Total no Lote</p>
+                        <p className="font-medium">{selectedLot.currentQuantity} animais</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Peso Médio</p>
+                        <p className="font-medium">
+                          {selectedLot.averageWeight ? `${selectedLot.averageWeight.toFixed(1)} kg` : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Valor Total</p>
+                        <p className="font-medium">{formatCurrency(selectedLot.totalCost)}</p>
+                      </div>
+                    </div>
+
+                    {/* Alocações existentes do lote */}
+                    {(() => {
+                      const lotAllocations = allocations.filter(alloc => 
+                        alloc.lotId === selectedLotId && alloc.status === 'ACTIVE'
+                      );
+                      const lotData = availableLots.find(l => l.id === selectedLotId);
+                      
+                      if (lotAllocations.length > 0 && lotData) {
+                        return (
+                          <Alert>
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                              Este lote já tem {lotData.totalAllocated} animais alocados em {lotAllocations.length} curral(is).
+                              Restam {lotData.availableQuantity} animais disponíveis para alocação.
+                            </AlertDescription>
+                          </Alert>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Aviso se não houver espaço */}
+            {availableSpace === 0 && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Este curral está com capacidade máxima. Não é possível alocar mais animais.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="submit"
+                disabled={
+                  !selectedLot || 
+                  availableLots.length === 0 || 
+                  availableSpace === 0 ||
+                  isSubmitting ||
+                  allocationsLoading
+                }
+              >
+                {isSubmitting ? 'Alocando...' : 'Alocar Animais'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 };

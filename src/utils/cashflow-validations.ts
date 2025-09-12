@@ -53,8 +53,19 @@ export function validateCashFlow(data: any): CashFlowValidationErrors {
     }
   }
 
-  // Validação de data de vencimento (opcional)
-  if (data.dueDate) {
+  // Validação de data de vencimento
+  if (data.paymentMethod === 'A_PRAZO') {
+    if (!data.dueDate) {
+      errors.dueDate = 'Data de vencimento é obrigatória para pagamentos a prazo';
+    } else {
+      const dueDate = new Date(data.dueDate);
+      if (isNaN(dueDate.getTime())) {
+        errors.dueDate = 'Data de vencimento inválida';
+      } else if (dueDate <= new Date()) {
+        errors.dueDate = 'Data de vencimento deve ser futura';
+      }
+    }
+  } else if (data.dueDate) {
     const dueDate = new Date(data.dueDate);
     if (isNaN(dueDate.getTime())) {
       errors.dueDate = 'Data de vencimento inválida';

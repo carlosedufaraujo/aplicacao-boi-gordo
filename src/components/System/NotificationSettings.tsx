@@ -338,3 +338,5 @@ export const NotificationSettings: React.FC = () => {
     </div>
   );
 };
+
+export default NotificationSettings;

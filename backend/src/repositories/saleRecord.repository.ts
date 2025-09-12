@@ -9,9 +9,10 @@ export class SaleRecordRepository extends BaseRepository<any> {
     return (this as any).model.findUnique({
       where: { id },
       include: {
+        pen: true,
         purchase: true,
         buyer: true,
-        payerAccount: true,
+        receiverAccount: true,
       },
     });
   }
@@ -39,9 +40,10 @@ export class SaleRecordRepository extends BaseRepository<any> {
     return (this as any).model.findMany({
       where,
       include: {
+        pen: true,
         purchase: true,
         buyer: true,
-        payerAccount: true,
+        receiverAccount: true,
       },
       orderBy: { saleDate: 'desc' },
     });
@@ -52,7 +54,7 @@ export class SaleRecordRepository extends BaseRepository<any> {
       where: { purchaseId },
       include: {
         buyer: true,
-        payerAccount: true,
+        receiverAccount: true,
       },
       orderBy: { saleDate: 'desc' },
     });
@@ -63,7 +65,7 @@ export class SaleRecordRepository extends BaseRepository<any> {
       where: { buyerId },
       include: {
         purchase: true,
-        payerAccount: true,
+        receiverAccount: true,
       },
       orderBy: { saleDate: 'desc' },
     });
@@ -73,9 +75,9 @@ export class SaleRecordRepository extends BaseRepository<any> {
     const where: any = {};
     
     if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt.gte = startDate;
-      if (endDate) where.createdAt.lte = endDate;
+      where.saleDate = {};
+      if (startDate) where.saleDate.gte = startDate;
+      if (endDate) where.saleDate.lte = endDate;
     }
 
     const sales = await (this as any).model.findMany({ where });
@@ -83,14 +85,15 @@ export class SaleRecordRepository extends BaseRepository<any> {
     const stats = {
       totalSales: sales.length,
       totalQuantity: sales.reduce((sum: number, s: any) => sum + s.quantity, 0),
-      totalWeight: sales.reduce((sum: number, s: any) => sum + s.totalWeight, 0),
-      totalGrossValue: sales.reduce((sum: number, s: any) => sum + s.grossValue, 0),
+      totalWeight: sales.reduce((sum: number, s: any) => sum + s.exitWeight, 0),
+      totalCarcassWeight: sales.reduce((sum: number, s: any) => sum + s.carcassWeight, 0),
+      totalGrossValue: sales.reduce((sum: number, s: any) => sum + s.totalValue, 0),
       totalNetValue: sales.reduce((sum: number, s: any) => sum + s.netValue, 0),
       averagePrice: 0,
     };
 
-    if (stats.totalWeight > 0) {
-      stats.averagePrice = stats.totalNetValue / stats.totalWeight;
+    if (stats.totalCarcassWeight > 0) {
+      stats.averagePrice = stats.totalNetValue / (stats.totalCarcassWeight / 15); // preço por arroba
     }
 
     return stats;
@@ -103,7 +106,7 @@ export class SaleRecordRepository extends BaseRepository<any> {
       PENDING: sales.filter((s: any) => s.status === 'PENDING').length,
       CONFIRMED: sales.filter((s: any) => s.status === 'CONFIRMED').length,
       DELIVERED: sales.filter((s: any) => s.status === 'DELIVERED').length,
-      COMPLETED: sales.filter((s: any) => s.status === 'COMPLETED').length,
+      PAID: sales.filter((s: any) => s.status === 'PAID').length,
       CANCELLED: sales.filter((s: any) => s.status === 'CANCELLED').length,
     };
   }
@@ -142,7 +145,23 @@ export class SaleRecordRepository extends BaseRepository<any> {
   }
 
   async create(data: any) {
-    return (this as any).model.create({ data });
+    // Limpar strings vazias de campos opcionais
+    const cleanData = { ...data };
+    ['receiverAccountId', 'invoiceNumber', 'contractNumber', 'observations', 'penId', 'purchaseId'].forEach(field => {
+      if (cleanData[field] === '' || cleanData[field] === undefined) {
+        delete cleanData[field];
+      }
+    });
+    
+    return (this as any).model.create({ 
+      data: cleanData,
+      include: {
+        pen: true,
+        purchase: true,
+        buyer: true,
+        receiverAccount: true,
+      }
+    });
   }
 
   async update(id: string, data: any) {

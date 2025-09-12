@@ -72,7 +72,7 @@ export const penValidation = {
     minCapacity: Joi.number().integer().positive().optional(),
     search: Joi.string().optional(),
     page: Joi.number().integer().min(1).optional(),
-    limit: Joi.number().integer().min(1).max(100).optional(),
+    limit: Joi.number().integer().min(1).max(10000).optional(),
     sortBy: Joi.string().optional(),
     sortOrder: Joi.string().valid('asc', 'desc').optional(),
   }),

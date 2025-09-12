@@ -8,7 +8,7 @@ async function testBulkImport() {
     
     // 1. Login
     console.log('1. Fazendo login...');
-    const loginResponse = await fetch('http://localhost:3002/api/v1/auth/login', {
+    const loginResponse = await fetch('http://localhost:3001/api/v1/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ async function testBulkImport() {
 
     // 3. Buscar ou criar conta pagadora
     console.log('3. Configurando conta pagadora...');
-    const accountsResponse = await fetch('http://localhost:3002/api/v1/payer-accounts', {
+    const accountsResponse = await fetch('http://localhost:3001/api/v1/payer-accounts', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
@@ -59,7 +59,7 @@ async function testBulkImport() {
     }
 
     if (!payerAccountId) {
-      const createAccountResponse = await fetch('http://localhost:3002/api/v1/payer-accounts', {
+      const createAccountResponse = await fetch('http://localhost:3001/api/v1/payer-accounts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ async function testBulkImport() {
     const vendorMap = new Map();
 
     // Buscar todos os fornecedores
-    const partnersResponse = await fetch('http://localhost:3002/api/v1/partners?type=VENDOR&limit=100', {
+    const partnersResponse = await fetch('http://localhost:3001/api/v1/partners?type=VENDOR&limit=100', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
@@ -113,7 +113,7 @@ async function testBulkImport() {
       }
 
       // Criar novo fornecedor
-      const vendorResponse = await fetch('http://localhost:3002/api/v1/partners', {
+      const vendorResponse = await fetch('http://localhost:3001/api/v1/partners', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,6 +156,18 @@ async function testBulkImport() {
         continue;
       }
 
+      // Calcular o rendimento de carcaça baseado no valor do CSV
+      // O CSV foi calculado com 50% de rendimento
+      const pesoTotal = parseFloat(row['Peso Total (kg)*']);
+      const precoArroba = parseFloat(row['Preço por Arroba*']);
+      const valorCSV = parseFloat(row['Valor da Compra*']);
+      
+      // Descobrir o rendimento usado no CSV (deve ser 50%)
+      // Valor = (Peso × Rendimento / 100) / 15 × Preço
+      // Rendimento = (Valor × 15 × 100) / (Peso × Preço)
+      const rendimentoCalculado = (valorCSV * 15 * 100) / (pesoTotal * precoArroba);
+      const rendimentoFinal = Math.round(rendimentoCalculado) || 50; // Arredondar para inteiro
+      
       const purchaseData = {
         lotCode: `IMPORT-${Date.now()}-${i + 1}`,
         vendorId: vendorId,
@@ -163,10 +175,10 @@ async function testBulkImport() {
         purchaseDate: new Date(row['Data da Compra*']).toISOString(),
         animalType: row['Tipo de Animal'] || 'MALE',
         initialQuantity: parseInt(row['Quantidade de Animais*']),
-        purchaseWeight: parseFloat(row['Peso Total (kg)*']),
-        carcassYield: 52, // Default
-        pricePerArroba: parseFloat(row['Preço por Arroba*']),
-        purchaseValue: parseFloat(row['Valor da Compra*']),
+        purchaseWeight: pesoTotal,
+        carcassYield: rendimentoFinal, // Usar o rendimento calculado do CSV
+        pricePerArroba: precoArroba,
+        purchaseValue: valorCSV, // Enviar o valor exato do CSV
         paymentType: 'CASH',
         city: row['Cidade'],
         state: row['Estado'],
@@ -176,7 +188,7 @@ async function testBulkImport() {
       };
 
       try {
-        const createResponse = await fetch('http://localhost:3002/api/v1/cattle-purchases', {
+        const createResponse = await fetch('http://localhost:3001/api/v1/cattle-purchases', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

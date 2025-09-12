@@ -25,13 +25,17 @@ class CattlePurchaseController {
       // Não falha a criação da compra se houver erro no CashFlow
     }
     
-    // Criar despesas no sistema antigo (mantém compatibilidade)
-    try {
-      await cattlePurchaseIntegration.createPurchaseExpenses(purchase.id);
-      console.log('✅ Despesas criadas para o lote', purchase.lotCode);
-    } catch (error) {
-      console.error('⚠️ Erro ao criar despesas:', error);
-    }
+    // DESABILITADO: Não criar despesas duplicadas
+    // As despesas já estão incluídas no totalCost da compra
+    // Criar despesas separadas causa duplicação nos relatórios
+    
+    // // Criar despesas no sistema antigo (mantém compatibilidade)
+    // try {
+    //   await cattlePurchaseIntegration.createPurchaseExpenses(purchase.id);
+    //   console.log('✅ Despesas criadas para o lote', purchase.lotCode);
+    // } catch (error) {
+    //   console.error('⚠️ Erro ao criar despesas:', error);
+    // }
     
     res.status(201).json({
       status: 'success',

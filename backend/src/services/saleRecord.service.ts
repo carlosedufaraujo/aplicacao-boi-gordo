@@ -61,12 +61,12 @@ export class SaleRecordService {
     }
 
     if (filters.startDate || filters.endDate) {
-      where.createdAt = {};
+      where.saleDate = {};
       if (filters.startDate) {
-        where.createdAt.gte = filters.startDate;
+        where.saleDate.gte = filters.startDate;
       }
       if (filters.endDate) {
-        where.createdAt.lte = filters.endDate;
+        where.saleDate.lte = filters.endDate;
       }
     }
 
@@ -77,13 +77,16 @@ export class SaleRecordService {
       ];
     }
 
-    const include = {
-      cattleLot: true,
-      buyer: true,
-      payerAccount: true,
+    const options = {
+      include: {
+        pen: true,
+        purchase: true,
+        buyer: true,
+        receiverAccount: true,
+      }
     };
 
-    return this.saleRecordRepository.findAll(where, pagination);
+    return this.saleRecordRepository.findAll(where, pagination, options);
   }
 
   async findById(id: string) {
@@ -109,26 +112,63 @@ export class SaleRecordService {
   }
 
   async create(data: CreateSaleRecordData) {
-    // Valida se o lote existe e tem quantidade disponível
-    // Aqui você pode adicionar validações adicionais
-
-    // Se não foi especificado um ciclo, buscar o ciclo ativo
-    let cycleId = data.cycleId;
-    if (!cycleId) {
-      const activeCycle = await prisma.cycle.findFirst({
-        where: { status: 'ACTIVE' }
-      });
-      cycleId = activeCycle?.id;
+    console.log('🔍 DEBUG SERVICE - Dados recebidos:', JSON.stringify(data, null, 2));
+    
+    // Validar campos obrigatórios
+    if (!data.saleDate) {
+      throw new ValidationError('Data da venda é obrigatória');
+    }
+    if (!data.buyerId) {
+      throw new ValidationError('Comprador é obrigatório');
+    }
+    if (!data.quantity || data.quantity <= 0) {
+      throw new ValidationError('Quantidade deve ser maior que zero');
     }
 
-    const saleRecordData = {
-      ...data,
-      cycleId,
-      status: data.status || 'PENDING',
-      deductions: data.deductions || 0,
+    // Preparar dados garantindo que todos os campos obrigatórios estejam presentes
+    const saleRecordData: any = {
+      saleDate: new Date(data.saleDate),
+      penId: data.penId || null,
+      purchaseId: data.purchaseId || null,
+      saleType: data.saleType || 'total',
+      quantity: Number(data.quantity),
+      buyerId: data.buyerId,
+      exitWeight: Number(data.exitWeight || 0),
+      carcassWeight: Number(data.carcassWeight || 0),
+      carcassYield: Number(data.carcassYield || 50),
+      pricePerArroba: Number(data.pricePerArroba || 0),
+      arrobas: Number(data.arrobas || 0),
+      totalValue: Number(data.totalValue || 0),
+      deductions: Number(data.deductions || 0),
+      netValue: Number(data.netValue || 0),
+      paymentType: data.paymentType || 'cash',
+      paymentDate: data.paymentDate ? new Date(data.paymentDate) : null,
+      receiverAccountId: data.receiverAccountId || null,
+      invoiceNumber: data.invoiceNumber || null,
+      contractNumber: data.contractNumber || null,
+      observations: data.observations || null,
+      // Garantir que o status seja sempre em maiúsculo para o enum do Prisma
+      status: data.status ? data.status.toUpperCase() : 'PENDING',
     };
 
-    return this.saleRecordRepository.create(saleRecordData);
+    // Remover campos com valor null que não são opcionais no banco
+    Object.keys(saleRecordData).forEach(key => {
+      if (saleRecordData[key] === undefined) {
+        delete saleRecordData[key];
+      }
+    });
+
+    console.log('📤 DEBUG SERVICE - Dados preparados para o banco:', JSON.stringify(saleRecordData, null, 2));
+
+    try {
+      const result = await this.saleRecordRepository.create(saleRecordData);
+      console.log('✅ DEBUG SERVICE - Venda criada com sucesso:', result.id);
+      return result;
+    } catch (error: any) {
+      console.error('❌ DEBUG SERVICE - Erro ao criar venda:', error);
+      console.error('❌ DEBUG SERVICE - Detalhes:', error.message);
+      throw error;
+    }
   }
 
   async update(id: string, data: UpdateSaleRecordData) {
@@ -151,8 +191,8 @@ export class SaleRecordService {
     const validTransitions: Record<string, string[]> = {
       PENDING: ['CONFIRMED', 'CANCELLED'],
       CONFIRMED: ['DELIVERED', 'CANCELLED'],
-      DELIVERED: ['COMPLETED'],
-      COMPLETED: [],
+      DELIVERED: ['PAID', 'CANCELLED'],
+      PAID: [],
       CANCELLED: [],
     };
 
@@ -191,16 +231,18 @@ export class SaleRecordService {
     const summary = {
       total: records.total,
       totalQuantity: records.items.reduce((sum: number, r) => sum + r.quantity, 0),
-      totalWeight: records.items.reduce((sum: number, r) => sum + r.totalWeight, 0),
-      totalGrossValue: records.items.reduce((sum: number, r) => sum + r.grossValue, 0),
+      totalWeight: records.items.reduce((sum: number, r) => sum + (r.exitWeight || 0), 0),
+      totalCarcassWeight: records.items.reduce((sum: number, r) => sum + (r.carcassWeight || 0), 0),
+      totalGrossValue: records.items.reduce((sum: number, r) => sum + (r.totalValue || 0), 0),
       totalNetValue: records.items.reduce((sum: number, r) => sum + r.netValue, 0),
       averagePrice: 0,
       byStatus: {
         pending: records.items.filter(r => r.status === 'PENDING').length,
         confirmed: records.items.filter(r => r.status === 'CONFIRMED').length,
         delivered: records.items.filter(r => r.status === 'DELIVERED').length,
-        completed: records.items.filter(r => r.status === 'COMPLETED').length,
+        paid: records.items.filter(r => r.status === 'PAID').length,
         cancelled: records.items.filter(r => r.status === 'CANCELLED').length,
+        completed: records.items.filter(r => r.status === 'PAID').length, // Usar PAID como completed
       },
     };
 

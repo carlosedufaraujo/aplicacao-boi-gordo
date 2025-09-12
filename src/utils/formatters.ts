@@ -1,14 +1,6 @@
 /**
- * Este arquivo agora importa e re-exporta as funções do dateConfig
- * para manter compatibilidade com código existente
+ * Utilitários de formatação para valores monetários, numéricos e outros
  */
-
-import {
-  formatBrazilianCurrency,
-  formatBrazilianNumber,
-  formatWeight as formatWeightBR,
-  formatPercentage as formatPercentageBR
-} from '@/config/dateConfig';
 
 /**
  * Formata um valor numérico para o padrão de moeda brasileira
@@ -17,7 +9,10 @@ import {
  */
 export const formatCurrency = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return 'R$ 0,00';
-  return formatBrazilianCurrency(value);
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(value);
 };
 
 /**
@@ -29,9 +24,9 @@ export const formatCompactCurrency = (value: number | null | undefined): string 
   if (value === null || value === undefined) return 'R$ 0,00';
   
   if (value >= 1000000) {
-    return `R$ ${formatBrazilianNumber(value / 1000000, 1)}M`;
+    return `R$ ${(value / 1000000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}M`;
   } else if (value >= 1000) {
-    return `R$ ${formatBrazilianNumber(value / 1000, 1)}K`;
+    return `R$ ${(value / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}K`;
   }
   
   return formatCurrency(value);
@@ -44,7 +39,7 @@ export const formatCompactCurrency = (value: number | null | undefined): string 
  */
 export const formatNumber = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '0';
-  return formatBrazilianNumber(value);
+  return value.toLocaleString('pt-BR');
 };
 
 /**
@@ -54,7 +49,7 @@ export const formatNumber = (value: number | null | undefined): string => {
  */
 export const formatWeight = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '0,00 kg';
-  return formatWeightBR(value);
+  return `${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`;
 };
 
 /**
@@ -64,12 +59,20 @@ export const formatWeight = (value: number | null | undefined): string => {
  */
 export const formatPercentage = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '0,00%';
-  return formatPercentageBR(value);
+  return `${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 };
 
-// Re-export das novas funções para facilitar importação
-export {
-  formatBrazilianCurrency,
-  formatBrazilianNumber,
-  formatBrazilianDate
-} from '@/config/dateConfig';
+/**
+ * Formata data no padrão brasileiro
+ * @param date - Data a ser formatada
+ * @returns String formatada em DD/MM/AAAA
+ */
+export const formatBrazilianDate = (date: Date | string | null | undefined): string => {
+  if (!date) return '';
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return dateObj.toLocaleDateString('pt-BR');
+};
+
+// Aliases para compatibilidade
+export const formatBrazilianCurrency = formatCurrency;
+export const formatBrazilianNumber = formatNumber;

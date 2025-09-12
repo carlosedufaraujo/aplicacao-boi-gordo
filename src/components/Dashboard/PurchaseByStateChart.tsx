@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Button } from "@/components/ui/button";
@@ -77,6 +77,36 @@ export const PurchaseByStateChart: React.FC = () => {
     },
   } satisfies ChartConfig;
 
+  // Função customizada para renderizar labels
+  const renderCustomLabel = (props: any) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, value, index, state, quantity } = props;
+    const total = data.reduce((sum, d) => sum + d.quantity, 0);
+    const percent = ((quantity / total) * 100).toFixed(0);
+    
+    // Não mostrar label para valores menores que 5%
+    if (parseInt(percent) < 5) return null;
+    
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="white" 
+        textAnchor={x > cx ? 'start' : 'end'} 
+        dominantBaseline="central"
+        className="text-xs font-medium"
+        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
+      >
+        <tspan x={x} dy="-0.3em">{state}</tspan>
+        <tspan x={x} dy="1.2em">{percent}%</tspan>
+      </text>
+    );
+  };
+
   // Cores para os estados
   const COLORS = [
     'hsl(142, 76%, 36%)', // Verde
@@ -92,7 +122,7 @@ export const PurchaseByStateChart: React.FC = () => {
   ];
 
   // Função para drill-down
-  const handleBarClick = (data: any) => {
+  const handleBarClick = (data: any, index?: number, e?: React.MouseEvent) => {
     if (drillDownLevel === 'state' && data) {
       setSelectedState(data.state);
       setDrillDownLevel('details');
@@ -159,58 +189,49 @@ export const PurchaseByStateChart: React.FC = () => {
           // Vista principal por estados
           data.length > 0 ? (
             <div>
-              <ChartContainer config={chartConfig} className="h-[250px]">
-                <BarChart data={data} layout="vertical" margin={{ left: 30 }}>
-                  <CartesianGrid horizontal={false} />
-                  <XAxis 
-                    type="number" 
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => formatSafeNumber(value)}
-                  />
-                  <YAxis 
-                    dataKey="state" 
-                    type="category" 
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    width={25}
-                  />
+              <ChartContainer config={chartConfig} className="h-[350px]">
+                <PieChart>
                   <ChartTooltip 
-                    cursor={{ fill: 'hsl(var(--muted))', opacity: 0.2 }}
+                    cursor={false}
                     content={<ChartTooltipContent 
                       formatter={(value: number, name, props) => {
                         const item = props.payload;
+                        const percentage = ((value / data.reduce((sum, d) => sum + d.quantity, 0)) * 100).toFixed(1);
                         return [
                           <div key="tooltip" className="space-y-1">
-                            <div>{formatSafeNumber(value)} animais</div>
+                            <div>{formatSafeNumber(value)} animais ({percentage}%)</div>
                             <div className="text-xs text-muted-foreground">
                               {item.lotCount} lote(s) • {formatSafeCurrency(item.value)}
                             </div>
                           </div>,
-                          'Quantidade'
+                          name
                         ];
                       }}
-                      labelFormatter={(label) => `Estado: ${label}`}
                     />}
                   />
-                  <Bar 
-                    dataKey="quantity" 
-                    radius={[0, 4, 4, 0]}
-                    animationDuration={1200}
-                    animationBegin={200}
+                  <Pie
+                    data={data}
+                    dataKey="quantity"
+                    nameKey="state"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={120}
+                    paddingAngle={2}
+                    strokeWidth={0}
                     onClick={handleBarClick}
                     style={{ cursor: 'pointer' }}
+                    label={renderCustomLabel}
+                    labelLine={false}
                   >
                     {data.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
-                  </Bar>
-                </BarChart>
+                  </Pie>
+                </PieChart>
               </ChartContainer>
 
-              <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-4 text-center">
+              <div className="mt-3 pt-3 border-t grid grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold">
                     {formatSafeNumber(data.reduce((sum, item) => sum + item.quantity, 0))}

@@ -207,10 +207,10 @@ export class ExpenseService {
       throw new ValidationError('Não é possível excluir despesas pagas');
     }
 
-    // Verifica se tem alocações ou reconciliações
-    if (expense.allocations.length > 0 || expense.reconciliations.length > 0) {
-      throw new ValidationError('Não é possível excluir despesa com alocações ou reconciliações');
-    }
+    // Verifica se tem alocações ou reconciliações (se existirem)
+    // if (expense.allocations?.length > 0 || expense.reconciliations?.length > 0) {
+    //   throw new ValidationError('Não é possível excluir despesa com alocações ou reconciliações');
+    // }
 
     return this.expenseRepository.delete(id);
   }

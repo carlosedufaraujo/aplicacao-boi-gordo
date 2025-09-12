@@ -7,7 +7,7 @@ class SocketService {
   connect(token: string) {
     if (this.connected) return;
 
-    this.socket = io('http://localhost:3002', {
+    this.socket = io('http://localhost:3001', {
       auth: {
         token,
       },

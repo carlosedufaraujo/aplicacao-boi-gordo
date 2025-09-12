@@ -1,928 +1,974 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  FileDown,
-  FileText,
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Calculator, 
+  FileText, 
+  Download, 
   TrendingUp,
   TrendingDown,
-  DollarSign,
-  Percent,
-  Calendar,
-  Activity,
-  AlertCircle,
   Package,
-  Users,
-  MapPin,
-  Heart,
+  DollarSign,
   Weight,
-  Clock,
-  ChartBar,
-  Filter,
-  Download,
-  Eye,
-  Beef,
-  Calculator,
-  Target,
-  Info,
-  PieChart,
+  Heart,
+  Activity,
   BarChart3,
-  LineChart
+  Info,
+  AlertCircle,
+  CheckCircle,
+  Percent,
+  ShoppingBag,
+  Wallet,
+  Receipt,
+  RefreshCw,
+  Calendar,
+  ChevronRight,
+  ArrowUpRight,
+  ArrowDownRight,
+  Clock,
+  CalendarClock,
+  AlertTriangle
 } from 'lucide-react';
+import { useFinancialData } from '@/providers/FinancialDataProvider';
+import { formatSafeDate } from '@/utils/dateUtils';
+import { toast } from 'sonner';
+import { formatCurrency, formatNumber } from '@/utils/cattlePurchaseCalculations';
+import { useCashFlow } from '@/hooks/useCashFlow';
+import { format, isAfter, isBefore, addDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { getCategoryById } from '@/data/defaultCategories';
 
-// Hooks
-import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
-import { useExpensesApi } from '@/hooks/api/useExpensesApi';
-import { useRevenuesApi } from '@/hooks/api/useRevenuesApi';
-import { useInterventionsApi } from '@/hooks/api/useInterventionsApi';
-import { usePensApi } from '@/hooks/api/usePensApi';
-import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
-import { formatSafeCurrency, formatSafeNumber, formatSafeDecimal, toSafeNumber } from '@/utils/dateUtils';
-import { normalizeCategory, getCategoryDisplayName } from '@/utils/categoryNormalizer';
-import { 
-  Tooltip as UITooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
-export function Reports() {
-  // Estados
+export default function Reports() {
+  const { 
+    purchases, 
+    sales, 
+    expenses, 
+    revenues, 
+    metrics, 
+    lotProfitability,
+    loading,
+    refresh 
+  } = useFinancialData();
+  
+  const {
+    cashFlows,
+    summary: cashFlowSummary,
+    loading: cashFlowLoading
+  } = useCashFlow();
+  
+  const [selectedTab, setSelectedTab] = useState('overview');
   const [selectedPeriod, setSelectedPeriod] = useState('all');
-  const [selectedLot, setSelectedLot] = useState('all');
-  const [isExporting, setIsExporting] = useState(false);
-
-  // Buscar dados
-  const { cattlePurchases, loading: purchasesLoading } = useCattlePurchasesApi();
-  const { expenses, loading: expensesLoading } = useExpensesApi();
-  const { revenues, loading: revenuesLoading } = useRevenuesApi();
-  const { interventions, loading: interventionsLoading } = useInterventionsApi();
-  const { pens, loading: pensLoading } = usePensApi();
-  const { payerAccounts } = usePayerAccountsApi();
-
-  // Cálculos e métricas
-  const [metrics, setMetrics] = useState({
-    // Operacionais
-    totalAnimals: 0,
-    totalLots: 0,
-    averageWeight: 0,
-    totalArrobas: 0,
-    mortalityRate: 0,
-    totalDeaths: 0,
-    averageDaysConfined: 0,
+  
+  // Calcular movimentações a vencer (próximos 30 dias)
+  const upcomingMovements = useMemo(() => {
+    if (!cashFlows) return { expenses: [], revenues: [] };
     
-    // Financeiros
-    totalRevenue: 0,
-    totalExpenses: 0,
-    netProfit: 0,
-    profitMargin: 0,
-    totalCapitalAllocated: 0,
-    averagePricePerArroba: 0,
-    totalFreight: 0,
-    totalCommission: 0,
+    const today = new Date();
+    const thirtyDaysFromNow = addDays(today, 30);
     
-    // Por categoria
-    expensesByCategory: {} as Record<string, number>,
+    const upcomingExpenses = cashFlows.filter(cf => 
+      cf.type === 'EXPENSE' && 
+      cf.status === 'PENDING' &&
+      cf.dueDate &&
+      isAfter(new Date(cf.dueDate), today) &&
+      isBefore(new Date(cf.dueDate), thirtyDaysFromNow)
+    );
     
-    // Por estado
-    purchasesByState: {} as Record<string, { count: number, value: number }>,
+    const upcomingRevenues = cashFlows.filter(cf => 
+      cf.type === 'INCOME' && 
+      cf.status === 'PENDING' &&
+      cf.dueDate &&
+      isAfter(new Date(cf.dueDate), today) &&
+      isBefore(new Date(cf.dueDate), thirtyDaysFromNow)
+    );
     
-    // Por lote
-    performanceByLot: [] as any[],
+    return {
+      expenses: upcomingExpenses.sort((a, b) => 
+        new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime()
+      ),
+      revenues: upcomingRevenues.sort((a, b) => 
+        new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime()
+      )
+    };
+  }, [cashFlows]);
+  
+  // Calcular totais das movimentações a vencer
+  const upcomingTotals = useMemo(() => {
+    const totalExpenses = upcomingMovements.expenses.reduce((sum, cf) => sum + cf.amount, 0);
+    const totalRevenues = upcomingMovements.revenues.reduce((sum, cf) => sum + cf.amount, 0);
+    return {
+      expenses: totalExpenses,
+      revenues: totalRevenues,
+      balance: totalRevenues - totalExpenses
+    };
+  }, [upcomingMovements]);
+  
+  // Agrupar cash flows por categoria
+  const categoryBreakdown = useMemo(() => {
+    if (!cashFlows) return { expenses: {}, incomes: {} };
     
-    // Tendências
-    monthlyTrend: [] as any[]
+    const expenses: Record<string, { name: string; amount: number; count: number }> = {};
+    const incomes: Record<string, { name: string; amount: number; count: number }> = {};
+    
+    cashFlows.forEach(cf => {
+      // Considerar apenas movimentações pagas/recebidas
+      if (cf.status !== 'PAID' && cf.status !== 'RECEIVED') return;
+      
+      const category = getCategoryById(cf.categoryId);
+      const categoryName = category?.name || 'Outros';
+      const categoryId = cf.categoryId || 'outros';
+      
+      if (cf.type === 'EXPENSE') {
+        if (!expenses[categoryId]) {
+          expenses[categoryId] = { name: categoryName, amount: 0, count: 0 };
+        }
+        expenses[categoryId].amount += cf.amount;
+        expenses[categoryId].count++;
+      } else {
+        if (!incomes[categoryId]) {
+          incomes[categoryId] = { name: categoryName, amount: 0, count: 0 };
+        }
+        incomes[categoryId].amount += cf.amount;
+        incomes[categoryId].count++;
+      }
+    });
+    
+    return { expenses, incomes };
+  }, [cashFlows]);
+  
+  // Debug logs
+  console.log('📈 Reports - Dados recebidos:', {
+    purchases: purchases?.length || 0,
+    sales: sales?.length || 0,
+    metrics,
+    loading
   });
 
-  // Calcular métricas
-  useEffect(() => {
-    if (!cattlePurchases || !expenses || !revenues || !interventions) return;
-
-    // Filtrar dados por período se necessário
-    let filteredPurchases = cattlePurchases;
-    let filteredExpenses = expenses;
-    let filteredRevenues = revenues;
-    
-    if (selectedLot !== 'all') {
-      filteredPurchases = cattlePurchases.filter(p => p.lotCode === selectedLot);
-      filteredExpenses = expenses.filter(e => e.purchaseId && 
-        filteredPurchases.some(p => p.id === e.purchaseId));
-    }
-
-    // MÉTRICAS OPERACIONAIS
-    const totalAnimals = filteredPurchases.reduce((sum, p) => 
-      sum + toSafeNumber(p.currentQuantity || p.initialQuantity), 0);
-    
-    const totalLots = filteredPurchases.length;
-    
-    const totalWeight = filteredPurchases.reduce((sum, p) => 
-      sum + toSafeNumber(p.purchaseWeight || p.totalWeight), 0);
-    
-    const averageWeight = totalAnimals > 0 ? totalWeight / totalAnimals : 0;
-    const totalArrobas = totalWeight / 15;
-    
-    // Mortalidade
-    const deaths = interventions.filter(i => i.type === 'death');
-    const totalDeaths = deaths.reduce((sum, d) => sum + (d.quantity || 0), 0);
-    const initialAnimals = filteredPurchases.reduce((sum, p) => 
-      sum + toSafeNumber(p.initialQuantity), 0);
-    const mortalityRate = initialAnimals > 0 ? (totalDeaths / initialAnimals) * 100 : 0;
-    
-    // Dias confinados (média)
-    const today = new Date();
-    const daysConfined = filteredPurchases.map(p => {
-      const purchaseDate = new Date(p.purchaseDate);
-      const days = Math.floor((today.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-      return days;
-    });
-    const averageDaysConfined = daysConfined.length > 0 
-      ? daysConfined.reduce((a, b) => a + b, 0) / daysConfined.length 
-      : 0;
-
-    // MÉTRICAS FINANCEIRAS
-    const totalRevenue = filteredRevenues.reduce((sum, r) => 
-      sum + toSafeNumber(r.totalAmount || r.amount || r.value), 0);
-    
-    const totalExpenses = filteredExpenses.reduce((sum, e) => 
-      sum + toSafeNumber(e.totalAmount || e.amount || e.value), 0);
-    
-    const netProfit = totalRevenue - totalExpenses;
-    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-    
-    // Capital alocado e preço médio
-    let totalCapitalAllocated = 0;
-    let totalWeightedPrice = 0;
-    let totalPurchaseArrobas = 0;
-    
-    filteredPurchases.forEach(p => {
-      const purchaseValue = toSafeNumber(p.purchaseValue);
-      const freight = toSafeNumber(p.freightCost);
-      const commission = toSafeNumber(p.commission);
-      const arrobas = toSafeNumber(p.purchaseWeight || p.totalWeight) / 15;
-      const pricePerArroba = toSafeNumber(p.pricePerArroba);
-      
-      totalCapitalAllocated += purchaseValue + freight + commission;
-      totalWeightedPrice += pricePerArroba * arrobas;
-      totalPurchaseArrobas += arrobas;
-    });
-    
-    const averagePricePerArroba = totalPurchaseArrobas > 0 
-      ? totalWeightedPrice / totalPurchaseArrobas 
-      : 0;
-    
-    // Total de frete e comissão
-    const totalFreight = filteredPurchases.reduce((sum, p) => 
-      sum + toSafeNumber(p.freightCost), 0);
-    const totalCommission = filteredPurchases.reduce((sum, p) => 
-      sum + toSafeNumber(p.commission), 0);
-
-    // DESPESAS POR CATEGORIA
-    const expensesByCategory: Record<string, number> = {};
-    filteredExpenses.forEach(e => {
-      const category = getCategoryDisplayName(e.category);
-      expensesByCategory[category] = (expensesByCategory[category] || 0) + 
-        toSafeNumber(e.totalAmount || e.amount || e.value);
-    });
-
-    // COMPRAS POR ESTADO
-    const purchasesByState: Record<string, { count: number, value: number }> = {};
-    filteredPurchases.forEach(p => {
-      const state = p.state || 'N/A';
-      if (!purchasesByState[state]) {
-        purchasesByState[state] = { count: 0, value: 0 };
-      }
-      purchasesByState[state].count += toSafeNumber(p.currentQuantity || p.initialQuantity);
-      purchasesByState[state].value += toSafeNumber(p.purchaseValue);
-    });
-
-    // PERFORMANCE POR LOTE
-    const performanceByLot = filteredPurchases.map(p => {
-      const lotExpenses = expenses.filter(e => e.purchaseId === p.id);
-      const lotRevenues = revenues.filter(r => r.purchaseId === p.id);
-      const lotDeaths = interventions.filter(i => 
-        i.type === 'death' && i.purchaseId === p.id
-      );
-      
-      const totalLotExpenses = lotExpenses.reduce((sum, e) => 
-        sum + toSafeNumber(e.totalAmount || e.amount || e.value), 0);
-      const totalLotRevenues = lotRevenues.reduce((sum, r) => 
-        sum + toSafeNumber(r.totalAmount || r.amount || r.value), 0);
-      const deathCount = lotDeaths.reduce((sum, d) => sum + (d.quantity || 0), 0);
-      const mortalityRate = p.initialQuantity > 0 
-        ? (deathCount / p.initialQuantity) * 100 
-        : 0;
-      
-      const arrobas = toSafeNumber(p.purchaseWeight || p.totalWeight) / 15;
-      const costPerArroba = arrobas > 0 ? totalLotExpenses / arrobas : 0;
-      const profitLoss = totalLotRevenues - totalLotExpenses;
-      const margin = totalLotRevenues > 0 ? (profitLoss / totalLotRevenues) * 100 : 0;
-      
-      return {
-        lotCode: p.lotCode,
-        state: p.state || 'N/A',
-        animals: p.currentQuantity || p.initialQuantity,
-        arrobas: arrobas,
-        purchaseValue: p.purchaseValue,
-        totalExpenses: totalLotExpenses,
-        totalRevenues: totalLotRevenues,
-        profitLoss: profitLoss,
-        margin: margin,
-        mortalityRate: mortalityRate,
-        costPerArroba: costPerArroba,
-        pricePerArroba: p.pricePerArroba,
-        daysConfined: Math.floor((today.getTime() - new Date(p.purchaseDate).getTime()) / (1000 * 60 * 60 * 24))
-      };
-    });
-
-    // TENDÊNCIA MENSAL (últimos 6 meses)
-    const monthlyTrend = [];
-    for (let i = 5; i >= 0; i--) {
-      const monthDate = new Date();
-      monthDate.setMonth(monthDate.getMonth() - i);
-      const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-      const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-      
-      const monthExpenses = expenses.filter(e => {
-        const date = new Date(e.createdAt || e.dueDate);
-        return date >= monthStart && date <= monthEnd;
-      });
-      
-      const monthRevenues = revenues.filter(r => {
-        const date = new Date(r.createdAt || r.dueDate);
-        return date >= monthStart && date <= monthEnd;
-      });
-      
-      const totalMonthExpenses = monthExpenses.reduce((sum, e) => 
-        sum + toSafeNumber(e.totalAmount || e.amount || e.value), 0);
-      const totalMonthRevenues = monthRevenues.reduce((sum, r) => 
-        sum + toSafeNumber(r.totalAmount || r.amount || r.value), 0);
-      
-      monthlyTrend.push({
-        month: monthDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
-        expenses: totalMonthExpenses,
-        revenues: totalMonthRevenues,
-        profit: totalMonthRevenues - totalMonthExpenses
-      });
-    }
-
-    // Atualizar estado
-    setMetrics({
-      totalAnimals,
-      totalLots,
-      averageWeight,
-      totalArrobas,
-      mortalityRate,
-      totalDeaths,
-      averageDaysConfined,
-      totalRevenue,
-      totalExpenses,
-      netProfit,
-      profitMargin,
-      totalCapitalAllocated,
-      averagePricePerArroba,
-      totalFreight,
-      totalCommission,
-      expensesByCategory,
-      purchasesByState,
-      performanceByLot,
-      monthlyTrend
-    });
-  }, [cattlePurchases, expenses, revenues, interventions, selectedLot]);
-
   // Função para exportar relatório
-  const handleExport = async (format: 'pdf' | 'excel') => {
-    setIsExporting(true);
+  const handleExport = (format: 'json' | 'csv') => {
+    if (!metrics) return;
     
-    // Preparar dados para exportação
-    const exportData = {
-      generatedAt: new Date().toISOString(),
-      period: selectedPeriod,
-      lot: selectedLot,
-      metrics: metrics,
-      details: {
-        purchases: cattlePurchases,
-        expenses: expenses,
-        revenues: revenues,
-        interventions: interventions
+    try {
+      if (format === 'json') {
+        const data = {
+          timestamp: new Date().toISOString(),
+          metrics,
+          lotProfitability,
+          totalPurchases: purchases.length,
+          totalSales: sales.length,
+          metadata: {
+            generatedBy: 'Sistema Boi Gordo - Relatórios Integrados',
+            period: selectedPeriod
+          }
+        };
+        
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `relatorio-integrado-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast.success('Relatório exportado com sucesso!');
+      } else {
+        toast.info('Exportação CSV em desenvolvimento');
       }
-    };
-    
-    if (format === 'excel') {
-      // Criar CSV
-      const csvContent = generateCSV(exportData);
-      downloadFile(csvContent, `relatorio-${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
-    } else {
-      // Por enquanto, exportar como JSON
-      const jsonContent = JSON.stringify(exportData, null, 2);
-      downloadFile(jsonContent, `relatorio-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+    } catch (error) {
+      toast.error('Erro ao exportar relatório');
     }
-    
-    setIsExporting(false);
   };
 
-  // Função auxiliar para gerar CSV
-  const generateCSV = (data: any) => {
-    const lines = [];
-    
-    // Cabeçalho
-    lines.push('RELATÓRIO COMPLETO DO SISTEMA BOI GORDO');
-    lines.push(`Data: ${new Date().toLocaleDateString('pt-BR')}`);
-    lines.push('');
-    
-    // Métricas Operacionais
-    lines.push('MÉTRICAS OPERACIONAIS');
-    lines.push(`Total de Animais,${data.metrics.totalAnimals}`);
-    lines.push(`Total de Lotes,${data.metrics.totalLots}`);
-    lines.push(`Peso Médio (kg),${data.metrics.averageWeight.toFixed(2)}`);
-    lines.push(`Total de Arrobas,${data.metrics.totalArrobas.toFixed(2)}`);
-    lines.push(`Taxa de Mortalidade (%),${data.metrics.mortalityRate.toFixed(2)}`);
-    lines.push(`Total de Mortes,${data.metrics.totalDeaths}`);
-    lines.push(`Média de Dias Confinados,${data.metrics.averageDaysConfined.toFixed(0)}`);
-    lines.push('');
-    
-    // Métricas Financeiras
-    lines.push('MÉTRICAS FINANCEIRAS');
-    lines.push(`Receita Total,${data.metrics.totalRevenue.toFixed(2)}`);
-    lines.push(`Despesas Totais,${data.metrics.totalExpenses.toFixed(2)}`);
-    lines.push(`Lucro Líquido,${data.metrics.netProfit.toFixed(2)}`);
-    lines.push(`Margem de Lucro (%),${data.metrics.profitMargin.toFixed(2)}`);
-    lines.push(`Capital Total Alocado,${data.metrics.totalCapitalAllocated.toFixed(2)}`);
-    lines.push(`Preço Médio por Arroba,${data.metrics.averagePricePerArroba.toFixed(2)}`);
-    lines.push('');
-    
-    // Performance por Lote
-    lines.push('PERFORMANCE POR LOTE');
-    lines.push('Lote,Estado,Animais,Arrobas,Valor Compra,Despesas,Receitas,Lucro/Prejuízo,Margem,Mortalidade,Dias Confinados');
-    data.metrics.performanceByLot.forEach((lot: any) => {
-      lines.push(`${lot.lotCode},${lot.state},${lot.animals},${lot.arrobas.toFixed(2)},${lot.purchaseValue.toFixed(2)},${lot.totalExpenses.toFixed(2)},${lot.totalRevenues.toFixed(2)},${lot.profitLoss.toFixed(2)},${lot.margin.toFixed(2)}%,${lot.mortalityRate.toFixed(2)}%,${lot.daysConfined}`);
-    });
-    
-    return lines.join('\n');
+  const getStatusColor = (value: number) => {
+    if (value > 0) return 'text-green-600';
+    if (value < 0) return 'text-red-600';
+    return 'text-gray-600';
   };
 
-  // Função auxiliar para download
-  const downloadFile = (content: string, filename: string, type: string) => {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const getStatusIcon = (value: number) => {
+    if (value > 0) return <ArrowUpRight className="h-4 w-4 text-green-600" />;
+    if (value < 0) return <ArrowDownRight className="h-4 w-4 text-red-600" />;
+    return <ChevronRight className="h-4 w-4 text-gray-600" />;
   };
 
-  const isLoading = purchasesLoading || expensesLoading || revenuesLoading || interventionsLoading || pensLoading;
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando relatórios...</p>
+          <Activity className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Carregando dados financeiros...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <TooltipProvider>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Relatórios</h2>
-            <p className="text-muted-foreground">
-              Análise completa e detalhada de todos os dados do sistema
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Select value={selectedLot} onValueChange={setSelectedLot}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Selecionar lote" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os lotes</SelectItem>
-                {cattlePurchases?.map(p => (
-                  <SelectItem key={p.id} value={p.lotCode}>
-                    {p.lotCode}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleExport('excel')}
-              disabled={isExporting}
-            >
-              <FileDown className="h-4 w-4 mr-2" />
-              Excel
-            </Button>
-            <Button 
-              size="sm"
-              onClick={() => handleExport('pdf')}
-              disabled={isExporting}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              PDF
-            </Button>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Relatórios Integrados</h1>
+          <p className="text-muted-foreground mt-1">
+            Análise completa de compras, vendas e lucratividade
+          </p>
         </div>
-
-        {/* Cards de Resumo */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total de Animais</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatSafeNumber(metrics.totalAnimals)}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                em {metrics.totalLots} lotes
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Capital Alocado</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatSafeCurrency(metrics.totalCapitalAllocated)}</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                R$ {metrics.averagePricePerArroba.toFixed(2)}/@ média
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Resultado</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatSafeCurrency(metrics.netProfit)}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Margem: {metrics.profitMargin.toFixed(1)}%
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Taxa de Mortalidade</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics.mortalityRate.toFixed(1)}%</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {metrics.totalDeaths} mortes registradas
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={refresh}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
+          <Button variant="outline" onClick={() => handleExport('json')}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar JSON
+          </Button>
+          <Button variant="outline" onClick={() => handleExport('csv')}>
+            <FileText className="h-4 w-4 mr-2" />
+            Exportar CSV
+          </Button>
         </div>
+      </div>
 
-        {/* Tabs com análises detalhadas */}
-        <Tabs defaultValue="operational" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="operational">Operacional</TabsTrigger>
-            <TabsTrigger value="financial">Financeiro</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="trends">Tendências</TabsTrigger>
-            <TabsTrigger value="comparative">Comparativo</TabsTrigger>
-          </TabsList>
-
-          {/* Tab Operacional */}
-          <TabsContent value="operational" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Distribuição por Estado */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Distribuição por Estado</CardTitle>
-                  <CardDescription>
-                    Quantidade de animais por estado de origem
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {Object.entries(metrics.purchasesByState)
-                      .sort(([, a], [, b]) => b.count - a.count)
-                      .map(([state, data]) => (
-                        <div key={state} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{state}</span>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <Badge variant="secondary">
-                              {formatSafeNumber(data.count)} animais
-                            </Badge>
-                            <span className="text-sm text-muted-foreground">
-                              {formatSafeCurrency(data.value)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Métricas de Peso e Confinamento */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Métricas de Produção</CardTitle>
-                  <CardDescription>
-                    Indicadores de peso e tempo de confinamento
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Peso Médio</span>
-                      <span className="font-bold">{metrics.averageWeight.toFixed(1)} kg</span>
-                    </div>
-                    <Progress value={75} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Total de Arrobas</span>
-                      <span className="font-bold">{formatSafeNumber(metrics.totalArrobas)}</span>
-                    </div>
-                    <Progress value={85} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Dias Confinados (média)</span>
-                      <span className="font-bold">{metrics.averageDaysConfined.toFixed(0)} dias</span>
-                    </div>
-                    <Progress value={60} className="h-2" />
-                  </div>
-
-                  <Separator />
-
-                  <div className="pt-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Taxa de Mortalidade</span>
-                      <Badge variant={metrics.mortalityRate < 2 ? "success" : "destructive"}>
-                        {metrics.mortalityRate.toFixed(2)}%
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+      {/* KPIs Principais */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {formatCurrency(metrics.totalRevenue)}
             </div>
-          </TabsContent>
-
-          {/* Tab Financeiro */}
-          <TabsContent value="financial" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Despesas por Categoria */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Despesas por Categoria</CardTitle>
-                  <CardDescription>
-                    Distribuição de custos por tipo
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {Object.entries(metrics.expensesByCategory)
-                      .sort(([, a], [, b]) => b - a)
-                      .slice(0, 8)
-                      .map(([category, value]) => {
-                        const percentage = (value / metrics.totalExpenses) * 100;
-                        return (
-                          <div key={category} className="space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium">{category}</span>
-                              <span className="text-sm text-muted-foreground">
-                                {formatSafeCurrency(value)} ({percentage.toFixed(1)}%)
-                              </span>
-                            </div>
-                            <Progress value={percentage} className="h-2" />
-                          </div>
-                        );
-                      })}
-                  </div>
-                  
-                  <Separator className="my-4" />
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Total</span>
-                    <span className="font-bold">{formatSafeCurrency(metrics.totalExpenses)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Resumo Financeiro */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Resumo Financeiro</CardTitle>
-                  <CardDescription>
-                    Visão geral de receitas e despesas
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-green-500" />
-                        <span>Receitas</span>
-                      </div>
-                      <span className="font-bold text-green-600">
-                        {formatSafeCurrency(metrics.totalRevenue)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-red-500" />
-                        <span>Despesas</span>
-                      </div>
-                      <span className="font-bold text-red-600">
-                        {formatSafeCurrency(metrics.totalExpenses)}
-                      </span>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Resultado</span>
-                      <span className={`font-bold text-lg ${
-                        metrics.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
-                      }`}>
-                        {formatSafeCurrency(metrics.netProfit)}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Margem</span>
-                      <Badge variant={metrics.profitMargin >= 0 ? "success" : "destructive"}>
-                        {metrics.profitMargin.toFixed(1)}%
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Custos Adicionais</h4>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Frete Total</span>
-                        <span>{formatSafeCurrency(metrics.totalFreight)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Comissões</span>
-                        <span>{formatSafeCurrency(metrics.totalCommission)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">
+                {metrics.totalSales} vendas
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {formatCurrency(metrics.paidSalesValue)} pagos
+              </span>
             </div>
-          </TabsContent>
+          </CardContent>
+        </Card>
 
-          {/* Tab Performance por Lote */}
-          <TabsContent value="performance" className="space-y-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Custo Total</CardTitle>
+            <Receipt className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(metrics.totalCosts)}
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">
+                {metrics.totalPurchases} compras
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                + {formatCurrency(metrics.totalExpenses)} despesas
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Lucro Bruto</CardTitle>
+            {metrics.grossProfit >= 0 ? (
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            ) : (
+              <TrendingDown className="h-4 w-4 text-red-600" />
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${getStatusColor(metrics.grossProfit)}`}>
+              {formatCurrency(metrics.grossProfit)}
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant={metrics.netMargin >= 0 ? "default" : "destructive"} className="text-xs">
+                {metrics.netMargin.toFixed(1)}% margem
+              </Badge>
+              {getStatusIcon(metrics.grossProfit)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">ROI</CardTitle>
+            <Percent className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${getStatusColor(metrics.roi)}`}>
+              {metrics.roi.toFixed(1)}%
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">
+                {metrics.totalProfitableLots} lotes lucrativos
+              </Badge>
+              <span className="text-xs text-muted-foreground">
+                {metrics.totalLossLots} com prejuízo
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs de Análise */}
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="lots">Análise por Lote</TabsTrigger>
+          <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
+        </TabsList>
+
+        {/* Tab: Visão Geral */}
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Resumo de Compras */}
             <Card>
               <CardHeader>
-                <CardTitle>Performance Detalhada por Lote</CardTitle>
-                <CardDescription>
-                  Análise individual de cada lote com métricas de desempenho
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Resumo de Compras
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Lote</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead className="text-right">Animais</TableHead>
-                        <TableHead className="text-right">Arrobas</TableHead>
-                        <TableHead className="text-right">R$/@</TableHead>
-                        <TableHead className="text-right">Custo/@</TableHead>
-                        <TableHead className="text-right">Resultado</TableHead>
-                        <TableHead className="text-right">Margem</TableHead>
-                        <TableHead className="text-right">Mortalidade</TableHead>
-                        <TableHead className="text-right">Dias</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {metrics.performanceByLot.map((lot) => (
-                        <TableRow key={lot.lotCode}>
-                          <TableCell className="font-medium">{lot.lotCode}</TableCell>
-                          <TableCell>{lot.state}</TableCell>
-                          <TableCell className="text-right">{lot.animals}</TableCell>
-                          <TableCell className="text-right">{lot.arrobas.toFixed(0)}</TableCell>
-                          <TableCell className="text-right">
-                            R$ {lot.pricePerArroba.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            R$ {lot.costPerArroba.toFixed(2)}
-                          </TableCell>
-                          <TableCell className={`text-right font-medium ${
-                            lot.profitLoss >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {formatSafeCurrency(lot.profitLoss)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Badge variant={lot.margin >= 0 ? "success" : "destructive"}>
-                              {lot.margin.toFixed(1)}%
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Badge variant={lot.mortalityRate < 2 ? "secondary" : "destructive"}>
-                              {lot.mortalityRate.toFixed(1)}%
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">{lot.daysConfined}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+              <CardContent className="space-y-3">
+                {/* Informações básicas */}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Total de Lotes</span>
+                  <span className="font-semibold">{metrics.totalPurchases}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Animais Comprados</span>
+                  <span className="font-semibold">{formatNumber(metrics.totalAnimals)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Quantidade de Arrobas</span>
+                  <span className="font-semibold">{formatNumber(metrics.totalArrobas)} @</span>
+                </div>
+                
+                {/* Breakdown de Despesas */}
+                <Separator />
+                <div className="text-xs text-muted-foreground font-medium mb-2">Breakdown de Custos</div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Custo de Compra dos Animais</span>
+                  <span className="font-semibold text-green-700">
+                    {formatCurrency(metrics.totalPurchaseValue)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Despesas com Comissão</span>
+                  <span className="font-semibold text-orange-600">
+                    {formatCurrency(metrics.totalCommissionExpenses)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Despesas com Frete</span>
+                  <span className="font-semibold text-blue-600">
+                    {formatCurrency(metrics.totalFreightExpenses)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Outras Despesas</span>
+                  <span className="font-semibold text-purple-600">
+                    {formatCurrency(metrics.totalOtherPurchaseExpenses)}
+                  </span>
+                </div>
+                
+                {/* Totais Calculados */}
+                <Separator />
+                <div className="text-xs text-muted-foreground font-medium mb-2">Totais Consolidados</div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Custo Total (Animais + Despesas)</span>
+                  <span className="font-semibold text-red-600">
+                    {formatCurrency(
+                      metrics.totalPurchaseValue + 
+                      metrics.totalCommissionExpenses + 
+                      metrics.totalFreightExpenses + 
+                      metrics.totalOtherPurchaseExpenses
+                    )}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Custo Médio/Animal (Total)</span>
+                  <span className="font-semibold">
+                    {formatCurrency(metrics.totalAnimals > 0 ? 
+                      (metrics.totalPurchaseValue + 
+                       metrics.totalCommissionExpenses + 
+                       metrics.totalFreightExpenses + 
+                       metrics.totalOtherPurchaseExpenses) / metrics.totalAnimals : 0
+                    )}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Custo Médio R$/@</span>
+                  <span className="font-semibold text-indigo-600">
+                    {formatCurrency(metrics.averageCostPerArroba)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Resumo de Vendas */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingBag className="h-5 w-5" />
+                  Resumo de Vendas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Informações básicas */}
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Total de Vendas</span>
+                  <span className="font-semibold">{metrics.totalSales}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Animais Vendidos</span>
+                  <span className="font-semibold">{formatNumber(metrics.totalAnimalsSold)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Quantidade de Arrobas</span>
+                  <span className="font-semibold">{formatNumber(metrics.totalSalesArrobas)} @</span>
+                </div>
+                
+                {/* Breakdown Financeiro de Vendas */}
+                <Separator />
+                <div className="text-xs text-muted-foreground font-medium mb-2">Breakdown Financeiro</div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Deduções Fiscais</span>
+                  <span className="font-semibold text-red-600">
+                    {formatCurrency(metrics.totalTaxDeductions)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Antecipações de Recebíveis</span>
+                  <span className="font-semibold text-orange-600">
+                    {formatCurrency(metrics.totalReceivableAdvances)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Despesas com Frete</span>
+                  <span className="font-semibold text-blue-600">
+                    {formatCurrency(metrics.totalSalesFreightExpenses)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Outros Custos</span>
+                  <span className="font-semibold text-purple-600">
+                    {formatCurrency(metrics.totalSalesOtherCosts)}
+                  </span>
+                </div>
+                
+                {/* Totais Consolidados */}
+                <Separator />
+                <div className="text-xs text-muted-foreground font-medium mb-2">Totais Consolidados</div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Receita Total (Líquida)</span>
+                  <span className="font-semibold text-green-700">
+                    {formatCurrency(metrics.totalSalesRevenue)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Receita Média/Animal (Total)</span>
+                  <span className="font-semibold">
+                    {formatCurrency(metrics.averageRevenuePerAnimal)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Receita Média R$/@</span>
+                  <span className="font-semibold text-indigo-600">
+                    {formatCurrency(metrics.averageRevenuePerArroba)}
+                  </span>
+                </div>
+                
+                {/* Status de Pagamento */}
+                <Separator />
+                <div className="text-xs text-muted-foreground font-medium mb-2">Status de Pagamento</div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Vendas Pagas</span>
+                  <span className="font-semibold text-green-600">
+                    {formatCurrency(metrics.paidSalesValue)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Vendas Pendentes</span>
+                  <span className="font-semibold text-yellow-600">
+                    {formatCurrency(metrics.pendingSalesValue)}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Análise de Desempenho */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Análise de Desempenho
+              </CardTitle>
+              <CardDescription>
+                Indicadores de performance e lucratividade
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Margem Líquida</span>
+                  <div className="flex items-center gap-2">
+                    <Progress 
+                      value={Math.abs(metrics.netMargin)} 
+                      className="w-32" 
+                    />
+                    <span className={`text-sm font-bold ${getStatusColor(metrics.netMargin)}`}>
+                      {metrics.netMargin.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">ROI (Retorno sobre Investimento)</span>
+                  <div className="flex items-center gap-2">
+                    <Progress 
+                      value={Math.abs(metrics.roi)} 
+                      className="w-32" 
+                    />
+                    <span className={`text-sm font-bold ${getStatusColor(metrics.roi)}`}>
+                      {metrics.roi.toFixed(1)}%
+                    </span>
+                  </div>
                 </div>
 
-                {metrics.performanceByLot.length === 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Taxa de Conversão</span>
+                  <div className="flex items-center gap-2">
+                    <Progress 
+                      value={metrics.totalAnimals > 0 ? (metrics.totalAnimalsSold / metrics.totalAnimals) * 100 : 0} 
+                      className="w-32" 
+                    />
+                    <span className="text-sm font-bold">
+                      {metrics.totalAnimals > 0 
+                        ? ((metrics.totalAnimalsSold / metrics.totalAnimals) * 100).toFixed(1) 
+                        : 0}%
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Margem Bruta</span>
+                  <div className="flex items-center gap-2">
+                    <Progress 
+                      value={Math.abs(metrics.grossMargin)} 
+                      className="w-32" 
+                    />
+                    <span className={`text-sm font-bold ${getStatusColor(metrics.grossMargin)}`}>
+                      {metrics.grossMargin.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">NET Animais (Comprados - Vendidos)</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-bold ${metrics.netAnimalsBalance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                      {metrics.netAnimalsBalance > 0 ? '+' : ''}{formatNumber(metrics.netAnimalsBalance)} animais
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-green-600">{metrics.totalProfitableLots}</p>
+                  <p className="text-xs text-muted-foreground">Lotes Lucrativos</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-red-600">{metrics.totalLossLots}</p>
+                  <p className="text-xs text-muted-foreground">Lotes com Prejuízo</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {metrics.averageMargin.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">Margem Média</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Análise por Lote */}
+        <TabsContent value="lots" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Lucratividade por Lote</CardTitle>
+              <CardDescription>
+                Análise detalhada de cada lote com vendas realizadas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {lotProfitability.map((lot) => (
+                  <div key={lot.purchase.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold">
+                          Lote {lot.purchase.lotCode || lot.purchase.id.slice(-6)}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          {formatSafeDate(lot.purchase.purchaseDate)} • {lot.purchase.initialQuantity || lot.purchase.quantity || 0} animais
+                        </p>
+                      </div>
+                      <Badge 
+                        variant={lot.status === 'profit' ? 'default' : lot.status === 'loss' ? 'destructive' : 'secondary'}
+                      >
+                        {lot.status === 'profit' ? 'Lucro' : lot.status === 'loss' ? 'Prejuízo' : 'Pendente'}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Custo Total</p>
+                        <p className="font-semibold text-red-600">
+                          {formatCurrency(lot.totalCost)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Receita</p>
+                        <p className="font-semibold text-green-600">
+                          {formatCurrency(lot.totalRevenue)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Lucro/Prejuízo</p>
+                        <p className={`font-semibold ${getStatusColor(lot.profit)}`}>
+                          {formatCurrency(lot.profit)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Margem</p>
+                        <p className={`font-semibold ${getStatusColor(lot.margin)}`}>
+                          {lot.margin.toFixed(1)}%
+                        </p>
+                      </div>
+                    </div>
+
+                    {lot.sales.length > 0 && (
+                      <div className="pt-2 border-t">
+                        <p className="text-xs text-muted-foreground">
+                          {lot.sales.length} venda(s) realizada(s) • {lot.totalSold} animais vendidos
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {lotProfitability.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>Nenhum lote encontrado</p>
+                    <Package className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Nenhum lote com vendas realizadas</p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          {/* Tab Tendências */}
-          <TabsContent value="trends" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tendências Mensais</CardTitle>
-                <CardDescription>
-                  Evolução de receitas, despesas e lucro nos últimos 6 meses
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {metrics.monthlyTrend.map((month, index) => (
-                    <div key={index} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{month.month}</span>
-                        <div className="flex items-center gap-4">
-                          <Badge variant="outline" className="text-green-600">
-                            <TrendingUp className="h-3 w-3 mr-1" />
-                            {formatSafeCurrency(month.revenues)}
-                          </Badge>
-                          <Badge variant="outline" className="text-red-600">
-                            <TrendingDown className="h-3 w-3 mr-1" />
-                            {formatSafeCurrency(month.expenses)}
-                          </Badge>
-                          <Badge variant={month.profit >= 0 ? "success" : "destructive"}>
-                            {formatSafeCurrency(month.profit)}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <Progress 
-                          value={(month.revenues / Math.max(...metrics.monthlyTrend.map(m => m.revenues))) * 100} 
-                          className="h-2 bg-green-100" 
-                        />
-                        <Progress 
-                          value={(month.expenses / Math.max(...metrics.monthlyTrend.map(m => m.expenses))) * 100} 
-                          className="h-2 bg-red-100" 
-                        />
-                        <Progress 
-                          value={month.profit >= 0 ? (month.profit / Math.max(...metrics.monthlyTrend.map(m => Math.abs(m.profit)))) * 100 : 0} 
-                          className="h-2 bg-blue-100" 
-                        />
-                      </div>
+        {/* Tab: Fluxo de Caixa */}
+        <TabsContent value="cashflow" className="space-y-4">
+          {/* Resumo Geral do Fluxo de Caixa */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Fluxo de Caixa - Visão Geral
+              </CardTitle>
+              <CardDescription>
+                Movimentação financeira consolidada do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Resumo do Fluxo com dados do Cash Flow */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="text-center p-4 border rounded-lg bg-green-50">
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                      <TrendingUp className="h-4 w-4 text-green-600" />
+                      <p className="text-sm text-muted-foreground">Total Entradas</p>
                     </div>
-                  ))}
+                    <p className="text-2xl font-bold text-green-600">
+                      {formatCurrency(cashFlowSummary?.totalIncome || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {cashFlowSummary?.paidIncome ? `Recebido: ${formatCurrency(cashFlowSummary.paidIncome)}` : ''}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg bg-red-50">
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                      <TrendingDown className="h-4 w-4 text-red-600" />
+                      <p className="text-sm text-muted-foreground">Total Saídas</p>
+                    </div>
+                    <p className="text-2xl font-bold text-red-600">
+                      {formatCurrency(cashFlowSummary?.totalExpense || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {cashFlowSummary?.paidExpense ? `Pago: ${formatCurrency(cashFlowSummary.paidExpense)}` : ''}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg bg-blue-50">
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                      <Wallet className="h-4 w-4 text-blue-600" />
+                      <p className="text-sm text-muted-foreground">Saldo Atual</p>
+                    </div>
+                    <p className={`text-2xl font-bold ${getStatusColor(cashFlowSummary?.balance || 0)}`}>
+                      {formatCurrency(cashFlowSummary?.balance || 0)}
+                    </p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg bg-orange-50">
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                      <Clock className="h-4 w-4 text-orange-600" />
+                      <p className="text-sm text-muted-foreground">Pendentes</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm">
+                        <span className="text-green-600 font-medium">
+                          +{formatCurrency(cashFlowSummary?.pendingIncome || 0)}
+                        </span>
+                      </p>
+                      <p className="text-sm">
+                        <span className="text-red-600 font-medium">
+                          -{formatCurrency(cashFlowSummary?.pendingExpense || 0)}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Tab Comparativo */}
-          <TabsContent value="comparative" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {/* Top 5 Melhores Lotes */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                    Top 5 Melhores Lotes
-                  </CardTitle>
-                  <CardDescription>
-                    Lotes com melhor performance financeira
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {metrics.performanceByLot
-                      .sort((a, b) => b.margin - a.margin)
-                      .slice(0, 5)
-                      .map((lot, index) => (
-                        <div key={lot.lotCode} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm font-bold text-green-700">
-                              {index + 1}
+                <Separator />
+
+                {/* Movimentações Programadas (A Vencer) */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <CalendarClock className="h-4 w-4" />
+                      Movimentações Programadas (Próximos 30 dias)
+                    </h4>
+                    <Badge variant="outline">
+                      {upcomingMovements.expenses.length + upcomingMovements.revenues.length} pendentes
+                    </Badge>
+                  </div>
+                  
+                  {/* Grid de movimentações a vencer */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Receitas a Receber */}
+                    <Card className="border-green-200 bg-green-50/50">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <ArrowUpRight className="h-4 w-4 text-green-600" />
+                            Receitas a Receber
+                          </span>
+                          <span className="text-green-600 font-bold">
+                            {formatCurrency(upcomingTotals.revenues)}
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 max-h-64 overflow-y-auto">
+                        {upcomingMovements.revenues.length > 0 ? (
+                          upcomingMovements.revenues.map((revenue) => (
+                            <div key={revenue.id} className="flex justify-between items-start p-2 bg-white rounded-lg border border-green-100">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{revenue.description}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Vence em: {format(new Date(revenue.dueDate!), "dd 'de' MMM", { locale: ptBR })}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-bold text-green-600">
+                                  +{formatCurrency(revenue.amount)}
+                                </p>
+                                <Badge variant="outline" className="text-xs">
+                                  {revenue.paymentMethod || 'N/A'}
+                                </Badge>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium">{lot.lotCode}</p>
-                              <p className="text-xs text-muted-foreground">{lot.state}</p>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            Nenhuma receita programada
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Despesas a Pagar */}
+                    <Card className="border-red-200 bg-red-50/50">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <ArrowDownRight className="h-4 w-4 text-red-600" />
+                            Despesas a Pagar
+                          </span>
+                          <span className="text-red-600 font-bold">
+                            {formatCurrency(upcomingTotals.expenses)}
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 max-h-64 overflow-y-auto">
+                        {upcomingMovements.expenses.length > 0 ? (
+                          upcomingMovements.expenses.map((expense) => (
+                            <div key={expense.id} className="flex justify-between items-start p-2 bg-white rounded-lg border border-red-100">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{expense.description}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Vence em: {format(new Date(expense.dueDate!), "dd 'de' MMM", { locale: ptBR })}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-bold text-red-600">
+                                  -{formatCurrency(expense.amount)}
+                                </p>
+                                <Badge variant="outline" className="text-xs">
+                                  {expense.paymentMethod || 'N/A'}
+                                </Badge>
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-green-600">
-                              {formatSafeCurrency(lot.profitLoss)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Margem: {lot.margin.toFixed(1)}%
-                            </p>
-                          </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            Nenhuma despesa programada
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Resumo das Movimentações Programadas */}
+                  {(upcomingMovements.expenses.length > 0 || upcomingMovements.revenues.length > 0) && (
+                    <Alert className={upcomingTotals.balance < 0 ? 'border-red-500' : 'border-blue-500'}>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Projeção próximos 30 dias:</strong> 
+                        <span className="ml-2">Receitas: {formatCurrency(upcomingTotals.revenues)}</span>
+                        <span className="ml-2">| Despesas: {formatCurrency(upcomingTotals.expenses)}</span>
+                        <span className={`ml-2 font-bold ${getStatusColor(upcomingTotals.balance)}`}>
+                          | Saldo Projetado: {formatCurrency(upcomingTotals.balance)}
+                        </span>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Detalhamento por Categoria */}
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-sm">Composição das Entradas (Realizadas)</h4>
+                  <div className="space-y-2">
+                    {Object.entries(categoryBreakdown.incomes)
+                      .sort((a, b) => b[1].amount - a[1].amount)
+                      .map(([categoryId, data]) => (
+                        <div key={categoryId} className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">
+                            {data.name} ({data.count})
+                          </span>
+                          <span className="font-medium text-green-600">
+                            +{formatCurrency(data.amount)}
+                          </span>
                         </div>
                       ))}
+                    {Object.keys(categoryBreakdown.incomes).length === 0 && (
+                      <div className="text-sm text-muted-foreground">Nenhuma receita realizada</div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Top 5 Piores Lotes */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingDown className="h-4 w-4 text-red-600" />
-                    Top 5 Lotes Críticos
-                  </CardTitle>
-                  <CardDescription>
-                    Lotes que precisam de atenção
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {metrics.performanceByLot
-                      .sort((a, b) => a.margin - b.margin)
-                      .slice(0, 5)
-                      .map((lot, index) => (
-                        <div key={lot.lotCode} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-sm font-bold text-red-700">
-                              {index + 1}
-                            </div>
-                            <div>
-                              <p className="font-medium">{lot.lotCode}</p>
-                              <p className="text-xs text-muted-foreground">{lot.state}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-red-600">
-                              {formatSafeCurrency(lot.profitLoss)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Margem: {lot.margin.toFixed(1)}%
-                            </p>
-                          </div>
+                  <h4 className="font-semibold text-sm mt-4">Composição das Saídas (Realizadas)</h4>
+                  <div className="space-y-2">
+                    {Object.entries(categoryBreakdown.expenses)
+                      .sort((a, b) => b[1].amount - a[1].amount)
+                      .map(([categoryId, data]) => (
+                        <div key={categoryId} className="flex justify-between items-center text-sm">
+                          <span className="text-muted-foreground">
+                            {data.name} ({data.count})
+                          </span>
+                          <span className="font-medium text-red-600">
+                            -{formatCurrency(data.amount)}
+                          </span>
                         </div>
                       ))}
+                    {Object.keys(categoryBreakdown.expenses).length === 0 && (
+                      <div className="text-sm text-muted-foreground">Nenhuma despesa realizada</div>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </TooltipProvider>
+                  
+                  {/* Totais */}
+                  <Separator className="my-2" />
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-sm font-semibold">
+                      <span>Total de Receitas</span>
+                      <span className="text-green-600">
+                        +{formatCurrency(cashFlowSummary?.paidIncome || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm font-semibold">
+                      <span>Total de Despesas</span>
+                      <span className="text-red-600">
+                        -{formatCurrency(cashFlowSummary?.paidExpense || 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Alertas de Valores Pendentes */}
+                <div className="space-y-2">
+                  {cashFlowSummary?.pendingIncome && cashFlowSummary.pendingIncome > 0 && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Há <strong>{formatCurrency(cashFlowSummary.pendingIncome)}</strong> em receitas pendentes de recebimento
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {cashFlowSummary?.pendingExpense && cashFlowSummary.pendingExpense > 0 && (
+                    <Alert className="border-orange-500">
+                      <AlertCircle className="h-4 w-4 text-orange-600" />
+                      <AlertDescription>
+                        Há <strong>{formatCurrency(cashFlowSummary.pendingExpense)}</strong> em despesas pendentes de pagamento
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

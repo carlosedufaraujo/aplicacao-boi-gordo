@@ -5,6 +5,7 @@ import { AppError } from '@/utils/AppError';
 import { prisma } from '@/config/database';
 import { CodeGeneratorService } from '@/services/codeGenerator.service';
 import { ExpenseService } from '@/services/expense.service';
+import { CattlePurchaseCashFlowService } from '@/services/cattlePurchaseCashFlow.service';
 
 interface CreateCattlePurchaseData {
   vendorId: string;
@@ -57,11 +58,13 @@ export class CattlePurchaseService {
   private repository: CattlePurchaseRepository;
   private penRepository: PenRepository;
   private expenseService: ExpenseService;
+  private cashFlowService: CattlePurchaseCashFlowService;
 
   constructor() {
     this.repository = new CattlePurchaseRepository();
     this.penRepository = new PenRepository();
     this.expenseService = new ExpenseService();
+    this.cashFlowService = new CattlePurchaseCashFlowService();
   }
 
   async create(data: CreateCattlePurchaseData) {
@@ -69,9 +72,16 @@ export class CattlePurchaseService {
     const lotCode = await this.generateLotCode();
     // Removido internalCode - usando apenas lotCode
     
-    // Calcular valor da compra - preço por arroba é aplicado sobre peso da carcaça
-    const carcassWeight = (data.purchaseWeight * (data.carcassYield || 50)) / 100;
-    const purchaseValue = (carcassWeight / 15) * data.pricePerArroba;
+    // Se purchaseValue foi fornecido, usa ele; senão calcula
+    let purchaseValue: number;
+    if (data.purchaseValue && data.purchaseValue > 0) {
+      // Usar valor fornecido (útil para importação)
+      purchaseValue = data.purchaseValue;
+    } else {
+      // Calcular valor da compra - preço por arroba é aplicado sobre peso da carcaça
+      const carcassWeight = (data.purchaseWeight * (data.carcassYield || 50)) / 100;
+      purchaseValue = (carcassWeight / 15) * data.pricePerArroba;
+    }
     
     // Calcular custos totais
     const totalCost = purchaseValue + 
@@ -127,75 +137,88 @@ export class CattlePurchaseService {
       errors: [] as string[]
     };
     
-    // Criar despesas no centro financeiro
+    // NOTA: Despesas são criadas pelo CattlePurchaseIntegrationService no controller
+    // para evitar duplicação, não criamos aqui
+    
+    // // Criar despesas no centro financeiro
+    // try {
+    //   // 1. Despesa principal da compra
+    //   try {
+    //     await this.expenseService.create({
+    //     category: 'animal_purchase',
+    //     description: `Compra de gado - Lote ${lotCode}`,
+    //     totalAmount: purchaseValue,
+    //     dueDate: data.paymentDate || data.principalDueDate || data.purchaseDate,
+    //     impactsCashFlow: true,
+    //     purchaseId: purchase.id,
+    //     vendorId: data.vendorId,
+    //     payerAccountId: data.payerAccountId,
+    //     notes: `Compra de ${data.initialQuantity} animais - ${data.purchaseWeight}kg total`
+    //   }, data.userId || purchase.userId);
+    //     integrationStatus.expensesCreated++;
+    //   } catch (err: any) {
+    //     integrationStatus.success = false;
+    //     integrationStatus.errors.push(`Despesa principal não criada: ${err.message}`);
+    //     console.error('Erro ao criar despesa principal:', err);
+    //   }
+      
+      // // 2. Despesa de frete se houver
+      // if (data.freightCost && data.freightCost > 0) {
+      //   try {
+      //     await this.expenseService.create({
+      //     category: 'freight',
+      //     description: `Frete - Lote ${lotCode}`,
+      //     totalAmount: data.freightCost,
+      //     dueDate: data.freightDueDate || data.purchaseDate,
+      //     impactsCashFlow: true,
+      //     purchaseId: purchase.id,
+      //     vendorId: data.transportCompanyId,
+      //     payerAccountId: data.payerAccountId,
+      //     notes: data.freightDistance ? `Distância: ${data.freightDistance}km` : null
+      //   }, data.userId || purchase.userId);
+      //     integrationStatus.expensesCreated++;
+      //   } catch (err: any) {
+      //     integrationStatus.success = false;
+      //     integrationStatus.errors.push(`Despesa de frete não criada: ${err.message}`);
+      //     console.error('Erro ao criar despesa de frete:', err);
+      //   }
+      // }
+      
+      // // 3. Despesa de comissão se houver
+      // if (data.commission && data.commission > 0) {
+      //   try {
+      //     await this.expenseService.create({
+      //     category: 'commission',
+      //     description: `Comissão - Lote ${lotCode}`,
+      //     totalAmount: data.commission,
+      //     dueDate: data.commissionDueDate || data.purchaseDate,
+      //     impactsCashFlow: true,
+      //     purchaseId: purchase.id,
+      //     vendorId: data.brokerId,
+      //     payerAccountId: data.payerAccountId,
+      //     notes: `Comissão sobre compra do lote ${lotCode}`
+      //   }, data.userId || purchase.userId);
+      //     integrationStatus.expensesCreated++;
+      //   } catch (err: any) {
+      //     integrationStatus.success = false;
+      //     integrationStatus.errors.push(`Despesa de comissão não criada: ${err.message}`);
+      //     console.error('Erro ao criar despesa de comissão:', err);
+      //   }
+      // }
+    // } catch (error: any) {
+    //   console.error('Erro geral ao criar despesas no centro financeiro:', error);
+    //   integrationStatus.success = false;
+    //   integrationStatus.errors.push(`Erro na integração: ${error.message}`);
+    // }
+    
+    // Criar entradas no CashFlow com categorias padronizadas
     try {
-      // 1. Despesa principal da compra
-      try {
-        await this.expenseService.create({
-        category: 'animal_purchase',
-        description: `Compra de gado - Lote ${lotCode}`,
-        totalAmount: purchaseValue,
-        dueDate: data.paymentDate || data.principalDueDate || data.purchaseDate,
-        impactsCashFlow: true,
-        purchaseId: purchase.id,
-        vendorId: data.vendorId,
-        payerAccountId: data.payerAccountId,
-        notes: `Compra de ${data.initialQuantity} animais - ${data.purchaseWeight}kg total`
-      }, data.userId || purchase.userId);
-        integrationStatus.expensesCreated++;
-      } catch (err: any) {
-        integrationStatus.success = false;
-        integrationStatus.errors.push(`Despesa principal não criada: ${err.message}`);
-        console.error('Erro ao criar despesa principal:', err);
-      }
-      
-      // 2. Despesa de frete se houver
-      if (data.freightCost && data.freightCost > 0) {
-        try {
-          await this.expenseService.create({
-          category: 'freight',
-          description: `Frete - Lote ${lotCode}`,
-          totalAmount: data.freightCost,
-          dueDate: data.freightDueDate || data.purchaseDate,
-          impactsCashFlow: true,
-          purchaseId: purchase.id,
-          vendorId: data.transportCompanyId,
-          payerAccountId: data.payerAccountId,
-          notes: data.freightDistance ? `Distância: ${data.freightDistance}km` : null
-        }, data.userId || purchase.userId);
-          integrationStatus.expensesCreated++;
-        } catch (err: any) {
-          integrationStatus.success = false;
-          integrationStatus.errors.push(`Despesa de frete não criada: ${err.message}`);
-          console.error('Erro ao criar despesa de frete:', err);
-        }
-      }
-      
-      // 3. Despesa de comissão se houver
-      if (data.commission && data.commission > 0) {
-        try {
-          await this.expenseService.create({
-          category: 'commission',
-          description: `Comissão - Lote ${lotCode}`,
-          totalAmount: data.commission,
-          dueDate: data.commissionDueDate || data.purchaseDate,
-          impactsCashFlow: true,
-          purchaseId: purchase.id,
-          vendorId: data.brokerId,
-          payerAccountId: data.payerAccountId,
-          notes: `Comissão sobre compra do lote ${lotCode}`
-        }, data.userId || purchase.userId);
-          integrationStatus.expensesCreated++;
-        } catch (err: any) {
-          integrationStatus.success = false;
-          integrationStatus.errors.push(`Despesa de comissão não criada: ${err.message}`);
-          console.error('Erro ao criar despesa de comissão:', err);
-        }
-      }
+      await this.cashFlowService.createPurchaseCashFlows(purchase.id);
+      console.log('✅ Entradas do CashFlow criadas com sucesso');
     } catch (error: any) {
-      console.error('Erro geral ao criar despesas no centro financeiro:', error);
+      console.error('Erro ao criar entradas no CashFlow:', error);
       integrationStatus.success = false;
-      integrationStatus.errors.push(`Erro na integração: ${error.message}`);
+      integrationStatus.errors.push(`CashFlow não criado: ${error.message}`);
     }
     
     // Retornar compra com status de integração
@@ -603,20 +626,16 @@ export class CattlePurchaseService {
     });
   }
 
+  // DEPRECATED: Método antigo de registro de morte - será removido
+  // Mortes agora são gerenciadas pelo DeathRecordService
   async registerDeath(id: string, count: number, date: Date) {
-    const purchase = await this.findById(id);
-    
-    const newDeathCount = purchase.deathCount + count;
-    const newCurrentQuantity = purchase.currentQuantity - count;
-    
-    if (newCurrentQuantity < 0) {
-      throw new AppError('Quantidade de mortes excede quantidade atual', 400);
-    }
-    
-    return await this.repository.update(id, {
-      deathCount: newDeathCount,
-      currentQuantity: newCurrentQuantity
-    });
+    // Este método está deprecated e não deve mais ser usado
+    // Mortes devem ser registradas através do DeathRecordService
+    // que mantém a quantidade de compra imutável
+    throw new AppError(
+      'Método deprecated. Use o sistema de gestão de mortes na página de Currais', 
+      400
+    );
   }
 
   async delete(id: string) {

@@ -49,6 +49,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import TradingViewWidget from "@/components/TradingView/TradingViewWidget";
 
 interface AppLayoutProps {
   currentPage: string;
@@ -63,26 +64,52 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
   const { state, open, setOpen } = useSidebar();
   const sidebarRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
+  const [autoRetractEnabled, setAutoRetractEnabled] = useState(true); // Toggle para auto-retração
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-expandir sidebar quando o mouse se aproxima (apenas se estiver collapsed)
+  // Auto-controlar sidebar baseado na posição do mouse
   useEffect(() => {
+    // Só executar se auto-retração estiver habilitada
+    if (!autoRetractEnabled) return;
+    
     const handleMouseMove = (e: MouseEvent) => {
-      const threshold = 80; // Distância em pixels para ativar (reduzida)
-      const sidebarWidth = state === 'collapsed' ? 64 : 280; // Largura do sidebar
+      const threshold = 100; // Distância em pixels para ativar
+      const sidebarWidth = 280; // Largura expandida do sidebar
+      const collapsedWidth = 64; // Largura retraída do sidebar
       
-      // Se o mouse está próximo da borda esquerda e o sidebar está collapsed
-      if (e.clientX < threshold && state === 'collapsed' && !open) {
-        setOpen(true);
+      // Limpar timeout anterior se existir
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
-      // Se o mouse está longe e o sidebar está expandido por hover
-      else if (e.clientX > sidebarWidth + 30 && open && !isHovering && state === 'collapsed') {
-        setOpen(false);
+      
+      // Se o mouse está próximo da borda esquerda, expandir
+      if (e.clientX < threshold) {
+        if (!open) {
+          setOpen(true);
+        }
+      }
+      // Se o mouse está longe do sidebar e não está sobre ele, retrair após delay
+      else if (e.clientX > (open ? sidebarWidth : collapsedWidth) + 50) {
+        if (open) {
+          // Adicionar delay antes de retrair
+          timeoutRef.current = setTimeout(() => {
+            if (!isHovering) {
+              setOpen(false);
+            }
+          }, 300); // 300ms de delay
+        }
       }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [state, open, setOpen, isHovering]);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [open, setOpen, isHovering, autoRetractEnabled]);
 
 
 
@@ -185,26 +212,37 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
       <Sidebar 
         ref={sidebarRef}
         collapsible="icon"
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
+        onMouseEnter={() => {
+          setIsHovering(true);
+          // Limpar timeout de retração quando mouse entra
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+        }}
+        onMouseLeave={() => {
+          setIsHovering(false);
+          // Retrair após deixar o sidebar (com delay) apenas se auto-retração estiver habilitada
+          if (open && autoRetractEnabled) {
+            timeoutRef.current = setTimeout(() => {
+              setOpen(false);
+            }, 500); // 500ms de delay ao sair
+          }
+        }}
         className="transition-all duration-300 ease-in-out"
       >
-        <SidebarHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 px-2 py-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex-shrink-0">
-                <Building2 className="h-4 w-4 text-white" />
-              </div>
-              <div className={cn(
-                "flex flex-col transition-all duration-300",
-                state === 'collapsed' && !open && "opacity-0 w-0 overflow-hidden"
-              )}>
-                <span className="text-sm font-semibold">BoviControl</span>
-                <span className="text-xs text-muted-foreground">Gestão Pecuária</span>
-              </div>
+        <SidebarHeader className="flex-shrink-0">
+          <div className="flex items-center h-12 px-2 py-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex-shrink-0">
+              <Building2 className="h-4 w-4 text-white" />
             </div>
-            
-
+            <div className={cn(
+              "flex flex-col ml-2 min-w-0 transition-all duration-300",
+              state === 'collapsed' && !open ? "opacity-0 scale-x-0" : "opacity-100 scale-x-100"
+            )}>
+              <span className="text-sm font-semibold whitespace-nowrap">BoviControl</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Gestão Pecuária</span>
+            </div>
           </div>
         </SidebarHeader>
 
@@ -325,35 +363,43 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
+            
+            {/* Botão de Auto-retração - Apenas Toggle */}
+            <SidebarMenuItem>
+              <div className="flex justify-center px-2 py-2">
+                <div className={cn(
+                  "relative w-8 h-4 rounded-full transition-all duration-300 cursor-pointer flex-shrink-0",
+                  autoRetractEnabled ? "bg-green-500" : "bg-gray-300"
+                )}
+                onClick={() => {
+                  setAutoRetractEnabled(!autoRetractEnabled);
+                  if (timeoutRef.current) {
+                    clearTimeout(timeoutRef.current);
+                    timeoutRef.current = null;
+                  }
+                }}
+                title={autoRetractEnabled ? "Auto-retração ativada (clique para desativar)" : "Auto-retração desativada (clique para ativar)"}
+                >
+                  {/* Toggle Switch */}
+                  <div className={cn(
+                    "absolute top-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-all duration-300",
+                    autoRetractEnabled ? "left-4" : "left-0.5"
+                  )} />
+                </div>
+              </div>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
       
       <SidebarInset className="flex flex-col h-screen">
-        <header className="flex items-center justify-between gap-2 border-b px-6 py-3 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger />
-            <div className="text-sm font-medium text-muted-foreground">
-              BoviControl - Sistema de Gestão Pecuária
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleTheme}
-              className="h-8 w-8 p-0"
-              title={theme === 'dark' ? "Alternar para modo claro" : "Alternar para modo escuro"}
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </Button>
+        <header className="flex items-center border-b px-2 py-2 flex-shrink-0 bg-background">
+          {/* TradingView Widget integrado no cabeçalho - ocupa toda a largura */}
+          <div className="w-full">
+            <TradingViewWidget />
           </div>
         </header>
+        
         <div className="flex-1 overflow-y-auto p-6">
           {children}
         </div>

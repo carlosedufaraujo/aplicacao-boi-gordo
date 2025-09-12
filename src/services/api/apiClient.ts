@@ -6,7 +6,7 @@ export class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api/v1';
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
   }
 
   /**
@@ -148,6 +148,7 @@ export class ApiClient {
 
 // Instância singleton do cliente API
 export const apiClient = new ApiClient();
+export const api = apiClient; // Alias para compatibilidade
 
 // Tipos para as respostas da API
 export interface ApiResponse<T> {

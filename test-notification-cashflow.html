@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Notificações do Cash Flow</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button.expense {
+            background: #ef4444;
+        }
+        button.expense:hover {
+            background: #dc2626;
+        }
+        button.income {
+            background: #10b981;
+        }
+        button.income:hover {
+            background: #059669;
+        }
+        .notification-list {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .notification-item {
+            padding: 15px;
+            margin: 10px 0;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .notification-success {
+            border-left-color: #10b981;
+        }
+        .notification-error {
+            border-left-color: #ef4444;
+        }
+        .notification-warning {
+            border-left-color: #f59e0b;
+        }
+        .notification-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .notification-message {
+            color: #666;
+            font-size: 14px;
+        }
+        .notification-time {
+            color: #999;
+            font-size: 12px;
+        }
+        .status {
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 6px;
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .log {
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .log-success {
+            color: #4ade80;
+        }
+        .log-error {
+            color: #f87171;
+        }
+        .log-info {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Teste de Notificações - Cash Flow</h1>
+        <p class="subtitle">Teste o sistema de notificações ao criar movimentações financeiras</p>
+        
+        <div class="status" id="status">
+            📊 Sistema pronto para teste
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <button class="expense" onclick="createExpense()">
+                💰 Criar Despesa de Teste
+            </button>
+            <button class="income" onclick="createIncome()">
+                💵 Criar Receita de Teste
+            </button>
+            <button onclick="updateStatus()">
+                ✅ Atualizar Status
+            </button>
+            <button onclick="deleteMovement()">
+                🗑️ Excluir Movimentação
+            </button>
+        </div>
+
+        <div class="notification-list">
+            <h3>📬 Notificações Recebidas:</h3>
+            <div id="notifications">
+                <p style="color: #999;">Nenhuma notificação ainda...</p>
+            </div>
+        </div>
+
+        <div class="log" id="log-console">
+            <div class="log-entry log-info">[Info] Sistema de teste iniciado</div>
+        </div>
+    </div>
+
+    <script>
+        let lastMovementId = null;
+        const notifications = [];
+
+        function addLog(message, type = 'info') {
+            const logConsole = document.getElementById('log-console');
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry log-' + type;
+            const timestamp = new Date().toLocaleTimeString('pt-BR');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logConsole.appendChild(logEntry);
+            logConsole.scrollTop = logConsole.scrollHeight;
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function addNotification(title, message, type = 'info') {
+            const notification = {
+                title,
+                message,
+                type,
+                time: new Date().toLocaleTimeString('pt-BR')
+            };
+            notifications.unshift(notification);
+            renderNotifications();
+        }
+
+        function renderNotifications() {
+            const container = document.getElementById('notifications');
+            if (notifications.length === 0) {
+                container.innerHTML = '<p style="color: #999;">Nenhuma notificação ainda...</p>';
+                return;
+            }
+
+            container.innerHTML = notifications.map(n => `
+                <div class="notification-item notification-${n.type}">
+                    <div>
+                        <div class="notification-title">${n.title}</div>
+                        <div class="notification-message">${n.message}</div>
+                    </div>
+                    <div class="notification-time">${n.time}</div>
+                </div>
+            `).join('');
+        }
+
+        async function createExpense() {
+            updateStatus('⏳ Criando despesa...');
+            addLog('Iniciando criação de despesa', 'info');
+
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('Token não encontrado. Faça login primeiro.');
+                }
+
+                // Buscar primeira conta disponível
+                const accountsResponse = await fetch('http://localhost:3001/api/v1/payer-accounts', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const accountsData = await accountsResponse.json();
+                const account = accountsData.data?.items?.[0];
+                
+                if (!account) {
+                    throw new Error('Nenhuma conta encontrada');
+                }
+
+                // Criar despesa
+                const expenseData = {
+                    description: `Despesa Teste - ${new Date().toLocaleTimeString()}`,
+                    category: 'admin_other',
+                    payerAccountId: account.id,
+                    totalAmount: Math.floor(Math.random() * 900) + 100,
+                    dueDate: new Date().toISOString(),
+                    isPaid: false,
+                    notes: 'Teste do sistema de notificações',
+                    supplier: 'Fornecedor Teste',
+                    paymentMethod: 'PIX'
+                };
+
+                const response = await fetch('http://localhost:3001/api/v1/expenses', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(expenseData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const result = await response.json();
+                lastMovementId = result.data.id;
+                
+                updateStatus('✅ Despesa criada com sucesso!');
+                addLog(`Despesa criada: ID ${lastMovementId}`, 'success');
+                
+                // Simular notificação (normalmente viria do sistema)
+                addNotification(
+                    '💰 Nova Despesa',
+                    `${expenseData.description} - R$ ${expenseData.totalAmount.toFixed(2)}`,
+                    'success'
+                );
+
+            } catch (error) {
+                updateStatus('❌ Erro ao criar despesa');
+                addLog(`Erro: ${error.message}`, 'error');
+                addNotification('❌ Erro', error.message, 'error');
+            }
+        }
+
+        async function createIncome() {
+            updateStatus('⏳ Criando receita...');
+            addLog('Iniciando criação de receita', 'info');
+
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('Token não encontrado. Faça login primeiro.');
+                }
+
+                // Buscar primeira conta disponível
+                const accountsResponse = await fetch('http://localhost:3001/api/v1/payer-accounts', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const accountsData = await accountsResponse.json();
+                const account = accountsData.data?.items?.[0];
+                
+                if (!account) {
+                    throw new Error('Nenhuma conta encontrada');
+                }
+
+                // Criar receita
+                const revenueData = {
+                    description: `Receita Teste - ${new Date().toLocaleTimeString()}`,
+                    category: 'other_revenue',
+                    payerAccountId: account.id,
+                    totalAmount: Math.floor(Math.random() * 1900) + 100,
+                    dueDate: new Date().toISOString(),
+                    isReceived: false,
+                    notes: 'Teste do sistema de notificações',
+                    source: 'Cliente Teste',
+                    paymentMethod: 'TED'
+                };
+
+                const response = await fetch('http://localhost:3001/api/v1/revenues', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(revenueData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const result = await response.json();
+                lastMovementId = result.data.id;
+                
+                updateStatus('✅ Receita criada com sucesso!');
+                addLog(`Receita criada: ID ${lastMovementId}`, 'success');
+                
+                // Simular notificação
+                addNotification(
+                    '💵 Nova Receita',
+                    `${revenueData.description} - R$ ${revenueData.totalAmount.toFixed(2)}`,
+                    'success'
+                );
+
+            } catch (error) {
+                updateStatus('❌ Erro ao criar receita');
+                addLog(`Erro: ${error.message}`, 'error');
+                addNotification('❌ Erro', error.message, 'error');
+            }
+        }
+
+        async function updateStatus() {
+            if (!lastMovementId) {
+                addNotification('⚠️ Aviso', 'Crie uma movimentação primeiro', 'warning');
+                return;
+            }
+
+            updateStatus('⏳ Atualizando status...');
+            addLog('Atualizando status da última movimentação', 'info');
+
+            // Simular atualização
+            setTimeout(() => {
+                updateStatus('✅ Status atualizado!');
+                addLog('Status atualizado com sucesso', 'success');
+                addNotification(
+                    '✅ Status Atualizado',
+                    'Movimentação marcada como Paga/Recebida',
+                    'success'
+                );
+            }, 1000);
+        }
+
+        async function deleteMovement() {
+            if (!lastMovementId) {
+                addNotification('⚠️ Aviso', 'Crie uma movimentação primeiro', 'warning');
+                return;
+            }
+
+            updateStatus('⏳ Excluindo movimentação...');
+            addLog('Excluindo última movimentação', 'info');
+
+            // Simular exclusão
+            setTimeout(() => {
+                updateStatus('✅ Movimentação excluída!');
+                addLog('Movimentação excluída com sucesso', 'success');
+                addNotification(
+                    '🗑️ Movimentação Excluída',
+                    'A movimentação foi removida do sistema',
+                    'warning'
+                );
+                lastMovementId = null;
+            }, 1000);
+        }
+
+        // Monitorar notificações do localStorage (simulação)
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'notifications') {
+                addLog('Nova notificação detectada via localStorage', 'info');
+            }
+        });
+
+        // Inicialização
+        window.onload = function() {
+            addLog('Página de teste carregada', 'success');
+            const token = localStorage.getItem('token');
+            if (token) {
+                addLog('Token de autenticação encontrado', 'success');
+            } else {
+                addLog('Token não encontrado - faça login primeiro', 'error');
+            }
+        };
+    </script>
+</body>
+</html>

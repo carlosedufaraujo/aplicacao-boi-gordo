@@ -465,3 +465,4 @@ export const GeneralSettings: React.FC = () => {
     </div>
   );
 };
+export default GeneralSettings;

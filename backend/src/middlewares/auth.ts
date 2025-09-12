@@ -23,16 +23,16 @@ export async function authenticate(
     // DESENVOLVIMENTO: Bypass completo de autenticação
     if (env.NODE_ENV === 'development' || env.NODE_ENV !== 'production') {
       console.log('[Auth] Modo desenvolvimento - buscando usuário admin');
-      // Busca um usuário admin para desenvolvimento (prioriza admin@boicontrol.com)
+      // Busca o usuário master admin (prioriza carlosedufaraujo@outlook.com)
       let devUser = await prisma.user.findFirst({
         where: { 
-          email: 'admin@boicontrol.com'
+          email: 'carlosedufaraujo@outlook.com'
         }
       });
       
       // Se não encontrar, tenta admin@boigordo.com
       if (!devUser) {
-        console.log('[Auth] admin@boicontrol.com não encontrado, tentando admin@boigordo.com');
+        console.log('[Auth] carlosedufaraujo@outlook.com não encontrado, tentando admin@boigordo.com');
         devUser = await prisma.user.findFirst({
           where: { 
             email: 'admin@boigordo.com'

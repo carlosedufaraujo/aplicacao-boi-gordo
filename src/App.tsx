@@ -2,44 +2,44 @@ import React, { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { NotificationProvider } from '@/components/Notifications/NotificationProvider';
-import { DataSyncProvider } from '@/components/Common/DataSyncProvider';
 import { BackendProvider, useBackend } from '@/providers/BackendProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { SettingsProvider } from '@/providers/SettingsProvider';
+import { FinancialDataProvider } from '@/providers/FinancialDataProvider';
 import { PenNavigationProvider } from '@/contexts/PenNavigationContext';
 import { registerExistingUpdates } from '@/utils/systemUpdates';
 
 // ============================================================================
 // COMPONENTES MODERNOS (shadcn/ui) - TODOS MIGRADOS
 // ============================================================================
-const ShadcnDashboard = lazy(() => import('@/components/Dashboard/ShadcnDashboard').then(module => ({ default: module.ShadcnDashboard })));
-const CompleteLots = lazy(() => import('@/components/Lots/CompleteLots').then(module => ({ default: module.CompleteLots })));
-const CompleteRegistrations = lazy(() => import('@/components/Registrations/CompleteRegistrations').then(module => ({ default: module.CompleteRegistrations })));
-const CashFlowDashboard = lazy(() => import('@/components/CashFlow/CashFlowDashboard').then(module => ({ default: module.CashFlowDashboard })));
-const IntegratedDashboard = lazy(() => import('@/components/FinancialAnalysis/IntegratedDashboard').then(module => ({ default: module.IntegratedDashboard })));
-const SalesManagement = lazy(() => import('@/components/Sales/SalesManagement').then(module => ({ default: module.SalesManagement })));
-const PurchaseManagement = lazy(() => import('@/components/Purchases/SimplifiedPurchaseManagement').then(module => ({ default: module.SimplifiedPurchaseManagement })));
-const CompleteCalendar = lazy(() => import('@/components/Calendar/CompleteCalendar').then(module => ({ default: module.CompleteCalendar })));
+const ShadcnDashboard = lazy(() => import('@/components/Dashboard/ShadcnDashboard'));
+const CompleteLots = lazy(() => import('@/components/Lots/CompleteLots'));
+const CompleteRegistrations = lazy(() => import('@/components/Registrations/CompleteRegistrations'));
+const CashFlowDashboard = lazy(() => import('@/components/CashFlow/CashFlowDashboard'));
+const IntegratedDashboard = lazy(() => import('@/components/FinancialAnalysis/IntegratedDashboard'));
+const SalesManagement = lazy(() => import('@/components/Sales/SalesManagement'));
+const PurchaseManagement = lazy(() => import('@/components/Purchases/SimplifiedPurchaseManagement'));
+const CompleteCalendar = lazy(() => import('@/components/Calendar/CompleteCalendar'));
 const CleanUserManagement = lazy(() => import('@/components/System/CleanUserManagement'));
-const DataImport = lazy(() => import('@/pages/DataImport').then(module => ({ default: module.DataImport })));
+const DataImport = lazy(() => import('@/pages/DataImport'));
+const CategoryManagement = lazy(() => import('@/components/Categories/CategoryManagement'));
 
 // Componentes de configurações - TODOS MODERNOS
-const NotificationSettings = lazy(() => import('@/components/System/NotificationSettings').then(module => ({ default: module.NotificationSettings })));
-const ProfileSettings = lazy(() => import('@/components/Profile/ProfileSettings').then(module => ({ default: module.ProfileSettings })));
-const OrganizationSettings = lazy(() => import('@/components/System/OrganizationSettings').then(module => ({ default: module.OrganizationSettings })));
-const GeneralSettings = lazy(() => import('@/components/System/GeneralSettings').then(module => ({ default: module.GeneralSettings })));
-const ChangePassword = lazy(() => import('@/components/Profile/ChangePassword').then(module => ({ default: module.ChangePassword })));
-const SystemUpdates = lazy(() => import('@/components/System/SystemUpdates').then(module => ({ default: module.SystemUpdates })));
-const Reports = lazy(() => import('@/pages/Reports').then(module => ({ default: module.Reports })));
+const NotificationSettings = lazy(() => import('@/components/System/NotificationSettings'));
+const ProfileSettings = lazy(() => import('@/components/Profile/ProfileSettings'));
+const OrganizationSettings = lazy(() => import('@/components/System/OrganizationSettings'));
+const GeneralSettings = lazy(() => import('@/components/System/GeneralSettings'));
+const ChangePassword = lazy(() => import('@/components/Profile/ChangePassword'));
+const SystemUpdates = lazy(() => import('@/components/System/SystemUpdates'));
+const Reports = lazy(() => import('@/pages/Reports'));
 
 // Página de Login
-const Login02 = lazy(() => import('@/pages/Login02').then(module => ({ default: module.Login02 })));
-
+const Login02 = lazy(() => import('@/pages/Login02'));
 
 // Componente de teste da integração API
-const ApiIntegrationTest = lazy(() => import('@/components/Test/ApiIntegrationTest').then(module => ({ default: module.ApiIntegrationTest })));
-const TestCycles = lazy(() => import('@/pages/TestCycles').then(module => ({ default: module.TestCycles })));
-const TestPens = lazy(() => import('@/pages/TestPens').then(module => ({ default: module.TestPens })));
+const ApiIntegrationTest = lazy(() => import('@/components/Test/ApiIntegrationTest'));
+const TestCycles = lazy(() => import('@/pages/TestCycles'));
+const TestPens = lazy(() => import('@/pages/TestPens'));
 
 // ============================================================================
 // COMPONENTE DE LOADING
@@ -103,6 +103,8 @@ const AppContent: React.FC = () => {
         return <DataImport />;
       case 'users':
         return <CleanUserManagement />;
+      case 'categories':
+        return <CategoryManagement />;
       case 'settings':
         return <GeneralSettings />;
       case 'notifications':
@@ -150,8 +152,8 @@ function App() {
     <ThemeProvider defaultTheme="light" storageKey="bovicontrol-ui-theme">
       <BackendProvider>
         <SettingsProvider>
-          <NotificationProvider>
-            <DataSyncProvider>
+          <FinancialDataProvider>
+            <NotificationProvider>
               <PenNavigationProvider>
                 <div className="min-h-screen bg-background font-sans antialiased">
                   <Routes>
@@ -164,8 +166,8 @@ function App() {
                   </Routes>
                 </div>
               </PenNavigationProvider>
-            </DataSyncProvider>
-          </NotificationProvider>
+            </NotificationProvider>
+          </FinancialDataProvider>
         </SettingsProvider>
       </BackendProvider>
     </ThemeProvider>

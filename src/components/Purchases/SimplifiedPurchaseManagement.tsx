@@ -62,21 +62,20 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { OptimizedPurchaseForm } from '../Forms/OptimizedPurchaseForm';
 import { SimplifiedPurchaseDetails } from './SimplifiedPurchaseDetails';
-import { StatusChangeModal } from '../Modals/StatusChangeModal';
 import { EnhancedPurchaseTable } from './EnhancedPurchaseTable';
 
 export function SimplifiedPurchaseManagement() {
   // Estados
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  
   const [showForm, setShowForm] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<CattlePurchase | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [purchaseToDelete, setPurchaseToDelete] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [statusModalData, setStatusModalData] = useState<any>(null);
+  
+  
 
   // Hooks de API
   const { 
@@ -86,7 +85,7 @@ export function SimplifiedPurchaseManagement() {
     createPurchase,
     updatePurchase,
     deletePurchase,
-    updateStatus,
+    
     registerDeath,
     registerReception,
     markAsConfined
@@ -109,70 +108,23 @@ export function SimplifiedPurchaseManagement() {
       purchase.vendor?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       purchase.location?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = filterStatus === 'all' || purchase.status === filterStatus;
     
-    return matchesSearch && matchesStatus;
+    
+    return matchesSearch;
   });
 
   // Calcular estatísticas
   const statistics = {
     total: purchases.length,
-    active: purchases.filter(p => p.status === 'CONFINED').length,
-    totalAnimals: purchases.reduce((sum, p) => sum + p.currentQuantity, 0),
-    totalInvestment: purchases.reduce((sum, p) => sum + p.totalCost, 0),
+    active: purchases.filter(p => p.currentQuantity > 0).length,
+    totalAnimals: purchases.reduce((sum, p) => sum + (p.initialQuantity || 0), 0), // Usar quantidade inicial de compra
+    totalInvestment: purchases.reduce((sum, p) => sum + (p.totalCost || 0), 0),
   };
 
   // Funções auxiliares
-  const getStatusBadge = (status: string, purchase: CattlePurchase) => {
-    // Priorizar o stage para mostrar o status real
-    let label = 'Confirmado';
-    let variant = 'default';
-    let next = 'RECEIVED';
-    
-    if (purchase.status === 'CONFINED') {
-      label = 'Confinado';
-      variant = 'success';
-      next = null;
-    } else if (purchase.stage === 'received') {
-      label = 'Recepcionado';
-      variant = 'info';
-      next = 'CONFINED';
-    } else if (purchase.stage === 'in_transit') {
-      label = 'Em Trânsito';
-      variant = 'warning';
-      next = 'RECEIVED';
-    } else if (purchase.stage === 'confirmed') {
-      label = 'Confirmado';
-      variant = 'default';
-      next = 'RECEIVED';
-    }
-    
-    return (
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 px-2 py-0.5"
-        onClick={() => handleStatusClick(purchase, next)}
-        disabled={!next || purchase.status === 'CONFINED'}
-      >
-        <Badge variant={variant as any} className="cursor-pointer">
-          {label}
-        </Badge>
-      </Button>
-    );
-  };
+  
 
-  const handleStatusClick = (purchase: CattlePurchase, nextStatus: string | null) => {
-    if (!nextStatus) return;
-    
-    setSelectedPurchase(purchase);
-    setStatusModalData({
-      currentStatus: purchase.status,
-      nextStatus,
-      purchase
-    });
-    setShowStatusModal(true);
-  };
+  
 
   const toggleRowExpansion = (id: string) => {
     const newExpanded = new Set(expandedRows);
@@ -209,28 +161,7 @@ export function SimplifiedPurchaseManagement() {
     }
   };
 
-  const handleQuickStatusUpdate = async (purchaseId: string, newStatus: CattlePurchase['status']) => {
-    // Para status RECEIVED, sempre abrir o modal
-    if (newStatus === 'RECEIVED') {
-      const purchase = purchases.find(p => p.id === purchaseId);
-      if (purchase) {
-        setStatusModalData({
-          currentStatus: purchase.status,
-          nextStatus: 'RECEIVED',
-          purchase: purchase
-        });
-        setShowStatusModal(true);
-      }
-    } else {
-      // Para outros status, atualizar diretamente
-      try {
-        await updateStatus(purchaseId, newStatus);
-        await loadPurchases();
-      } catch (error) {
-        console.error('Erro ao atualizar status:', error);
-      }
-    }
-  };
+  
 
   return (
     <div className="space-y-6">
@@ -290,7 +221,7 @@ export function SimplifiedPurchaseManagement() {
           <CardContent>
             <div className="text-2xl font-bold">
               {statistics.totalAnimals > 0 ? 
-                (purchases.reduce((sum, p) => sum + p.purchaseWeight, 0) / statistics.totalAnimals).toFixed(1) : 
+                (purchases.reduce((sum, p) => sum + (p.purchaseWeight || 0), 0) / statistics.totalAnimals).toFixed(1) : 
                 '0'
               } kg
             </div>
@@ -370,22 +301,7 @@ export function SimplifiedPurchaseManagement() {
               </div>
             </div>
             
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="NEGOTIATING">Negociando</SelectItem>
-                <SelectItem value="CONFIRMED">Confirmado</SelectItem>
-                <SelectItem value="RECEIVED">Recepcionado</SelectItem>
-                <SelectItem value="CONFINED">Confinado</SelectItem>
-                <SelectItem value="RECEIVED">Recebido</SelectItem>
-                <SelectItem value="ACTIVE">Ativo</SelectItem>
-                <SelectItem value="SOLD">Vendido</SelectItem>
-                <SelectItem value="CANCELLED">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
+            
 
             <Button variant="outline" size="icon">
               <Download className="h-4 w-4" />
@@ -395,7 +311,7 @@ export function SimplifiedPurchaseManagement() {
           {/* Tabela de Compras Aprimorada */}
           <EnhancedPurchaseTable
             searchTerm={searchTerm}
-            filterStatus={filterStatus}
+            
             onView={(purchase) => {
               setSelectedPurchase(purchase);
               setShowDetails(true);
@@ -408,15 +324,7 @@ export function SimplifiedPurchaseManagement() {
               setPurchaseToDelete(purchase.id);
               setShowDeleteDialog(true);
             }}
-            onStatusChange={(purchase) => {
-              setStatusModalData({
-                purchaseId: purchase.id,
-                currentStatus: purchase.status,
-                currentStage: purchase.stage,
-                purchase: purchase
-              });
-              setShowStatusModal(true);
-            }}
+            
           />
         </CardContent>
       </Card>
@@ -460,7 +368,7 @@ export function SimplifiedPurchaseManagement() {
                 <div>Tem certeza que deseja excluir esta compra?</div>
                 {purchaseToDelete && (() => {
                   const purchase = purchases.find(p => p.id === purchaseToDelete);
-                  const isActive = purchase?.status === 'CONFINED' || purchase?.status === 'RECEIVED';
+                  const isActive = purchase?.currentQuantity && purchase.currentQuantity > 0;
                   
                   if (isActive) {
                     return (
@@ -505,54 +413,6 @@ export function SimplifiedPurchaseManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Mudança de Status */}
-      {showStatusModal && statusModalData && (
-        <StatusChangeModal
-          isOpen={showStatusModal}
-          onClose={() => {
-            setShowStatusModal(false);
-            setStatusModalData(null);
-          }}
-          data={statusModalData}
-          onConfirm={async (statusData) => {
-            try {
-              const purchase = statusModalData.purchase;
-              
-              if (statusData.status === 'RECEIVED') {
-                // Se a compra já está recepcionada (stage === 'received'), usar endpoint de confinamento
-                if (purchase.stage === 'received') {
-                  // Alocar em currais (markAsConfined)
-                  await markAsConfined(statusData.purchaseId, {
-                    penAllocations: statusData.penAllocations,
-                    observations: statusData.notes,
-                  });
-                } else {
-                  // Registrar recepção
-                  await registerReception(statusData.purchaseId, {
-                    receivedDate: new Date(statusData.receivedDate),
-                    receivedWeight: statusData.receivedWeight,
-                    actualQuantity: statusData.actualQuantity,
-                    transportMortality: statusModalData.purchase.initialQuantity - statusData.actualQuantity,
-                    mortalityReason: statusData.mortalityReason,
-                    notes: statusData.notes,
-                    penAllocations: statusData.penAllocations,
-                  });
-                }
-              } else {
-                // Chamar API de mudança de status simples
-                await updateStatus(statusData.purchaseId, statusData.status);
-              }
-              
-              // Recarregar dados
-              await loadPurchases();
-              setShowStatusModal(false);
-              setStatusModalData(null);
-            } catch (error) {
-              console.error('Erro ao mudar status:', error);
-            }
-          }}
-        />
-      )}
 
       {/* Formulário de Nova/Editar Compra */}
       <OptimizedPurchaseForm
@@ -578,3 +438,5 @@ export function SimplifiedPurchaseManagement() {
     </div>
   );
 }
+
+export default SimplifiedPurchaseManagement;

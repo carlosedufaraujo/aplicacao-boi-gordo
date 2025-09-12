@@ -350,4 +350,4 @@ export const ChangePassword: React.FC = () => {
       </Card>
     </div>
   );
-};
+};export default ChangePassword;

@@ -20,7 +20,12 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
     name: 'Receita Operacional Bruta',
     type: 'REVENUE',
     order: 1,
-    categories: ['cattle_sales', 'product_sales'],
+    categories: [
+      'cattle_sales', 'product_sales',
+      // Categorias do cash-flow em português
+      'Venda de Gado Gordo', 'Venda de Bezerros', 'Venda de Matrizes', 
+      'Venda de Reprodutores', 'Venda de Esterco', 'Venda de Couro'
+    ],
     description: 'Vendas de gado e produtos relacionados'
   },
   {
@@ -28,7 +33,13 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
     name: 'Outras Receitas',
     type: 'REVENUE',
     order: 2,
-    categories: ['service_income', 'other_income'],
+    categories: [
+      'service_income', 'other_income',
+      // Categorias do cash-flow em português
+      'Arrendamento de Pasto', 'Aluguel de Curral', 'Prestação de Serviços',
+      'Rendimentos Financeiros', 'Juros Recebidos', 'Dividendos',
+      'Indenizações', 'Prêmios e Bonificações', 'Outras Receitas'
+    ],
     description: 'Receitas não operacionais'
   },
   
@@ -38,7 +49,11 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
     name: 'Aquisição de Animais',
     type: 'EXPENSE',
     order: 3,
-    categories: ['animal_purchase'],
+    categories: [
+      'animal_purchase', 'cattle_purchase',
+      // Categorias do cash-flow em português
+      'Compra de Gado', 'Aquisição de Animais', 'Compra de Bezerros', 'Compra de Matrizes', 'Compra de Reprodutores'
+    ],
     description: 'Custos diretos com compra de animais'
   },
   {
@@ -46,7 +61,11 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
     name: 'Custos Logísticos',
     type: 'EXPENSE',
     order: 4,
-    categories: ['freight'],
+    categories: [
+      'freight', 'transport', 'logistics',
+      // Categorias do cash-flow em português
+      'Frete de Gado', 'Frete', 'Transporte', 'Logística'
+    ],
     description: 'Custos com transporte e logística'
   },
   {
@@ -54,7 +73,11 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
     name: 'Comissões',
     type: 'EXPENSE',
     order: 5,
-    categories: ['commission'],
+    categories: [
+      'commission', 'broker_fee',
+      // Categorias do cash-flow em português
+      'Comissão de Compra', 'Comissão', 'Comissões', 'Taxa de Corretagem'
+    ],
     description: 'Comissões pagas na compra de animais'
   },
   
@@ -64,7 +87,14 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
     name: 'Despesas de Produção',
     type: 'EXPENSE',
     order: 6,
-    categories: ['feed', 'health_costs', 'operational_costs'],
+    categories: [
+      'feed', 'health_costs', 'operational_costs',
+      // Categorias do cash-flow em português
+      'Ração', 'Suplementos', 'Sal Mineral', 'Silagem',
+      'Vacinas', 'Medicamentos', 'Veterinário', 'Exames Laboratoriais',
+      'Manutenção de Currais', 'Manutenção de Cercas', 'Construções',
+      'Equipamentos', 'Combustível', 'Energia Elétrica', 'Água'
+    ],
     description: 'Custos diretos de manutenção do rebanho'
   },
   {
@@ -72,7 +102,11 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
     name: 'Perdas Operacionais',
     type: 'EXPENSE',
     order: 7,
-    categories: ['deaths', 'weight_loss'],
+    categories: [
+      'deaths', 'weight_loss', 'mortality',
+      // Categorias do cash-flow em português
+      'Perdas Operacionais (Mortalidade)', 'Mortalidade', 'Perdas', 'Morte de Animais'
+    ],
     description: 'Perdas por mortalidade e quebra de peso'
   },
   
@@ -82,7 +116,13 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
     name: 'Despesas Administrativas',
     type: 'EXPENSE',
     order: 8,
-    categories: ['general_admin', 'personnel', 'marketing', 'admin_other'],
+    categories: [
+      'general_admin', 'personnel', 'marketing', 'admin_other',
+      // Categorias do cash-flow em português
+      'Salários', 'Encargos Trabalhistas', 'Benefícios', 'Treinamento',
+      'Material de Escritório', 'Contabilidade', 'Telefone/Internet',
+      'Seguros', 'Outras Despesas'
+    ],
     description: 'Custos administrativos e de pessoal'
   },
   
@@ -92,7 +132,11 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
     name: 'Despesas Financeiras',
     type: 'EXPENSE',
     order: 9,
-    categories: ['interest', 'fees', 'financial_management', 'financial_other'],
+    categories: [
+      'interest', 'fees', 'financial_management', 'financial_other',
+      // Categorias do cash-flow em português
+      'Despesas Bancárias', 'Juros e Multas', 'Impostos e Taxas'
+    ],
     description: 'Juros, taxas e custos financeiros'
   }
 ];
@@ -131,10 +175,10 @@ export function groupByAccountingCategory(
           items: []
         };
       }
-      grouped[defaultGroup].total += item.totalAmount;
+      grouped[defaultGroup].total += Math.abs(item.totalAmount);
       grouped[defaultGroup].items.push({
         category: item.category,
-        amount: item.totalAmount
+        amount: Math.abs(item.totalAmount)
       });
     } else {
       if (!grouped[group.id]) {
@@ -144,10 +188,10 @@ export function groupByAccountingCategory(
           items: []
         };
       }
-      grouped[group.id].total += item.totalAmount;
+      grouped[group.id].total += Math.abs(item.totalAmount);
       grouped[group.id].items.push({
         category: item.category,
-        amount: item.totalAmount
+        amount: Math.abs(item.totalAmount)
       });
     }
   });

@@ -426,4 +426,4 @@ export const SystemUpdates: React.FC = () => {
       </Card>
     </div>
   );
-};
+};export default SystemUpdates;

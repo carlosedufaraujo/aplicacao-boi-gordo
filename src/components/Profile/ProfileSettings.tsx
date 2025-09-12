@@ -396,4 +396,4 @@ export const ProfileSettings: React.FC = () => {
       </Card>
     </div>
   );
-};
+};export default ProfileSettings;

@@ -28,12 +28,15 @@ import interventionRoutes from '@/routes/intervention.routes';
 import analyticsRoutes from '@/routes/analytics.routes';
 import reportRoutes from '@/routes/report.routes';
 import cashFlowRoutes from '@/routes/cashFlow.routes';
+import categoriesRoutes from '@/routes/categories.routes';
+import deathRecordsRoutes from '@/routes/deathRecords.routes';
 // import financialCategoryRoutes from '@/routes/financialCategory.routes';
 // import financialAccountRoutes from '@/routes/financialAccount.routes';
 // Rotas antigas removidas - focando apenas na análise integrada
 import { calendarEventRoutes } from '@/routes/calendarEvent.routes';
 import integratedInterventionRoutes from '@/routes/integratedIntervention.routes';
 import integratedFinancialAnalysisRoutes from '@/routes/integratedFinancialAnalysis.routes';
+import penAllocationsRoutes from '@/routes/penAllocations.routes';
 // import dataImportRoutes from '@/routes/dataImport.routes';
 // import dashboardRoutes from '@/routes/dashboard.routes';
 
@@ -157,6 +160,7 @@ export function createApp(): Application {
   apiRouter.use('/payer-accounts', payerAccountRoutes);
   apiRouter.use('/partners', partnerRoutes);
   apiRouter.use('/pens', penRoutes);
+  apiRouter.use('/pen-allocations', penAllocationsRoutes);
   apiRouter.use('/sale-records', saleRecordRoutes);
   apiRouter.use('/sales', saleRecordRoutes); // Alias para compatibilidade
   apiRouter.use('/analytics', analyticsRoutes);
@@ -170,6 +174,11 @@ export function createApp(): Application {
   
   // Rotas financeiras
   apiRouter.use('/cash-flows', cashFlowRoutes);
+  apiRouter.use('/categories', categoriesRoutes);
+  
+  // Rotas de gestão de mortes
+  apiRouter.use('/death-records', deathRecordsRoutes);
+  
   // apiRouter.use('/financial-categories', financialCategoryRoutes);
   // apiRouter.use('/financial-accounts', financialAccountRoutes);
   // Rotas antigas removidas - focando apenas na análise integrada

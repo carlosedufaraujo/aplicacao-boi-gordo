@@ -79,24 +79,7 @@ export function SimplifiedPurchaseDetails({
 
   if (!data) return null;
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { label: string; className: string }> = {
-      NEGOTIATING: { label: 'Negociando', className: 'bg-gray-100 text-gray-800' },
-      CONFIRMED: { label: 'Confirmado', className: 'bg-blue-100 text-blue-800' },
-      IN_TRANSIT: { label: 'Em Trânsito', className: 'bg-yellow-100 text-yellow-800' },
-      RECEIVED: { label: 'Recebido', className: 'bg-cyan-100 text-cyan-800' },
-      ACTIVE: { label: 'Ativo', className: 'bg-green-100 text-green-800' },
-      SOLD: { label: 'Vendido', className: 'bg-purple-100 text-purple-800' },
-      CANCELLED: { label: 'Cancelado', className: 'bg-red-100 text-red-800' }
-    };
-    
-    const variant = variants[status] || variants.NEGOTIATING;
-    return (
-      <Badge className={variant.className}>
-        {variant.label}
-      </Badge>
-    );
-  };
+  
 
   // Calcular métricas usando o estado gmdData atualizado
   const metrics = useMemo(() => {
@@ -164,7 +147,7 @@ export function SimplifiedPurchaseDetails({
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2">
-              {getStatusBadge(data.status)}
+              
               <Button variant="ghost" size="icon" onClick={onClose}>
                 <X className="h-4 w-4" />
               </Button>

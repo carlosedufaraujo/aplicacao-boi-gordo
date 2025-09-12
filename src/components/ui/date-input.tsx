@@ -9,7 +9,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Calendar } from 'lucide-react';
-import { formatBrazilianDate, DATE_CONFIG } from '@/config/dateConfig';
+import { formatBrazilianDate } from '@/utils/formatters';
 import { format, parse, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 

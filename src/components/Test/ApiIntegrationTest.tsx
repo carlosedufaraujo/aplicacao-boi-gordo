@@ -117,7 +117,7 @@ export const ApiIntegrationTest: React.FC = () => {
 
     // Teste 1: Conectividade básica
     try {
-      const response = await fetch('http://localhost:3002/health');
+      const response = await fetch('http://localhost:3001/health');
       const data = await response.json();
       addTestResult('Conectividade Backend', true, 'Backend acessível', data);
     } catch (err) {
@@ -792,3 +792,4 @@ export const ApiIntegrationTest: React.FC = () => {
     </div>
   );
 };
+export default ApiIntegrationTest;

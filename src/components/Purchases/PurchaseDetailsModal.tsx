@@ -75,22 +75,7 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
 
   if (!data) return null;
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { label: string; className: string }> = {
-      PENDING: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800' },
-      RECEIVED: { label: 'Recebido', className: 'bg-blue-100 text-blue-800' },
-      ACTIVE: { label: 'Ativo', className: 'bg-green-100 text-green-800' },
-      SOLD: { label: 'Vendido', className: 'bg-purple-100 text-purple-800' },
-      CANCELLED: { label: 'Cancelado', className: 'bg-red-100 text-red-800' }
-    };
-    
-    const variant = variants[status] || variants.PENDING;
-    return (
-      <Badge className={variant.className}>
-        {variant.label}
-      </Badge>
-    );
-  };
+  
 
   // Calcular métricas corretamente
   const metrics = {
@@ -151,7 +136,7 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
               </DialogDescription>
             </div>
             <div className="flex items-center gap-2">
-              {getStatusBadge(data.status)}
+              
               <Button variant="ghost" size="icon" onClick={onClose}>
                 <X className="h-4 w-4" />
               </Button>
@@ -767,23 +752,7 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
                         </div>
                       )}
 
-                      {data.status === 'ACTIVE' && (
-                        <div className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                            <div className="w-0.5 h-16 bg-transparent"></div>
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">Em Confinamento</p>
-                            <p className="text-xs text-muted-foreground">
-                              {metrics.daysInConfinement} dias
-                            </p>
-                            <p className="text-sm mt-1">
-                              Lote ativo no sistema
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                      
                     </div>
                   </CardContent>
                 </Card>

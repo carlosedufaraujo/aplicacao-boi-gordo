@@ -226,47 +226,158 @@ export class MortalityAnalysisService {
 
   // Analisar padrões de mortalidade por fase
   async analyzeMortalityPatterns(period?: { startDate: Date; endDate: Date }) {
-    const whereClause = period 
-      ? `WHERE mortality_date BETWEEN $1 AND $2`
-      : '';
-    
-    const params = period ? [period.startDate, period.endDate] : [];
+    try {
+      // Primeiro, tentar buscar registros detalhados de morte
+      const whereClause = period 
+        ? {
+            deathDate: {
+              gte: period.startDate,
+              lte: period.endDate
+            }
+          }
+        : {};
 
-    // Padrões por fase
-    const phasePatterns = await prisma.$queryRawUnsafe<MortalityPattern[]>(`
-      SELECT 
-        phase,
-        COUNT(*) as total_events,
-        SUM(quantity) as total_deaths,
-        SUM(total_loss) as total_loss,
-        AVG(quantity::float / cp.initial_quantity * 100) as average_rate
-      FROM mortality_analyses ma
-      JOIN cattle_purchases cp ON ma.cattle_purchase_id = cp.id
-      ${whereClause}
-      GROUP BY phase
-      ORDER BY SUM(quantity) DESC
-    `, ...params);
+      const deathRecords = await prisma.deathRecord.findMany({
+        where: whereClause,
+        include: {
+          purchase: {
+            select: {
+              id: true,
+              initialQuantity: true,
+              lotCode: true
+            }
+          },
+          pen: {
+            select: {
+              id: true,
+              penNumber: true
+            }
+          }
+        }
+      });
 
-    // Causas mais comuns
-    const topCauses = await prisma.$queryRawUnsafe(`
-      SELECT 
-        cause,
-        COUNT(*) as occurrences,
-        SUM(quantity) as total_deaths,
-        SUM(total_loss) as total_loss,
-        AVG(quantity) as avg_deaths_per_event
-      FROM mortality_analyses
-      ${whereClause}
-      ${whereClause ? 'AND' : 'WHERE'} cause IS NOT NULL
-      GROUP BY cause
-      ORDER BY SUM(quantity) DESC
-      LIMIT 10
-    `, ...params);
+      // Se há registros detalhados, usar eles
+      if (deathRecords.length > 0) {
+        const phasePatterns: any[] = [];
+        const deathTypeGroups = deathRecords.reduce((acc, record) => {
+          const key = record.deathType;
+          if (!acc[key]) {
+            acc[key] = [];
+          }
+          acc[key].push(record);
+          return acc;
+        }, {} as Record<string, typeof deathRecords>);
 
-    return {
-      phasePatterns,
-      topCauses
-    };
+        Object.entries(deathTypeGroups).forEach(([phase, records]) => {
+          const totalEvents = records.length;
+          const totalDeaths = records.reduce((sum, r) => sum + r.quantity, 0);
+          const totalLoss = records.reduce((sum, r) => sum + (r.estimatedLoss || 0), 0);
+          
+          phasePatterns.push({
+            phase,
+            totalEvents,
+            totalDeaths,
+            totalLoss,
+            averageRate: records.length > 0 ? totalDeaths / records.length : 0
+          });
+        });
+
+        const topCauses: any[] = [];
+        const causeGroups = deathRecords.reduce((acc, record) => {
+          const key = record.cause || 'Causa não identificada';
+          if (!acc[key]) {
+            acc[key] = [];
+          }
+          acc[key].push(record);
+          return acc;
+        }, {} as Record<string, typeof deathRecords>);
+
+        Object.entries(causeGroups)
+          .sort(([,a], [,b]) => b.length - a.length)
+          .slice(0, 10)
+          .forEach(([cause, records]) => {
+            const occurrences = records.length;
+            const totalDeaths = records.reduce((sum, r) => sum + r.quantity, 0);
+            const totalLoss = records.reduce((sum, r) => sum + (r.estimatedLoss || 0), 0);
+            
+            topCauses.push({
+              cause,
+              count: totalDeaths,
+              occurrences,
+              totalLoss,
+              avgDeathsPerEvent: totalDeaths / occurrences
+            });
+          });
+
+        return { phasePatterns, topCauses };
+      }
+
+      // Se não há registros detalhados, usar dados agregados de cattle_purchases
+      const periodClause = period ? {
+        createdAt: {
+          gte: period.startDate,
+          lte: period.endDate
+        }
+      } : {};
+
+      const cattlePurchases = await prisma.cattlePurchase.findMany({
+        where: {
+          ...periodClause,
+          deathCount: {
+            gt: 0
+          }
+        },
+        select: {
+          id: true,
+          lotCode: true,
+          deathCount: true,
+          initialQuantity: true,
+          averageWeight: true,
+          pricePerArroba: true,
+          createdAt: true
+        }
+      });
+
+      // Criar dados baseados nos lotes com mortes
+      const totalDeaths = cattlePurchases.reduce((sum, purchase) => sum + (purchase.deathCount || 0), 0);
+
+      const phasePatterns = totalDeaths > 0 ? [
+        {
+          phase: 'GENERAL',
+          totalEvents: cattlePurchases.length,
+          totalDeaths: totalDeaths,
+          totalLoss: cattlePurchases.reduce((sum, p) => {
+            const avgWeight = p.averageWeight || 450; // peso médio padrão
+            const pricePerArroba = p.pricePerArroba || 280; // preço médio padrão
+            const loss = (p.deathCount || 0) * avgWeight * pricePerArroba / 15; // conversão aproximada
+            return sum + loss;
+          }, 0),
+          averageRate: totalDeaths / cattlePurchases.reduce((sum, p) => sum + p.initialQuantity, 0) * 100
+        }
+      ] : [];
+
+      const topCauses = totalDeaths > 0 ? [
+        {
+          cause: 'Mortalidade geral',
+          count: totalDeaths,
+          occurrences: cattlePurchases.length,
+          totalLoss: phasePatterns[0]?.totalLoss || 0,
+          avgDeathsPerEvent: totalDeaths / cattlePurchases.length
+        }
+      ] : [];
+
+      return {
+        phasePatterns,
+        topCauses
+      };
+
+    } catch (error) {
+      logger.error('Erro ao analisar padrões de mortalidade:', error);
+      return {
+        phasePatterns: [],
+        topCauses: []
+      };
+    }
   }
 
   // Analisar correlação com condições ambientais

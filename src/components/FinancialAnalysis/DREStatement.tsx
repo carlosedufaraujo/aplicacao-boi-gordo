@@ -37,8 +37,9 @@ export const DREStatement: React.FC<DREStatementProps> = ({
   const [expandedGroups, setExpandedGroups] = React.useState<Set<string>>(new Set());
 
   // Combinar e agrupar dados
+  // Mantém valores negativos para despesas e positivos para receitas
   const allItems = [
-    ...expenses.map(e => ({ ...e, totalAmount: Math.abs(e.totalAmount) })),
+    ...expenses,
     ...revenues
   ];
   

@@ -90,6 +90,7 @@ const eventTypes = [
 ];
 
 export const ModernCalendar: React.FC = () => {
+  console.log('📅 ModernCalendar component loaded - ESTE É O CALENDÁRIO MODERNO!');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'day' | 'list'>('month');

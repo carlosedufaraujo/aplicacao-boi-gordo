@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Users, 
   Building, 
@@ -23,6 +23,7 @@ import {
   Clock,
   Activity,
   TrendingUp,
+  TrendingDown,
   AlertCircle,
   AlertTriangle,
   Download,
@@ -36,10 +37,18 @@ import {
   Wrench,
   Package,
   LogIn,
-  Wallet
+  Wallet,
+  Tags,
+  Palette,
+  RefreshCw
 } from 'lucide-react';
-import { formatBrazilianDate, formatBrazilianCurrency, formatBrazilianNumber, DATE_CONFIG } from '@/config/dateConfig';
+import { formatSafeDate as formatBrazilianDate } from '@/utils/dateUtils';
+const formatBrazilianCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const formatBrazilianNumber = (value: number) => new Intl.NumberFormat('pt-BR').format(value);
+const DATE_CONFIG = { locale: 'pt-BR' };
 import { cleanCpfCnpj, formatCpfCnpj } from '@/utils/cpfCnpjUtils';
+import { categoryService } from '@/services/categoryService';
+import type { Category } from '@/data/defaultCategories';
 
 // Componentes shadcn/ui
 import {
@@ -118,7 +127,6 @@ import {
 import { usePartnersApi } from '@/hooks/api/usePartnersApi';
 import { usePensApi } from '@/hooks/api/usePensApi';
 import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
-import { useEffect } from 'react';
 
 // Tipos de cadastro
 const registrationTypes = [
@@ -146,6 +154,14 @@ const registrationTypes = [
     icon: CreditCard,
     color: 'text-purple-600',
     bgColor: 'bg-purple-100'
+  },
+  {
+    id: 'categories',
+    title: 'Categorias',
+    description: 'Categorias de receitas e despesas',
+    icon: Tags,
+    color: 'text-indigo-600',
+    bgColor: 'bg-indigo-100'
   },
   {
     id: 'properties',
@@ -525,6 +541,7 @@ const DeleteConfirmModal: React.FC<{
       case 'partners': return 'parceiro';
       case 'pens': return 'curral';
       case 'accounts': return 'conta pagadora';
+      case 'categories': return 'categoria';
       default: return 'item';
     }
   };
@@ -534,6 +551,7 @@ const DeleteConfirmModal: React.FC<{
       case 'partners': return item.name;
       case 'pens': return `Curral ${item.penNumber}`;
       case 'accounts': return item.accountName;
+      case 'categories': return item.name;
       default: return 'Item';
     }
   };
@@ -546,6 +564,11 @@ const DeleteConfirmModal: React.FC<{
         return 'Esta ação removerá o curral e pode afetar lotes que estão alocados neste curral.';
       case 'accounts':
         return 'Esta ação removerá a conta pagadora e pode afetar transações financeiras associadas.';
+      case 'categories':
+        if (item && !categoryService.canDelete(item.id)) {
+          return 'Esta é uma categoria padrão do sistema e não pode ser excluída. As categorias padrão são essenciais para o funcionamento do sistema.';
+        }
+        return 'Esta ação removerá a categoria permanentemente. Certifique-se de que não há movimentações financeiras usando esta categoria.';
       default:
         return 'Esta ação não pode ser desfeita.';
     }
@@ -572,6 +595,7 @@ const DeleteConfirmModal: React.FC<{
                 {type === 'partners' && <Users className="h-4 w-4 text-destructive" />}
                 {type === 'pens' && <Home className="h-4 w-4 text-destructive" />}
                 {type === 'accounts' && <CreditCard className="h-4 w-4 text-destructive" />}
+                {type === 'categories' && <Tags className="h-4 w-4 text-destructive" />}
               </div>
               <div>
                 <p className="text-body-sm font-medium">{getItemName(item, type)}</p>
@@ -579,6 +603,7 @@ const DeleteConfirmModal: React.FC<{
                   {type === 'partners' && item.type}
                   {type === 'pens' && `Capacidade: ${item.capacity}`}
                   {type === 'accounts' && item.bankName}
+                  {type === 'categories' && `Tipo: ${item.type === 'EXPENSE' ? 'Despesa' : 'Receita'}`}
                 </p>
               </div>
             </div>
@@ -609,10 +634,17 @@ const DeleteConfirmModal: React.FC<{
           <Button variant="outline" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button variant="destructive" onClick={onConfirm}>
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir {getTypeLabel(type)}
-          </Button>
+          {(type !== 'categories' || !item || categoryService.canDelete(item.id)) ? (
+            <Button variant="destructive" onClick={onConfirm}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir {getTypeLabel(type)}
+            </Button>
+          ) : (
+            <Button variant="outline" disabled>
+              <Shield className="h-4 w-4 mr-2" />
+              Categoria Protegida
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -1184,11 +1216,150 @@ const CycleForm: React.FC<{
   );
 };
 
+// Formulário de Categoria
+const CategoryForm: React.FC<{ 
+  category?: Category; 
+  onSave: (data: any) => void; 
+  onCancel: () => void 
+}> = ({ category, onSave, onCancel }) => {
+  const [formData, setFormData] = useState(category || {
+    name: '',
+    type: 'EXPENSE',
+    color: '#3B82F6'
+  });
+
+  const presetColors = [
+    '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16',
+    '#22C55E', '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9',
+    '#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#D946EF',
+    '#EC4899', '#F43F5E', '#64748B', '#475569', '#1E293B'
+  ];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label className="form-label">Nome da Categoria *</Label>
+        <Input
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Ex: Alimentação Animal"
+          required
+          className="form-input"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label className="form-label">Tipo *</Label>
+        <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+          <SelectTrigger className="form-input">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="EXPENSE">
+              <div className="flex items-center gap-2">
+                <TrendingDown className="h-4 w-4 text-red-500" />
+                <span>Despesa</span>
+              </div>
+            </SelectItem>
+            <SelectItem value="INCOME">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-green-500" />
+                <span>Receita</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label className="form-label">Cor</Label>
+        <div className="grid grid-cols-10 gap-2">
+          {presetColors.map((color) => (
+            <button
+              key={color}
+              type="button"
+              onClick={() => setFormData({ ...formData, color })}
+              className={`h-8 w-full rounded-md border-2 transition-all hover:scale-110 ${
+                formData.color === color ? 'border-gray-800 dark:border-white' : 'border-transparent'
+              }`}
+              style={{ backgroundColor: color }}
+              title={color}
+            />
+          ))}
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <Input
+            type="color"
+            value={formData.color}
+            onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+            className="h-8 w-20"
+          />
+          <Input
+            value={formData.color}
+            onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+            placeholder="#000000"
+            className="flex-1"
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit">
+          {category ? 'Atualizar' : 'Criar'} Categoria
+        </Button>
+      </div>
+    </form>
+  );
+};
+
 // Componente Principal
 export const CompleteRegistrations: React.FC = () => {
   const { partners, loading: partnersLoading, deletePartner, updatePartner, createPartner } = usePartnersApi();
   const { pens, loading: pensLoading, deletePen, updatePen, createPen } = usePensApi();
   const { payerAccounts, loading: accountsLoading, deletePayerAccount, updatePayerAccount, createPayerAccount } = usePayerAccountsApi();
+  
+  // Estado para categorias
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  
+  // Carregar categorias
+  useEffect(() => {
+    loadCategories();
+  }, []);
+  
+  const loadCategories = () => {
+    setCategoriesLoading(true);
+    try {
+      const allCategories = categoryService.getAll();
+      setCategories(allCategories);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+  
+  const createCategory = (data: Omit<Category, 'id'>) => {
+    const newCategory = categoryService.create(data);
+    loadCategories();
+    return newCategory;
+  };
+  
+  const updateCategory = (id: string, data: Partial<Omit<Category, 'id'>>) => {
+    categoryService.update(id, data);
+    loadCategories();
+  };
+  
+  const deleteCategory = (id: string) => {
+    categoryService.delete(id);
+    loadCategories();
+  };
   
   const [activeTab, setActiveTab] = useState('partners');
   const [searchTerm, setSearchTerm] = useState('');
@@ -1215,6 +1386,9 @@ export const CompleteRegistrations: React.FC = () => {
       case 'accounts':
         data = payerAccounts || [];
         break;
+      case 'categories':
+        data = categories || [];
+        break;
       default:
         data = [];
     }
@@ -1232,15 +1406,21 @@ export const CompleteRegistrations: React.FC = () => {
         case 'accounts':
           searchText = `${item.accountName || ''} ${item.bankName || ''} ${item.accountNumber || ''}`.toLowerCase();
           break;
+        case 'categories':
+          searchText = `${item.name || ''}`.toLowerCase();
+          break;
         default:
-          searchText = '';
+          searchText = ''
       }
       
       const matchesSearch = searchTerm === '' || searchText.includes(searchTerm.toLowerCase());
-      const matchesType = typeFilter === 'all' || item.type === typeFilter;
+      const matchesType = typeFilter === 'all' || item.type === typeFilter || 
+                         (activeTab === 'categories' && (typeFilter === 'all' || 
+                         (typeFilter === 'INCOME' && item.type === 'INCOME') ||
+                         (typeFilter === 'EXPENSE' && item.type === 'EXPENSE')));
       const matchesStatus = statusFilter === 'all' || 
-                           (statusFilter === 'active' && item.isActive) ||
-                           (statusFilter === 'inactive' && !item.isActive);
+                           (statusFilter === 'active' && (item.isActive !== false)) ||
+                           (statusFilter === 'inactive' && item.isActive === false);
       
       return matchesSearch && matchesType && matchesStatus;
     });
@@ -1298,6 +1478,9 @@ export const CompleteRegistrations: React.FC = () => {
         case 'accounts':
           await deletePayerAccount(itemToDelete.id);
           break;
+        case 'categories':
+          deleteCategory(itemToDelete.id);
+          break;
         default:
           console.log('Tipo de item não reconhecido');
       }
@@ -1338,6 +1521,13 @@ export const CompleteRegistrations: React.FC = () => {
             await createPayerAccount(data);
           }
           break;
+        case 'categories':
+          if (editingItem) {
+            updateCategory(editingItem.id, data);
+          } else {
+            createCategory(data);
+          }
+          break;
         default:
           console.log('Tipo de item não reconhecido');
       }
@@ -1362,6 +1552,8 @@ export const CompleteRegistrations: React.FC = () => {
         return pens?.length || 0;
       case 'accounts':
         return payerAccounts?.length || 0;
+      case 'categories':
+        return categories?.length || 0;
       case 'properties':
         return 0; // Ainda não implementado
       default:
@@ -1369,17 +1561,17 @@ export const CompleteRegistrations: React.FC = () => {
     }
   };
 
-  const isLoading = partnersLoading || pensLoading || accountsLoading;
+  const isLoading = partnersLoading || pensLoading || accountsLoading || categoriesLoading;
 
   // DEBUG - Removido para mostrar a página normal
   // Descomente se precisar debugar novamente
   /*
   if (false) { 
-    const DebugRegistrations = React.lazy(() => import('./DebugRegistrations').then(module => ({ default: module.DebugRegistrations })));
+    // const DebugRegistrations = React.lazy(() => import('./DebugRegistrations').then(module => ({ default: module.DebugRegistrations })));
     return (
       <React.Suspense fallback={<div>Carregando debug...</div>}>
         <div className="space-y-4">
-          <DebugRegistrations />
+          // <DebugRegistrations />
           {!isLoading && (
             <div className="text-center">
               <p className="text-sm text-green-600 mb-2">✅ Dados carregados! Mostrando interface normal abaixo:</p>
@@ -1495,6 +1687,19 @@ export const CompleteRegistrations: React.FC = () => {
                     <SelectItem value="broker">Corretor</SelectItem>
                     <SelectItem value="slaughterhouse">Frigorífico</SelectItem>
                     <SelectItem value="transporter">Transportadora</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+              
+              {activeTab === 'categories' && (
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="EXPENSE">Despesas</SelectItem>
+                    <SelectItem value="INCOME">Receitas</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -1663,6 +1868,172 @@ export const CompleteRegistrations: React.FC = () => {
             )}
           </TabsContent>
 
+          <TabsContent value="categories" className="space-y-4">
+            {/* Estatísticas de Categorias */}
+            <div className="grid gap-4 md:grid-cols-4 mb-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Categorias de Despesa</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {categories.filter(c => c.type === 'EXPENSE').length}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Categorias ativas
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Categorias de Receita</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {categories.filter(c => c.type === 'INCOME').length}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Categorias ativas
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Total de Categorias</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {categories.length}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Todas as categorias
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-dashed">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Ações Rápidas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('Deseja resetar para as categorias padrão? Isso irá remover todas as categorias personalizadas.')) {
+                          categoryService.resetToDefaults();
+                          loadCategories();
+                        }
+                      }}
+                      className="justify-start"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Resetar Padrões
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {filteredData.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredData.map(item => (
+                  <Card key={item.id} className="hover-lift">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="h-10 w-10 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: item.color + '20' }}
+                          >
+                            <div 
+                              className="h-6 w-6 rounded"
+                              style={{ backgroundColor: item.color }}
+                            />
+                          </div>
+                          <div>
+                            <CardTitle className="text-sm font-medium">
+                              {item.name}
+                            </CardTitle>
+                            <CardDescription className="text-xs">
+                              {item.type === 'EXPENSE' ? 'Despesa' : 'Receita'}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleItemEdit(item)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            {categoryService.canDelete(item.id) ? (
+                              <DropdownMenuItem 
+                                onClick={() => handleItemDelete(item)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Excluir
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem 
+                                disabled
+                                className="opacity-50"
+                              >
+                                <Shield className="mr-2 h-4 w-4" />
+                                Categoria Protegida
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={item.type === 'EXPENSE' ? 'destructive' : 'default'}
+                          className="text-xs"
+                        >
+                          {item.type === 'EXPENSE' ? (
+                            <TrendingDown className="h-3 w-3 mr-1" />
+                          ) : (
+                            <TrendingUp className="h-3 w-3 mr-1" />
+                          )}
+                          {item.type === 'EXPENSE' ? 'Despesa' : 'Receita'}
+                        </Badge>
+                        {!categoryService.canDelete(item.id) && (
+                          <Badge variant="secondary" className="text-xs">
+                            Padrão
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Tags className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground">
+                    Nenhuma categoria encontrada
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Tente ajustar os filtros ou criar uma nova categoria
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           <TabsContent value="properties" className="space-y-4">
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -1713,6 +2084,14 @@ export const CompleteRegistrations: React.FC = () => {
                 onCancel={handleFormCancel}
               />
             )}
+            
+            {activeTab === 'categories' && (
+              <CategoryForm
+                category={editingItem}
+                onSave={handleFormSave}
+                onCancel={handleFormCancel}
+              />
+            )}
           </DialogContent>
         </Dialog>
 
@@ -1736,3 +2115,5 @@ export const CompleteRegistrations: React.FC = () => {
     </TooltipProvider>
   );
 };
+
+export default CompleteRegistrations;

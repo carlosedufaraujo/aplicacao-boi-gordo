@@ -2,99 +2,135 @@ import { apiClient } from './apiClient';
 
 export interface SaleRecord {
   id: string;
-  lotId: string;
-  slaughterhouseId: string;
+  internalCode?: string | null;
   saleDate: string;
-  animalType: 'male' | 'female';
-  currentQuantity: number;
-  totalWeight: number;
+  penId?: string | null;
+  purchaseId?: string | null;
+  saleType: string;
+  quantity: number;
+  buyerId: string;
+  exitWeight: number;
+  carcassWeight: number;
+  carcassYield: number;
   pricePerArroba: number;
-  grossRevenue: number;
-  netProfit: number;
-  profitMargin: number;
-  paymentType: 'cash' | 'installment';
-  paymentDate?: string;
-  commonAnimals: number;
-  chinaAnimals: number;
-  angusAnimals: number;
-  observations?: string;
-  reconciled?: boolean;
+  arrobas: number;
+  totalValue: number;
+  deductions: number;
+  netValue: number;
+  paymentType: string;
+  paymentDate?: string | null;
+  receiverAccountId?: string | null;
+  invoiceNumber?: string | null;
+  contractNumber?: string | null;
+  observations?: string | null;
+  status: 'PENDING' | 'CONFIRMED' | 'DELIVERED' | 'PAID' | 'CANCELLED';
+  userId?: string | null;
   createdAt: string;
   updatedAt: string;
   // Dados relacionados
-  lot?: {
+  pen?: {
     id: string;
-    lotNumber: string;
-    currentQuantity: number;
+    penNumber: string;
+    capacity: number;
+    location?: string;
+    type: string;
     status: string;
   };
-  slaughterhouse?: {
+  purchase?: {
+    id: string;
+    lotCode: string;
+    currentQuantity: number;
+    averageWeight: number;
+  };
+  buyer?: {
     id: string;
     name: string;
     type: string;
-    email?: string;
+    cpfCnpj?: string;
     phone?: string;
+    email?: string;
+  };
+  receiverAccount?: {
+    id: string;
+    accountName: string;
+    bankName: string;
   };
 }
 
 export interface CreateSaleRecordData {
-  lotId: string;
-  slaughterhouseId: string;
   saleDate: string;
-  animalType: 'male' | 'female';
-  currentQuantity: number;
-  totalWeight: number;
+  penId?: string;
+  purchaseId?: string;
+  saleType: string;
+  quantity: number;
+  buyerId: string;
+  exitWeight: number;
+  carcassWeight: number;
+  carcassYield: number;
   pricePerArroba: number;
-  paymentType: 'cash' | 'installment';
+  arrobas: number;
+  totalValue: number;
+  deductions?: number;
+  netValue: number;
+  paymentType: string;
   paymentDate?: string;
-  commonAnimals: number;
-  chinaAnimals: number;
-  angusAnimals: number;
+  receiverAccountId?: string;
+  invoiceNumber?: string;
+  contractNumber?: string;
   observations?: string;
+  status?: 'PENDING' | 'CONFIRMED' | 'DELIVERED' | 'PAID' | 'CANCELLED';
 }
 
 export interface UpdateSaleRecordData {
   saleDate?: string;
-  animalType?: 'male' | 'female';
-  currentQuantity?: number;
-  totalWeight?: number;
+  penId?: string;
+  purchaseId?: string;
+  saleType?: string;
+  quantity?: number;
+  buyerId?: string;
+  exitWeight?: number;
+  carcassWeight?: number;
+  carcassYield?: number;
   pricePerArroba?: number;
-  paymentType?: 'cash' | 'installment';
+  arrobas?: number;
+  totalValue?: number;
+  deductions?: number;
+  netValue?: number;
+  paymentType?: string;
   paymentDate?: string;
-  commonAnimals?: number;
-  chinaAnimals?: number;
-  angusAnimals?: number;
+  receiverAccountId?: string;
+  invoiceNumber?: string;
+  contractNumber?: string;
   observations?: string;
-  reconciled?: boolean;
+  status?: 'PENDING' | 'CONFIRMED' | 'DELIVERED' | 'PAID' | 'CANCELLED';
 }
 
 export interface SaleRecordFilters {
-  lotId?: string;
-  slaughterhouseId?: string;
-  animalType?: string;
-  paymentType?: string;
-  reconciled?: boolean;
+  purchaseId?: string;
+  buyerId?: string;
+  cycleId?: string;
+  status?: string;
   startDate?: string;
   endDate?: string;
   search?: string;
 }
 
 export interface SaleRecordStats {
-  totalRecords: number;
-  totalRevenue: number;
-  totalProfit: number;
-  averageMargin: number;
-  byAnimalType: {
-    type: string;
-    count: number;
-    revenue: number;
-  }[];
-  byPaymentType: {
-    type: string;
-    count: number;
-    percentage: number;
-  }[];
-  recentRecords: number;
+  totalSales: number;
+  totalQuantity: number;
+  totalWeight: number;
+  totalCarcassWeight: number;
+  totalGrossValue: number;
+  totalNetValue: number;
+  averagePrice: number;
+  byStatus: {
+    pending: number;
+    confirmed: number;
+    delivered: number;
+    paid: number;
+    cancelled: number;
+    completed: number;
+  };
 }
 
 export const saleRecordsApi = {
@@ -113,8 +149,33 @@ export const saleRecordsApi = {
     const queryString = params.toString();
     const url = `/sale-records${queryString ? `?${queryString}` : ''}`;
     
+    console.log('🌐 Fazendo requisição para:', url);
     const response = await apiClient.get(url);
-    return response.data.data;
+    console.log('📥 Resposta da API:', response.data);
+    
+    // Tratar resposta paginada se necessário
+    let result = [];
+    
+    // A resposta vem em response.data.data que já é o objeto paginado
+    if (response.data?.data?.items && Array.isArray(response.data.data.items)) {
+      console.log('📦 Resposta paginada detectada, items:', response.data.data.items.length);
+      result = response.data.data.items;
+    } else if (response.data?.items && Array.isArray(response.data.items)) {
+      console.log('📦 Resposta com items direto, items:', response.data.items.length);
+      result = response.data.items;
+    } else if (response.data?.data && Array.isArray(response.data.data)) {
+      console.log('📦 Array direto detectado, items:', response.data.data.length);
+      result = response.data.data;
+    } else if (Array.isArray(response.data)) {
+      console.log('📦 Resposta é array direto, items:', response.data.length);
+      result = response.data;
+    } else {
+      console.warn('⚠️ Formato de resposta não reconhecido:', response.data);
+      result = [];
+    }
+    
+    console.log('✅ Retornando', result.length, 'vendas');
+    return result;
   },
 
   // Buscar registro de venda por ID
@@ -125,13 +186,23 @@ export const saleRecordsApi = {
 
   // Criar novo registro de venda
   async create(recordData: CreateSaleRecordData): Promise<SaleRecord> {
-    const response = await apiClient.post('/sale-records', recordData);
+    // Garantir que o status seja enviado em maiúsculo
+    const data = {
+      ...recordData,
+      status: recordData.status?.toUpperCase() || 'PENDING'
+    };
+    const response = await apiClient.post('/sale-records', data);
     return response.data.data;
   },
 
   // Atualizar registro de venda
   async update(id: string, updates: UpdateSaleRecordData): Promise<SaleRecord> {
-    const response = await apiClient.put(`/sale-records/${id}`, updates);
+    // Garantir que o status seja enviado em maiúsculo se fornecido
+    const data = updates.status ? {
+      ...updates,
+      status: updates.status.toUpperCase()
+    } : updates;
+    const response = await apiClient.put(`/sale-records/${id}`, data);
     return response.data.data;
   },
 

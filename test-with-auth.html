@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test with Auth</title>
+</head>
+<body>
+    <h1>Teste com Autenticação</h1>
+    <div id="result"></div>
+    <script>
+        async function testWithAuth() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Primeiro, fazer login para obter token
+                console.log('🔐 Fazendo login...');
+                resultDiv.innerHTML = '<p>Fazendo login...</p>';
+                
+                const loginResponse = await fetch('http://localhost:3001/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: 'admin@exemplo.com', 
+                        password: '123456' 
+                    })
+                });
+                
+                if (!loginResponse.ok) {
+                    throw new Error(`Login falhou: ${loginResponse.status}`);
+                }
+                
+                const loginData = await loginResponse.json();
+                console.log('✅ Login sucesso:', loginData);
+                
+                if (!loginData.data?.token) {
+                    throw new Error('Token não recebido');
+                }
+                
+                const token = loginData.data.token;
+                
+                // Salvar no localStorage como o sistema faz
+                localStorage.setItem('authToken', token);
+                localStorage.setItem('user', JSON.stringify(loginData.data.user));
+                
+                console.log('💾 Token salvo no localStorage');
+                
+                // Agora testar API de mortalidade com token
+                console.log('🔍 Testando API de mortalidade com token...');
+                resultDiv.innerHTML = '<p>Login OK! Testando API de mortalidade...</p>';
+                
+                const mortalityResponse = await fetch('http://localhost:3001/api/v1/analytics/mortality/patterns', {
+                    method: 'GET',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                console.log('📡 Mortality response status:', mortalityResponse.status);
+                
+                if (!mortalityResponse.ok) {
+                    throw new Error(`API Mortality falhou: ${mortalityResponse.status}`);
+                }
+                
+                const mortalityData = await mortalityResponse.json();
+                console.log('📊 Mortality data:', mortalityData);
+                
+                resultDiv.innerHTML = `
+                    <h2>✅ Sucesso!</h2>
+                    <h3>Login:</h3>
+                    <pre>${JSON.stringify(loginData, null, 2)}</pre>
+                    <h3>Dados de Mortalidade:</h3>
+                    <pre>${JSON.stringify(mortalityData, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('❌ Erro:', error);
+                resultDiv.innerHTML = `
+                    <h2>❌ Erro:</h2>
+                    <pre>${error.message}</pre>
+                `;
+            }
+        }
+        
+        // Executar ao carregar
+        window.onload = testWithAuth;
+    </script>
+</body>
+</html>

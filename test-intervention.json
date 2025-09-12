@@ -1,0 +1,8 @@
+{
+  "penId": "1",
+  "interventionType": "vaccine",
+  "productName": "Vacina Teste",
+  "dose": 5.0,
+  "applicationDate": "2025-01-12T00:00:00Z",
+  "notes": "Intervenção de teste"
+}

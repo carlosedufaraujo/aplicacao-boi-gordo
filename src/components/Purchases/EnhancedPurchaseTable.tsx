@@ -49,20 +49,20 @@ import {
 
 interface EnhancedPurchaseTableProps {
   searchTerm?: string;
-  filterStatus?: string;
+  
   onView?: (purchase: any) => void;
   onEdit?: (purchase: any) => void;
   onDelete?: (purchase: any) => void;
-  onStatusChange?: (purchase: any) => void;
+  
 }
 
 export function EnhancedPurchaseTable({
   searchTerm = '',
-  filterStatus = 'all',
+  
   onView,
   onEdit,
   onDelete,
-  onStatusChange
+  
 }: EnhancedPurchaseTableProps) {
   const { 
     purchases, 
@@ -86,11 +86,11 @@ export function EnhancedPurchaseTable({
         purchase.vendor?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         purchase.location?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesStatus = filterStatus === 'all' || purchase.status === filterStatus;
       
-      return matchesSearch && matchesStatus;
+      
+      return matchesSearch;
     });
-  }, [purchases, searchTerm, filterStatus]);
+  }, [purchases, searchTerm]);
 
   // Calcular totalizadores apenas para os itens filtrados da página atual
   const totals = useMemo(() => {
@@ -130,24 +130,7 @@ export function EnhancedPurchaseTable({
     }
   };
 
-  // Renderizar status
-  const getStatusBadge = (status: string, stage?: string) => {
-    let label = 'Confirmado';
-    let variant: "default" | "secondary" | "destructive" | "outline" = "default";
-    
-    if (status === 'CONFINED') {
-      label = 'Confinado';
-      variant = 'secondary';
-    } else if (stage === 'received') {
-      label = 'Recepcionado';
-      variant = 'outline';
-    } else if (stage === 'in_transit') {
-      label = 'Em Trânsito';
-      variant = 'default';
-    }
-    
-    return <Badge variant={variant}>{label}</Badge>;
-  };
+  
 
   if (loading) {
     return (
@@ -186,14 +169,14 @@ export function EnhancedPurchaseTable({
                   <TableHead className="text-right">Peso Total/Médio</TableHead>
                   <TableHead className="text-right">R$/@</TableHead>
                   <TableHead className="text-right">Investimento</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
+                  
                   <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredPurchases.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
                       Nenhuma compra encontrada
                     </TableCell>
                   </TableRow>
@@ -244,14 +227,6 @@ export function EnhancedPurchaseTable({
                           const otherCosts = purchase.otherCosts || purchase.operationalCost || 0;
                           return purchaseValue + freight + commission + otherCosts;
                         })())}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <button
-                          onClick={() => onStatusChange?.(purchase)}
-                          className="cursor-pointer"
-                        >
-                          {getStatusBadge(purchase.status, purchase.stage)}
-                        </button>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">

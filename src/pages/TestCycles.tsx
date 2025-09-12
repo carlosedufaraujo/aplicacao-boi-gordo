@@ -100,4 +100,4 @@ export const TestCycles = () => {
       </div>
     </div>
   );
-};
+};export default TestCycles;

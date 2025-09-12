@@ -15,7 +15,7 @@ import {
   Heart, DollarSign, Percent, AlertCircle
 } from 'lucide-react';
 import { useAnalyticsApi } from '@/hooks/api/useAnalyticsApi';
-import { formatBrazilianDate, formatBrazilianCurrency, formatBrazilianNumber, formatWeight, formatPercentage } from '@/config/dateConfig';
+import { formatBrazilianDate, formatBrazilianCurrency, formatBrazilianNumber, formatWeight, formatPercentage } from '@/utils/formatters';
 
 const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899'];
 

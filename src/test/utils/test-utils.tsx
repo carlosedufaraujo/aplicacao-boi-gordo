@@ -3,7 +3,6 @@ import { render, RenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { SupabaseProvider } from '@/providers/SupabaseProvider';
 import { NotificationProvider } from '@/components/Notifications/ModernNotificationSystem';
-import { DataSyncProvider } from '@/components/Common/DataSyncProvider';
 
 // Componente wrapper para testes
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
@@ -11,9 +10,7 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
     <BrowserRouter>
       <SupabaseProvider>
         <NotificationProvider>
-          <DataSyncProvider>
-            {children}
-          </DataSyncProvider>
+          {children}
         </NotificationProvider>
       </SupabaseProvider>
     </BrowserRouter>

@@ -14,11 +14,7 @@ export class ExpenseRepository extends BaseRepository<Expense> {
         costCenter: true,
         purchase: {
           include: {
-            purchaseOrder: {
-              include: {
-                vendor: true,
-              },
-            },
+            vendor: true,
           },
         },
         payerAccount: true,

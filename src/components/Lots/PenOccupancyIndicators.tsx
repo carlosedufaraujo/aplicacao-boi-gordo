@@ -259,7 +259,7 @@ interface OccupancyStatsProps {
 
 export const OccupancyStats: React.FC<OccupancyStatsProps> = ({ stats, isConnected }) => {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
       {/* Ocupação geral */}
       <div className="bg-card rounded-lg p-4 border">
         <div className="flex items-center justify-between mb-2">
@@ -296,26 +296,6 @@ export const OccupancyStats: React.FC<OccupancyStatsProps> = ({ stats, isConnect
         </p>
       </div>
 
-      {/* Status da conexão */}
-      <div className="bg-card rounded-lg p-4 border">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="kpi-label">Conexão</h3>
-          {isConnected ? (
-            <Wifi className="h-4 w-4 text-success" />
-          ) : (
-            <WifiOff className="h-4 w-4 text-error" />
-          )}
-        </div>
-        <div className={cn(
-          "kpi-value",
-          isConnected ? "text-success" : "text-error"
-        )}>
-          {isConnected ? "Online" : "Offline"}
-        </div>
-        <p className="kpi-variation text-muted-foreground">
-          Tempo real {isConnected ? "ativo" : "inativo"}
-        </p>
-      </div>
     </div>
   );
 };

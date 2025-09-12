@@ -99,7 +99,6 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
   const [showSalesForm, setShowSalesForm] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [filterBuyer, setFilterBuyer] = useState('all');
   const [filterDateRange, setFilterDateRange] = useState('all');
   const [activeView, setActiveView] = useState<'table' | 'cards'>('table');
@@ -114,6 +113,18 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
     refresh: refreshSales 
   } = useSaleRecordsApi();
   
+  // Teste direto da API ao montar o componente
+  React.useEffect(() => {
+    console.log('🚀 SalesManagement montado, testando API diretamente...');
+    fetch('http://localhost:3001/api/v1/sale-records')
+      .then(res => res.json())
+      .then(data => {
+        console.log('📊 Resposta direta da API:', data);
+        console.log('📦 Items:', data?.data?.items?.length || 0);
+      })
+      .catch(err => console.error('❌ Erro no fetch direto:', err));
+  }, []);
+  
   const { cattlePurchases, loading: purchasesLoading } = useCattlePurchasesApi();
   const { partners, loading: partnersLoading } = usePartnersApi();
   const { pens, loading: pensLoading } = usePensApi();
@@ -126,18 +137,20 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
       // Filtro de busca
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
-        const buyerName = partners.find(p => p.id === sale.slaughterhouseId)?.name || '';
-        const lotInfo = cattlePurchases.find(p => p.id === sale.lotId);
+        const buyerName = sale.buyer?.name || '';
+        const penNumber = sale.pen?.penNumber || '';
+        const purchaseCode = sale.purchase?.lotCode || '';
         
         if (!buyerName.toLowerCase().includes(search) && 
-            !lotInfo?.internalCode?.toLowerCase().includes(search) &&
+            !penNumber.toLowerCase().includes(search) &&
+            !purchaseCode.toLowerCase().includes(search) &&
             !sale.id.toLowerCase().includes(search)) {
           return false;
         }
       }
 
       // Filtro de comprador
-      if (filterBuyer !== 'all' && sale.slaughterhouseId !== filterBuyer) {
+      if (filterBuyer !== 'all' && sale.buyerId !== filterBuyer) {
         return false;
       }
 
@@ -161,48 +174,44 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
         }
       }
 
-      // Filtro de status de pagamento
-      if (filterStatus !== 'all') {
-        const isPaid = !!sale.paymentDate;
-        if (filterStatus === 'paid' && !isPaid) return false;
-        if (filterStatus === 'pending' && isPaid) return false;
-        if (filterStatus === 'reconciled' && !sale.reconciled) return false;
-      }
-
       return true;
     });
-  }, [saleRecords, searchTerm, filterBuyer, filterDateRange, filterStatus, partners, cattlePurchases]);
+  }, [saleRecords, searchTerm, filterBuyer, filterDateRange]);
+
+  // Debug logs
+  console.log('🔍 SalesManagement Debug:', {
+    saleRecords: saleRecords?.length || 0,
+    salesLoading,
+    salesError,
+    stats,
+    filteredSales: filteredSales?.length || 0,
+    rawSaleRecords: saleRecords
+  });
 
   // Métricas calculadas
   const metrics = useMemo(() => {
     const totalSales = filteredSales.length;
-    const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.grossRevenue, 0);
-    const totalProfit = filteredSales.reduce((sum, sale) => sum + sale.netProfit, 0);
-    const totalAnimals = filteredSales.reduce((sum, sale) => sum + sale.currentQuantity, 0);
-    const totalWeight = filteredSales.reduce((sum, sale) => sum + sale.totalWeight, 0);
+    const totalRevenue = filteredSales.reduce((sum, sale) => sum + (sale.totalValue || 0), 0);
+    const totalNetValue = filteredSales.reduce((sum, sale) => sum + (sale.netValue || 0), 0);
+    const totalAnimals = filteredSales.reduce((sum, sale) => sum + (sale.quantity || 0), 0);
+    const totalWeight = filteredSales.reduce((sum, sale) => sum + (sale.exitWeight || 0), 0);
+    const totalCarcassWeight = filteredSales.reduce((sum, sale) => sum + (sale.carcassWeight || 0), 0);
     const averagePrice = filteredSales.length > 0 
-      ? filteredSales.reduce((sum, sale) => sum + sale.pricePerArroba, 0) / filteredSales.length 
+      ? filteredSales.reduce((sum, sale) => sum + (sale.pricePerArroba || 0), 0) / filteredSales.length 
       : 0;
-    const averageMargin = filteredSales.length > 0
-      ? filteredSales.reduce((sum, sale) => sum + sale.profitMargin, 0) / filteredSales.length
+    const averageYield = totalCarcassWeight > 0 && totalWeight > 0
+      ? (totalCarcassWeight / totalWeight) * 100
       : 0;
     
-    // Vendas por status
-    const paidSales = filteredSales.filter(sale => sale.paymentDate).length;
-    const pendingSales = filteredSales.filter(sale => !sale.paymentDate).length;
-    const reconciledSales = filteredSales.filter(sale => sale.reconciled).length;
-
     return {
       totalSales,
       totalRevenue,
-      totalProfit,
+      totalNetValue,
       totalAnimals,
       totalWeight,
+      totalCarcassWeight,
       averagePrice,
-      averageMargin,
-      paidSales,
-      pendingSales,
-      reconciledSales
+      averageYield
     };
   }, [filteredSales]);
 
@@ -230,20 +239,10 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
     showWarningNotification('Exportação em desenvolvimento');
   };
 
+
   const handleImport = () => {
-    showWarningNotification('Importação em desenvolvimento');
+    showWarningNotification("Importação em desenvolvimento");
   };
-
-  const getStatusBadge = (sale: any) => {
-    if (sale.reconciled) {
-      return <Badge className="bg-gray-500 text-white">Conciliado</Badge>;
-    }
-    if (sale.paymentDate) {
-      return <Badge className="bg-green-500 text-white">Pago</Badge>;
-    }
-    return <Badge className="bg-yellow-500 text-white">Pendente</Badge>;
-  };
-
   const getPaymentTypeBadge = (type: string) => {
     switch (type) {
       case 'cash':
@@ -287,130 +286,11 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
               <Upload className="h-4 w-4 mr-2" />
               Importar
             </Button>
-            <Button variant="outline" size="sm" onClick={refreshSales}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Atualizar
-            </Button>
-            <Button size="sm" onClick={() => setShowSalesForm(true)}>
+            <Button onClick={() => setShowSalesForm(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Venda
             </Button>
           </div>
-        </div>
-
-        {/* Métricas */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Vendas</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics.totalSales}</div>
-              <p className="text-xs text-muted-foreground">
-                {metrics.reconciledSales} conciliadas
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {formatCompactCurrency(metrics.totalRevenue)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Valor bruto
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Lucro Total</CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">
-                {formatCompactCurrency(metrics.totalProfit)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Margem: {metrics.averageMargin.toFixed(1)}%
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Animais</CardTitle>
-              <Beef className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics.totalAnimals}</div>
-              <p className="text-xs text-muted-foreground">
-                Total vendido
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Peso Total</CardTitle>
-              <Scale className="h-4 w-4 text-purple-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {(metrics.totalWeight / 1000).toFixed(1)}t
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {(metrics.totalWeight / 15).toFixed(0)}@
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Preço Médio</CardTitle>
-              <Calculator className="h-4 w-4 text-indigo-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                R$ {metrics.averagePrice.toFixed(0)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Por arroba
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pagamentos</CardTitle>
-              <CreditCard className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">
-                {metrics.pendingSales}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Pendentes
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Status</CardTitle>
-              <Activity className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">Ativo</div>
-              <Progress value={75} className="h-1 mt-2" />
-            </CardContent>
-          </Card>
         </div>
 
         {/* Filtros */}
@@ -431,34 +311,23 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
                   />
                 </div>
               </div>
-              
+
               <Select value={filterBuyer} onValueChange={setFilterBuyer}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Comprador" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos Compradores</SelectItem>
-                  {partners
-                    .filter(p => p.type === 'slaughterhouse' || p.type === 'buyer')
+                  {partners?.filter(p => p.type === "BUYER")
                     .map(partner => (
                       <SelectItem key={partner.id} value={partner.id}>
                         {partner.name}
                       </SelectItem>
                     ))}
                 </SelectContent>
-              </Select>
 
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="paid">Pago</SelectItem>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="reconciled">Conciliado</SelectItem>
-                </SelectContent>
               </Select>
+              
 
               <Select value={filterDateRange} onValueChange={setFilterDateRange}>
                 <SelectTrigger className="w-[140px]">
@@ -469,7 +338,7 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
                   <SelectItem value="today">Hoje</SelectItem>
                   <SelectItem value="week">Última Semana</SelectItem>
                   <SelectItem value="month">Último Mês</SelectItem>
-                </SelectContent>
+              </SelectContent>
               </Select>
 
               <div className="flex gap-2">
@@ -524,61 +393,59 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
                       <TableHead>Valor Total</TableHead>
                       <TableHead>Lucro</TableHead>
                       <TableHead>Pagamento</TableHead>
-                      <TableHead>Status</TableHead>
+                      
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredSales.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={11} className="text-center text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center text-muted-foreground">
                           Nenhuma venda encontrada
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredSales.map((sale) => {
-                        const buyer = partners.find(p => p.id === sale.slaughterhouseId);
-                        const lot = cattlePurchases.find(p => p.id === sale.lotId);
-                        
-                        return (
-                          <TableRow key={sale.id}>
-                            <TableCell>
-                              {format(new Date(sale.saleDate), 'dd/MM/yy', { locale: ptBR })}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{lot?.internalCode || '-'}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {lot?.quantity || sale.currentQuantity} animais
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span>{buyer?.name || 'Desconhecido'}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {buyer?.city} - {buyer?.state}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{sale.currentQuantity}</TableCell>
-                            <TableCell>{formatWeight(sale.totalWeight)}</TableCell>
+                      filteredSales.map((sale) => (
+                        <TableRow key={sale.id}>
+                          <TableCell>
+                            {format(new Date(sale.saleDate), "dd/MM/yy", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {sale.pen?.penNumber || sale.purchase?.lotCode || "-"}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {sale.quantity} animais
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span>{sale.buyer?.name || "Desconhecido"}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {sale.buyer?.cpfCnpj || ""}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{sale.quantity}</TableCell>
+                            <TableCell>{formatWeight(sale.exitWeight)}</TableCell>
                             <TableCell>{formatCurrency(sale.pricePerArroba)}</TableCell>
                             <TableCell className="font-medium text-green-600">
-                              {formatCurrency(sale.grossRevenue)}
+                              {formatCurrency(sale.totalValue)}
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-col">
                                 <span className="font-medium text-blue-600">
-                                  {formatCurrency(sale.netProfit)}
+                                  {formatCurrency(sale.netValue)}
                                 </span>
                                 <span className="text-xs text-muted-foreground">
-                                  {sale.profitMargin.toFixed(1)}%
+                                  Rend: {sale.carcassYield?.toFixed(1)}%
                                 </span>
                               </div>
                             </TableCell>
                             <TableCell>{getPaymentTypeBadge(sale.paymentType)}</TableCell>
-                            <TableCell>{getStatusBadge(sale)}</TableCell>
+                            
                             <TableCell className="text-right">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -607,8 +474,7 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
                               </DropdownMenu>
                             </TableCell>
                           </TableRow>
-                        );
-                      })
+                        ))
                     )}
                   </TableBody>
                 </Table>
@@ -618,38 +484,34 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredSales.map((sale) => {
-              const buyer = partners.find(p => p.id === sale.slaughterhouseId);
-              const lot = cattlePurchases.find(p => p.id === sale.lotId);
-              
               return (
                 <Card key={sale.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="text-base">
-                          {lot?.internalCode || `Venda ${sale.id.slice(-6)}`}
+                          {sale.pen?.penNumber || sale.purchase?.lotCode || `Venda ${sale.id.slice(-6)}`}
                         </CardTitle>
                         <CardDescription>
                           {format(new Date(sale.saleDate), 'dd/MM/yyyy', { locale: ptBR })}
                         </CardDescription>
                       </div>
-                      {getStatusBadge(sale)}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center gap-2 text-sm">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
-                      <span>{buyer?.name || 'Desconhecido'}</span>
+                      <span>{sale.buyer?.name || 'Desconhecido'}</span>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="text-muted-foreground">Quantidade:</span>
-                        <p className="font-medium">{sale.currentQuantity} cabeças</p>
+                        <p className="font-medium">{sale.quantity} cabeças</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Peso Total:</span>
-                        <p className="font-medium">{formatWeight(sale.totalWeight)}</p>
+                        <span className="text-muted-foreground">Peso Saída:</span>
+                        <p className="font-medium">{formatWeight(sale.exitWeight)}</p>
                       </div>
                     </div>
                     
@@ -657,21 +519,21 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
                     
                     <div className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Valor Bruto:</span>
+                        <span className="text-muted-foreground">Valor Total:</span>
                         <span className="font-medium text-green-600">
-                          {formatCurrency(sale.grossRevenue)}
+                          {formatCurrency(sale.totalValue)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Lucro:</span>
+                        <span className="text-muted-foreground">Valor Líquido:</span>
                         <span className="font-medium text-blue-600">
-                          {formatCurrency(sale.netProfit)}
+                          {formatCurrency(sale.netValue)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Margem:</span>
+                        <span className="text-muted-foreground">Rendimento:</span>
                         <span className="font-medium">
-                          {sale.profitMargin.toFixed(1)}%
+                          {sale.carcassYield?.toFixed(1)}%
                         </span>
                       </div>
                     </div>
@@ -726,3 +588,5 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
     </TooltipProvider>
   );
 };
+
+export default SalesManagement;

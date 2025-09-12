@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { subDays, startOfMonth, endOfMonth, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatSafeDate, formatSafeDateTime, formatSafeShortDate, safeDifferenceInDays, toSafeDate, formatSafeCurrency, formatSafeNumber, formatSafeDecimal, toSafeNumber, safeDivision, safeMultiplication } from '@/utils/dateUtils';
+import { calculateAggregateMetrics, CattlePurchaseData } from '@/utils/cattlePurchaseCalculations';
 import { cn } from "@/lib/utils";
 import { useSettings } from '@/providers/SettingsProvider';
 
@@ -77,6 +78,7 @@ import {
   Wallet,
   Percent,
   AlertCircle,
+  ArrowRightLeft,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -113,6 +115,8 @@ import { useExpensesApi } from '@/hooks/api/useExpensesApi';
 import { useRevenuesApi } from '@/hooks/api/useRevenuesApi';
 import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
 import { usePartnersApi } from '@/hooks/api/usePartnersApi';
+import { useFinancialData } from '@/providers/FinancialDataProvider';
+import { useInterventionsApi } from '@/hooks/api/useInterventionsApi';
 import { useNavigate } from 'react-router-dom';
 import { usePDFGenerator } from '@/hooks/usePDFGenerator';
 import { toast } from 'sonner';
@@ -121,7 +125,6 @@ import { toast } from 'sonner';
 import { HerdValueChart } from './HerdValueChart';
 import { CostAllocationPieChart } from './CostAllocationPieChart';
 import { PurchaseByStateChart } from './PurchaseByStateChart';
-import { PurchaseByBrokerChart } from './PurchaseByBrokerChart';
 import { AdvancedSensitivityAnalysis } from './AdvancedSensitivityAnalysis';
 
 // Componente de integração
@@ -148,9 +151,13 @@ export function ShadcnDashboard() {
   const { expenses, loading: expensesLoading } = useExpensesApi();
   const { revenues, loading: revenuesLoading } = useRevenuesApi();
   const { payerAccounts, loading: accountsLoading } = usePayerAccountsApi();
+  const { getInterventionStatistics } = useInterventionsApi();
 
   // Hook para geração de PDF
   const { generatePDFFromElement, generateReportPDF } = usePDFGenerator();
+  
+  // Provider de dados financeiros integrados
+  const { metrics: financialMetrics, sales: saleRecords } = useFinancialData();
 
   // Estados para dados calculados
   const [totalAcquisitionCost, setTotalAcquisitionCost] = useState<number>(0);
@@ -159,8 +166,6 @@ export function ShadcnDashboard() {
   const [confirmedAnimals, setConfirmedAnimals] = useState<number>(0);
   const [pendingAnimals, setPendingAnimals] = useState<number>(0);
   const [averageDaysConfined, setAverageDaysConfined] = useState<number>(0);
-  const [averageWeightLoss, setAverageWeightLoss] = useState<number>(0);
-  const [mortalityRate, setMortalityRate] = useState<number>(0);
   
   // Estados para métricas financeiras integradas
   const [totalRevenues, setTotalRevenues] = useState<number>(0);
@@ -170,6 +175,9 @@ export function ShadcnDashboard() {
   const [pendingRevenues, setPendingRevenues] = useState<number>(0);
   const [pendingExpenses, setPendingExpenses] = useState<number>(0);
   const [profitMargin, setProfitMargin] = useState<number>(0);
+  
+  // Estados para estatísticas de intervenções
+  const [interventionStats, setInterventionStats] = useState<any>(null);
 
   // Função para gerar PDF do Dashboard
   const handleGenerateDashboardPDF = async () => {
@@ -284,94 +292,70 @@ export function ShadcnDashboard() {
     }
   };
 
-  // Calcular dados quando os dados mudarem
+  // Calcular dados quando os dados mudarem usando função centralizada
   useEffect(() => {
     if (cattlePurchases && cattlePurchases.length > 0) {
-      // Calcular animais confirmados vs pendentes
-      const animalsConfirmed = cattlePurchases
-        .filter(order => order.status !== 'PENDING')
-        .reduce((total, order) => total + (order.currentQuantity || order.initialQuantity || order.animalCount || 0), 0);
+      // Usar a função centralizada para calcular todas as métricas
+      const metrics = calculateAggregateMetrics(cattlePurchases as CattlePurchaseData[]);
       
+      // Definir valores calculados
+      setConfirmedAnimals(metrics.currentAnimals);
+      setTotalAcquisitionCost(metrics.totalCost);
+      setAveragePurchaseCostPerArroba(metrics.averagePricePerArroba);
+      
+      // Calcular animais pendentes separadamente (não incluídos nas métricas confirmadas)
       const animalsPending = cattlePurchases
         .filter(order => order.status === 'PENDING')
-        .reduce((total, order) => total + (order.currentQuantity || order.initialQuantity || order.animalCount || 0), 0);
-      
-      setConfirmedAnimals(animalsConfirmed || 0);
-      setPendingAnimals(animalsPending || 0);
-      
-      // Calcular custo total de aquisição
-      const acquisitionCost = cattlePurchases
-        .filter(order => order.status !== 'PENDING')
-        .reduce((total, order) => {
-          const carcassWeight = safeMultiplication(
-            toSafeNumber(order.totalWeight), 
-            safeDivision(toSafeNumber(order.carcassYield), 100)
-          );
-          const arrobas = safeDivision(carcassWeight, 15);
-          const animalValue = safeMultiplication(arrobas, toSafeNumber(order.pricePerArroba));
-          const orderTotal = animalValue + toSafeNumber(order.commission) + toSafeNumber(order.otherCosts);
-          return total + orderTotal;
-        }, 0);
-      
-      setTotalAcquisitionCost(acquisitionCost);
+        .reduce((total, order) => total + (order.currentQuantity || order.initialQuantity || order.quantity || 0), 0);
+      setPendingAnimals(animalsPending);
       
       // Calcular valor das ordens pendentes
-      const pendingValue = cattlePurchases
-        .filter(order => order.status === 'PENDING')
-        .reduce((total, order) => {
-          const carcassWeight = safeMultiplication(
-            toSafeNumber(order.totalWeight), 
-            safeDivision(toSafeNumber(order.carcassYield), 100)
-          );
-          const arrobas = safeDivision(carcassWeight, 15);
-          const animalValue = safeMultiplication(arrobas, toSafeNumber(order.pricePerArroba));
-          const orderTotal = animalValue + toSafeNumber(order.commission) + toSafeNumber(order.otherCosts);
-          return total + orderTotal;
-        }, 0);
-      
-      setPendingOrdersValue(pendingValue);
-      
-      // Calcular custo médio de compra por arroba
-      const totalArrobas = cattlePurchases
-        .filter(order => order.status !== 'PENDING')
-        .reduce((total, order) => {
-          const carcassWeight = safeMultiplication(
-            toSafeNumber(order.totalWeight), 
-            safeDivision(toSafeNumber(order.carcassYield), 100)
-          );
-          const arrobas = safeDivision(carcassWeight, 15);
-          return total + arrobas;
-        }, 0);
-      
-      const avgCostPerArroba = safeDivision(acquisitionCost, totalArrobas);
-      setAveragePurchaseCostPerArroba(avgCostPerArroba);
+      const pendingPurchases = cattlePurchases.filter(order => order.status === 'PENDING');
+      if (pendingPurchases.length > 0) {
+        const pendingMetrics = calculateAggregateMetrics(pendingPurchases as CattlePurchaseData[]);
+        setPendingOrdersValue(pendingMetrics.totalCost);
+      } else {
+        setPendingOrdersValue(0);
+      }
     }
 
-    // Calcular métricas dos lotes
+    // Calcular métricas dos lotes já são calculadas acima com calculateAggregateMetrics
+    // Apenas calcular média de dias desde a primeira compra
     if (cattlePurchases && cattlePurchases.length > 0) {
-      const activeLots = cattlePurchases.filter(lot => lot.status === 'ACTIVE');
+      // Calcular média de dias desde a primeira compra até hoje
+      const today = new Date();
+      let firstPurchaseDate: Date | null = null;
       
-      if (activeLots.length > 0) {
-        // Média de dias confinados
-        const today = new Date();
-        const totalDays = activeLots.reduce((total, lot) => {
-          const days = safeDifferenceInDays(today, lot.entryDate);
-          return total + days;
-        }, 0);
-        const avgDays = safeDivision(totalDays, activeLots.length);
-        setAverageDaysConfined(Math.round(avgDays));
-
-        // Taxa de mortalidade simulada
-        const deaths = activeLots.reduce((total, lot) => {
-          return total + toSafeNumber(lot.deaths, 0);
-        }, 0);
-        const totalAnimals = activeLots.reduce((total, lot) => total + toSafeNumber(lot.entryQuantity, 0), 0);
-        const mortalityPercentage = safeMultiplication(safeDivision(deaths, totalAnimals), 100);
-        setMortalityRate(mortalityPercentage);
-
-        // Média de quebra de peso simulada
-        setAverageWeightLoss(3.5); // Valor fixo para demo
+      // Encontrar a primeira data de compra válida
+      cattlePurchases.forEach(purchase => {
+        const purchaseDateStr = purchase.purchaseDate || purchase.createdAt;
+        if (purchaseDateStr) {
+          let purchaseDate: Date;
+          // Converter data no formato DD/MM/YYYY se necessário
+          if (purchaseDateStr.includes('/')) {
+            const [day, month, year] = purchaseDateStr.split('/');
+            purchaseDate = new Date(Number(year), Number(month) - 1, Number(day));
+          } else {
+            purchaseDate = new Date(purchaseDateStr);
+          }
+          
+          if (!isNaN(purchaseDate.getTime())) {
+            if (!firstPurchaseDate || purchaseDate < firstPurchaseDate) {
+              firstPurchaseDate = purchaseDate;
+            }
+          }
+        }
+      });
+      
+      // Calcular dias totais desde a primeira compra
+      let avgDays = 0;
+      if (firstPurchaseDate) {
+        const totalDays = Math.floor((today.getTime() - firstPurchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+        avgDays = Math.abs(totalDays);
       }
+      setAverageDaysConfined(avgDays);
+      
+      // Métricas calculadas pela função centralizada (mortalidade removida dos KPIs)
     }
   }, [cattlePurchases, cattlePurchases]);
 
@@ -434,11 +418,26 @@ export function ShadcnDashboard() {
     }
   }, [revenues, expenses, payerAccounts]);
 
+  // Carregar estatísticas de intervenções
+  useEffect(() => {
+    const loadInterventionStats = async () => {
+      try {
+        const stats = await getInterventionStatistics();
+        setInterventionStats(stats);
+        console.log('📊 Estatísticas de intervenções carregadas:', stats);
+      } catch (error) {
+        console.error('❌ Erro ao carregar estatísticas de intervenções:', error);
+      }
+    };
+    
+    loadInterventionStats();
+  }, []); // Carrega apenas uma vez quando o componente monta
+
 
   // Loading geral
   const isLoading = lotsLoading || ordersLoading || expensesLoading || revenuesLoading || accountsLoading || partnersLoading;
 
-  // Dados para o gráfico de Receita vs Custos - TODOS OS DADOS DO SISTEMA
+  // Dados para o gráfico de Receita vs Custos - INTEGRADO COM SISTEMA REAL
   const revenueData = useMemo(() => {
     const months = [];
     const today = new Date();
@@ -450,84 +449,110 @@ export function ShadcnDashboard() {
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
       
-      // Calcular receitas do mês - TODOS OS DADOS SEM FILTRO
-      const monthRevenues = revenues.filter(r => {
+      // Calcular receitas do mês (vendas + outras receitas)
+      const monthSalesRevenue = (saleRecords || []).filter(s => {
+        const date = toSafeDate(s.saleDate || s.createdAt);
+        return date >= monthStart && date <= monthEnd;
+      }).reduce((sum, s) => sum + toSafeNumber(s.totalValue || s.netValue, 0), 0);
+      
+      const monthOtherRevenues = (revenues || []).filter(r => {
         const date = toSafeDate(r.date || r.createdAt || r.dueDate);
         return date >= monthStart && date <= monthEnd;
-      }).reduce((sum, r) => sum + toSafeNumber(r.amount || r.value || r.purchaseValue || r.totalAmount, 0), 0);
+      }).reduce((sum, r) => sum + toSafeNumber(r.amount || r.totalAmount, 0), 0);
+      
+      const totalRevenues = monthSalesRevenue + monthOtherRevenues;
 
-      // Calcular despesas do mês - TODOS OS DADOS SEM FILTRO
-      const monthExpenses = expenses.filter(e => {
-        const date = toSafeDate(e.date || e.createdAt || e.dueDate);
-        return date >= monthStart && date <= monthEnd;
-      }).reduce((sum, e) => sum + toSafeNumber(e.amount || e.value || e.purchaseValue || e.totalAmount, 0), 0);
-
-      // Calcular compras do mês (ordens de compra) - TODOS OS DADOS SEM FILTRO
+      // Calcular custos do mês (compras + despesas)
       const monthPurchases = (cattlePurchases || []).filter(order => {
         const date = toSafeDate(order.createdAt || order.purchaseDate);
         return date >= monthStart && date <= monthEnd;
       }).reduce((sum, order) => sum + toSafeNumber(order.totalValue || order.purchaseValue, 0), 0);
+      
+      const monthExpenses = (expenses || []).filter(e => {
+        const date = toSafeDate(e.date || e.createdAt || e.dueDate);
+        return date >= monthStart && date <= monthEnd;
+      }).reduce((sum, e) => sum + toSafeNumber(e.amount || e.totalAmount, 0), 0);
 
-      const totalCosts = monthExpenses + monthPurchases;
-      const profit = monthRevenues - totalCosts;
+      const totalCosts = monthPurchases + monthExpenses;
+      const profit = totalRevenues - totalCosts;
 
       months.push({
         month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
-        receita: monthRevenues,
+        receita: totalRevenues,
         custo: totalCosts,
         lucro: profit,
         compras: monthPurchases,
-        despesas: monthExpenses
+        despesas: monthExpenses,
+        vendas: monthSalesRevenue,
+        outrasReceitas: monthOtherRevenues
       });
     }
     
     return months;
-  }, [revenues, expenses, cattlePurchases]);
+  }, [revenues, expenses, cattlePurchases, saleRecords]);
 
   // Atividades recentes combinadas
   const recentActivities = useMemo(() => {
     const activities = [];
 
     // Adicionar ordens de compra
-    (cattlePurchases || []).slice(0, 5).forEach(order => {
-      activities.push({
-        id: `order-${order.id}`,
-        type: 'purchase',
-        description: `Compra de ${order.currentQuantity || order.initialQuantity || order.animalCount || 0} animais`,
-        user: order.vendor?.name || 'Fornecedor',
-        time: formatSafeDateTime(order.createdAt),
-        amount: formatSafeCurrency(order.totalValue),
-        status: order.status,
-        date: toSafeDate(order.createdAt),
-      });
+    (cattlePurchases || []).forEach(order => {
+      const quantity = order.currentQuantity || order.initialQuantity || order.quantity || 0;
+      const value = order.purchaseValue || order.totalValue || 0;
+      const dateStr = order.purchaseDate || order.createdAt;
+      
+      if (dateStr) {
+        activities.push({
+          id: `order-${order.id}`,
+          type: 'purchase',
+          description: `Compra de ${quantity} animais - Lote ${order.lotCode || 'N/A'}`,
+          user: order.vendor?.name || order.vendorName || 'Direto',
+          time: formatSafeDateTime(dateStr),
+          amount: formatSafeCurrency(value),
+          status: order.status || 'CONFIRMED',
+          date: toSafeDate(dateStr),
+        });
+      }
     });
 
     // Adicionar despesas
-    expenses.slice(0, 3).forEach(expense => {
-      activities.push({
-        id: `expense-${expense.id}`,
-        type: 'expense',
-        description: expense.description,
-        user: 'Sistema',
-        time: formatSafeDateTime(expense.date || expense.dueDate),
-        amount: formatSafeCurrency(expense.value || expense.purchaseValue || expense.totalAmount || 0),
-        status: 'paid',
-        date: toSafeDate(expense.date || expense.dueDate),
-      });
+    (expenses || []).forEach(expense => {
+      const value = expense.totalAmount || expense.amount || expense.value || 0;
+      const dateStr = expense.date || expense.dueDate || expense.createdAt;
+      const description = expense.description || expense.category || 'Despesa';
+      
+      if (dateStr && value > 0) {
+        activities.push({
+          id: `expense-${expense.id}`,
+          type: 'expense',
+          description: description,
+          user: expense.supplierName || expense.supplier?.name || 'Sistema',
+          time: formatSafeDateTime(dateStr),
+          amount: formatSafeCurrency(value),
+          status: expense.status || 'paid',
+          date: toSafeDate(dateStr),
+        });
+      }
     });
 
     // Adicionar receitas
-    revenues.slice(0, 3).forEach(revenue => {
-      activities.push({
-        id: `revenue-${revenue.id}`,
-        type: 'sale',
-        description: revenue.description,
-        user: 'Sistema',
-        time: formatSafeDateTime(revenue.date || revenue.receivedDate),
-        amount: formatSafeCurrency(revenue.value || revenue.totalAmount || 0),
-        status: 'received',
-        date: toSafeDate(revenue.date || revenue.receivedDate),
-      });
+    (revenues || []).forEach(revenue => {
+      const value = revenue.amount || revenue.value || revenue.totalAmount || 0;
+      const dateStr = revenue.date || revenue.receivedDate || revenue.createdAt;
+      const description = revenue.description || 'Receita';
+      
+      if (dateStr && value > 0) {
+        activities.push({
+          id: `revenue-${revenue.id}`,
+          type: 'sale',
+          description: description,
+          user: revenue.clientName || revenue.client?.name || 'Cliente',
+          time: formatSafeDateTime(dateStr),
+          amount: formatSafeCurrency(value),
+          status: revenue.status || 'received',
+          date: toSafeDate(dateStr),
+        });
+      }
     });
 
     // Ordenar por data e filtrar apenas por tipo (SEM FILTRO DE DATA)
@@ -552,8 +577,6 @@ export function ShadcnDashboard() {
         totalAcquisitionCost,
         averagePurchaseCostPerArroba,
         averageDaysConfined,
-        mortalityRate,
-        averageWeightLoss,
       },
       recentActivities,
       period: 'Todos os dados do sistema',
@@ -691,57 +714,9 @@ export function ShadcnDashboard() {
             </CardContent>
           </Card>
 
-          {/* KPI 3: Quebra de Peso */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="kpi-label">
-                  Quebra Peso
-                </CardTitle>
-                <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-950 flex items-center justify-center">
-                  <Weight className="h-4 w-4 text-orange-600" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                <div className="flex items-baseline gap-1">
-                  <p className="kpi-value">{formatSafeDecimal(averageWeightLoss, 1)}</p>
-                  <span className="text-sm text-muted-foreground">%</span>
-                </div>
-                <p className="text-xs text-muted-foreground">média</p>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* KPI 4: Taxa de Mortalidade */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="kpi-label">
-                  Mortalidade
-                </CardTitle>
-                <div className="h-8 w-8 rounded-lg bg-red-100 dark:bg-red-950 flex items-center justify-center">
-                  <Heart className="h-4 w-4 text-red-600" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                <div className="flex items-baseline gap-1">
-                  <p className="kpi-value">{formatSafeDecimal(mortalityRate, 1)}</p>
-                  <span className="text-sm text-muted-foreground">%</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Badge variant={mortalityRate < 2 ? "default" : "destructive"} className="h-5 px-1">
-                    {mortalityRate < 2 ? "Baixa" : "Alta"}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* KPI 5: Custo Total */}
+          {/* KPI 4: Custo Total */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -756,13 +731,13 @@ export function ShadcnDashboard() {
             <CardContent>
               <div className="space-y-1">
                 <p className="kpi-value">
-                  R$ {formatSafeDecimal(safeDivision(totalAcquisitionCost, 1000), 0)}k
+                  {formatSafeCurrency(totalAcquisitionCost)}
                 </p>
                 {pendingOrdersValue > 0 && (
                   <div className="flex items-center gap-1 text-xs">
                     <TrendingUp className="h-3 w-3 text-amber-600" />
                     <span className="text-amber-600">
-                      +R$ {formatSafeDecimal(safeDivision(pendingOrdersValue, 1000), 0)}k
+                      +{formatSafeCurrency(pendingOrdersValue)}
                     </span>
                   </div>
                 )}
@@ -770,7 +745,7 @@ export function ShadcnDashboard() {
             </CardContent>
           </Card>
 
-          {/* KPI 6: Média R$/@ */}
+          {/* KPI 5: Média R$/@ */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -785,7 +760,7 @@ export function ShadcnDashboard() {
             <CardContent>
               <div className="space-y-1">
                 <p className="kpi-value">
-                  R$ {formatSafeDecimal(averagePurchaseCostPerArroba, 0)}
+                  R$ {formatSafeDecimal(averagePurchaseCostPerArroba, 2)}
                 </p>
                 <p className="text-xs text-muted-foreground">por arroba</p>
               </div>
@@ -796,8 +771,10 @@ export function ShadcnDashboard() {
 
         {/* Tabs com gráficos e atividades */}
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="herd-value">Valor do Rebanho</TabsTrigger>
+            <TabsTrigger value="sensitivity">Sensibilidade</TabsTrigger>
             <TabsTrigger value="analytics">Análise</TabsTrigger>
             <TabsTrigger value="activities">Atividades</TabsTrigger>
           </TabsList>
@@ -842,7 +819,54 @@ export function ShadcnDashboard() {
                         tick={{ fill: 'hsl(var(--muted-foreground))' }}
                         tickFormatter={(value) => `${formatSafeDecimal(safeDivision(value, 1000), 0)}k`}
                       />
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartTooltip 
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-background border rounded-lg shadow-lg p-3 min-w-[200px]">
+                                <p className="font-semibold mb-2">{label}</p>
+                                <div className="space-y-1 text-sm">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-green-600">Receita Total:</span>
+                                    <span className="font-medium">{formatSafeCurrency(data.receita)}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-xs text-muted-foreground ml-2">
+                                    <span>• Vendas:</span>
+                                    <span>{formatSafeCurrency(data.vendas)}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-xs text-muted-foreground ml-2">
+                                    <span>• Outras Receitas:</span>
+                                    <span>{formatSafeCurrency(data.outrasReceitas)}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-red-600">Custo Total:</span>
+                                    <span className="font-medium">{formatSafeCurrency(data.custo)}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-xs text-muted-foreground ml-2">
+                                    <span>• Compras:</span>
+                                    <span>{formatSafeCurrency(data.compras)}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-xs text-muted-foreground ml-2">
+                                    <span>• Despesas:</span>
+                                    <span>{formatSafeCurrency(data.despesas)}</span>
+                                  </div>
+                                  <Separator className="my-2" />
+                                  <div className="flex justify-between items-center">
+                                    <span className={`font-semibold ${data.lucro >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                                      {data.lucro >= 0 ? 'Lucro:' : 'Prejuízo:'}
+                                    </span>
+                                    <span className={`font-bold ${data.lucro >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                                      {formatSafeCurrency(Math.abs(data.lucro))}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
                       <ChartLegend content={<ChartLegendContent />} />
                       <Area
                         type="monotone"
@@ -872,16 +896,155 @@ export function ShadcnDashboard() {
                 </CardContent>
                 <CardFooter className="flex-col items-start gap-2 text-sm">
                   <div className="flex gap-2 font-medium leading-none">
-                    Tendência de alta de 12.5% este mês
-                    <TrendingUp className="h-4 w-4 icon-success icon-transition" />
+                    {revenueData.length > 1 && revenueData[revenueData.length - 1].lucro > revenueData[revenueData.length - 2].lucro ? (
+                      <>
+                        Tendência de crescimento no lucro
+                        <TrendingUp className="h-4 w-4 text-green-600" />
+                      </>
+                    ) : (
+                      <>
+                        Monitorar performance financeira
+                        <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                      </>
+                    )}
                   </div>
                   <div className="leading-none text-muted-foreground">
-                    Mostrando todos os dados do sistema - últimos 6 meses
+                    Dados integrados: vendas, compras, receitas e despesas reais dos últimos 6 meses
                   </div>
                 </CardFooter>
               </Card>
 
-              {/* Espaço removido - gráfico movido para aba Análise */}
+              {/* Gráfico de Pizza - Atividades Operacionais */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Atividades Operacionais</CardTitle>
+                      <CardDescription>
+                        Distribuição das intervenções e atividades do período
+                      </CardDescription>
+                    </div>
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ChartContainer config={{
+                    protocolos: {
+                      label: "Protocolos Sanitários",
+                      color: "hsl(142, 76%, 36%)",
+                    },
+                    movimentacoes: {
+                      label: "Movimentações",
+                      color: "hsl(221, 83%, 53%)",
+                    },
+                    pesagens: {
+                      label: "Pesagens",
+                      color: "hsl(48, 96%, 53%)",
+                    },
+                    mortalidades: {
+                      label: "Mortalidades",
+                      color: "hsl(0, 84%, 60%)",
+                    },
+                  }} className="h-[300px] w-full">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          {
+                            name: "Protocolos Sanitários",
+                            value: interventionStats?.healthInterventions || 0,
+                            fill: "hsl(142, 76%, 36%)"
+                          },
+                          {
+                            name: "Movimentações",
+                            value: interventionStats?.movements || 0,
+                            fill: "hsl(221, 83%, 53%)"
+                          },
+                          {
+                            name: "Pesagens",
+                            value: interventionStats?.weightReadings || 0,
+                            fill: "hsl(48, 96%, 53%)"
+                          },
+                          {
+                            name: "Mortalidades",
+                            value: interventionStats?.totalMortalities || 0,
+                            fill: "hsl(0, 84%, 60%)"
+                          }
+                        ].filter(item => item.value > 0)}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={120}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {[
+                          { name: "Protocolos Sanitários", value: interventionStats?.healthInterventions || 0, fill: "hsl(142, 76%, 36%)" },
+                          { name: "Movimentações", value: interventionStats?.movements || 0, fill: "hsl(221, 83%, 53%)" },
+                          { name: "Pesagens", value: interventionStats?.weightReadings || 0, fill: "hsl(48, 96%, 53%)" },
+                          { name: "Mortalidades", value: interventionStats?.totalMortalities || 0, fill: "hsl(0, 84%, 60%)" }
+                        ].filter(item => item.value > 0).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <ChartTooltip 
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0];
+                            const total = (interventionStats?.healthInterventions || 0) + 
+                                        (interventionStats?.movements || 0) + 
+                                        (interventionStats?.weightReadings || 0) + 
+                                        (interventionStats?.totalMortalities || 0);
+                            const percentage = total > 0 ? ((data.value as number) / total * 100).toFixed(1) : '0';
+                            
+                            return (
+                              <div className="bg-background border rounded-lg shadow-lg p-3">
+                                <p className="font-semibold">{data.name}</p>
+                                <div className="space-y-1 text-sm">
+                                  <div className="flex justify-between items-center gap-4">
+                                    <span>Quantidade:</span>
+                                    <span className="font-medium">{data.value}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center gap-4">
+                                    <span>Percentual:</span>
+                                    <span className="font-medium">{percentage}%</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Legend 
+                        verticalAlign="bottom" 
+                        height={36}
+                        formatter={(value, entry) => (
+                          <span style={{ color: entry.color }}>{value}</span>
+                        )}
+                      />
+                    </PieChart>
+                  </ChartContainer>
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-4 w-full text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Taxa de Mortalidade:</span>
+                      <span className={`font-medium ${(interventionStats?.mortalityRate || 0) > 0.02 ? 'text-destructive' : 'text-success'}`}>
+                        {((interventionStats?.mortalityRate || 0) * 100).toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Peso Médio:</span>
+                      <span className="font-medium">
+                        {formatSafeDecimal(interventionStats?.averageWeight || 0, 1)} kg
+                      </span>
+                    </div>
+                  </div>
+                  <div className="leading-none text-muted-foreground">
+                    Dados consolidados das atividades operacionais do período
+                  </div>
+                </CardFooter>
+              </Card>
             </div>
 
             {/* Segunda linha de gráficos */}
@@ -891,11 +1054,13 @@ export function ShadcnDashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="analytics" className="space-y-4">
-            {/* Análise de Valor do Rebanho - Destaque principal */}
+          {/* Aba separada para Valor do Rebanho */}
+          <TabsContent value="herd-value" className="space-y-4">
             <HerdValueChart marketPrice={marketPrice} setMarketPrice={setMarketPrice} />
-            
-            {/* Análise de Sensibilidade Avançada - Nova ferramenta */}
+          </TabsContent>
+
+          {/* Aba separada para Análise de Sensibilidade */}
+          <TabsContent value="sensitivity" className="space-y-4">
             <AdvancedSensitivityAnalysis 
               defaultValues={{
                 purchasePrice: 280,
@@ -907,54 +1072,24 @@ export function ShadcnDashboard() {
                 productionCost: 200
               }}
             />
-            
-            {/* Segunda linha com gráficos complementares */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <PurchaseByBrokerChart />
-              
-              {/* Card de métricas adicionais */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Indicadores de Performance</CardTitle>
-                  <CardDescription>
-                    Métricas de eficiência operacional
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-caption font-medium">Taxa de Ocupação</span>
-                      <span className="text-sm text-muted-foreground">85%</span>
-                    </div>
-                    <Progress value={85} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-caption font-medium">Eficiência de Conversão</span>
-                      <span className="text-sm text-muted-foreground">6.2:1</span>
-                    </div>
-                    <Progress value={72} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-caption font-medium">GMD Médio</span>
-                      <span className="text-sm text-muted-foreground">1.4 kg/dia</span>
-                    </div>
-                    <Progress value={90} className="h-2" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Ciclo Médio</span>
-                      <span className="text-sm text-muted-foreground">96 dias</span>
-                    </div>
-                    <Progress value={65} className="h-2" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          </TabsContent>
+
+          {/* Aba de Análise agora vazia - pode adicionar outros componentes futuramente */}
+          <TabsContent value="analytics" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Análises Adicionais</CardTitle>
+                <CardDescription>
+                  Esta seção estará disponível em breve com novas análises e relatórios.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex items-center justify-center h-64">
+                <div className="text-center text-muted-foreground">
+                  <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Novas análises em desenvolvimento</p>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="activities" className="space-y-4">
@@ -1062,3 +1197,5 @@ export function ShadcnDashboard() {
     </TooltipProvider>
   );
 }
+
+export default ShadcnDashboard;

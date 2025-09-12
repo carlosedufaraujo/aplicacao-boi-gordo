@@ -217,10 +217,13 @@ export const useAnalyticsApi = () => {
     try {
       const params = startDate && endDate ? { startDate, endDate } : {};
       const response = await api.get('/analytics/mortality/patterns', { params });
-      return response.data.data as {
+      
+      const result = response.data as {
         phasePatterns: MortalityPattern[];
         topCauses: any[];
       };
+      
+      return result;
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erro ao buscar padrões de mortalidade');
       throw err;

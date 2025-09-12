@@ -349,3 +349,4 @@ export function Login02({ className }: Login02Props) {
     </div>
   );
 }
+export default Login02;
