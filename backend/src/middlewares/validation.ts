@@ -62,7 +62,7 @@ export const commonSchemas = {
   // Paginação
   pagination: Joi.object({
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(20),
+    limit: Joi.number().integer().min(1).max(10000).default(20),
     sortBy: Joi.string(),
     sortOrder: Joi.string().valid('asc', 'desc').default('desc'),
   }),

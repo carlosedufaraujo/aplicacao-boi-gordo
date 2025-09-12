@@ -37,7 +37,7 @@ export class RevenueController {
 
     const pagination = {
       page: page ? parseInt(page as string) : 1,
-      limit: limit ? parseInt(limit as string) : 10,
+      limit: limit ? parseInt(limit as string) : 1000, // Aumentado para análises
       sortBy: sortBy as string || 'createdAt',
       sortOrder: sortOrder as 'asc' | 'desc' || 'desc',
     };

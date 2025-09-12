@@ -4,7 +4,81 @@
 
 // Mapeamento de categorias técnicas para nomes amigáveis em português
 export const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
-  // Mapeamentos automáticos principais (apenas estes três por enquanto)
+  // === CATEGORIAS PADRÃO DO SISTEMA ===
+  // Compras e Vendas de Gado
+  'cat-exp-01': 'Compra de Gado',
+  'cat-exp-02': 'Frete de Gado',
+  'cat-exp-03': 'Comissão de Compra',
+  
+  // Alimentação e Nutrição
+  'cat-exp-04': 'Ração',
+  'cat-exp-05': 'Suplementos',
+  'cat-exp-06': 'Sal Mineral',
+  'cat-exp-07': 'Silagem',
+  
+  // Saúde Animal
+  'cat-exp-08': 'Vacinas',
+  'cat-exp-09': 'Medicamentos',
+  'cat-exp-10': 'Veterinário',
+  'cat-exp-11': 'Exames Laboratoriais',
+  
+  // Infraestrutura
+  'cat-exp-12': 'Manutenção de Currais',
+  'cat-exp-13': 'Manutenção de Cercas',
+  'cat-exp-14': 'Construções',
+  'cat-exp-15': 'Equipamentos',
+  
+  // Operacional
+  'cat-exp-16': 'Combustível',
+  'cat-exp-17': 'Energia Elétrica',
+  'cat-exp-18': 'Água',
+  'cat-exp-19': 'Telefone/Internet',
+  
+  // Pessoal
+  'cat-exp-20': 'Salários',
+  'cat-exp-21': 'Encargos Trabalhistas',
+  'cat-exp-22': 'Benefícios',
+  'cat-exp-23': 'Treinamento',
+  
+  // Administrativo
+  'cat-exp-24': 'Material de Escritório',
+  'cat-exp-25': 'Contabilidade',
+  'cat-exp-26': 'Impostos e Taxas',
+  'cat-exp-27': 'Seguros',
+  
+  // Outros Gastos
+  'cat-exp-28': 'Despesas Bancárias',
+  'cat-exp-29': 'Juros e Multas',
+  'cat-exp-30': 'Outras Despesas',
+  
+  // === RECEITAS ===
+  // Vendas
+  'cat-inc-01': 'Venda de Gado Gordo',
+  'cat-inc-02': 'Venda de Bezerros',
+  'cat-inc-03': 'Venda de Matrizes',
+  'cat-inc-04': 'Venda de Reprodutores',
+  
+  // Serviços
+  'cat-inc-05': 'Arrendamento de Pasto',
+  'cat-inc-06': 'Aluguel de Curral',
+  'cat-inc-07': 'Prestação de Serviços',
+  
+  // Subprodutos
+  'cat-inc-08': 'Venda de Esterco',
+  'cat-inc-09': 'Venda de Couro',
+  
+  // Financeiro
+  'cat-inc-10': 'Rendimentos Financeiros',
+  'cat-inc-11': 'Juros Recebidos',
+  'cat-inc-12': 'Dividendos',
+  
+  // Outros
+  'cat-inc-13': 'Indenizações',
+  'cat-inc-14': 'Prêmios e Bonificações',
+  'cat-inc-15': 'Outras Receitas',
+
+  // === CATEGORIAS OPERACIONAIS (para compatibilidade com sistema de despesas) ===
+  // Mapeamentos automáticos principais 
   'animal_purchase': 'Aquisição de Animais',
   'freight': 'Frete',
   'commission': 'Comissão',
@@ -16,17 +90,43 @@ export const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
   'deaths': 'Mortalidade',
   'weight_loss': 'Perda de Peso',
   
-  // Categorias administrativas
-  'general_admin': 'Administrativo Geral',
-  'marketing': 'Marketing',
-  'personnel': 'Pessoal',
-  'admin_other': 'Outros Administrativos',
-  
   // Categorias financeiras
   'interest': 'Juros',
   'fees': 'Taxas',
   'financial_management': 'Gestão Financeira',
   'financial_other': 'Outros Financeiros',
+
+  // === MAPEAMENTO NUMÉRICO (sistema de despesas) ===
+  '1': 'Compra de Gado',
+  '2': 'Frete de Gado',
+  '3': 'Comissão de Compra',
+  '4': 'Ração',
+  '5': 'Suplementos',
+  '6': 'Sal Mineral',
+  '7': 'Silagem',
+  '8': 'Vacinas',
+  '9': 'Medicamentos',
+  '10': 'Veterinário',
+  '11': 'Exames Laboratoriais',
+  '12': 'Manutenção de Currais',
+  '13': 'Manutenção de Cercas',
+  '14': 'Construções',
+  '15': 'Equipamentos',
+  '16': 'Combustível',
+  '17': 'Energia Elétrica',
+  '18': 'Água',
+  '19': 'Telefone/Internet',
+  '20': 'Salários',
+  '21': 'Encargos Trabalhistas',
+  '22': 'Benefícios',
+  '23': 'Treinamento',
+  '24': 'Material de Escritório',
+  '25': 'Contabilidade',
+  '26': 'Impostos e Taxas',
+  '27': 'Seguros',
+  '28': 'Despesas Bancárias',
+  '29': 'Juros e Multas',
+  '30': 'Outras Despesas',
   
   // Categorias de receita
   'cattle_sales': 'Venda de Gado',
@@ -103,7 +203,7 @@ export function normalizeCategory(category: string | undefined | null): string {
 /**
  * Normaliza uma categoria técnica para nome de exibição
  */
-export function getCategoryDisplayName(technicalName: string | undefined | null): string {
+export function getCategoryDisplayName(technicalName: string | undefined | null, categories?: Array<{id: string, name: string}>): string {
   if (!technicalName) return 'Sem Categoria';
   
   // Se já for um nome de exibição, retorna ele mesmo
@@ -111,10 +211,20 @@ export function getCategoryDisplayName(technicalName: string | undefined | null)
     return technicalName;
   }
   
-  // Normaliza a categoria primeiro
-  const normalizedCategory = normalizeCategory(technicalName);
+  // Se tiver uma lista de categorias disponível, busca nela primeiro (para categorias customizadas)
+  if (categories && Array.isArray(categories)) {
+    const foundCategory = categories.find(cat => cat.id === technicalName);
+    if (foundCategory) {
+      return foundCategory.name;
+    }
+  }
   
-  // Tenta encontrar no mapeamento
+  // Primeiro verifica se é um ID padrão direto (cat-exp-01, cat-inc-01, etc.)
+  const directMapping = CATEGORY_DISPLAY_NAMES[technicalName];
+  if (directMapping) return directMapping;
+  
+  // Depois tenta normalizar e buscar
+  const normalizedCategory = normalizeCategory(technicalName);
   const displayName = CATEGORY_DISPLAY_NAMES[normalizedCategory];
   if (displayName) return displayName;
   

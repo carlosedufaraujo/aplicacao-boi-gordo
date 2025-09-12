@@ -23,7 +23,7 @@ export class SaleRecordController {
 
     const pagination = {
       page: page ? parseInt(page as string) : 1,
-      limit: limit ? parseInt(limit as string) : 10,
+      limit: limit ? parseInt(limit as string) : 100, // Aumentado para análises
       sortBy: sortBy as string || 'createdAt',
       sortOrder: sortOrder as 'asc' | 'desc' || 'desc',
     };
@@ -103,13 +103,13 @@ export class SaleRecordController {
   }
 
   /**
-   * GET /sale-records/cattle-lot/:purchaseId
+   * GET /sale-records/cattle-lot/:cattleLotId
    * Lista vendas por lote
    */
   async byCattleLot(req: Request, res: Response): Promise<void> {
-    const { purchaseId } = req.params;
+    const { cattleLotId } = req.params;
     
-    const records = await saleRecordService.findByPurchase(purchaseId);
+    const records = await saleRecordService.findByPurchase(cattleLotId);
 
     res.json({
       status: 'success',
@@ -160,12 +160,21 @@ export class SaleRecordController {
    * Cria um novo registro de venda
    */
   async create(req: Request, res: Response): Promise<void> {
-    const saleRecord = await saleRecordService.create(req.body);
-
-    res.status(201).json({
-      status: 'success',
-      data: saleRecord,
-    });
+    console.log('🔍 DEBUG CONTROLLER - Recebendo requisição POST /sale-records');
+    console.log('📥 DEBUG CONTROLLER - Body recebido:', JSON.stringify(req.body, null, 2));
+    
+    try {
+      const saleRecord = await saleRecordService.create(req.body);
+      console.log('✅ DEBUG CONTROLLER - Venda criada:', saleRecord.id);
+      
+      res.status(201).json({
+        status: 'success',
+        data: saleRecord,
+      });
+    } catch (error: any) {
+      console.error('❌ DEBUG CONTROLLER - Erro ao criar venda:', error);
+      throw error;
+    }
   }
 
   /**

@@ -91,14 +91,10 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
     'fattening_other': 'fattening',
     
     // Administrativo
-    'general_admin': 'administrative',
-    'marketing': 'administrative',
     'accounting': 'administrative',
-    'personnel': 'administrative',
     'office': 'administrative',
     'services': 'administrative',
     'technology': 'administrative',
-    'admin_other': 'administrative',
     
     // Financeiro
     'taxes': 'financial',
@@ -128,14 +124,10 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
         { value: 'fattening_other', label: 'Outros Custos de Engorda' }
       ],
       administrative: [
-        { value: 'general_admin', label: 'Administrativo Geral' },
-        { value: 'marketing', label: 'Marketing' },
         { value: 'accounting', label: 'Contabilidade' },
-        { value: 'personnel', label: 'Pessoal' },
         { value: 'office', label: 'Escritório' },
         { value: 'services', label: 'Prestação de Serviço' },
-        { value: 'technology', label: 'Tecnologia' },
-        { value: 'admin_other', label: 'Outros Custos Administrativos' }
+        { value: 'technology', label: 'Tecnologia' }
       ],
       financial: [
         { value: 'taxes', label: 'Impostos' },
@@ -481,7 +473,7 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
                   name="categoryType" 
                   className="sr-only" 
                   checked={getCostCenterType() === 'administrative'}
-                  onChange={() => setValue('category', 'general_admin')}
+                  onChange={() => setValue('category', 'accounting')}
                 />
                 <div className="text-center">
                   <div className="w-8 h-8 bg-info-100 rounded-full mx-auto mb-2 flex items-center justify-center">
@@ -542,14 +534,10 @@ export const ExpenseAllocationForm: React.FC<ExpenseAllocationFormProps> = ({
                   
                   {getCostCenterType() === 'administrative' && (
                     <>
-                      <option value="general_admin">Administrativo Geral</option>
-                      <option value="marketing">Marketing</option>
                       <option value="accounting">Contabilidade</option>
-                      <option value="personnel">Pessoal</option>
                       <option value="office">Escritório</option>
                       <option value="services">Prestação de Serviço</option>
                       <option value="technology">Tecnologia</option>
-                      <option value="admin_other">Outros Custos Administrativos</option>
                     </>
                   )}
                   

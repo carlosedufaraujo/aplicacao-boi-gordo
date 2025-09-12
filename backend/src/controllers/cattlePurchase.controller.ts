@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { cattlePurchaseService } from '../services/cattlePurchase.service';
 import { cattlePurchaseIntegration } from '../services/cattlePurchaseIntegration.service';
+import cattlePurchaseCashFlowService from '../services/cattlePurchaseCashFlow.service';
 import { AppError } from '../utils/AppError';
 import catchAsync from '../utils/catchAsync';
 
@@ -14,6 +15,23 @@ class CattlePurchaseController {
     };
     
     const purchase = await cattlePurchaseService.create(purchaseData);
+    
+    // Criar movimentações no CashFlow automaticamente
+    try {
+      await cattlePurchaseCashFlowService.createPurchaseCashFlows(purchase.id);
+      console.log('✅ Movimentações do CashFlow criadas para o lote', purchase.lotCode);
+    } catch (error) {
+      console.error('⚠️ Erro ao criar movimentações no CashFlow:', error);
+      // Não falha a criação da compra se houver erro no CashFlow
+    }
+    
+    // Criar despesas no sistema antigo (mantém compatibilidade)
+    try {
+      await cattlePurchaseIntegration.createPurchaseExpenses(purchase.id);
+      console.log('✅ Despesas criadas para o lote', purchase.lotCode);
+    } catch (error) {
+      console.error('⚠️ Erro ao criar despesas:', error);
+    }
     
     res.status(201).json({
       status: 'success',
@@ -38,7 +56,7 @@ class CattlePurchaseController {
     
     const pagination = {
       page: page ? parseInt(page as string) : 1,
-      limit: limit ? parseInt(limit as string) : 10
+      limit: limit ? parseInt(limit as string) : 100 // Aumentado para análises
     };
     
     const result = await cattlePurchaseService.findAll(filters, pagination);
@@ -71,6 +89,22 @@ class CattlePurchaseController {
     const { id } = req.params;
     
     const purchase = await cattlePurchaseService.update(id, req.body);
+    
+    // Atualizar movimentações no CashFlow
+    try {
+      await cattlePurchaseCashFlowService.updatePurchaseCashFlows(purchase.id);
+      console.log('✅ Movimentações do CashFlow atualizadas para o lote', purchase.lotCode);
+    } catch (error) {
+      console.error('⚠️ Erro ao atualizar movimentações no CashFlow:', error);
+    }
+    
+    // Atualizar despesas no sistema antigo (mantém compatibilidade)
+    try {
+      await cattlePurchaseIntegration.updatePurchaseExpenses(purchase.id);
+      console.log('✅ Despesas atualizadas para o lote', purchase.lotCode);
+    } catch (error) {
+      console.error('⚠️ Erro ao atualizar despesas:', error);
+    }
     
     res.json({
       status: 'success',

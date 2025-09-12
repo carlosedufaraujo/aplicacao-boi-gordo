@@ -33,12 +33,12 @@ export const SimpleIntegratedAnalysis: React.FC = () => {
         'Content-Type': 'application/json'
       };
 
-      // Buscar despesas
-      const expensesResponse = await fetch('http://localhost:3002/api/v1/expenses', { headers });
+      // Buscar despesas (todos os registros para análise)
+      const expensesResponse = await fetch('http://localhost:3001/api/v1/expenses?limit=10000', { headers });
       const expensesData = await expensesResponse.json();
       
-      // Buscar receitas
-      const revenuesResponse = await fetch('http://localhost:3002/api/v1/revenues', { headers });
+      // Buscar receitas (todos os registros para análise)
+      const revenuesResponse = await fetch('http://localhost:3001/api/v1/revenues?limit=10000', { headers });
       const revenuesData = await revenuesResponse.json();
 
       // Processar dados
