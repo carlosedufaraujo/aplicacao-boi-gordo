@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { apiClient } from '@/services/api/apiClient';
+import { api as apiClient } from '@/services/api';
 import { toast } from 'sonner';
 
 // Tipos para as intervenções
@@ -209,6 +209,8 @@ export function useInterventionsApi() {
       setLoading(true);
       setError(null);
       
+      console.log('🔍 [useInterventionsApi] Buscando histórico com filtros:', filters);
+      
       const params = new URLSearchParams();
       
       if (filters.cattlePurchaseId) params.append('cattlePurchaseId', filters.cattlePurchaseId);
@@ -220,6 +222,7 @@ export function useInterventionsApi() {
           ? filters.startDate.toISOString()
           : filters.startDate;
         params.append('startDate', startDate);
+        console.log('📅 [useInterventionsApi] Data início:', startDate);
       }
       
       if (filters.endDate) {
@@ -227,20 +230,32 @@ export function useInterventionsApi() {
           ? filters.endDate.toISOString()
           : filters.endDate;
         params.append('endDate', endDate);
+        console.log('📅 [useInterventionsApi] Data fim:', endDate);
       }
       
       const queryString = params.toString();
       const url = `/interventions/history${queryString ? `?${queryString}` : ''}`;
       
+      console.log('🌐 [useInterventionsApi] URL da requisição:', url);
+      
       const response = await apiClient.get(url);
       
-      if (response?.data) {
+      console.log('📊 [useInterventionsApi] Resposta do servidor:', response?.data);
+      
+      if (response?.data?.data) {
+        console.log('✅ [useInterventionsApi] Retornando dados:', response.data.data.length, 'intervenções');
+        return response.data.data; // Retornar apenas o array de intervenções
+      }
+      
+      // Fallback para estruturas diferentes
+      if (Array.isArray(response?.data)) {
+        console.log('✅ [useInterventionsApi] Fallback - Retornando array:', response.data.length, 'intervenções');
         return response.data;
       }
       
       throw new Error('Resposta inválida do servidor');
     } catch (err: any) {
-      console.error('❌ Erro ao buscar histórico de intervenções:', err);
+      console.error('❌ [useInterventionsApi] Erro ao buscar histórico de intervenções:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao buscar histórico';
       setError(errorMessage);
       toast.error(errorMessage);

@@ -82,6 +82,10 @@ class InterventionController {
   getInterventionHistory = catchAsync(async (req: Request, res: Response) => {
     const { cattlePurchaseId, penId, startDate, endDate, type } = req.query;
 
+    console.log('🔍 [InterventionController] Recebendo requisição para histórico:', {
+      cattlePurchaseId, penId, startDate, endDate, type
+    });
+
     const filters = {
       cattlePurchaseId: cattlePurchaseId as string,
       penId: penId as string,
@@ -90,7 +94,14 @@ class InterventionController {
       type: type as 'health' | 'mortality' | 'movement' | 'weight' | undefined
     };
 
+    console.log('📋 [InterventionController] Filtros processados:', filters);
+
     const history = await interventionService.getInterventionHistory(filters);
+
+    console.log('📊 [InterventionController] Resultado do serviço:', {
+      count: history.length,
+      sample: history.slice(0, 2)
+    });
 
     res.json({
       status: 'success',

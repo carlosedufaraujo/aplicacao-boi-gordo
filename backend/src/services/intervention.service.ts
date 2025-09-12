@@ -193,29 +193,43 @@ export class InterventionService {
         // Removendo include pois pode estar causando problemas
       });
 
-      // Criar lançamento de despesa no Centro Financeiro
+      // TAMBÉM criar registro na tabela MortalityRecord para aparecer no histórico de intervenções
+      const mortalityRecord = await prisma.mortalityRecord.create({
+        data: {
+          cattlePurchaseId: selectedPurchaseId || '',
+          penId: data.penId,
+          quantity: data.quantity,
+          deathDate: data.deathDate,
+          cause: data.cause || 'unknown',
+          specificCause: data.specificCause || null,
+          notes: data.notes || null,
+          estimatedLoss: totalLoss,
+          necropsy: data.necropsy || false,
+          necropsyReport: data.necropsyReport || null,
+          veterinarianReport: data.veterinarianReport || null
+        }
+      });
+
+      // Criar lançamento de despesa no Centro Financeiro (NÃO impacta caixa - apenas contábil)
       const expense = await prisma.expense.create({
         data: {
           category: 'deaths', // Categoria de Perdas Operacionais
           description: `Perda por mortalidade - ${data.quantity} cabeça(s) - Curral ${pen.penNumber}`,
           totalAmount: totalLoss,
-          unitPrice: averageCostPerHead,
-          quantity: data.quantity,
           dueDate: data.deathDate,
           paymentDate: data.deathDate,
-          isPaid: true,
-          impactsCashFlow: false, // Perda contábil, não impacta fluxo de caixa direto
-          notes: `Causa: ${data.cause || 'Não informada'}. 
+          isPaid: true, // Marcado como "pago" pois é uma perda já realizada
+          impactsCashFlow: false, // IMPORTANTE: NÃO impacta fluxo de caixa - é apenas perda contábil/DRE
+          notes: `PERDA CONTÁBIL - NÃO SAI DO CAIXA
+                  Quantidade: ${data.quantity} cabeça(s).
+                  Causa: ${data.cause || 'Não informada'}. 
                   Peso médio: ${averageWeight.toFixed(2)} kg. 
                   Custo médio/cabeça: R$ ${averageCostPerHead.toFixed(2)}. 
                   ${data.specificCause ? `Causa específica: ${data.specificCause}. ` : ''}
                   ${data.notes || ''}`,
           userId: userId || 'system',
           penId: data.penId,
-          // Relacionamentos
-          purchase: selectedPurchaseId ? { connect: { id: selectedPurchaseId } } : undefined,
-          cycle: pen.lotAllocations[0]?.purchase?.cycleId ? 
-            { connect: { id: pen.lotAllocations[0].purchase.cycleId } } : undefined
+          purchaseId: selectedPurchaseId || undefined
         }
       });
       
@@ -224,8 +238,8 @@ export class InterventionService {
         - Categoria: Mortalidade (deaths)
         - Valor: R$ ${totalLoss.toFixed(2)}`);
 
-      // INTEGRAR COM DRE - Adicionar dedução
-      console.log('🔴 INTEGRANDO MORTALIDADE COM DRE');
+      // INTEGRAR COM ANÁLISE FINANCEIRA INTEGRADA
+      console.log('📊 INTEGRANDO MORTALIDADE COM ANÁLISE FINANCEIRA');
       console.log('   Data da morte:', data.deathDate);
       console.log('   Perda total:', totalLoss);
       
@@ -237,77 +251,73 @@ export class InterventionService {
       // Criar a data do primeiro dia do mês no timezone local
       const referenceMonth = new Date(year, month, 1, 0, 0, 0, 0);
       console.log('   Mês de referência:', referenceMonth);
-      console.log('   Mês formatado:', referenceMonth.toISOString());
-
-      // Buscar ou criar DRE do mês
-      const cycleId = pen.lotAllocations[0]?.purchase?.cycleId || null;
-      console.log('   Ciclo ID:', cycleId);
       
-      let dreStatement = await prisma.dREStatement.findFirst({
-        where: {
-          referenceMonth: referenceMonth,
-          cycleId: cycleId
-        }
-      });
-      
-      console.log('   DRE encontrado?', !!dreStatement);
-
-      if (!dreStatement) {
-        // Criar novo DRE se não existir
-        dreStatement = await prisma.dREStatement.create({
-          data: {
-            referenceMonth: referenceMonth,
-            cycleId: pen.lotAllocations[0]?.purchase?.cycleId || null,
-            deductions: totalLoss,
-            grossRevenue: 0,
-            netRevenue: -totalLoss,
-            animalCost: 0,
-            feedCost: 0,
-            healthCost: 0,
-            laborCost: 0,
-            otherCosts: 0,
-            totalCosts: 0,
-            grossProfit: -totalLoss,
-            grossMargin: 0,
-            adminExpenses: 0,
-            salesExpenses: 0,
-            financialExpenses: 0,
-            otherExpenses: 0,
-            totalExpenses: 0,
-            operationalProfit: -totalLoss,
-            operationalMargin: 0,
-            netProfit: -totalLoss,
-            netMargin: 0,
-            status: 'DRAFT'
+      try {
+        // Buscar ou criar análise financeira integrada do mês
+        let financialAnalysis = await prisma.integratedFinancialAnalysis.findUnique({
+          where: {
+            referenceMonth: referenceMonth
           }
         });
-        logger.info(`DRE criado para ${referenceMonth.toISOString()} com dedução de mortalidade: R$ ${totalLoss.toFixed(2)}`);
-        console.log('   ✅ DRE CRIADO com dedução:', totalLoss);
-      } else {
-        // Atualizar DRE existente
-        console.log('   Atualizando DRE existente. Deduções atuais:', dreStatement.deductions);
-        await prisma.dREStatement.update({
-          where: { id: dreStatement.id },
-          data: {
-            deductions: {
-              increment: totalLoss
-            },
-            netRevenue: {
-              decrement: totalLoss
-            },
-            grossProfit: {
-              decrement: totalLoss
-            },
-            operationalProfit: {
-              decrement: totalLoss
-            },
-            netProfit: {
-              decrement: totalLoss
+        
+        if (!financialAnalysis) {
+          // Criar nova análise se não existir
+          financialAnalysis = await prisma.integratedFinancialAnalysis.create({
+            data: {
+              referenceMonth: referenceMonth,
+              referenceYear: year,
+              totalRevenue: 0,
+              totalExpenses: 0,
+              netResult: 0,
+              operationalExpenses: totalLoss, // Mortalidade entra como despesa operacional
+              nonOperationalExpenses: 0,
+              ebitda: -totalLoss,
+              operationalMargin: 0,
+              netMargin: 0,
+              biologicalAssetValue: 0,
+              inventoryValue: 0,
+              status: 'DRAFT',
+              userId: userId || 'system'
             }
+          });
+          console.log('   ✅ Análise financeira CRIADA com perda por mortalidade:', totalLoss);
+        } else {
+          // Atualizar análise existente
+          await prisma.integratedFinancialAnalysis.update({
+            where: { id: financialAnalysis.id },
+            data: {
+              operationalExpenses: {
+                increment: totalLoss
+              },
+              netResult: {
+                decrement: totalLoss
+              },
+              ebitda: {
+                decrement: totalLoss
+              }
+            }
+          });
+          console.log('   ✅ Análise financeira ATUALIZADA. Perda adicionada:', totalLoss);
+        }
+        
+        // Criar item de análise para rastreabilidade
+        await prisma.integratedAnalysisItem.create({
+          data: {
+            analysisId: financialAnalysis.id,
+            description: `Perda por mortalidade - ${data.quantity} cabeça(s) - Curral ${pen.penNumber}`,
+            amount: -totalLoss, // Negativo pois é uma perda
+            category: 'OPERATIONAL_EXPENSE',
+            subCategory: 'MORTALITY',
+            date: data.deathDate,
+            transactionType: 'EXPENSE'
           }
         });
-        logger.info(`DRE atualizado para ${referenceMonth.toISOString()} com dedução de mortalidade: R$ ${totalLoss.toFixed(2)}`);
-        console.log('   ✅ DRE ATUALIZADO. Nova dedução adicionada:', totalLoss);
+        
+        logger.info(`Análise financeira integrada atualizada para ${referenceMonth.toISOString()} com perda de mortalidade: R$ ${totalLoss.toFixed(2)}`);
+        
+      } catch (error) {
+        console.error('⚠️ Erro ao integrar com análise financeira:', error);
+        // Não falhar a operação se a integração com análise falhar
       }
 
       // Atualizar quantidades nos lotes (apenas quantidade, sem alterar peso ou valores)
@@ -706,65 +716,84 @@ export class InterventionService {
   // Estatísticas de intervenções
   async getInterventionStatistics(cycleId?: string) {
     try {
-      const where = cycleId ? { cattlePurchase: { cycleId } } : {};
-
-      // Inicializar valores padrão para evitar erros
-      let healthCount = 0;
-      let mortalityStats = {
-        _count: 0,
+      // Como ainda não temos modelos específicos de intervenções, vamos usar MortalityAnalysis
+      // e dados dos CattlePurchases para calcular as estatísticas
+      
+      // Buscar estatísticas de mortalidade do mortality_analyses
+      const mortalityStats = await prisma.mortality_analyses.aggregate({
+        _count: true,
         _sum: {
-          quantity: 0,
-          estimatedLoss: 0
+          quantity: true,
+          total_loss: true
         }
-      };
-      let movementCount = 0;
-      let weightCount = 0;
+      });
 
-      const results = await Promise.allSettled([
-          // Total de intervenções de saúde
-          prisma.healthIntervention?.count({ where }) || Promise.resolve(0),
-          
-          // Estatísticas de mortalidade
-          prisma.mortalityRecord?.aggregate({
-            where,
-            _sum: {
-              quantity: true,
-              estimatedLoss: true
-            },
-            _count: true
-          }) || Promise.resolve(mortalityStats),
-          
-          // Total de movimentações
-          prisma.penMovement?.count({ where }) || Promise.resolve(0),
-        
-          // Total de pesagens
-          prisma.weightReading?.count({ where }) || Promise.resolve(0)
-        ]);
+      // Buscar total de animais e calcular taxa de mortalidade
+      const cattlePurchases = await prisma.cattlePurchase.findMany({
+        select: {
+          initialQuantity: true,
+          currentQuantity: true,
+          deathCount: true,
+          currentWeight: true,
+          averageWeight: true
+        }
+      });
 
-      // Processar resultados
-      if (results[0].status === 'fulfilled') healthCount = results[0].value;
-      if (results[1].status === 'fulfilled') mortalityStats = results[1].value;
-      if (results[2].status === 'fulfilled') movementCount = results[2].value;
-      if (results[3].status === 'fulfilled') weightCount = results[3].value;
+      const totalAnimals = cattlePurchases.reduce((sum, cp) => sum + (cp.initialQuantity || 0), 0);
+      const currentAnimals = cattlePurchases.reduce((sum, cp) => sum + (cp.currentQuantity || 0), 0);
+      const totalDeaths = cattlePurchases.reduce((sum, cp) => sum + (cp.deathCount || 0), 0);
+      
+      // Calcular peso médio atual
+      const weights = cattlePurchases
+        .filter(cp => cp.currentWeight || cp.averageWeight)
+        .map(cp => cp.currentWeight || cp.averageWeight || 0);
+      const averageWeight = weights.length > 0 
+        ? weights.reduce((sum, w) => sum + w, 0) / weights.length 
+        : 0;
 
-      // GMD médio não está disponível no modelo atual
-      // Usar valor padrão
-      let averageGMD = 0.5; // Valor padrão de GMD em kg/dia
+      // Taxa de mortalidade
+      const mortalityRate = totalAnimals > 0 ? totalDeaths / totalAnimals : 0;
 
       return {
-        healthInterventions: healthCount,
+        // Por enquanto, valores padrão para intervenções não implementadas
+        healthInterventions: 0,
+        totalMortalities: totalDeaths,
+        movements: 0,
+        weightReadings: 0,
+        
+        // Dados reais calculados
+        mortalityRate,
+        totalFinancialLoss: mortalityStats._sum?.total_loss || 0,
+        averageWeight,
+        
+        // Dados adicionais
+        totalAnimals,
+        currentAnimals,
         mortalityRecords: {
           total: mortalityStats._count || 0,
-          totalDeaths: mortalityStats._sum?.quantity || 0,
-          totalLoss: mortalityStats._sum?.estimatedLoss || 0
-        },
-        penMovements: movementCount,
-        weightReadings: weightCount,
-        averageGMD
+          totalQuantity: mortalityStats._sum?.quantity || 0,
+          totalLoss: mortalityStats._sum?.total_loss || 0
+        }
       };
     } catch (error) {
-      console.error('Erro ao buscar estatísticas de intervenções:', error);
-      throw error;
+      console.error('❌ Erro ao buscar estatísticas de intervenções:', error);
+      // Retornar valores padrão em caso de erro
+      return {
+        healthInterventions: 0,
+        totalMortalities: 0,
+        movements: 0,
+        weightReadings: 0,
+        mortalityRate: 0,
+        totalFinancialLoss: 0,
+        averageWeight: 0,
+        totalAnimals: 0,
+        currentAnimals: 0,
+        mortalityRecords: {
+          total: 0,
+          totalQuantity: 0,
+          totalLoss: 0
+        }
+      };
     }
   }
 }

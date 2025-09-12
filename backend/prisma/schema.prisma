@@ -18,9 +18,11 @@ model User {
   createdAt             DateTime?                     @default(now()) @db.Timestamptz(6)
   updatedAt             DateTime?                     @default(now()) @updatedAt @db.Timestamptz(6)
   cattlePurchases       CattlePurchase[]
+  deathRecords          DeathRecord[]
   analysisConfigs       FinancialAnalysisConfig[]
   financialTransactions FinancialTransaction[]
   integratedAnalyses    IntegratedFinancialAnalysis[]
+  saleRecords           SaleRecord[]
 
   @@map("users")
 }
@@ -65,6 +67,7 @@ model PayerAccount {
   expenses              Expense[]
   financialTransactions FinancialTransaction[]
   revenues              Revenue[]
+  saleRecords           SaleRecord[]
 
   @@map("payer_accounts")
 }
@@ -126,6 +129,7 @@ model CattlePurchase {
   user                   User?                        @relation(fields: [userId], references: [id])
   vendor                 Partner                      @relation("PurchaseVendor", fields: [vendorId], references: [id])
   costAllocations        CostProportionalAllocation[]
+  deathRecords           DeathRecord[]
   expenses               Expense[]
   financial_accounts     financial_accounts[]
   financialTransactions  FinancialTransaction[]
@@ -154,6 +158,7 @@ model Pen {
   isActive              Boolean                @default(true)
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
+  deathRecords          DeathRecord[]
   feedRecords           FeedRecord[]
   financialTransactions FinancialTransaction[]
   healthInterventions   HealthIntervention[]
@@ -163,6 +168,7 @@ model Pen {
   mortalityRecords      MortalityRecord[]
   fromMovements         PenMovement[]          @relation("FromPenMovements")
   toMovements           PenMovement[]          @relation("ToPenMovements")
+  saleRecords           SaleRecord[]
 
   @@map("pens")
 }
@@ -266,35 +272,6 @@ model LotMovement {
   @@map("lot_movements")
 }
 
-model SaleRecord {
-  id               String         @id @default(cuid())
-  saleNumber       String         @unique
-  purchaseId       String
-  buyerId          String
-  designationDate  DateTime
-  slaughterPlant   String
-  expectedDate     DateTime
-  shipmentDate     DateTime?
-  shipmentWeight   Float?
-  transportCompany String?
-  slaughterDate    DateTime?
-  slaughterWeight  Float?
-  carcassYield     Float?
-  pricePerArroba   Float?
-  totalValue       Float?
-  invoiceNumber    String?
-  paymentDate      DateTime?
-  status           SaleStatus     @default(NEXT_SLAUGHTER)
-  userId           String
-  notes            String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  buyer            Partner        @relation(fields: [buyerId], references: [id])
-  purchase         CattlePurchase @relation(fields: [purchaseId], references: [id])
-
-  @@map("sale_records")
-}
-
 model CostCenter {
   id        String         @id @default(cuid())
   code      String         @unique
@@ -359,6 +336,7 @@ model Revenue {
   allocations     RevenueAllocation[]
   costCenter      CostCenter?          @relation(fields: [costCenterId], references: [id])
   payerAccount    PayerAccount?        @relation(fields: [payerAccountId], references: [id])
+  saleRecord      SaleRecord?          @relation(fields: [saleRecordId], references: [id])
 
   @@map("revenues")
 }
@@ -471,8 +449,6 @@ model AuditLog {
   @@index([userId, createdAt])
   @@map("audit_logs")
 }
-
-// Modelo Cycle removido - sistema simplificado sem agrupamento por ciclos
 
 model WeightReading {
   id               String         @id @default(cuid())
@@ -676,6 +652,45 @@ model CalendarEvent {
   @@map("calendar_events")
 }
 
+model Category {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  type      FinancialType
+  color     String?
+  icon      String?
+  isDefault Boolean       @default(false)
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  cashFlows CashFlow[]
+
+  @@index([type])
+  @@map("categories")
+}
+
+model DeathRecord {
+  id              String         @id @default(cuid())
+  purchaseId      String
+  penId           String
+  quantity        Int
+  deathDate       DateTime
+  deathType       DeathType
+  cause           String?
+  veterinaryNotes String?
+  estimatedLoss   Float?
+  userId          String?        @db.Uuid
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  pen             Pen            @relation(fields: [penId], references: [id])
+  purchase        CattlePurchase @relation(fields: [purchaseId], references: [id])
+  user            User?          @relation(fields: [userId], references: [id])
+
+  @@index([purchaseId])
+  @@index([penId])
+  @@index([deathDate])
+  @@map("death_records")
+}
+
 model CashFlow {
   id            String        @id @default(cuid())
   type          FinancialType
@@ -697,6 +712,7 @@ model CashFlow {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   account       PayerAccount  @relation("AccountCashFlows", fields: [accountId], references: [id])
+  category      Category      @relation(fields: [categoryId], references: [id])
 
   @@index([date])
   @@index([status])
@@ -796,6 +812,58 @@ model FinancialAnalysisConfig {
   @@map("financial_analysis_config")
 }
 
+model SaleRecord {
+  id                String          @id @default(cuid())
+  internalCode      String?         @unique
+  saleDate          DateTime
+  penId             String?
+  purchaseId        String?
+  saleType          String
+  quantity          Int
+  buyerId           String
+  exitWeight        Float
+  carcassWeight     Float
+  carcassYield      Float
+  pricePerArroba    Float
+  arrobas           Float
+  totalValue        Float
+  deductions        Float           @default(0)
+  netValue          Float
+  paymentType       String
+  paymentDate       DateTime?
+  receiverAccountId String?
+  invoiceNumber     String?
+  contractNumber    String?
+  observations      String?
+  status            SaleStatus      @default(PENDING)
+  userId            String?         @db.Uuid
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  revenues          Revenue[]
+  buyer             Partner         @relation(fields: [buyerId], references: [id])
+  pen               Pen?            @relation(fields: [penId], references: [id])
+  purchase          CattlePurchase? @relation(fields: [purchaseId], references: [id])
+  receiverAccount   PayerAccount?   @relation(fields: [receiverAccountId], references: [id])
+  user              User?           @relation(fields: [userId], references: [id])
+
+  @@index([saleDate])
+  @@index([buyerId])
+  @@index([penId])
+  @@index([purchaseId])
+  @@index([status])
+  @@map("sale_records")
+}
+
+enum DeathType {
+  DISEASE
+  ACCIDENT
+  PREDATION
+  POISONING
+  STRESS
+  UNKNOWN
+  OTHER
+}
+
 enum PurchaseStatus {
   CONFIRMED
   RECEIVED
@@ -881,15 +949,6 @@ enum MovementType {
   REMOVAL
   DEATH
   SALE
-}
-
-enum SaleStatus {
-  NEXT_SLAUGHTER
-  SCHEDULED
-  SHIPPED
-  SLAUGHTERED
-  RECONCILED
-  CANCELLED
 }
 
 enum CostCenterType {
@@ -1040,4 +1099,12 @@ enum BiologicalCostMethod {
   WEIGHTED_AVERAGE
   FIFO
   SPECIFIC_ID
+}
+
+enum SaleStatus {
+  PENDING
+  CONFIRMED
+  DELIVERED
+  PAID
+  CANCELLED
 }
