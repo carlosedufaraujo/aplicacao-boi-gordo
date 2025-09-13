@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Notificações - Cadastros</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-top: 20px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f7f9fc;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+        .btn-create {
+            background: #10b981;
+        }
+        .btn-create:hover {
+            background: #059669;
+        }
+        .btn-update {
+            background: #3b82f6;
+        }
+        .btn-update:hover {
+            background: #2563eb;
+        }
+        .btn-delete {
+            background: #ef4444;
+        }
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
+            display: block;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            display: block;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+            display: block;
+        }
+        .instructions {
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #92400e;
+        }
+        .notification-list {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        .notification-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .notification-item.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .notification-item.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .notification-item.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Teste de Notificações - Aba Cadastros</h1>
+
+        <div class="instructions">
+            <strong>📋 Instruções:</strong><br>
+            1. Abra a aplicação no navegador<br>
+            2. Navegue até a aba <strong>Cadastros</strong><br>
+            3. Execute as ações abaixo e verifique se as notificações aparecem<br>
+            4. As notificações devem aparecer no canto superior direito da tela
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">✅ Teste de Parceiros</div>
+            <div class="button-group">
+                <button class="btn-create" onclick="showTest('partner-create')">
+                    Criar Parceiro
+                </button>
+                <button class="btn-update" onclick="showTest('partner-update')">
+                    Editar Parceiro
+                </button>
+                <button class="btn-delete" onclick="showTest('partner-delete')">
+                    Excluir Parceiro
+                </button>
+            </div>
+            <div id="partner-status" class="status"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">🏠 Teste de Currais</div>
+            <div class="button-group">
+                <button class="btn-create" onclick="showTest('pen-create')">
+                    Criar Curral
+                </button>
+                <button class="btn-update" onclick="showTest('pen-update')">
+                    Editar Curral
+                </button>
+                <button class="btn-delete" onclick="showTest('pen-delete')">
+                    Excluir Curral
+                </button>
+            </div>
+            <div id="pen-status" class="status"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">💳 Teste de Contas</div>
+            <div class="button-group">
+                <button class="btn-create" onclick="showTest('account-create')">
+                    Criar Conta
+                </button>
+                <button class="btn-update" onclick="showTest('account-update')">
+                    Editar Conta
+                </button>
+                <button class="btn-delete" onclick="showTest('account-delete')">
+                    Excluir Conta
+                </button>
+            </div>
+            <div id="account-status" class="status"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">🏷️ Teste de Categorias</div>
+            <div class="button-group">
+                <button class="btn-create" onclick="showTest('category-create')">
+                    Criar Categoria
+                </button>
+                <button class="btn-update" onclick="showTest('category-update')">
+                    Editar Categoria
+                </button>
+                <button class="btn-delete" onclick="showTest('category-delete')">
+                    Excluir Categoria
+                </button>
+            </div>
+            <div id="category-status" class="status"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">📊 Notificações Esperadas</div>
+            <div class="notification-list" id="notifications">
+                <div class="notification-item info">Aguardando testes...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const testInstructions = {
+            'partner-create': {
+                title: 'Criar Parceiro',
+                steps: '1. Clique no botão "Novo Parceiro"\n2. Preencha os dados\n3. Clique em "Salvar"',
+                expected: 'Notificação: "Parceiro cadastrado com sucesso"',
+                type: 'success'
+            },
+            'partner-update': {
+                title: 'Editar Parceiro',
+                steps: '1. Clique no ícone de editar em um parceiro\n2. Altere os dados\n3. Clique em "Salvar"',
+                expected: 'Notificação: "Parceiro atualizado com sucesso"',
+                type: 'success'
+            },
+            'partner-delete': {
+                title: 'Excluir Parceiro',
+                steps: '1. Clique no ícone de lixeira em um parceiro\n2. Confirme a exclusão',
+                expected: 'Notificação: "Parceiro excluído com sucesso"',
+                type: 'success'
+            },
+            'pen-create': {
+                title: 'Criar Curral',
+                steps: '1. Vá para a aba "Currais"\n2. Clique em "Novo Curral"\n3. Preencha os dados\n4. Clique em "Salvar"',
+                expected: 'Notificação: "Curral cadastrado com sucesso"',
+                type: 'success'
+            },
+            'pen-update': {
+                title: 'Editar Curral',
+                steps: '1. Clique no ícone de editar em um curral\n2. Altere os dados\n3. Clique em "Salvar"',
+                expected: 'Notificação: "Curral atualizado com sucesso"',
+                type: 'success'
+            },
+            'pen-delete': {
+                title: 'Excluir Curral',
+                steps: '1. Clique no ícone de lixeira em um curral\n2. Confirme a exclusão',
+                expected: 'Notificação: "Curral excluído com sucesso"',
+                type: 'success'
+            },
+            'account-create': {
+                title: 'Criar Conta',
+                steps: '1. Vá para a aba "Contas"\n2. Clique em "Nova Conta"\n3. Preencha os dados\n4. Clique em "Salvar"',
+                expected: 'Notificação: "Conta cadastrada com sucesso"',
+                type: 'success'
+            },
+            'account-update': {
+                title: 'Editar Conta',
+                steps: '1. Clique no ícone de editar em uma conta\n2. Altere os dados\n3. Clique em "Salvar"',
+                expected: 'Notificação: "Conta atualizada com sucesso"',
+                type: 'success'
+            },
+            'account-delete': {
+                title: 'Excluir Conta',
+                steps: '1. Clique no ícone de lixeira em uma conta\n2. Confirme a exclusão',
+                expected: 'Notificação: "Conta excluída com sucesso"',
+                type: 'success'
+            },
+            'category-create': {
+                title: 'Criar Categoria',
+                steps: '1. Vá para a aba "Categorias"\n2. Clique em "Nova Categoria"\n3. Preencha os dados\n4. Clique em "Salvar"',
+                expected: 'Notificação: "Categoria cadastrada com sucesso"',
+                type: 'success'
+            },
+            'category-update': {
+                title: 'Editar Categoria',
+                steps: '1. Clique no ícone de editar em uma categoria\n2. Altere os dados\n3. Clique em "Salvar"',
+                expected: 'Notificação: "Categoria atualizada com sucesso"',
+                type: 'success'
+            },
+            'category-delete': {
+                title: 'Excluir Categoria',
+                steps: '1. Clique no ícone de lixeira em uma categoria\n2. Confirme a exclusão',
+                expected: 'Notificação: "Categoria excluída com sucesso"',
+                type: 'success'
+            }
+        };
+
+        let notificationLog = [];
+
+        function showTest(testId) {
+            const test = testInstructions[testId];
+            const [entity] = testId.split('-');
+            const statusDiv = document.getElementById(`${entity}-status`);
+
+            statusDiv.className = `status ${test.type}`;
+            statusDiv.innerHTML = `
+                <strong>📝 ${test.title}</strong><br><br>
+                <strong>Passos:</strong><br>
+                ${test.steps.replace(/\n/g, '<br>')}<br><br>
+                <strong>Resultado Esperado:</strong><br>
+                ✅ ${test.expected}
+            `;
+
+            // Adicionar ao log de notificações
+            addNotificationToLog(test.expected, test.type);
+        }
+
+        function addNotificationToLog(message, type) {
+            const notificationList = document.getElementById('notifications');
+            const timestamp = new Date().toLocaleTimeString('pt-BR');
+
+            notificationLog.push({message, type, timestamp});
+
+            // Limitar a 10 notificações
+            if (notificationLog.length > 10) {
+                notificationLog.shift();
+            }
+
+            // Atualizar a lista
+            notificationList.innerHTML = notificationLog.map(n =>
+                `<div class="notification-item ${n.type}">
+                    <strong>${n.timestamp}</strong> - ${n.message}
+                </div>`
+            ).join('');
+
+            // Scroll para a última notificação
+            notificationList.scrollTop = notificationList.scrollHeight;
+        }
+
+        // Adicionar notificação inicial
+        setTimeout(() => {
+            addNotificationToLog('Sistema de testes pronto! Execute as ações na aplicação.', 'info');
+        }, 1000);
+    </script>
+</body>
+</html>

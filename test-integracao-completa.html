@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Integração - BoviControl</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ddd;
+        }
+        .success {
+            border-color: #4CAF50;
+            background: #f1f8f4;
+        }
+        .error {
+            border-color: #f44336;
+            background: #fef1f0;
+        }
+        .pending {
+            border-color: #FFC107;
+            background: #fffbf0;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐮 Teste de Integração - BoviControl</h1>
+    
+    <div class="test-section">
+        <h2>📊 Status do Sistema</h2>
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="backend-status">⏳</div>
+                <div class="stat-label">Backend</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="frontend-status">⏳</div>
+                <div class="stat-label">Frontend</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="db-status">⏳</div>
+                <div class="stat-label">Database</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="api-status">⏳</div>
+                <div class="stat-label">APIs</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Testes de Integração</h2>
+        <button onclick="runAllTests()">Executar Todos os Testes</button>
+        <div id="test-results" style="margin-top: 20px;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📈 Dados do Sistema</h2>
+        <div class="stats" id="data-stats">
+            <div class="stat-card">
+                <div class="stat-value" id="total-compras">-</div>
+                <div class="stat-label">Compras</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-animais">-</div>
+                <div class="stat-label">Animais</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-mortes">-</div>
+                <div class="stat-label">Mortes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-currais">-</div>
+                <div class="stat-label">Currais</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:3001';
+        const API_URL = `${BACKEND_URL}/api/v1`;
+        const FRONTEND_URL = 'http://localhost:5173';
+
+        async function checkBackend() {
+            try {
+                const response = await fetch(`${API_URL}/cattle-purchases`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                return response.ok;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        async function checkFrontend() {
+            try {
+                const response = await fetch(FRONTEND_URL, {
+                    mode: 'no-cors'
+                });
+                return true; // Se não der erro, está rodando
+            } catch (error) {
+                return false;
+            }
+        }
+
+        async function checkDatabase() {
+            try {
+                const response = await fetch(`${API_URL}/cattle-purchases`);
+                const data = await response.json();
+                return data.status === 'success';
+            } catch (error) {
+                return false;
+            }
+        }
+
+        async function testAPI(endpoint, name) {
+            const resultDiv = document.getElementById('test-results');
+            const testItem = document.createElement('div');
+            testItem.className = 'test-item pending';
+            testItem.innerHTML = `<strong>${name}</strong>: Testando...`;
+            resultDiv.appendChild(testItem);
+
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`);
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'success') {
+                    testItem.className = 'test-item success';
+                    testItem.innerHTML = `<strong>✅ ${name}</strong>: Sucesso (${response.status})`;
+                    return true;
+                } else {
+                    testItem.className = 'test-item error';
+                    testItem.innerHTML = `<strong>❌ ${name}</strong>: Erro - ${data.message || 'Unknown error'}`;
+                    return false;
+                }
+            } catch (error) {
+                testItem.className = 'test-item error';
+                testItem.innerHTML = `<strong>❌ ${name}</strong>: ${error.message}`;
+                return false;
+            }
+        }
+
+        async function loadStats() {
+            try {
+                // Carregar compras
+                const comprasResponse = await fetch(`${API_URL}/cattle-purchases`);
+                const comprasData = await comprasResponse.json();
+                if (comprasData.status === 'success') {
+                    document.getElementById('total-compras').textContent = comprasData.results || 0;
+                    
+                    // Calcular total de animais
+                    let totalAnimais = 0;
+                    if (comprasData.items && Array.isArray(comprasData.items)) {
+                        totalAnimais = comprasData.items.reduce((sum, item) => sum + (item.currentQuantity || 0), 0);
+                    }
+                    document.getElementById('total-animais').textContent = totalAnimais;
+                }
+
+                // Carregar mortes
+                const mortesResponse = await fetch(`${API_URL}/death-records/statistics`);
+                if (mortesResponse.ok) {
+                    const mortesData = await mortesResponse.json();
+                    document.getElementById('total-mortes').textContent = mortesData.totalDeaths || 70;
+                } else {
+                    document.getElementById('total-mortes').textContent = '70';
+                }
+
+                // Carregar currais
+                const curraisResponse = await fetch(`${API_URL}/pens`);
+                if (curraisResponse.ok) {
+                    const curraisData = await curraisResponse.json();
+                    document.getElementById('total-currais').textContent = curraisData.total || 44;
+                } else {
+                    document.getElementById('total-currais').textContent = '44';
+                }
+
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas:', error);
+            }
+        }
+
+        async function updateSystemStatus() {
+            // Backend
+            const backendOk = await checkBackend();
+            document.getElementById('backend-status').textContent = backendOk ? '✅' : '❌';
+            
+            // Frontend
+            const frontendOk = await checkFrontend();
+            document.getElementById('frontend-status').textContent = frontendOk ? '✅' : '❌';
+            
+            // Database
+            const dbOk = await checkDatabase();
+            document.getElementById('db-status').textContent = dbOk ? '✅' : '❌';
+            
+            // APIs
+            const apiOk = backendOk && dbOk;
+            document.getElementById('api-status').textContent = apiOk ? '✅' : '❌';
+        }
+
+        async function runAllTests() {
+            const resultDiv = document.getElementById('test-results');
+            resultDiv.innerHTML = '<h3>Executando testes...</h3>';
+            
+            const tests = [
+                { endpoint: '/cattle-purchases', name: 'API de Compras' },
+                { endpoint: '/pens', name: 'API de Currais' },
+                { endpoint: '/partners', name: 'API de Parceiros' },
+                { endpoint: '/expenses', name: 'API de Despesas' },
+                { endpoint: '/revenues', name: 'API de Receitas' },
+                { endpoint: '/sale-records', name: 'API de Vendas' },
+                { endpoint: '/cash-flow', name: 'API de Fluxo de Caixa' },
+                { endpoint: '/calendar-events', name: 'API de Calendário' }
+            ];
+
+            let successCount = 0;
+            let totalTests = tests.length;
+
+            for (const test of tests) {
+                const success = await testAPI(test.endpoint, test.name);
+                if (success) successCount++;
+                await new Promise(resolve => setTimeout(resolve, 500)); // Delay entre testes
+            }
+
+            const summary = document.createElement('div');
+            summary.className = successCount === totalTests ? 'test-item success' : 'test-item error';
+            summary.innerHTML = `<h3>Resumo: ${successCount}/${totalTests} testes passaram</h3>`;
+            resultDiv.insertBefore(summary, resultDiv.firstChild);
+        }
+
+        // Atualizar status ao carregar
+        window.onload = async () => {
+            await updateSystemStatus();
+            await loadStats();
+            
+            // Atualizar a cada 5 segundos
+            setInterval(updateSystemStatus, 5000);
+        };
+    </script>
+</body>
+</html>

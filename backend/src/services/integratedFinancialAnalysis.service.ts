@@ -110,7 +110,7 @@ export class IntegratedFinancialAnalysisService {
         receiptDate: { gte: startDate, lte: endDate },
         isReceived: true
       },
-      include: { cycle: true, payerAccount: true }
+      include: { payerAccount: true }
     });
     
     for (const revenue of revenues) {
@@ -122,7 +122,6 @@ export class IntegratedFinancialAnalysisService {
         impactsCash: true,
         cashFlowDate: revenue.receiptDate,
         cashFlowType: CashFlowClassification.OPERATING,
-        cycleId: revenue.cycleId,
         accountId: revenue.payerAccountId,
         partnerId: revenue.buyerId
       });
@@ -133,7 +132,7 @@ export class IntegratedFinancialAnalysisService {
       where: {
         purchaseDate: { gte: startDate, lte: endDate }
       },
-      include: { vendor: true, payerAccount: true, cycle: true }
+      include: { vendor: true, payerAccount: true }
     });
     
     for (const purchase of purchases) {
@@ -145,7 +144,6 @@ export class IntegratedFinancialAnalysisService {
         impactsCash: true,
         cashFlowDate: purchase.purchaseDate,
         cashFlowType: CashFlowClassification.OPERATING,
-        cycleId: purchase.cycleId,
         purchaseId: purchase.id,
         partnerId: purchase.vendorId,
         accountId: purchase.payerAccountId
@@ -158,7 +156,7 @@ export class IntegratedFinancialAnalysisService {
         paymentDate: { gte: startDate, lte: endDate },
         isPaid: true
       },
-      include: { cycle: true, payerAccount: true, costCenter: true, purchase: true }
+      include: { payerAccount: true, costCenter: true, purchase: true }
     });
     
     for (const expense of expenses) {
@@ -172,7 +170,6 @@ export class IntegratedFinancialAnalysisService {
         impactsCash: expense.impactsCashFlow,
         cashFlowDate: expense.paymentDate,
         cashFlowType: CashFlowClassification.OPERATING,
-        cycleId: expense.cycleId,
         purchaseId: expense.purchaseId,
         partnerId: expense.vendorId,
         accountId: expense.payerAccountId,
@@ -181,11 +178,11 @@ export class IntegratedFinancialAnalysisService {
     }
     
     // 4. Mortalidade (non-cash)
-    const mortalityRecords = await prisma.mortalityRecord.findMany({
+    const mortalityRecords = await prisma.deathRecord.findMany({
       where: {
         deathDate: { gte: startDate, lte: endDate }
       },
-      include: { cattlePurchase: true, pen: true }
+      include: { purchase: true, pen: true }
     });
     
     for (const mortality of mortalityRecords) {
@@ -200,7 +197,7 @@ export class IntegratedFinancialAnalysisService {
         impactsCash: false, // Mortalidade não afeta caixa diretamente
         cashFlowDate: null,
         cashFlowType: null,
-        purchaseId: mortality.cattlePurchaseId,
+        purchaseId: mortality.purchaseId,
         penId: mortality.penId
       });
     }
@@ -262,9 +259,9 @@ export class IntegratedFinancialAnalysisService {
    * Calcula o custo ponderado da mortalidade
    */
   private async calculateMortalityCost(mortality: any): Promise<number> {
-    if (!mortality.cattlePurchase) return 0;
+    if (!mortality.purchase) return 0;
     
-    const purchase = mortality.cattlePurchase;
+    const purchase = mortality.purchase;
     const totalCostPerHead = purchase.totalCost / purchase.initialQuantity;
     return totalCostPerHead * mortality.quantity;
   }

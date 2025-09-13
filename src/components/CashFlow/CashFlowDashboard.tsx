@@ -461,7 +461,7 @@ export const CashFlowDashboard: React.FC = () => {
                     <p className="text-sm">
                       {format(new Date(cashFlow.dueDate || cashFlow.date), 'dd/MM/yyyy', { locale: ptBR })}
                     </p>
-                    {cashFlow.dueDate && (
+                    {cashFlow.dueDate && cashFlow.status === 'PENDING' && (
                       <p className="text-xs text-muted-foreground">
                         {(() => {
                           const days = Math.ceil((new Date(cashFlow.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
@@ -650,7 +650,17 @@ export const CashFlowDashboard: React.FC = () => {
                   <div className="flex-1">
                     <p className="font-medium text-sm">{account.accountName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {account.bankName} - {account.accountType}
+                      {account.bankName} - {(() => {
+                        const types: Record<string, string> = {
+                          'CHECKING': 'Conta Corrente',
+                          'SAVINGS': 'Poupança',
+                          'INVESTMENT': 'Investimento',
+                          'CASH': 'Dinheiro',
+                          'CREDIT_CARD': 'Cartão de Crédito',
+                          'OTHER': 'Outros'
+                        };
+                        return types[account.accountType] || account.accountType;
+                      })()}
                     </p>
                     {editingAccountBalance?.id === account.id ? (
                       <div className="mt-1 flex items-center gap-1">

@@ -121,7 +121,8 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
       // Categorias do cash-flow em português
       'Salários', 'Encargos Trabalhistas', 'Benefícios', 'Treinamento',
       'Material de Escritório', 'Contabilidade', 'Telefone/Internet',
-      'Seguros', 'Outras Despesas'
+      'Seguros', 'Outras Despesas', 'Retirada Particular', 'Ajustes Mercado Futuro',
+      'Pagamento Sicoob'
     ],
     description: 'Custos administrativos e de pessoal'
   },
@@ -135,7 +136,8 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
     categories: [
       'interest', 'fees', 'financial_management', 'financial_other',
       // Categorias do cash-flow em português
-      'Despesas Bancárias', 'Juros e Multas', 'Impostos e Taxas'
+      'Despesas Bancárias', 'Juros e Multas', 'Impostos e Taxas', 'Empréstimos Risco Sacado',
+      'Fee de Crédito'
     ],
     description: 'Juros, taxas e custos financeiros'
   }
@@ -145,9 +147,13 @@ export const ACCOUNTING_GROUPS: AccountingGroup[] = [
  * Mapeia uma categoria operacional para seu grupo contábil
  */
 export function getAccountingGroup(category: string): AccountingGroup | undefined {
-  return ACCOUNTING_GROUPS.find(group => 
+  const group = ACCOUNTING_GROUPS.find(group => 
     group.categories.includes(category)
   );
+  
+  console.log('🏷️ [getAccountingGroup] Mapping category:', category, '→', group?.name || 'NOT FOUND');
+  
+  return group;
 }
 
 /**

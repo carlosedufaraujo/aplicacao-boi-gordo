@@ -304,103 +304,190 @@ export const CategoryManagement: React.FC = () => {
         </Card>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros e Tabela */}
       <Card>
-        <CardHeader>
-          <CardTitle>Categorias</CardTitle>
-          <CardDescription>
-            Visualize e gerencie todas as categorias do sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 mb-4">
-            <div className="flex-1">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Lista de Categorias</CardTitle>
+              <CardDescription>
+                Gerencie todas as categorias de receitas e despesas
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar categoria..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
+                  className="pl-8 w-[250px]"
                 />
               </div>
+              <Select value={selectedType} onValueChange={(value: any) => setSelectedType(value)}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="INCOME">Receitas</SelectItem>
+                  <SelectItem value="EXPENSE">Despesas</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={selectedType} onValueChange={(value: any) => setSelectedType(value)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="INCOME">Receitas</SelectItem>
-                <SelectItem value="EXPENSE">Despesas</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
-
-          {/* Tabela de Categorias */}
-          <ScrollArea className="h-[500px]">
+        </CardHeader>
+        <CardContent className="p-0">
+          {/* Tabela de Categorias - Melhorada */}
+          <div className="border rounded-md">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Cor</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-[50px]">Cor</TableHead>
+                  <TableHead className="w-[35%]">Nome da Categoria</TableHead>
+                  <TableHead className="w-[15%]">Tipo</TableHead>
+                  <TableHead className="w-[15%]">Origem</TableHead>
+                  <TableHead className="w-[15%]">Ícone</TableHead>
+                  <TableHead className="w-[100px] text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCategories.map((category) => {
-                  const isDefault = category.id.startsWith('cat-exp-') || category.id.startsWith('cat-inc-');
-                  return (
-                    <TableRow key={category.id}>
-                      <TableCell>
-                        <div 
-                          className="w-6 h-6 rounded-full border"
-                          style={{ backgroundColor: category.color || '#000000' }}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{category.name}</TableCell>
-                      <TableCell>
-                        <Badge variant={category.type === 'INCOME' ? 'default' : 'destructive'}>
-                          {category.type === 'INCOME' ? 'Receita' : 'Despesa'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={isDefault ? 'secondary' : 'outline'}>
-                          {isDefault ? 'Padrão' : 'Personalizada'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openCategoryDialog(category)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            {!isDefault && (
-                              <DropdownMenuItem 
-                                onClick={() => handleDeleteCategory(category)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Excluir
-                              </DropdownMenuItem>
+                {filteredCategories.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <AlertCircle className="h-8 w-8 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Nenhuma categoria encontrada
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCategories.map((category) => {
+                    const isDefault = category.id.startsWith('cat-exp-') || category.id.startsWith('cat-inc-');
+                    return (
+                      <TableRow key={category.id} className="hover:bg-muted/50">
+                        <TableCell className="py-3">
+                          <div className="flex items-center">
+                            <div 
+                              className="w-8 h-8 rounded-md border-2 shadow-sm"
+                              style={{ 
+                                backgroundColor: category.color || '#000000',
+                                borderColor: category.color || '#000000' 
+                              }}
+                              title={category.color}
+                            />
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium py-3">
+                          <div className="flex items-center gap-2">
+                            <span>{category.name}</span>
+                            {category.id.startsWith('cat-custom-') && (
+                              <Badge variant="outline" className="text-xs">
+                                Personalizada
+                              </Badge>
                             )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <Badge 
+                            variant={category.type === 'INCOME' ? 'default' : 'destructive'}
+                            className="font-normal"
+                          >
+                            <div className="flex items-center gap-1">
+                              {category.type === 'INCOME' ? (
+                                <>
+                                  <TrendingUp className="h-3 w-3" />
+                                  Receita
+                                </>
+                              ) : (
+                                <>
+                                  <TrendingDown className="h-3 w-3" />
+                                  Despesa
+                                </>
+                              )}
+                            </div>
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-1">
+                            {isDefault ? (
+                              <>
+                                <Check className="h-3 w-3 text-green-600" />
+                                <span className="text-sm">Sistema</span>
+                              </>
+                            ) : (
+                              <>
+                                <Palette className="h-3 w-3 text-purple-600" />
+                                <span className="text-sm">Usuário</span>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          {category.icon ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">{category.icon}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center py-3">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openCategoryDialog(category)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            {!isDefault && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteCategory(category)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
+          
+          {/* Rodapé com informações */}
+          {filteredCategories.length > 0 && (
+            <div className="px-4 py-3 border-t bg-muted/30">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>
+                  Exibindo {filteredCategories.length} de {categories.length} categorias
+                </span>
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-green-600"></div>
+                    {stats.income} receitas
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-red-600"></div>
+                    {stats.expense} despesas
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-purple-600"></div>
+                    {stats.custom} personalizadas
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

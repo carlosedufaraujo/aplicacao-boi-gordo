@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNotification } from '@/components/Notifications/NotificationProvider';
 import { 
   Users, 
   Building, 
@@ -40,7 +41,8 @@ import {
   Wallet,
   Tags,
   Palette,
-  RefreshCw
+  RefreshCw,
+  User
 } from 'lucide-react';
 import { formatSafeDate as formatBrazilianDate } from '@/utils/dateUtils';
 const formatBrazilianCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -271,23 +273,23 @@ const ItemCard: React.FC<{
   };
 
   return (
-    <Card className="hover-lift animate-scale-in group">
-      <CardHeader className="pb-3">
+    <Card className="hover:shadow-sm transition-shadow group">
+      <CardHeader className="p-3 pb-2">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
+          <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8">
               <AvatarImage src={item.avatar} />
-              <AvatarFallback className="bg-primary/10 text-primary">
-                {item.name ? item.name.slice(0, 2).toUpperCase() : 
+              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                {item.name ? item.name.slice(0, 2).toUpperCase() :
                  item.penNumber ? item.penNumber.slice(-2) :
                  item.accountName ? item.accountName.slice(0, 2).toUpperCase() : 'IT'}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <CardTitle className="card-title">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-sm font-medium truncate">
                 {item.name || item.penNumber || item.accountName || 'Item'}
               </CardTitle>
-              <CardDescription className="card-subtitle">
+              <CardDescription className="text-xs text-muted-foreground truncate">
                 {item.cpfCnpj ? `${item.cpfCnpj}` :
                  item.location ? `${item.location} • Cap: ${item.capacity || 0}` :
                  item.bankName ? `${item.bankName} • ${item.accountNumber || 'N/A'}` :
@@ -295,26 +297,25 @@ const ItemCard: React.FC<{
               </CardDescription>
             </div>
           </div>
-          
-          <div className="flex items-center gap-2">
-            <Badge className={getPartnerTypeColor(item.type || item.accountType || item.status || 'default')}>
-              {getPartnerIcon(item.type || item.accountType || item.status || 'default')}
-              <span className="ml-1">{getPartnerTypeLabel(item.type || item.accountType || item.status || 'default')}</span>
+
+          <div className="flex items-center gap-1">
+            <Badge className={`text-[10px] px-1.5 py-0.5 ${getPartnerTypeColor(item.type || item.accountType || item.status || 'default')}`}>
+              {getPartnerTypeLabel(item.type || item.accountType || item.status || 'default')}
             </Badge>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <MoreVertical className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onView(item)}>
-                  <Eye className="mr-2 h-4 w-4" />
+              <DropdownMenuContent align="end" className="w-32">
+                <DropdownMenuItem onClick={() => onView(item)} className="text-xs">
+                  <Eye className="mr-1.5 h-3 w-3" />
                   Visualizar
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit(item)}>
@@ -332,59 +333,59 @@ const ItemCard: React.FC<{
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="p-3 pt-1 space-y-1.5">
         {/* Informações de contato */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           {item.email && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Mail className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Mail className="h-3 w-3 flex-shrink-0" />
               <span className="truncate">{item.email}</span>
             </div>
           )}
           {item.phone && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Phone className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Phone className="h-3 w-3 flex-shrink-0" />
               <span>{item.phone}</span>
             </div>
           )}
           {item.address && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <MapPin className="h-3 w-3 flex-shrink-0" />
               <span className="truncate">{item.address}</span>
             </div>
           )}
           {item.capacity && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Home className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Home className="h-3 w-3 flex-shrink-0" />
               <span>Capacidade: {item.capacity} animais</span>
             </div>
           )}
           {item.bankName && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Building2 className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Building2 className="h-3 w-3 flex-shrink-0" />
               <span>{item.bankName} - {item.accountNumber}</span>
             </div>
           )}
         </div>
 
         {/* Status e métricas */}
-        <div className="flex items-center justify-between pt-2 border-t">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between pt-1.5 mt-1 border-t">
+          <div className="flex items-center gap-1">
             {item.isActive ? (
-              <CheckCircle className="h-4 w-4 text-success" />
+              <CheckCircle className="h-3 w-3 text-success" />
             ) : (
-              <XCircle className="h-4 w-4 text-error" />
+              <XCircle className="h-3 w-3 text-error" />
             )}
-            <span className="text-xs text-muted-foreground">
+            <span className="text-[10px] text-muted-foreground">
               {item.isActive ? 'Ativo' : 'Inativo'}
             </span>
           </div>
-          
-          <div className="text-xs text-muted-foreground">
+
+          <div className="text-[10px] text-muted-foreground">
             Desde {(() => {
               try {
                 if (!item.createdAt) return 'Data não informada';
-                return formatBrazilianDate(item.createdAt, 'DATE_MONTH_YEAR');
+                return formatBrazilianDate(item.createdAt, 'dd/MM/yyyy');
               } catch (err) {
                 console.warn('Erro ao formatar data:', { date: item.createdAt, error: err });
                 return 'Data inválida';
@@ -565,9 +566,6 @@ const DeleteConfirmModal: React.FC<{
       case 'accounts':
         return 'Esta ação removerá a conta pagadora e pode afetar transações financeiras associadas.';
       case 'categories':
-        if (item && !categoryService.canDelete(item.id)) {
-          return 'Esta é uma categoria padrão do sistema e não pode ser excluída. As categorias padrão são essenciais para o funcionamento do sistema.';
-        }
         return 'Esta ação removerá a categoria permanentemente. Certifique-se de que não há movimentações financeiras usando esta categoria.';
       default:
         return 'Esta ação não pode ser desfeita.';
@@ -634,17 +632,10 @@ const DeleteConfirmModal: React.FC<{
           <Button variant="outline" onClick={onCancel}>
             Cancelar
           </Button>
-          {(type !== 'categories' || !item || categoryService.canDelete(item.id)) ? (
-            <Button variant="destructive" onClick={onConfirm}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Excluir {getTypeLabel(type)}
-            </Button>
-          ) : (
-            <Button variant="outline" disabled>
-              <Shield className="h-4 w-4 mr-2" />
-              Categoria Protegida
-            </Button>
-          )}
+          <Button variant="destructive" onClick={onConfirm}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            Excluir {getTypeLabel(type)}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1322,6 +1313,7 @@ const CategoryForm: React.FC<{
 
 // Componente Principal
 export const CompleteRegistrations: React.FC = () => {
+  const { showNotification } = useNotification();
   const { partners, loading: partnersLoading, deletePartner, updatePartner, createPartner } = usePartnersApi();
   const { pens, loading: pensLoading, deletePen, updatePen, createPen } = usePensApi();
   const { payerAccounts, loading: accountsLoading, deletePayerAccount, updatePayerAccount, createPayerAccount } = usePayerAccountsApi();
@@ -1466,29 +1458,47 @@ export const CompleteRegistrations: React.FC = () => {
 
   const confirmDelete = async () => {
     if (!itemToDelete) return;
-    
+
     try {
+      let itemName = '';
       switch (activeTab) {
         case 'partners':
           await deletePartner(itemToDelete.id);
+          itemName = 'Parceiro';
           break;
         case 'pens':
           await deletePen(itemToDelete.id);
+          itemName = 'Curral';
           break;
         case 'accounts':
           await deletePayerAccount(itemToDelete.id);
+          itemName = 'Conta';
           break;
         case 'categories':
           deleteCategory(itemToDelete.id);
+          itemName = 'Categoria';
           break;
         default:
           console.log('Tipo de item não reconhecido');
       }
+
+      if (itemName) {
+        showNotification({
+          title: 'Exclusão realizada',
+          message: `${itemName} excluído com sucesso`,
+          type: 'success'
+        });
+      }
+
       setShowDeleteConfirm(false);
       setItemToDelete(null);
     } catch (error) {
       console.error('Erro ao excluir item:', error);
-      // Aqui você pode adicionar uma notificação de erro
+      showNotification({
+        title: 'Erro na exclusão',
+        message: 'Não foi possível excluir o item. Tente novamente.',
+        type: 'error'
+      });
     }
   };
 
@@ -1499,42 +1509,67 @@ export const CompleteRegistrations: React.FC = () => {
 
   const handleFormSave = async (data: any) => {
     try {
+      let itemName = '';
+      let isUpdate = false;
+
       switch (activeTab) {
         case 'partners':
           if (editingItem) {
             await updatePartner(editingItem.id, data);
+            isUpdate = true;
           } else {
             await createPartner(data);
           }
+          itemName = 'Parceiro';
           break;
         case 'pens':
           if (editingItem) {
             await updatePen(editingItem.id, data);
+            isUpdate = true;
           } else {
             await createPen(data);
           }
+          itemName = 'Curral';
           break;
         case 'accounts':
           if (editingItem) {
             await updatePayerAccount(editingItem.id, data);
+            isUpdate = true;
           } else {
             await createPayerAccount(data);
           }
+          itemName = 'Conta';
           break;
         case 'categories':
           if (editingItem) {
             updateCategory(editingItem.id, data);
+            isUpdate = true;
           } else {
             createCategory(data);
           }
+          itemName = 'Categoria';
           break;
         default:
           console.log('Tipo de item não reconhecido');
       }
+
+      if (itemName) {
+        showNotification({
+          title: isUpdate ? 'Atualização realizada' : 'Cadastro realizado',
+          message: `${itemName} ${isUpdate ? 'atualizado' : 'cadastrado'} com sucesso`,
+          type: 'success'
+        });
+      }
+
       setShowForm(false);
       setEditingItem(null);
     } catch (error) {
       console.error('Erro ao salvar item:', error);
+      showNotification({
+        title: 'Erro ao salvar',
+        message: 'Não foi possível salvar as informações. Tente novamente.',
+        type: 'error'
+      });
     }
   };
 
@@ -1623,34 +1658,34 @@ export const CompleteRegistrations: React.FC = () => {
         </div>
 
         {/* Cards de Navegação */}
-        <div className="grid gap-4 md:grid-cols-5">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {registrationTypes.map((type) => {
             const Icon = type.icon;
             const isActive = activeTab === type.id;
-            
+
             return (
-              <Card 
+              <Card
                 key={type.id}
-                className={`cursor-pointer transition-all hover:shadow-lg hover-lift ${
-                  isActive ? 'ring-2 ring-primary' : ''
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  isActive ? 'ring-2 ring-primary border-primary' : 'hover:border-gray-300'
                 }`}
                 onClick={() => setActiveTab(type.id)}
               >
-                <CardHeader className="pb-3">
-                  <div className={`p-2 ${type.bgColor} rounded-lg w-fit`}>
-                    <Icon className={`h-5 w-5 ${type.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <h3 className="card-title">{type.title}</h3>
-                  <p className="card-subtitle mt-1">
-                    {type.description}
-                  </p>
-                  <div className="mt-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {getItemCount(type.id)} itens
+                <CardHeader className="p-3 pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className={`p-1.5 ${type.bgColor} rounded w-fit`}>
+                      <Icon className={`h-4 w-4 ${type.color}`} />
+                    </div>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                      {getItemCount(type.id)}
                     </Badge>
                   </div>
+                </CardHeader>
+                <CardContent className="p-3 pt-1">
+                  <h3 className="text-sm font-medium">{type.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                    {type.description}
+                  </p>
                 </CardContent>
               </Card>
             );
@@ -1659,10 +1694,10 @@ export const CompleteRegistrations: React.FC = () => {
 
         {/* Filtros */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="card-title">Filtros e Busca</CardTitle>
+          <CardHeader className="py-3">
+            <CardTitle className="text-base">Filtros e Busca</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
@@ -1774,17 +1809,17 @@ export const CompleteRegistrations: React.FC = () => {
                       // Ordenar as linhas alfabeticamente
                       const sortedLocations = Object.keys(pensByLocation).sort();
                       
-                      return sortedLocations.map(location => (
-                        <div key={location} className="flex flex-col space-y-2 p-3 bg-muted/50 rounded-lg">
+                      return sortedLocations.map((location, index) => (
+                        <div key={`${location}-${index}`} className="flex flex-col space-y-2 p-3 bg-muted/50 rounded-lg">
                           <div className="flex items-center justify-between">
                             <span className="font-medium text-sm">{location}</span>
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge key={`badge-${location}-${index}`} variant="secondary" className="text-xs">
                               {pensByLocation[location].length} currais
                             </Badge>
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            {pensByLocation[location].sort().map((pen: string) => (
-                              <Badge key={pen} variant="outline" className="text-xs">
+                            {pensByLocation[location].sort().map((pen: string, penIndex: number) => (
+                              <Badge key={`${pen}-${penIndex}`} variant="outline" className="text-xs">
                                 {pen}
                               </Badge>
                             ))}
@@ -1869,156 +1904,123 @@ export const CompleteRegistrations: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="categories" className="space-y-4">
-            {/* Estatísticas de Categorias */}
-            <div className="grid gap-4 md:grid-cols-4 mb-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Categorias de Despesa</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
-                    {categories.filter(c => c.type === 'EXPENSE').length}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Categorias ativas
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Categorias de Receita</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">
-                    {categories.filter(c => c.type === 'INCOME').length}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Categorias ativas
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Total de Categorias</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {categories.length}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Todas as categorias
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-dashed">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Ações Rápidas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        if (confirm('Deseja resetar para as categorias padrão? Isso irá remover todas as categorias personalizadas.')) {
-                          categoryService.resetToDefaults();
-                          loadCategories();
-                        }
-                      }}
-                      className="justify-start"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Resetar Padrões
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             {filteredData.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {filteredData.map(item => (
-                  <Card key={item.id} className="hover-lift">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="h-10 w-10 rounded-lg flex items-center justify-center"
-                            style={{ backgroundColor: item.color + '20' }}
-                          >
-                            <div 
-                              className="h-6 w-6 rounded"
-                              style={{ backgroundColor: item.color }}
-                            />
-                          </div>
-                          <div>
-                            <CardTitle className="text-sm font-medium">
-                              {item.name}
-                            </CardTitle>
-                            <CardDescription className="text-xs">
-                              {item.type === 'EXPENSE' ? 'Despesa' : 'Receita'}
-                            </CardDescription>
-                          </div>
-                        </div>
-                        
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleItemEdit(item)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            {categoryService.canDelete(item.id) ? (
-                              <DropdownMenuItem 
-                                onClick={() => handleItemDelete(item)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Excluir
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem 
-                                disabled
-                                className="opacity-50"
-                              >
-                                <Shield className="mr-2 h-4 w-4" />
-                                Categoria Protegida
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+              <Card>
+                <CardContent className="p-0">
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="w-[50px] text-xs font-medium">Cor</TableHead>
+                          <TableHead className="w-[35%] text-xs font-medium">Nome da Categoria</TableHead>
+                          <TableHead className="w-[15%] text-xs font-medium">Tipo</TableHead>
+                          <TableHead className="w-[15%] text-xs font-medium">Status</TableHead>
+                          <TableHead className="w-[15%] text-xs font-medium">Origem</TableHead>
+                          <TableHead className="w-[100px] text-center text-xs font-medium">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredData.map(item => {
+                          const isProtected = !categoryService.canDelete(item.id);
+                          return (
+                            <TableRow key={item.id} className="hover:bg-muted/50">
+                              <TableCell className="py-2">
+                                <div className="flex items-center">
+                                  <div 
+                                    className="w-8 h-8 rounded-md border-2"
+                                    style={{ 
+                                      backgroundColor: item.color || '#000000',
+                                      borderColor: item.color || '#000000' 
+                                    }}
+                                    title={item.color}
+                                  />
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <div className="space-y-0.5">
+                                  <p className="text-sm font-medium leading-none">{item.name}</p>
+                                  {item.icon && (
+                                    <p className="text-xs text-muted-foreground">
+                                      {item.icon}
+                                    </p>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <Badge 
+                                  variant={item.type === 'INCOME' ? 'default' : 'destructive'}
+                                  className="text-xs font-medium"
+                                >
+                                  {item.type === 'INCOME' ? 'Receita' : 'Despesa'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <Badge variant="outline" className="text-xs font-medium">
+                                  {item.isActive !== false ? 'Ativa' : 'Inativa'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <div className="flex items-center gap-1.5">
+                                  {isProtected ? (
+                                    <>
+                                      <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <span className="text-xs text-muted-foreground">Sistema</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                                      <span className="text-xs text-muted-foreground">Usuário</span>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center py-2">
+                                <div className="flex items-center justify-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleItemEdit(item)}
+                                    className="h-7 w-7"
+                                  >
+                                    <Edit className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleItemDelete(item)}
+                                    className="h-7 w-7 text-destructive hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  {/* Rodapé com informações */}
+                  <div className="px-4 py-3 border-t bg-muted/30">
+                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                      <span>
+                        Exibindo {filteredData.length} de {categories.length} categorias
+                      </span>
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded-full bg-green-600"></div>
+                          {categories.filter(c => c.type === 'INCOME').length} receitas
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded-full bg-red-600"></div>
+                          {categories.filter(c => c.type === 'EXPENSE').length} despesas
+                        </span>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          variant={item.type === 'EXPENSE' ? 'destructive' : 'default'}
-                          className="text-xs"
-                        >
-                          {item.type === 'EXPENSE' ? (
-                            <TrendingDown className="h-3 w-3 mr-1" />
-                          ) : (
-                            <TrendingUp className="h-3 w-3 mr-1" />
-                          )}
-                          {item.type === 'EXPENSE' ? 'Despesa' : 'Receita'}
-                        </Badge>
-                        {!categoryService.canDelete(item.id) && (
-                          <Badge variant="secondary" className="text-xs">
-                            Padrão
-                          </Badge>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ) : (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">

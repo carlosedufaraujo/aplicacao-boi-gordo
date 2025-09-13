@@ -8,6 +8,7 @@ import { SettingsProvider } from '@/providers/SettingsProvider';
 import { FinancialDataProvider } from '@/providers/FinancialDataProvider';
 import { PenNavigationProvider } from '@/contexts/PenNavigationContext';
 import { registerExistingUpdates } from '@/utils/systemUpdates';
+import { Toaster } from '@/components/ui/toaster';
 
 // ============================================================================
 // COMPONENTES MODERNOS (shadcn/ui) - TODOS MIGRADOS
@@ -164,6 +165,7 @@ function App() {
                     } />
                     <Route path="/*" element={<AppContent />} />
                   </Routes>
+                  <Toaster />
                 </div>
               </PenNavigationProvider>
             </NotificationProvider>

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 
 import { useIntegratedFinancialAnalysis } from '@/hooks/useIntegratedFinancialAnalysis';
+import { DREStatement } from './DREStatement';
 
 interface IntegratedDashboardProps {
   className?: string;
@@ -63,6 +64,8 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
       // Carregar todas as transações quando filtros estiverem desabilitados
       loadAllTransactions?.();
     }
+    // Sempre carregar todas as transações para dados históricos de mortalidade
+    loadAllTransactions?.();
   }, [selectedYear, filtersEnabled, loadDashboard, loadAllTransactions]);
 
   // Tentar carregar análise do período selecionado
@@ -97,6 +100,12 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
     }
   };
 
+  // Calcular total histórico de mortalidade
+  const totalHistoricalMortality = allTransactions && allTransactions.length > 0 ? 
+    allTransactions
+      .filter(t => t.category === 'MORTALITY' || t.description?.toLowerCase().includes('mortalidade'))
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0) : 0;
+
   // Dados para os cards de resumo
   const summaryCards = dashboard ? [
     {
@@ -121,11 +130,11 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
       bgColor: dashboard.summary.totalNetIncome >= 0 ? 'bg-green-50' : 'bg-red-50'
     },
     {
-      title: 'Fluxo de Caixa',
-      value: formatCurrency(dashboard.summary.totalCashFlow),
-      icon: BarChart3,
-      color: dashboard.summary.totalCashFlow >= 0 ? 'text-blue-600' : 'text-red-600',
-      bgColor: dashboard.summary.totalCashFlow >= 0 ? 'bg-blue-50' : 'bg-red-50'
+      title: 'Perdas por Mortalidade',
+      value: formatCurrency(totalHistoricalMortality),
+      icon: AlertCircle,
+      color: 'text-red-700',
+      bgColor: 'bg-red-100'
     }
   ] : [];
 
@@ -268,11 +277,13 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
 
       {/* Tabs principais */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="dre">DRE</TabsTrigger>
           <TabsTrigger value="reconciliation">Reconciliação</TabsTrigger>
           <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
           <TabsTrigger value="trends">Tendências</TabsTrigger>
+          <TabsTrigger value="mortality">Mortalidade</TabsTrigger>
         </TabsList>
 
         {/* Tab: Visão Geral */}
@@ -299,6 +310,18 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
                       <span>Despesas + Perdas Operacionais:</span>
                       <span className="font-medium text-red-600">
                         {formatCurrency(currentAnalysis.totalExpenses)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>💀 Mortalidade do Período:</span>
+                      <span className="font-medium text-red-700">
+                        {formatCurrency(currentAnalysis.nonCashBreakdown?.mortality || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between bg-red-50 px-2 py-1 rounded">
+                      <span className="text-sm font-medium">💀 Total Histórico Mortalidade:</span>
+                      <span className="font-bold text-red-700">
+                        {formatCurrency(totalHistoricalMortality)}
                       </span>
                     </div>
                     <Separator />
@@ -346,12 +369,100 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
                 </Card>
               )}
             </div>
+
           ) : (
             <Card>
               <CardContent className="text-center py-8">
                 <Calendar className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
                 <p className="text-lg text-muted-foreground">
                   Selecione um período e gere uma análise para visualizar os dados
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Alerta de Mortalidade Geral */}
+        {totalHistoricalMortality > 50000 && (
+          <Alert className="border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              <strong>Atenção:</strong> Total de perdas por mortalidade de {formatCurrency(totalHistoricalMortality)} detectado. 
+              Esta é uma perda significativa que impacta diretamente os resultados da operação. 
+              Recomenda-se análise detalhada na aba "Mortalidade" para identificar padrões e possíveis melhorias.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Tab: DRE */}
+        <TabsContent value="dre" className="space-y-4">
+          {currentAnalysis && allTransactions ? (
+            <div className="space-y-4">
+              {/* Preparar dados para o DRE com mortalidade histórica */}
+              {(() => {
+                // Calcular total histórico de mortalidade
+                const totalHistoricalMortality = allTransactions
+                  .filter(t => t.category === 'MORTALITY' || t.description?.toLowerCase().includes('mortalidade'))
+                  .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+                // Preparar dados de despesas incluindo mortalidade histórica
+                // Subtrair TODA a mortalidade das despesas do período para substituir por dados históricos
+                const expensesWithoutAnyMortality = currentAnalysis.totalExpenses - (currentAnalysis.nonCashBreakdown?.mortality || 0);
+                
+                // Calcular outras despesas históricas (excluindo mortalidade)
+                const otherHistoricalExpenses = allTransactions
+                  .filter(t => t.amount < 0 && t.category !== 'MORTALITY' && !t.description?.toLowerCase().includes('mortalidade'))
+                  .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+                
+                // Dados de receitas
+                const revenues = [
+                  { category: 'cattle_sales', totalAmount: currentAnalysis.totalRevenue }
+                ];
+                
+                // Usar dados históricos completos ao invés de dados do período
+                const expensesWithMortality = [
+                  { category: 'operational_costs', totalAmount: otherHistoricalExpenses },
+                  { category: 'mortality', totalAmount: totalHistoricalMortality }
+                ];
+                
+                // Debug: vamos imprimir os dados no console
+                console.log('🔍 DEBUG DRE - Dados sendo passados:', {
+                  totalHistoricalMortality,
+                  otherHistoricalExpenses,
+                  mortalityFromPeriod: currentAnalysis.nonCashBreakdown?.mortality || 0,
+                  expensesWithMortality,
+                  revenues
+                });
+
+                return (
+                  <>
+                    <div className="mb-4">
+                      <Alert className="border-blue-200 bg-blue-50">
+                        <Info className="h-4 w-4 text-blue-600" />
+                        <AlertDescription className="text-blue-800">
+                          <strong>DRE com Dados Históricos:</strong> Esta demonstração utiliza dados históricos completos. 
+                          Na seção "Perdas Operacionais" → "Perdas por mortalidade e quebra de peso", está sendo exibido 
+                          o valor total histórico de {formatCurrency(totalHistoricalMortality)} ao invés de apenas 
+                          o período atual de {formatCurrency(currentAnalysis.nonCashBreakdown?.mortality || 0)}.
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+
+                    <DREStatement 
+                      expenses={expensesWithMortality}
+                      revenues={revenues}
+                      period={`${selectedMonth}/${selectedYear} (com Mortalidade Histórica)`}
+                    />
+                  </>
+                );
+              })()}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Calculator className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
+                <p className="text-lg text-muted-foreground">
+                  Gere uma análise para visualizar o DRE (Demonstrativo de Resultado)
                 </p>
               </CardContent>
             </Card>
@@ -415,6 +526,7 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
                 </div>
               </CardContent>
             </Card>
+
           ) : (
             <Card>
               <CardContent className="text-center py-8">
@@ -589,6 +701,154 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Tab: Mortalidade */}
+        <TabsContent value="mortality" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                💀 Análise de Mortalidade
+              </CardTitle>
+              <CardDescription>
+                Dados históricos de perdas por mortalidade (todos os períodos)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {allTransactions && allTransactions.length > 0 ? (
+                <div className="space-y-6">
+                  {(() => {
+                    // Filtrar transações de mortalidade
+                    const mortalityTransactions = allTransactions.filter(
+                      t => t.category === 'MORTALITY' || t.description?.toLowerCase().includes('mortalidade')
+                    );
+                    
+                    if (mortalityTransactions.length === 0) {
+                      return (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">
+                            Nenhuma transação de mortalidade encontrada.
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    // Calcular totais
+                    const totalMortality = mortalityTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+                    const mortalityByMonth = mortalityTransactions.reduce((acc, t) => {
+                      const month = new Date(t.referenceDate).toLocaleDateString('pt-BR', { 
+                        year: 'numeric', 
+                        month: 'long' 
+                      });
+                      if (!acc[month]) acc[month] = [];
+                      acc[month].push(t);
+                      return acc;
+                    }, {} as Record<string, any[]>);
+
+                    return (
+                      <>
+                        {/* Resumo de Mortalidade */}
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Resumo Geral</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <span>Total de Eventos:</span>
+                                  <Badge variant="outline">{mortalityTransactions.length}</Badge>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Perda Total:</span>
+                                  <span className="font-bold text-red-600">
+                                    {formatCurrency(totalMortality)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Perda Média por Evento:</span>
+                                  <span className="font-medium">
+                                    {formatCurrency(totalMortality / mortalityTransactions.length)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Detalhamento por Mês */}
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Detalhamento por Período</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-4">
+                              {Object.entries(mortalityByMonth)
+                                .sort((a, b) => b[0].localeCompare(a[0]))
+                                .map(([month, transactions]) => {
+                                  const monthTotal = transactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+                                  return (
+                                    <div key={month} className="border rounded-lg p-4">
+                                      <div className="flex justify-between items-center mb-3">
+                                        <h4 className="font-medium capitalize">{month}</h4>
+                                        <div className="flex items-center gap-2">
+                                          <Badge variant="outline">{transactions.length} eventos</Badge>
+                                          <span className="font-bold text-red-600">
+                                            {formatCurrency(monthTotal)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="space-y-2 text-sm">
+                                        {transactions.slice(0, 5).map((transaction, idx) => (
+                                          <div key={idx} className="flex justify-between text-xs">
+                                            <span className="text-muted-foreground truncate max-w-md">
+                                              {new Date(transaction.referenceDate).toLocaleDateString('pt-BR')} - {transaction.description}
+                                            </span>
+                                            <span className="text-red-600 font-medium">
+                                              {formatCurrency(Math.abs(transaction.amount))}
+                                            </span>
+                                          </div>
+                                        ))}
+                                        {transactions.length > 5 && (
+                                          <div className="text-xs text-muted-foreground text-center">
+                                            ... e mais {transactions.length - 5} eventos
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    Carregue as transações para visualizar dados de mortalidade.
+                  </p>
+                  <Button 
+                    onClick={() => loadAllTransactions?.()}
+                    className="mt-4"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Carregando...
+                      </>
+                    ) : (
+                      'Carregar Dados'
+                    )}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

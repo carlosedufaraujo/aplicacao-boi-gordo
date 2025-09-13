@@ -67,12 +67,6 @@ export class CategoryService {
   }
 
   public delete(id: string): boolean {
-    // Não permitir deletar categorias padrão
-    if (id.startsWith('cat-exp-') || id.startsWith('cat-inc-')) {
-      console.warn('Não é possível deletar categorias padrão');
-      return false;
-    }
-
     const index = this.categories.findIndex(cat => cat.id === id);
     if (index === -1) return false;
 
@@ -82,8 +76,7 @@ export class CategoryService {
   }
 
   public canDelete(id: string): boolean {
-    // Categorias padrão não podem ser deletadas
-    return !id.startsWith('cat-exp-') && !id.startsWith('cat-inc-');
+    return true;
   }
 
   public search(query: string): Category[] {

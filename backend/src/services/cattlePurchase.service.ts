@@ -72,14 +72,30 @@ export class CattlePurchaseService {
     const lotCode = await this.generateLotCode();
     // Removido internalCode - usando apenas lotCode
     
+    // IMPORTANTE: Sempre usar 50% como rendimento padrão para evitar divergências
+    const rendimentoPadrao = 50;
+    const rendimentoFinal = data.carcassYield || rendimentoPadrao;
+    
     // Se purchaseValue foi fornecido, usa ele; senão calcula
     let purchaseValue: number;
     if (data.purchaseValue && data.purchaseValue > 0) {
       // Usar valor fornecido (útil para importação)
       purchaseValue = data.purchaseValue;
+      
+      // Validar se o valor está correto (tolerância de 1%)
+      const valorCalculado = ((data.purchaseWeight * rendimentoFinal) / 100 / 15) * data.pricePerArroba;
+      const diferenca = Math.abs(purchaseValue - valorCalculado);
+      const percentualDiferenca = (diferenca / valorCalculado) * 100;
+      
+      if (percentualDiferenca > 1) {
+        console.warn(`⚠️ AVISO: Valor fornecido diverge ${percentualDiferenca.toFixed(2)}% do calculado`);
+        console.warn(`  Fornecido: R$ ${purchaseValue.toFixed(2)}`);
+        console.warn(`  Calculado: R$ ${valorCalculado.toFixed(2)}`);
+        console.warn(`  Rendimento: ${rendimentoFinal}%`);
+      }
     } else {
       // Calcular valor da compra - preço por arroba é aplicado sobre peso da carcaça
-      const carcassWeight = (data.purchaseWeight * (data.carcassYield || 50)) / 100;
+      const carcassWeight = (data.purchaseWeight * rendimentoFinal) / 100;
       purchaseValue = (carcassWeight / 15) * data.pricePerArroba;
     }
     
@@ -98,7 +114,7 @@ export class CattlePurchaseService {
       animalType: data.animalType,
       initialQuantity: data.initialQuantity,
       purchaseWeight: data.purchaseWeight,
-      carcassYield: data.carcassYield,
+      carcassYield: rendimentoFinal,
       pricePerArroba: data.pricePerArroba,
       paymentType: data.paymentType,
       purchaseValue,

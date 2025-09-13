@@ -45,6 +45,19 @@ export const DREStatement: React.FC<DREStatementProps> = ({
   
   const groupedData = groupByAccountingCategory(allItems);
   const dre = calculateDRE(groupedData);
+  
+  console.log('🔍 [DREStatement] ALL ITEMS PARA AGRUPAMENTO:');
+  allItems.forEach((item, idx) => {
+    console.log(`${idx + 1}. ${item.category}: ${item.totalAmount}`);
+  });
+  
+  console.log('📊 [DREStatement] GROUPED DATA:');
+  Object.entries(groupedData).forEach(([groupId, data]) => {
+    console.log(`- ${groupId}:`, data.group.name, 'Total:', data.total);
+    data.items.forEach((item: any) => {
+      console.log(`  * ${item.category}: ${item.amount}`);
+    });
+  });
 
   const toggleGroup = (groupId: string) => {
     const newExpanded = new Set(expandedGroups);
