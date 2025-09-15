@@ -9,12 +9,10 @@ export class RetroactiveIntegrationService {
    * Executa integração retroativa para todas as ordens sem integração
    */
   static async integrateExistingOrders(): Promise<void> {
-    console.log('🔄 Iniciando integração retroativa de ordens existentes...');
     
     try {
       // 1. Buscar todas as ordens de compra
       const allOrders = await dataService.getAllCattlePurchases();
-      console.log(`📋 Encontradas ${allOrders.length} ordens de compra no sistema`);
       
       // 2. Identificar ordens sem integração
       const ordersWithoutIntegration = [];
@@ -35,29 +33,22 @@ export class RetroactiveIntegrationService {
           });
         }
       }
-      
-      console.log(`🔍 Encontradas ${ordersWithoutIntegration.length} ordens sem integração completa`);
-      
       // 3. Executar integração para cada ordem
       let successCount = 0;
       let errorCount = 0;
       
       for (const { order, missingIntegrations } of ordersWithoutIntegration) {
         try {
-          console.log(`\n🔄 Integrando ordem ${order.lotCode}...`);
           
           if (missingIntegrations.lot && missingIntegrations.expenses) {
             // Integração completa
             await LotIntegrationService.integrateNewLot(order);
-            console.log(`✅ Integração completa realizada para ordem ${order.lotCode}`);
           } else if (missingIntegrations.lot) {
             // Apenas criar lote
             await this.createLotForOrder(order);
-            console.log(`✅ Lote criado para ordem ${order.lotCode}`);
           } else if (missingIntegrations.expenses) {
             // Apenas criar despesas
             await this.createExpensesForOrder(order);
-            console.log(`✅ Despesas criadas para ordem ${order.lotCode}`);
           }
           
           successCount++;
@@ -66,12 +57,6 @@ export class RetroactiveIntegrationService {
           errorCount++;
         }
       }
-      
-      console.log(`\n📊 Resumo da integração retroativa:`);
-      console.log(`✅ Sucessos: ${successCount}`);
-      console.log(`❌ Erros: ${errorCount}`);
-      console.log(`📋 Total processado: ${ordersWithoutIntegration.length}`);
-      
     } catch (error) {
       console.error('❌ Erro na integração retroativa:', error);
       throw error;
@@ -138,7 +123,7 @@ export class RetroactiveIntegrationService {
     // Despesa principal - Compra de animais
     if (order.totalValue > 0) {
       expenses.push({
-        description: `Compra de Gado - Lote ${order.lotCode}`,
+        description: `Compra de Gado - ${order.lotCode}`,
         purchaseValue: order.totalValue,
         category: 'animal_purchase',
         dueDate: order.paymentDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 dias
@@ -153,7 +138,7 @@ export class RetroactiveIntegrationService {
     // Frete (se houver)
     if (order.freightCost && order.freightCost > 0) {
       expenses.push({
-        description: `Frete - Lote ${order.lotCode}`,
+        description: `Frete - ${order.lotCode}`,
         purchaseValue: order.freightCost,
         category: 'freight',
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
@@ -175,7 +160,6 @@ export class RetroactiveIntegrationService {
    * Gera relatório das ordens sem integração
    */
   static async generateIntegrationReport(): Promise<any> {
-    console.log('📊 Gerando relatório de integrações...');
     
     try {
       const allOrders = await dataService.getAllCattlePurchases();

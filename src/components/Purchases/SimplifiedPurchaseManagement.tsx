@@ -74,8 +74,6 @@ export function SimplifiedPurchaseManagement() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [purchaseToDelete, setPurchaseToDelete] = useState<string | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
-  
-  
 
   // Hooks de API
   const { 
@@ -108,8 +106,6 @@ export function SimplifiedPurchaseManagement() {
       purchase.vendor?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       purchase.location?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    
-    
     return matchesSearch;
   });
 
@@ -122,10 +118,6 @@ export function SimplifiedPurchaseManagement() {
   };
 
   // Funções auxiliares
-  
-
-  
-
   const toggleRowExpansion = (id: string) => {
     const newExpanded = new Set(expandedRows);
     if (newExpanded.has(id)) {
@@ -161,19 +153,20 @@ export function SimplifiedPurchaseManagement() {
     }
   };
 
-  
-
   return (
     <div className="space-y-6">
-      {/* Cabeçalho com Estatísticas */}
+      {/* Cabeçalho com Estatísticas - Padrão Dashboard */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Compras
-            </CardTitle>
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                COMPRAS
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 pt-1">
             <div className="text-2xl font-bold">{statistics.total}</div>
             <p className="text-xs text-muted-foreground">
               {statistics.active} ativas
@@ -181,13 +174,16 @@ export function SimplifiedPurchaseManagement() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total de Animais
-            </CardTitle>
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                ANIMAIS
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 pt-1">
             <div className="text-2xl font-bold">
               {statistics.totalAnimals.toLocaleString('pt-BR')}
             </div>
@@ -195,13 +191,16 @@ export function SimplifiedPurchaseManagement() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Arrobas Total
-            </CardTitle>
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <Package className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                ARROBAS
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 pt-1">
             <div className="text-2xl font-bold">
               {purchases.reduce((sum, p) => {
                 const carcassWeight = (p.purchaseWeight * p.carcassYield) / 100;
@@ -212,16 +211,19 @@ export function SimplifiedPurchaseManagement() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Peso Médio
-            </CardTitle>
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <Truck className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                PESO
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 pt-1">
             <div className="text-2xl font-bold">
-              {statistics.totalAnimals > 0 ? 
-                (purchases.reduce((sum, p) => sum + (p.purchaseWeight || 0), 0) / statistics.totalAnimals).toFixed(1) : 
+              {statistics.totalAnimals > 0 ?
+                (purchases.reduce((sum, p) => sum + (p.purchaseWeight || 0), 0) / statistics.totalAnimals).toFixed(1) :
                 '0'
               } kg
             </div>
@@ -229,13 +231,16 @@ export function SimplifiedPurchaseManagement() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Investimento Total
-            </CardTitle>
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                TOTAL
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 pt-1">
             <div className="text-2xl font-bold">
               {formatCurrency(statistics.totalInvestment)}
             </div>
@@ -243,13 +248,16 @@ export function SimplifiedPurchaseManagement() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Preço Médio/@
-            </CardTitle>
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <TrendingUp className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                R$/@
+              </Badge>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 pt-1">
             <div className="text-2xl font-bold">
               {(() => {
                 // Calcular total de arrobas de carcaça
@@ -300,8 +308,6 @@ export function SimplifiedPurchaseManagement() {
                 />
               </div>
             </div>
-            
-            
 
             <Button variant="outline" size="icon">
               <Download className="h-4 w-4" />
@@ -412,8 +418,6 @@ export function SimplifiedPurchaseManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-
       {/* Formulário de Nova/Editar Compra */}
       <OptimizedPurchaseForm
         open={showForm}

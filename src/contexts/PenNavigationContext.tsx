@@ -27,8 +27,6 @@ export const PenNavigationProvider: React.FC<PenNavigationProviderProps> = ({ ch
     localStorage.setItem('selectedPenId', penId);
     localStorage.setItem('selectedPenNumber', penNumber);
     localStorage.setItem('penNavigationSource', source);
-    
-    console.log(`🔗 Navegação para curral ${penNumber} (${penId}) de ${source}`);
   };
 
   const navigateToRegistrations = (penId?: string) => {
@@ -138,7 +136,6 @@ export const usePenNavigationEffect = () => {
     const source = localStorage.getItem('penNavigationSource');
     
     if (selectedPenId && source) {
-      console.log(`📍 Efeito de navegação: curral ${selectedPenNumber} de ${source}`);
       
       // Limpar o source após usar
       localStorage.removeItem('penNavigationSource');

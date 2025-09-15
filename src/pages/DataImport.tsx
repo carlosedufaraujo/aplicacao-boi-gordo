@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { dataImportApi } from '@/services/api/dataImport';
-import { useToast } from '@/components/ui/use-toast';
 import { 
   Card, 
   CardContent, 
@@ -345,11 +344,7 @@ export function DataImport() {
       }
       
       // Validar fornecedor
-      console.log('Debug vendorName:', { 
-        raw: row['Nome do Fornecedor*'], 
-        parsed: purchase.vendorName,
-        type: typeof purchase.vendorName 
-      });
+      // Debug removido para limpeza de código
       if (!purchase.vendorName) {
         rowErrors.push('Nome do fornecedor é obrigatório');
       } else if (purchase.vendorName.length < 3) {
@@ -369,11 +364,7 @@ export function DataImport() {
       }
       
       // Validar rendimento de carcaça
-      console.log('Debug carcassYield:', { 
-        raw: row['Rendimento de Carcaça (%)*'], 
-        parsed: purchase.carcassYield,
-        type: typeof purchase.carcassYield 
-      });
+      // Debug removido para limpeza de código
       if (!purchase.carcassYield || purchase.carcassYield <= 0 || purchase.carcassYield > 100) {
         rowErrors.push(`Rendimento de carcaça inválido: ${purchase.carcassYield}% - Deve estar entre 1% e 100%`);
       }
@@ -589,9 +580,6 @@ export function DataImport() {
     // Criar mapa de fornecedores únicos
     const uniqueVendors = [...new Set(selectedData.map(item => item.vendorName).filter(Boolean))];
     const vendorMap = new Map();
-
-    console.log('Criando fornecedores únicos...', uniqueVendors);
-
     // Criar fornecedores primeiro
     for (let i = 0; i < uniqueVendors.length; i++) {
       const vendorName = uniqueVendors[i];
@@ -605,7 +593,6 @@ export function DataImport() {
 
         if (vendorResponse.id) {
           vendorMap.set(vendorName, vendorResponse.id);
-          console.log(`Fornecedor criado: ${vendorName}`);
         }
       } catch (vendorError: any) {
         // Se já existir, tentar buscar
@@ -618,18 +605,13 @@ export function DataImport() {
               );
               if (existingVendor) {
                 vendorMap.set(vendorName, existingVendor.id);
-                console.log(`Fornecedor existente encontrado: ${vendorName}`);
               }
             }
           } catch (searchError) {
-            console.log(`Erro ao buscar fornecedor ${vendorName}:`, searchError);
           }
         }
       }
     }
-
-    console.log(`${vendorMap.size} fornecedores disponíveis para importação`);
-
     for (let i = 0; i < selectedData.length; i++) {
       const purchase = selectedData[i];
       

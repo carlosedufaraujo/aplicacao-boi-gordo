@@ -72,9 +72,7 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('[updatePen] Atualizando curral:', { id, data });
       const response = await penApi.update(id, data);
-      console.log('[updatePen] Resposta:', response);
       if (response.status === 'success' && response.data) {
         toast.success('Curral atualizado com sucesso');
         // Recarregar a lista completa para garantir sincronização
@@ -139,7 +137,6 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
 
   // Carregamento inicial
   useEffect(() => {
-    console.log('[usePensApi] Montando componente, iniciando carregamento...');
     
     const loadInitialData = async () => {
       try {
@@ -152,7 +149,6 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
         ]);
         
         if (pensResponse.status === 'success' && pensResponse.data) {
-          console.log('[usePensApi.ts] Initial load - Response data:', pensResponse.data);
           const items = Array.isArray(pensResponse.data) 
             ? pensResponse.data 
             : pensResponse.data.items || [];
@@ -160,7 +156,6 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
         }
         
         if (statsResponse.status === 'success' && statsResponse.data) {
-          console.log('[usePensApi.ts] Initial load - Response data:', statsResponse.data);
           setStats(statsResponse.data);
         }
       } catch (err) {

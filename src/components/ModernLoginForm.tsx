@@ -77,7 +77,6 @@ export function ModernLoginForm({ className }: ModernLoginFormProps) {
     setIsLoading(true);
 
     try {
-      console.log('🔐 Iniciando login...');
       await signIn(formData.email, formData.password);
       
       // Salvar/remover email conforme preferência
@@ -87,7 +86,6 @@ export function ModernLoginForm({ className }: ModernLoginFormProps) {
         localStorage.removeItem('rememberedEmail');
       }
 
-      console.log('✅ Login bem-sucedido, redirecionando...');
     } catch (error: any) {
       console.error('❌ Erro no login:', error);
       

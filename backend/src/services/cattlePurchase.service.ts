@@ -162,7 +162,7 @@ export class CattlePurchaseService {
     //   try {
     //     await this.expenseService.create({
     //     category: 'animal_purchase',
-    //     description: `Compra de gado - Lote ${lotCode}`,
+    //     description: `Compra de gado - ${lotCode}`,
     //     totalAmount: purchaseValue,
     //     dueDate: data.paymentDate || data.principalDueDate || data.purchaseDate,
     //     impactsCashFlow: true,
@@ -183,7 +183,7 @@ export class CattlePurchaseService {
       //   try {
       //     await this.expenseService.create({
       //     category: 'freight',
-      //     description: `Frete - Lote ${lotCode}`,
+      //     description: `Frete - ${lotCode}`,
       //     totalAmount: data.freightCost,
       //     dueDate: data.freightDueDate || data.purchaseDate,
       //     impactsCashFlow: true,
@@ -205,7 +205,7 @@ export class CattlePurchaseService {
       //   try {
       //     await this.expenseService.create({
       //     category: 'commission',
-      //     description: `Comissão - Lote ${lotCode}`,
+      //     description: `Comissão - ${lotCode}`,
       //     totalAmount: data.commission,
       //     dueDate: data.commissionDueDate || data.purchaseDate,
       //     impactsCashFlow: true,

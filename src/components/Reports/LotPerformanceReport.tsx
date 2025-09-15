@@ -6,16 +6,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FileDown, RefreshCw } from 'lucide-react';
 import { reportApi, LotPerformanceReport as LotPerfReport } from '@/services/api/reportApi';
 import { usePDFGenerator } from '@/hooks/usePDFGenerator';
-import { useToast } from '@/hooks/use-toast';
-
+import { toast } from 'sonner';
 export const LotPerformanceReport: React.FC = () => {
   const [report, setReport] = useState<LotPerfReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const { generatePDFFromElement, generateReportPDF } = usePDFGenerator();
-  const { toast } = useToast();
-
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -26,9 +23,7 @@ export const LotPerformanceReport: React.FC = () => {
     } catch (err) {
       console.error('Erro ao buscar dados:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados do relatório.",
+      toast.error("Não foi possível carregar os dados do relatório.", {
         variant: "destructive",
       });
     } finally {
@@ -49,14 +44,9 @@ export const LotPerformanceReport: React.FC = () => {
     });
 
     if (result.success) {
-      toast({
-        title: "Sucesso",
-        description: result.message,
-      });
+      toast.success(result.message);
     } else {
-      toast({
-        title: "Erro",
-        description: result.message,
+      toast.error(result.message, {
         variant: "destructive",
       });
     }
@@ -69,7 +59,7 @@ export const LotPerformanceReport: React.FC = () => {
       title: 'Relatório de Performance dos Lotes',
       subtitle: `Período: ${new Date().toLocaleDateString('pt-BR')}`,
       data: report.lots.map(lot => ({
-        lote: lot.lot.code,
+        lote: lot.lot.lotCode || lot.lot.code,
         entrada: new Date(lot.timeline.entryDate).toLocaleDateString('pt-BR'),
         animais: lot.quantity.current,
         dias: Math.round(lot.timeline.daysInConfinement),
@@ -101,14 +91,9 @@ export const LotPerformanceReport: React.FC = () => {
     });
 
     if (result.success) {
-      toast({
-        title: "Sucesso",
-        description: result.message,
-      });
+      toast.success(result.message);
     } else {
-      toast({
-        title: "Erro",
-        description: result.message,
+      toast.error(result.message, {
         variant: "destructive",
       });
     }
@@ -240,7 +225,7 @@ export const LotPerformanceReport: React.FC = () => {
                 {report.lots.map((lot) => (
                   <TableRow key={lot.lot.id}>
                     <TableCell className="font-medium">
-                      {lot.lot.code}
+                      {lot.lot.lotCode || lot.lot.code}
                       {lot.ranking && (
                         <Badge variant="outline" className="ml-2">
                           #{lot.ranking.position}
@@ -343,7 +328,7 @@ export const LotPerformanceReport: React.FC = () => {
                 <div className="space-y-1">
                   {report.summary.bestPerformers.slice(0, 3).map((lot) => (
                     <div key={lot.lot.id} className="flex justify-between text-sm">
-                      <span>{lot.lot.code}</span>
+                      <span>{lot.lot.lotCode || lot.lot.code}</span>
                       <span className="text-green-600">ROI: {lot.financials.roi.toFixed(1)}%</span>
                     </div>
                   ))}

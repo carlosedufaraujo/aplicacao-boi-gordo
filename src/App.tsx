@@ -8,7 +8,7 @@ import { SettingsProvider } from '@/providers/SettingsProvider';
 import { FinancialDataProvider } from '@/providers/FinancialDataProvider';
 import { PenNavigationProvider } from '@/contexts/PenNavigationContext';
 import { registerExistingUpdates } from '@/utils/systemUpdates';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from 'sonner';
 
 // ============================================================================
 // COMPONENTES MODERNOS (shadcn/ui) - TODOS MIGRADOS
@@ -21,26 +21,14 @@ const IntegratedDashboard = lazy(() => import('@/components/FinancialAnalysis/In
 const SalesManagement = lazy(() => import('@/components/Sales/SalesManagement'));
 const PurchaseManagement = lazy(() => import('@/components/Purchases/SimplifiedPurchaseManagement'));
 const CompleteCalendar = lazy(() => import('@/components/Calendar/CompleteCalendar'));
-const CleanUserManagement = lazy(() => import('@/components/System/CleanUserManagement'));
-const DataImport = lazy(() => import('@/pages/DataImport'));
+const Settings = lazy(() => import('@/components/System/GeneralSettings'));
 const CategoryManagement = lazy(() => import('@/components/Categories/CategoryManagement'));
 
-// Componentes de configurações - TODOS MODERNOS
-const NotificationSettings = lazy(() => import('@/components/System/NotificationSettings'));
-const ProfileSettings = lazy(() => import('@/components/Profile/ProfileSettings'));
-const OrganizationSettings = lazy(() => import('@/components/System/OrganizationSettings'));
-const GeneralSettings = lazy(() => import('@/components/System/GeneralSettings'));
-const ChangePassword = lazy(() => import('@/components/Profile/ChangePassword'));
-const SystemUpdates = lazy(() => import('@/components/System/SystemUpdates'));
+// Componentes de configurações
 const Reports = lazy(() => import('@/pages/Reports'));
 
 // Página de Login
 const Login02 = lazy(() => import('@/pages/Login02'));
-
-// Componente de teste da integração API
-const ApiIntegrationTest = lazy(() => import('@/components/Test/ApiIntegrationTest'));
-const TestCycles = lazy(() => import('@/pages/TestCycles'));
-const TestPens = lazy(() => import('@/pages/TestPens'));
 
 // ============================================================================
 // COMPONENTE DE LOADING
@@ -86,8 +74,6 @@ const AppContent: React.FC = () => {
         return <ShadcnDashboard />;
       case 'lots':
         return <CompleteLots />;
-      case 'registrations':
-        return <CompleteRegistrations />;
       case 'integrated-analysis':
         return <IntegratedDashboard />;
       case 'financial':
@@ -100,30 +86,10 @@ const AppContent: React.FC = () => {
         return <CompleteCalendar />;
       case 'reports':
         return <Reports />;
-      case 'data-import':
-        return <DataImport />;
-      case 'users':
-        return <CleanUserManagement />;
+      case 'settings':
+        return <Settings />;
       case 'categories':
         return <CategoryManagement />;
-      case 'settings':
-        return <GeneralSettings />;
-      case 'notifications':
-        return <NotificationSettings />;
-      case 'profile':
-        return <ProfileSettings />;
-      case 'organization':
-        return <OrganizationSettings />;
-      case 'change-password':
-        return <ChangePassword />;
-      case 'system-updates':
-        return <SystemUpdates />;
-      case 'api-test':
-        return <ApiIntegrationTest />;
-      case 'test-cycles':
-        return <TestCycles />;
-      case 'test-pens':
-        return <TestPens />;
       default:
         return (
           <div className="flex items-center justify-center h-64">
@@ -165,7 +131,13 @@ function App() {
                     } />
                     <Route path="/*" element={<AppContent />} />
                   </Routes>
-                  <Toaster />
+                  <Toaster
+                    position="top-right"
+                    richColors
+                    closeButton
+                    duration={4000}
+                    theme="light"
+                  />
                 </div>
               </PenNavigationProvider>
             </NotificationProvider>

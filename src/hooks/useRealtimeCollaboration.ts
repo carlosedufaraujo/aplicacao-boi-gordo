@@ -169,16 +169,12 @@ export function useRealtimeCollaboration({
         // Log dos eventos para debug
         switch (event.type) {
           case 'task_moved':
-            console.log(`📦 ${event.userName} moveu tarefa`);
             break;
           case 'task_created':
-            console.log(`✨ ${event.userName} criou tarefa`);
             break;
           case 'task_updated':
-            console.log(`✏️ ${event.userName} atualizou tarefa`);
             break;
           case 'task_deleted':
-            console.log(`🗑️ ${event.userName} excluiu tarefa`);
             break;
         }
       }
@@ -220,14 +216,12 @@ export function useRealtimeCollaboration({
     socketService.onSelectionUpdate(handleSelectionUpdate);
 
     setIsConnected(true);
-    console.log('🔗 Conectado à colaboração em tempo real');
 
     // Enviar presença inicial
     updatePresence({});
 
     // Cleanup
     return () => {
-      console.log('🔌 Desconectando da colaboração');
       socketService.unsubscribeKanban(boardId);
       setIsConnected(false);
       setCollaborators([]);

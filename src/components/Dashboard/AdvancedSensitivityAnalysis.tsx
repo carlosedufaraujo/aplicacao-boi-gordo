@@ -33,7 +33,8 @@ import {
   TrendingUpIcon,
   Wallet,
   Lock,
-  Unlock
+  Unlock,
+  Grid3x3
 } from "lucide-react";
 import {
   Tooltip as UITooltip,
@@ -448,147 +449,143 @@ export const AdvancedSensitivityAnalysis: React.FC<AdvancedSensitivityAnalysisPr
 
   return (
     <div className="space-y-4">
-      {/* Card de Controle de Cenários */}
-      <Card>
-        <CardHeader>
+      {/* Card de Controle de Cenários - Formato KPI */}
+      <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+        <CardHeader className="p-3 pb-2">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Modo de Análise</CardTitle>
-              <CardDescription>
-                {analysisMode === 'current' 
-                  ? 'Usando dados reais do sistema para compra. Ajuste apenas parâmetros de venda.'
-                  : 'Personalize todos os parâmetros livremente para sua análise.'}
-              </CardDescription>
+            <div className="flex items-center gap-2">
+              <Sliders className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              {analysisMode === 'current' && cattlePurchases && cattlePurchases.length > 0 && (
+                <span className="text-[10px] text-muted-foreground">
+                  ({cattlePurchases.length} compras)
+                </span>
+              )}
             </div>
-            <div className="h-8 w-8 rounded-lg bg-indigo-100 dark:bg-indigo-950 flex items-center justify-center">
-              <Sliders className="h-4 w-4 text-indigo-600" />
-            </div>
+            <Badge
+              variant={analysisMode === 'current' ? "default" : "secondary"}
+              className="text-[10px] px-1.5 py-0.5"
+            >
+              {analysisMode === 'current' ? 'ATUAL' : 'CUSTOM'}
+            </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <Button 
-                variant={analysisMode === 'current' ? 'default' : 'outline'}
-                onClick={() => handleModeChange('current')}
-                className="flex-1"
-                disabled={purchasesLoading}
-              >
-                <Lock className="h-4 w-4 mr-2" />
-                Cenário Atual
-              </Button>
-              <Button 
-                variant={analysisMode === 'custom' ? 'default' : 'outline'}
-                onClick={() => handleModeChange('custom')}
-                className="flex-1"
-              >
-                <Unlock className="h-4 w-4 mr-2" />
-                Personalizado
-              </Button>
-              <Button 
-                variant="destructive"
-                onClick={handleReset}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Zerar Tudo
-              </Button>
-            </div>
-            
-            {/* Indicador de dados carregados */}
-            {analysisMode === 'current' && cattlePurchases && cattlePurchases.length > 0 && (
-              <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                <Info className="h-4 w-4 text-blue-600" />
-                <span className="text-sm text-blue-600">
-                  Dados de {cattlePurchases.length} compras carregados automaticamente
-                </span>
-              </div>
-            )}
+        <CardContent className="p-3 pt-1">
+          <div className="kpi-value mb-1">Modo de Análise</div>
+          <p className="kpi-label mb-3">
+            {analysisMode === 'current' ? 'Dados reais do sistema' : 'Parâmetros personalizados'}
+          </p>
+
+          <div className="flex gap-2">
+            <Button
+              variant={analysisMode === 'current' ? 'default' : 'outline'}
+              onClick={() => handleModeChange('current')}
+              className="flex-1 h-8 text-xs"
+              disabled={purchasesLoading}
+            >
+              <Lock className="h-3 w-3 mr-1" />
+              Atual
+            </Button>
+            <Button
+              variant={analysisMode === 'custom' ? 'default' : 'outline'}
+              onClick={() => handleModeChange('custom')}
+              className="flex-1 h-8 text-xs"
+            >
+              <Unlock className="h-3 w-3 mr-1" />
+              Custom
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReset}
+              className="h-8 text-xs px-2"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Cards de Parâmetros Base */}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Cards de Parâmetros - Quatro colunas lado a lado */}
+      <div className="grid gap-4 md:grid-cols-4">
         {/* Card de Parâmetros de Compra */}
-        <Card>
-          <CardHeader>
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base">Parâmetros de Compra</CardTitle>
-                {analysisMode === 'current' && (
-                  <CardDescription className="text-xs mt-1">
-                    <Lock className="h-3 w-3 inline mr-1" />
-                    Dados reais do sistema (bloqueados)
-                  </CardDescription>
-                )}
-              </div>
-              <div className="h-8 w-8 rounded-lg bg-green-100 dark:bg-green-950 flex items-center justify-center">
-                <ShoppingCart className="h-4 w-4 text-green-600" />
-              </div>
+              <ShoppingCart className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <Badge
+                variant={analysisMode === 'current' ? "secondary" : "default"}
+                className="text-[10px] px-1.5 py-0.5"
+              >
+                {analysisMode === 'current' ? 'LOCK' : 'EDIT'}
+              </Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="purchase-price" className="text-sm font-medium">
-                  Preço de Compra
+          <CardContent className="p-3 pt-1">
+            <div className="kpi-value mb-1">Parâmetros de Compra</div>
+            <p className="kpi-label mb-3">
+              {analysisMode === 'current' ? 'Dados reais bloqueados' : 'Configurações editáveis'}
+            </p>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="purchase-price" className="form-label">
+                  Preço
                   {isFieldLocked('purchasePrice') && (
                     <Lock className="h-3 w-3 inline ml-1 text-muted-foreground" />
                   )}
                 </Label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <Input
                     id="purchase-price"
                     type="number"
                     value={baseParams.purchasePrice}
                     onChange={(e) => setBaseParams(prev => ({ ...prev, purchasePrice: Number(e.target.value) }))}
-                    className="h-9"
+                    className="h-8 text-xs"
                     step="0.01"
                     disabled={isFieldLocked('purchasePrice')}
                   />
-                  <span className="text-sm text-muted-foreground">R$/@</span>
+                  <span className="text-body-sm text-xs">R$/@</span>
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="purchase-weight" className="text-sm font-medium">
-                  Peso de Entrada
+
+              <div className="space-y-1.5">
+                <Label htmlFor="purchase-weight" className="form-label">
+                  Peso
                   {isFieldLocked('purchaseWeight') && (
                     <Lock className="h-3 w-3 inline ml-1 text-muted-foreground" />
                   )}
                 </Label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <Input
                     id="purchase-weight"
                     type="number"
                     value={baseParams.purchaseWeight}
                     onChange={(e) => setBaseParams(prev => ({ ...prev, purchaseWeight: Number(e.target.value) }))}
-                    className="h-9"
+                    className="h-8 text-xs"
                     step="0.01"
                     disabled={isFieldLocked('purchaseWeight')}
                   />
-                  <span className="text-sm text-muted-foreground">kg</span>
+                  <span className="text-body-sm text-xs">kg</span>
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="purchase-yield" className="text-sm font-medium">
-                  Rendimento de Carcaça
+
+              <div className="space-y-1.5">
+                <Label htmlFor="purchase-yield" className="form-label">
+                  RC
                   {isFieldLocked('purchaseYield') && (
                     <Lock className="h-3 w-3 inline ml-1 text-muted-foreground" />
                   )}
                 </Label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <Input
                     id="purchase-yield"
                     type="number"
                     value={baseParams.purchaseYield}
                     onChange={(e) => setBaseParams(prev => ({ ...prev, purchaseYield: Number(e.target.value) }))}
-                    className="h-9"
+                    className="h-8 text-xs"
                     step="0.01"
                     disabled={isFieldLocked('purchaseYield')}
                   />
-                  <span className="text-sm text-muted-foreground">%</span>
+                  <span className="text-body-sm text-xs">%</span>
                 </div>
               </div>
             </div>
@@ -596,320 +593,312 @@ export const AdvancedSensitivityAnalysis: React.FC<AdvancedSensitivityAnalysisPr
         </Card>
 
         {/* Card de Parâmetros de Venda */}
-        <Card>
-          <CardHeader>
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Parâmetros de Venda</CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
-                <TrendingUpIcon className="h-4 w-4 text-blue-600" />
-              </div>
+              <TrendingUpIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                VENDA
+              </Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="sale-price" className="text-sm font-medium">
-                  Preço de Venda
+          <CardContent className="p-3 pt-1">
+            <div className="kpi-value mb-1">Parâmetros de Venda</div>
+            <p className="kpi-label mb-3">Configurações de venda</p>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="sale-price" className="form-label">
+                  Preço
                 </Label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <Input
                     id="sale-price"
                     type="number"
                     value={baseParams.salePrice}
                     onChange={(e) => setBaseParams(prev => ({ ...prev, salePrice: Number(e.target.value) }))}
-                    className="h-9"
+                    className="h-8 text-xs"
                   />
-                  <span className="text-sm text-muted-foreground">R$/@</span>
+                  <span className="text-body-sm text-xs">R$/@</span>
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="sale-weight" className="text-sm font-medium">
-                  Peso de Saída
+
+              <div className="space-y-1.5">
+                <Label htmlFor="sale-weight" className="form-label">
+                  Peso
                 </Label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <Input
                     id="sale-weight"
                     type="number"
                     value={baseParams.saleWeight}
                     onChange={(e) => setBaseParams(prev => ({ ...prev, saleWeight: Number(e.target.value) }))}
-                    className="h-9"
+                    className="h-8 text-xs"
                   />
-                  <span className="text-sm text-muted-foreground">kg</span>
+                  <span className="text-body-sm text-xs">kg</span>
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="sale-yield" className="text-sm font-medium">
-                  Rendimento de Carcaça
+
+              <div className="space-y-1.5">
+                <Label htmlFor="sale-yield" className="form-label">
+                  Rend.
                 </Label>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <Input
                     id="sale-yield"
                     type="number"
                     value={baseParams.saleYield}
                     onChange={(e) => setBaseParams(prev => ({ ...prev, saleYield: Number(e.target.value) }))}
-                    className="h-9"
+                    className="h-8 text-xs"
                     step="0.5"
                   />
-                  <span className="text-sm text-muted-foreground">%</span>
+                  <span className="text-body-sm text-xs">%</span>
                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card de Parâmetros de Produção */}
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <Package className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                PROD
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-3 pt-1">
+            <div className="kpi-value mb-1">Parâmetros de Produção</div>
+            <p className="kpi-label mb-3">Custos e configurações</p>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="production-cost" className="form-label">
+                  CAP
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    id="production-cost"
+                    type="number"
+                    value={baseParams.productionCost}
+                    onChange={(e) => setBaseParams(prev => ({ ...prev, productionCost: Number(e.target.value) }))}
+                    className="h-8 text-xs"
+                    step="10"
+                  />
+                  <span className="text-body-sm text-xs">R$/@</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="gmd" className="form-label">
+                  GMD
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    id="gmd"
+                    type="number"
+                    value={baseParams.gmd}
+                    onChange={(e) => setBaseParams(prev => ({ ...prev, gmd: Number(e.target.value) }))}
+                    className="h-8 text-xs"
+                    step="0.1"
+                  />
+                  <span className="text-body-sm text-xs">kg/d</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="animals-count" className="form-label">
+                  Qtde
+                  {isFieldLocked('animalsCount') && (
+                    <Lock className="h-3 w-3 inline ml-1 text-muted-foreground" />
+                  )}
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    id="animals-count"
+                    type="number"
+                    value={baseParams.animalsCount}
+                    onChange={(e) => setBaseParams(prev => ({ ...prev, animalsCount: Number(e.target.value) }))}
+                    className="h-8 text-xs"
+                    disabled={isFieldLocked('animalsCount')}
+                  />
+                  <span className="text-body-sm text-xs">cab</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card de Configuração da Análise */}
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <ChartBar className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                MATRIZ
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="p-3 pt-1">
+            <div className="kpi-value mb-1">Configuração da Análise</div>
+            <p className="kpi-label mb-3">Escolha as variáveis para os eixos</p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="x-axis" className="form-label">
+                  Eixo X
+                </Label>
+                <Select value={xAxisVariable} onValueChange={setXAxisVariable}>
+                  <SelectTrigger id="x-axis" className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(variableConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key} disabled={key === yAxisVariable}>
+                        {config.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="y-axis" className="form-label">
+                  Eixo Y
+                </Label>
+                <Select value={yAxisVariable} onValueChange={setYAxisVariable}>
+                  <SelectTrigger id="y-axis" className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(variableConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key} disabled={key === xAxisVariable}>
+                        {config.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Card de Parâmetros de Produção */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Parâmetros de Produção</CardTitle>
-              <CardDescription>
-                Configure os custos de produção e informações do lote
-              </CardDescription>
-            </div>
-            <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-950 flex items-center justify-center">
-              <Package className="h-4 w-4 text-purple-600" />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="production-cost" className="text-sm font-medium">
-                CAP (Custo Arroba Produzida)
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="production-cost"
-                  type="number"
-                  value={baseParams.productionCost}
-                  onChange={(e) => setBaseParams(prev => ({ ...prev, productionCost: Number(e.target.value) }))}
-                  className="h-9"
-                  step="10"
-                />
-                <span className="text-sm text-muted-foreground">R$/@</span>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="gmd" className="text-sm font-medium">
-                GMD (Ganho Médio Diário)
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="gmd"
-                  type="number"
-                  value={baseParams.gmd}
-                  onChange={(e) => setBaseParams(prev => ({ ...prev, gmd: Number(e.target.value) }))}
-                  className="h-9"
-                  step="0.1"
-                />
-                <span className="text-sm text-muted-foreground">kg/dia</span>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="animals-count" className="text-sm font-medium">
-                Quantidade de Animais
-                {isFieldLocked('animalsCount') && (
-                  <Lock className="h-3 w-3 inline ml-1 text-muted-foreground" />
-                )}
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="animals-count"
-                  type="number"
-                  value={baseParams.animalsCount}
-                  onChange={(e) => setBaseParams(prev => ({ ...prev, animalsCount: Number(e.target.value) }))}
-                  className="h-9"
-                  disabled={isFieldLocked('animalsCount')}
-                />
-                <span className="text-sm text-muted-foreground">cabeças</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* KPIs do Cenário Atual */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Lucro por Animal */}
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">
-                Lucro por Animal
-              </CardTitle>
-              <div className={`h-8 w-8 rounded-lg ${currentScenario.profitPerAnimal >= 0 ? 'bg-green-100 dark:bg-green-950' : 'bg-red-100 dark:bg-red-950'} flex items-center justify-center`}>
-                <DollarSign className={`h-4 w-4 ${currentScenario.profitPerAnimal >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-              </div>
+              <DollarSign className={`h-5 w-5 ${currentScenario.profitPerAnimal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
+              <Badge
+                variant={currentScenario.profitPerAnimal >= 0 ? "default" : "destructive"}
+                className="text-[10px] px-1.5 py-0.5"
+              >
+                /CAB
+              </Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <p className={`text-2xl font-bold ${currentScenario.profitPerAnimal >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatSafeCurrency(currentScenario.profitPerAnimal)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Por cabeça
-              </p>
+          <CardContent className="p-3 pt-1">
+            <div className={`kpi-value ${currentScenario.profitPerAnimal >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatSafeCurrency(currentScenario.profitPerAnimal)}
             </div>
+            <p className="kpi-label">Lucro por Animal</p>
+            <p className="text-body-sm mt-1">
+              Por cabeça
+            </p>
           </CardContent>
         </Card>
 
         {/* Card 2: Margem de Lucro */}
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">
-                Margem de Lucro
-              </CardTitle>
-              <div className={`h-8 w-8 rounded-lg ${currentScenario.margin >= 0 ? 'bg-emerald-100 dark:bg-emerald-950' : 'bg-red-100 dark:bg-red-950'} flex items-center justify-center`}>
-                <Percent className={`h-4 w-4 ${currentScenario.margin >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
-              </div>
+              <Percent className={`h-5 w-5 ${currentScenario.margin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`} />
+              <Badge
+                variant={currentScenario.margin >= 15 ? "default" : currentScenario.margin >= 0 ? "secondary" : "destructive"}
+                className="text-[10px] px-1.5 py-0.5"
+              >
+                {currentScenario.margin >= 15 ? "ÓTIMA" : currentScenario.margin >= 0 ? "REG" : "NEG"}
+              </Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="flex items-baseline gap-1">
-                <p className={`text-2xl font-bold ${currentScenario.margin >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {formatSafeDecimal(currentScenario.margin, 1)}
-                </p>
-                <span className="text-sm text-muted-foreground">%</span>
-              </div>
-              <Badge variant={currentScenario.margin >= 15 ? "default" : currentScenario.margin >= 0 ? "secondary" : "destructive"} className="h-5 px-1">
+          <CardContent className="p-3 pt-1">
+            <div className={`kpi-value ${currentScenario.margin >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+              {formatSafeDecimal(currentScenario.margin, 1)}%
+            </div>
+            <p className="kpi-label">Margem de Lucro</p>
+            <div className="flex items-center gap-1 text-body-sm mt-1">
+              <span className="text-body-sm">
                 {currentScenario.margin >= 15 ? "Ótima" : currentScenario.margin >= 0 ? "Regular" : "Negativa"}
-              </Badge>
+              </span>
             </div>
           </CardContent>
         </Card>
 
         {/* Card 3: Lucro Total */}
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">
-                Lucro Total do Lote
-              </CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-950 flex items-center justify-center">
-                <Wallet className="h-4 w-4 text-amber-600" />
-              </div>
+              <Wallet className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                TOTAL
+              </Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <p className="text-2xl font-bold">
-                {formatSafeCurrency(currentScenario.totalProfit)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {baseParams.animalsCount} animais
-              </p>
+          <CardContent className="p-3 pt-1">
+            <div className="kpi-value">
+              {formatSafeCurrency(currentScenario.totalProfit)}
             </div>
+            <p className="kpi-label">Lucro Total do Lote</p>
+            <p className="text-body-sm mt-1">
+              {baseParams.animalsCount} animais
+            </p>
           </CardContent>
         </Card>
 
         {/* Card 4: Dias de Confinamento */}
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">
-                Dias de Confinamento
-              </CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
-                <Activity className="h-4 w-4 text-blue-600" />
-              </div>
+              <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                DIAS
+              </Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="flex items-baseline gap-1">
-                <p className="text-2xl font-bold">{currentScenario.confinementDays}</p>
-                <span className="text-sm text-muted-foreground">dias</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                GMD: {baseParams.gmd} kg/dia
-              </p>
+          <CardContent className="p-3 pt-1">
+            <div className="kpi-value">
+              {currentScenario.confinementDays} dias
             </div>
+            <p className="kpi-label">Dias de Confinamento</p>
+            <p className="text-body-sm mt-1">
+              GMD: {baseParams.gmd} kg/dia
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Card de Configuração da Matriz */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Configuração da Análise de Sensibilidade</CardTitle>
-              <CardDescription>
-                Escolha as variáveis para os eixos da matriz de sensibilidade
-              </CardDescription>
-            </div>
-            <div className="h-8 w-8 rounded-lg bg-orange-100 dark:bg-orange-950 flex items-center justify-center">
-              <ChartBar className="h-4 w-4 text-orange-600" />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="x-axis" className="text-sm font-medium">
-                Eixo Horizontal (X)
-              </Label>
-              <Select value={xAxisVariable} onValueChange={setXAxisVariable}>
-                <SelectTrigger id="x-axis" className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(variableConfig).map(([key, config]) => (
-                    <SelectItem key={key} value={key} disabled={key === yAxisVariable}>
-                      {config.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="y-axis" className="text-sm font-medium">
-                Eixo Vertical (Y)
-              </Label>
-              <Select value={yAxisVariable} onValueChange={setYAxisVariable}>
-                <SelectTrigger id="y-axis" className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(variableConfig).map(([key, config]) => (
-                    <SelectItem key={key} value={key} disabled={key === xAxisVariable}>
-                      {config.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Card da Matriz de Sensibilidade */}
-      <Card>
-        <CardHeader>
+      <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+        <CardHeader className="p-3 pb-2">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Matriz de Sensibilidade</CardTitle>
-              <CardDescription>
+            <div className="flex-1">
+              <CardTitle className="card-title">Matriz de Sensibilidade</CardTitle>
+              <CardDescription className="card-subtitle">
                 <div className="space-y-1">
                   <div>Análise do impacto das variáveis selecionadas no lucro por animal</div>
                   <div className="text-xs">
-                    <span className="font-bold">Eixo Y (↓):</span> <span className="font-medium">{variableConfig[yAxisVariable as keyof typeof variableConfig].label}</span> | 
+                    <span className="font-bold">Eixo Y (↓):</span> <span className="font-medium">{variableConfig[yAxisVariable as keyof typeof variableConfig].label}</span> |
                     <span className="font-bold"> Eixo X (→):</span> <span className="font-medium">{variableConfig[xAxisVariable as keyof typeof variableConfig].label}</span>
                   </div>
                 </div>
               </CardDescription>
             </div>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <Grid3x3 className="h-5 w-5 text-muted-foreground" />
           </div>
         </CardHeader>
         <CardContent>
@@ -945,9 +934,7 @@ export const AdvancedSensitivityAnalysis: React.FC<AdvancedSensitivityAnalysisPr
                       return (
                         <td 
                           key={colIndex}
-                          className={`p-2 text-center font-semibold transition-all ${getColorForProfit(cell.profit, cell.margin)} hover:scale-105 cursor-default relative ${
-                            isCurrentScenario ? 'ring-2 ring-blue-500 ring-offset-1 z-10' : ''
-                          }`}
+                          className={`p-2 text-center font-semibold transition-all ${getColorForProfit(cell.profit, cell.margin)} hover:scale-105 cursor-default relative ${isCurrentScenario ? 'ring-2 ring-blue-500 ring-offset-1 z-10' : ''}`}
                           title={`${isCurrentScenario ? 'CENÁRIO ATUAL | ' : ''}Lucro: ${formatSafeCurrency(cell.profit)} | Margem: ${cell.margin.toFixed(1)}%`}
                         >
                           <div className="space-y-0.5">
@@ -1003,30 +990,30 @@ export const AdvancedSensitivityAnalysis: React.FC<AdvancedSensitivityAnalysisPr
       <div className="grid gap-4 md:grid-cols-2">
         {/* Card de Pior Cenário */}
         {worstScenario.result && (
-          <Card className="border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-950/20">
+          <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-red-600" />
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
                     Pior Cenário Identificado
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-muted-foreground">
                     Combinação crítica das variáveis analisadas
                   </CardDescription>
                 </div>
-                <Badge variant="destructive" className="bg-red-600">
+                <Badge variant="destructive">
                   Maior Prejuízo
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">
                     {variableConfig[xAxisVariable as keyof typeof variableConfig].label}
                   </p>
-                  <p className="text-lg font-bold text-red-600">
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">
                     {variableConfig[xAxisVariable as keyof typeof variableConfig].format(worstScenario.xValue)}
                   </p>
                 </div>
@@ -1034,19 +1021,19 @@ export const AdvancedSensitivityAnalysis: React.FC<AdvancedSensitivityAnalysisPr
                   <p className="text-sm text-muted-foreground">
                     {variableConfig[yAxisVariable as keyof typeof variableConfig].label}
                   </p>
-                  <p className="text-lg font-bold text-red-600">
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">
                     {variableConfig[yAxisVariable as keyof typeof variableConfig].format(worstScenario.yValue)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Prejuízo por Animal</p>
-                  <p className="text-lg font-bold text-red-600">
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">
                     {formatSafeCurrency(worstScenario.profit)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Margem</p>
-                  <p className="text-lg font-bold text-red-600">
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">
                     {worstScenario.result.margin.toFixed(1)}%
                   </p>
                 </div>
@@ -1057,30 +1044,30 @@ export const AdvancedSensitivityAnalysis: React.FC<AdvancedSensitivityAnalysisPr
 
         {/* Card de Melhor Cenário */}
         {bestScenario.result && (
-          <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
+          <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-green-600" />
+                  <CardTitle className="flex items-center gap-2 text-foreground">
+                    <Target className="h-5 w-5 text-green-600 dark:text-green-400" />
                     Melhor Cenário Identificado
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-muted-foreground">
                     Combinação ótima das variáveis analisadas
                   </CardDescription>
                 </div>
-                <Badge variant="default" className="bg-green-600">
+                <Badge className="bg-green-600 hover:bg-green-700 text-white">
                   Lucro Máximo
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">
                     {variableConfig[xAxisVariable as keyof typeof variableConfig].label}
                   </p>
-                  <p className="text-lg font-bold text-green-600">
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
                     {variableConfig[xAxisVariable as keyof typeof variableConfig].format(bestScenario.xValue)}
                   </p>
                 </div>
@@ -1088,19 +1075,19 @@ export const AdvancedSensitivityAnalysis: React.FC<AdvancedSensitivityAnalysisPr
                   <p className="text-sm text-muted-foreground">
                     {variableConfig[yAxisVariable as keyof typeof variableConfig].label}
                   </p>
-                  <p className="text-lg font-bold text-green-600">
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
                     {variableConfig[yAxisVariable as keyof typeof variableConfig].format(bestScenario.yValue)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Lucro por Animal</p>
-                  <p className="text-lg font-bold text-green-600">
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
                     {formatSafeCurrency(bestScenario.profit)}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Margem</p>
-                  <p className="text-lg font-bold text-green-600">
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
                     {bestScenario.result.margin.toFixed(1)}%
                   </p>
                 </div>
@@ -1116,26 +1103,26 @@ export const AdvancedSensitivityAnalysis: React.FC<AdvancedSensitivityAnalysisPr
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Análise de Impacto - Custos</CardTitle>
+              <CardTitle className="card-title">Análise de Impacto - Custos</CardTitle>
               <Scale className="h-4 w-4 text-muted-foreground" />
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Preço de Compra (+R$ 10/@)</span>
-              <span className={`text-sm font-medium ${calculateImpact('purchasePrice', 10) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <span className="text-body-sm">Preço de Compra (+R$ 10/@)</span>
+              <span className={`form-label ${calculateImpact('purchasePrice', 10) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {calculateImpact('purchasePrice', 10) >= 0 ? '+' : ''}{calculateImpact('purchasePrice', 10).toFixed(1)}% margem
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">CAP (+R$ 20/@)</span>
-              <span className={`text-sm font-medium ${calculateImpact('productionCost', 20) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <span className="text-body-sm">CAP (+R$ 20/@)</span>
+              <span className={`form-label ${calculateImpact('productionCost', 20) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {calculateImpact('productionCost', 20) >= 0 ? '+' : ''}{calculateImpact('productionCost', 20).toFixed(1)}% margem
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Peso Compra (+10 kg)</span>
-              <span className={`text-sm font-medium ${calculateImpact('purchaseWeight', 10) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <span className="text-body-sm">Peso Compra (+10 kg)</span>
+              <span className={`form-label ${calculateImpact('purchaseWeight', 10) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {calculateImpact('purchaseWeight', 10) >= 0 ? '+' : ''}{calculateImpact('purchaseWeight', 10).toFixed(1)}% margem
               </span>
             </div>
@@ -1146,26 +1133,26 @@ export const AdvancedSensitivityAnalysis: React.FC<AdvancedSensitivityAnalysisPr
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Análise de Impacto - Receitas</CardTitle>
+              <CardTitle className="card-title">Análise de Impacto - Receitas</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Preço de Venda (+R$ 10/@)</span>
-              <span className={`text-sm font-medium ${calculateImpact('salePrice', 10) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <span className="text-body-sm">Preço de Venda (+R$ 10/@)</span>
+              <span className={`form-label ${calculateImpact('salePrice', 10) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {calculateImpact('salePrice', 10) >= 0 ? '+' : ''}{calculateImpact('salePrice', 10).toFixed(1)}% margem
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Peso Venda (+10 kg)</span>
-              <span className={`text-sm font-medium ${calculateImpact('saleWeight', 10) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <span className="text-body-sm">Peso Venda (+10 kg)</span>
+              <span className={`form-label ${calculateImpact('saleWeight', 10) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {calculateImpact('saleWeight', 10) >= 0 ? '+' : ''}{calculateImpact('saleWeight', 10).toFixed(1)}% margem
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">GMD (+0.2 kg/dia)</span>
-              <span className={`text-sm font-medium ${calculateImpact('gmd', 0.2) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <span className="text-body-sm">GMD (+0.2 kg/dia)</span>
+              <span className={`form-label ${calculateImpact('gmd', 0.2) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {calculateImpact('gmd', 0.2) >= 0 ? '+' : ''}{calculateImpact('gmd', 0.2).toFixed(1)}% margem
               </span>
             </div>
@@ -1175,3 +1162,5 @@ export const AdvancedSensitivityAnalysis: React.FC<AdvancedSensitivityAnalysisPr
     </div>
   );
 };
+
+export default AdvancedSensitivityAnalysis;

@@ -59,7 +59,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { usePartnersApi } from '@/hooks/api/usePartnersApi';
 import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
 import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
@@ -136,7 +136,6 @@ export function EnhancedPurchaseForm({
   onSuccess,
   editingPurchase 
 }: EnhancedPurchaseFormProps) {
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // API Hooks
@@ -266,73 +265,41 @@ export function EnhancedPurchaseForm({
   const handleSubmit = async (data: FormData) => {
     try {
       setIsSubmitting(true);
-      
-      console.log('🔍 Dados do formulário:', data);
-      console.log('🧮 Cálculos:', calculations);
-      
       // Validar campos obrigatórios
       if (!data.vendorId) {
-        toast({
-          title: 'Erro de validação',
-          description: 'Selecione um fornecedor.',
-          variant: 'destructive',
-        });
+        toast.error('Selecione um fornecedor.');
         return;
       }
       
       if (!data.payerAccountId) {
-        toast({
-          title: 'Erro de validação',
-          description: 'Selecione uma conta pagadora.',
-          variant: 'destructive',
-        });
+        toast.error('Selecione uma conta pagadora.');
         return;
       }
       
       if (!data.initialQuantity || Number(data.initialQuantity) <= 0) {
-        toast({
-          title: 'Erro de validação',
-          description: 'Informe a quantidade de animais.',
-          variant: 'destructive',
-        });
+        toast.error('Informe a quantidade de animais.');
         return;
       }
       
       if (!data.purchaseWeight || Number(data.purchaseWeight) <= 0) {
-        toast({
-          title: 'Erro de validação',
-          description: 'Informe o peso total da compra.',
-          variant: 'destructive',
-        });
+        toast.error('Informe o peso total da compra.');
         return;
       }
       
       if (!data.pricePerArroba || Number(data.pricePerArroba) <= 0) {
-        toast({
-          title: 'Erro de validação',
-          description: 'Informe o preço por arroba.',
-          variant: 'destructive',
-        });
+        toast.error('Informe o preço por arroba.');
         return;
       }
       
       // Validação específica para pagamento a prazo
       if (data.paymentType === 'INSTALLMENT' && !data.paymentDueDate) {
-        toast({
-          title: 'Erro de validação',
-          description: 'Para pagamento a prazo, informe a data de vencimento.',
-          variant: 'destructive',
-        });
+        toast.error('Para pagamento a prazo, informe a data de vencimento.');
         return;
       }
       
       // Validação para comissão
       if (data.brokerId && data.brokerId !== 'none' && data.brokerId !== '' && data.commission && Number(data.commission) <= 0) {
-        toast({
-          title: 'Erro de validação',
-          description: 'Para corretor com comissão, informe um valor válido.',
-          variant: 'destructive',
-        });
+        toast.error('Para corretor com comissão, informe um valor válido.');
         return;
       }
       
@@ -354,19 +321,6 @@ export function EnhancedPurchaseForm({
         purchaseValue: calculations.purchaseValue,
         totalCost: calculations.totalCost,
       };
-
-      console.log('📤 Enviando dados:', purchaseData);
-      console.log('📋 Dados detalhados:');
-      console.log('- vendorId:', purchaseData.vendorId, typeof purchaseData.vendorId);
-      console.log('- purchaseDate:', purchaseData.purchaseDate, typeof purchaseData.purchaseDate);
-      console.log('- animalAge:', purchaseData.animalAge, typeof purchaseData.animalAge);
-      console.log('- paymentType:', purchaseData.paymentType, typeof purchaseData.paymentType);
-      console.log('- animalType:', purchaseData.animalType, typeof purchaseData.animalType);
-      console.log('- initialQuantity:', purchaseData.initialQuantity, typeof purchaseData.initialQuantity);
-      console.log('- purchaseWeight:', purchaseData.purchaseWeight, typeof purchaseData.purchaseWeight);
-      console.log('- carcassYield:', purchaseData.carcassYield, typeof purchaseData.carcassYield);
-      console.log('- pricePerArroba:', purchaseData.pricePerArroba, typeof purchaseData.pricePerArroba);
-
       if (editingPurchase) {
         await updatePurchase(editingPurchase.id, purchaseData);
         toast({
@@ -386,11 +340,7 @@ export function EnhancedPurchaseForm({
       form.reset();
     } catch (error) {
       console.error('❌ Erro ao salvar compra:', error);
-      toast({
-        title: 'Erro',
-        description: error instanceof Error ? error.message : 'Ocorreu um erro ao salvar a compra.',
-        variant: 'destructive',
-      });
+      toast.error(error instanceof Error ? error.message : 'Ocorreu um erro ao salvar a compra.');
     } finally {
       setIsSubmitting(false);
     }
@@ -823,8 +773,6 @@ export function EnhancedPurchaseForm({
                           </FormItem>
                         )}
                       />
-
-
                     </div>
 
                     {form.watch('brokerId') && form.watch('brokerId') !== 'none' && form.watch('brokerId') !== '' && (

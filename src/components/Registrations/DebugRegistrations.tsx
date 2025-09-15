@@ -26,7 +26,7 @@ export const DebugRegistrations: React.FC = () => {
 
   // Rastrear renders - usar useEffect sem dependências apenas para log
   useEffect(() => {
-    console.log(`[DEBUG] DebugRegistrations renderizado ${renderCount + 1} vezes`);
+    
   });
   
   // Incrementar contador de render no corpo do componente (não em useEffect)
@@ -77,7 +77,6 @@ export const DebugRegistrations: React.FC = () => {
     console.group('[DEBUG] Status dos Hooks de Cadastros');
     statuses.forEach(status => {
       const icon = status.loading ? '⏳' : status.error ? '❌' : '✅';
-      console.log(
         `${icon} ${status.name}:`,
         {
           loading: status.loading,
@@ -191,7 +190,6 @@ export const DebugRegistrations: React.FC = () => {
             <div className="space-y-2">
               <button
                 onClick={() => {
-                  console.log('[DEBUG] Estado completo dos hooks:', {
                     partners: {
                       loading: partners.loading,
                       error: partners.error,

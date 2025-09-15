@@ -150,9 +150,6 @@ export function getAccountingGroup(category: string): AccountingGroup | undefine
   const group = ACCOUNTING_GROUPS.find(group => 
     group.categories.includes(category)
   );
-  
-  console.log('🏷️ [getAccountingGroup] Mapping category:', category, '→', group?.name || 'NOT FOUND');
-  
   return group;
 }
 

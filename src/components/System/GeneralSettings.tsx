@@ -1,29 +1,24 @@
 import React, { useState } from 'react';
-import { 
-  Settings, 
-  Globe, 
-  Clock, 
-  Database, 
-  Shield, 
-  Bell,
+import {
   Palette,
-  Save,
   RotateCcw,
   Download,
   Upload,
   HardDrive,
-  Wifi
+  Wifi,
+  Settings,
+  Users,
+  Database,
+  FileUp
 } from 'lucide-react';
 import { useSettings } from '@/providers/SettingsProvider';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useBackend } from '@/providers/BackendProvider';
 
 // Componentes shadcn/ui
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -34,69 +29,25 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+// Importar os componentes das outras páginas
+import CleanUserManagement from '@/components/System/CleanUserManagement';
+import CompleteRegistrations from '@/components/Registrations/CompleteRegistrations';
+import DataImport from '@/pages/DataImport';
+
 export const GeneralSettings: React.FC = () => {
-  const { 
-    defaultCurrency,
-    dateFormat,
-    timeFormat,
-    timezone,
-    autoBackup,
-    backupFrequency,
-    backupRetention,
-    sessionTimeout,
-    passwordExpiry,
-    twoFactorAuth,
-    updateSettings,
+  const {
     resetSettings,
     exportSettings,
     importSettings
   } = useSettings();
-  
+
   const { theme, setTheme } = useTheme();
-  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useBackend();
+  const isAdmin = user?.role === 'MASTER' || user?.role === 'ADMIN';
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  
-  const [localSettings, setLocalSettings] = useState({
-    defaultCurrency,
-    dateFormat,
-    timeFormat,
-    timezone,
-    autoBackup,
-    backupFrequency,
-    backupRetention,
-    sessionTimeout,
-    passwordExpiry,
-    twoFactorAuth
-  });
-
-  const handleSave = async () => {
-    setIsLoading(true);
-    setMessage(null);
-
-    try {
-      updateSettings(localSettings);
-      setMessage({ type: 'success', text: 'Configurações salvas com sucesso!' });
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.message || 'Erro ao salvar configurações' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleReset = () => {
     resetSettings();
-    setLocalSettings({
-      defaultCurrency: 'BRL',
-      dateFormat: 'DD/MM/YYYY',
-      timeFormat: '24h',
-      timezone: 'America/Sao_Paulo',
-      autoBackup: true,
-      backupFrequency: 'daily',
-      backupRetention: 30,
-      sessionTimeout: 60,
-      passwordExpiry: 90,
-      twoFactorAuth: false
-    });
     setMessage({ type: 'success', text: 'Configurações resetadas para os valores padrão!' });
   };
 
@@ -141,7 +92,7 @@ export const GeneralSettings: React.FC = () => {
       <div>
         <h1 className="page-title">Configurações Gerais</h1>
         <p className="page-subtitle">
-          Configure as preferências gerais do sistema
+          Configure as preferências do sistema
         </p>
       </div>
 
@@ -153,97 +104,67 @@ export const GeneralSettings: React.FC = () => {
       )}
 
       <Tabs defaultValue="general" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-3 lg:grid-cols-6' : 'grid-cols-2 lg:grid-cols-5'}`}>
           <TabsTrigger value="general">Geral</TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="users">Usuários</TabsTrigger>
+          )}
+          <TabsTrigger value="registrations">Cadastros</TabsTrigger>
+          <TabsTrigger value="import">Importar</TabsTrigger>
           <TabsTrigger value="appearance">Aparência</TabsTrigger>
-          <TabsTrigger value="backup">Backup</TabsTrigger>
-          <TabsTrigger value="security">Segurança</TabsTrigger>
           <TabsTrigger value="advanced">Avançado</TabsTrigger>
         </TabsList>
 
-        {/* Configurações Gerais */}
+        {/* Geral */}
         <TabsContent value="general" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                Regionalização
+                <Settings className="h-5 w-5" />
+                Informações Gerais
               </CardTitle>
               <CardDescription>
-                Configure formatos de data, hora e moeda
+                Informações básicas sobre o sistema
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Moeda Padrão</Label>
-                  <Select
-                    value={localSettings.defaultCurrency}
-                    onValueChange={(value) => setLocalSettings(prev => ({ ...prev, defaultCurrency: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BRL">Real Brasileiro (R$)</SelectItem>
-                      <SelectItem value="USD">Dólar Americano ($)</SelectItem>
-                      <SelectItem value="EUR">Euro (€)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Versão do Sistema</Label>
+                  <p className="text-sm text-muted-foreground">v1.0.0</p>
                 </div>
-
                 <div className="space-y-2">
-                  <Label>Formato de Data</Label>
-                  <Select
-                    value={localSettings.dateFormat}
-                    onValueChange={(value) => setLocalSettings(prev => ({ ...prev, dateFormat: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DD/MM/YYYY">DD/MM/AAAA</SelectItem>
-                      <SelectItem value="MM/DD/YYYY">MM/DD/AAAA</SelectItem>
-                      <SelectItem value="YYYY-MM-DD">AAAA-MM-DD</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Última Atualização</Label>
+                  <p className="text-sm text-muted-foreground">14/09/2025</p>
                 </div>
-
                 <div className="space-y-2">
-                  <Label>Formato de Hora</Label>
-                  <Select
-                    value={localSettings.timeFormat}
-                    onValueChange={(value) => setLocalSettings(prev => ({ ...prev, timeFormat: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="24h">24 horas</SelectItem>
-                      <SelectItem value="12h">12 horas (AM/PM)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Usuário Atual</Label>
+                  <p className="text-sm text-muted-foreground">{user?.name || 'Não identificado'}</p>
                 </div>
-
                 <div className="space-y-2">
-                  <Label>Fuso Horário</Label>
-                  <Select
-                    value={localSettings.timezone}
-                    onValueChange={(value) => setLocalSettings(prev => ({ ...prev, timezone: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="America/Sao_Paulo">Brasília (UTC-3)</SelectItem>
-                      <SelectItem value="America/Manaus">Manaus (UTC-4)</SelectItem>
-                      <SelectItem value="America/Rio_Branco">Rio Branco (UTC-5)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Perfil de Acesso</Label>
+                  <p className="text-sm text-muted-foreground">{user?.role || 'Não definido'}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Usuários - apenas para admin */}
+        {isAdmin && (
+          <TabsContent value="users" className="space-y-4">
+            <CleanUserManagement />
+          </TabsContent>
+        )}
+
+        {/* Cadastros */}
+        <TabsContent value="registrations" className="space-y-4">
+          <CompleteRegistrations />
+        </TabsContent>
+
+        {/* Importar Dados */}
+        <TabsContent value="import" className="space-y-4">
+          <DataImport />
         </TabsContent>
 
         {/* Aparência */}
@@ -268,137 +189,11 @@ export const GeneralSettings: React.FC = () => {
                   <SelectContent>
                     <SelectItem value="light">Claro</SelectItem>
                     <SelectItem value="dark">Escuro</SelectItem>
-                    <SelectItem value="system">Sistema</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-muted-foreground">
-                  O tema "Sistema" seguirá as configurações do seu dispositivo
+                  Escolha entre tema claro ou escuro para a interface
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Backup */}
-        <TabsContent value="backup" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Backup Automático
-              </CardTitle>
-              <CardDescription>
-                Configure backups automáticos dos seus dados
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Backup Automático</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Criar backups automáticos dos dados
-                  </p>
-                </div>
-                <Switch
-                  checked={localSettings.autoBackup}
-                  onCheckedChange={(value) => setLocalSettings(prev => ({ ...prev, autoBackup: value }))}
-                />
-              </div>
-
-              {localSettings.autoBackup && (
-                <div className="space-y-4 ml-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Frequência</Label>
-                      <Select
-                        value={localSettings.backupFrequency}
-                        onValueChange={(value: any) => setLocalSettings(prev => ({ ...prev, backupFrequency: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="daily">Diário</SelectItem>
-                          <SelectItem value="weekly">Semanal</SelectItem>
-                          <SelectItem value="monthly">Mensal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Retenção (dias)</Label>
-                      <Input
-                        type="number"
-                        value={localSettings.backupRetention}
-                        onChange={(e) => setLocalSettings(prev => ({ ...prev, backupRetention: parseInt(e.target.value) }))}
-                        min="1"
-                        max="365"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Segurança */}
-        <TabsContent value="security" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Configurações de Segurança
-              </CardTitle>
-              <CardDescription>
-                Configure políticas de segurança e autenticação
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Timeout de Sessão (minutos)</Label>
-                  <Input
-                    type="number"
-                    value={localSettings.sessionTimeout}
-                    onChange={(e) => setLocalSettings(prev => ({ ...prev, sessionTimeout: parseInt(e.target.value) }))}
-                    min="5"
-                    max="480"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Tempo limite para sessões inativas
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Expiração de Senha (dias)</Label>
-                  <Input
-                    type="number"
-                    value={localSettings.passwordExpiry}
-                    onChange={(e) => setLocalSettings(prev => ({ ...prev, passwordExpiry: parseInt(e.target.value) }))}
-                    min="30"
-                    max="365"
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Forçar troca de senha após este período
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-base">Autenticação de Dois Fatores</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Adicionar camada extra de segurança (em desenvolvimento)
-                  </p>
-                </div>
-                <Switch
-                  checked={localSettings.twoFactorAuth}
-                  onCheckedChange={(value) => setLocalSettings(prev => ({ ...prev, twoFactorAuth: value }))}
-                  disabled
-                />
               </div>
             </CardContent>
           </Card>
@@ -454,14 +249,6 @@ export const GeneralSettings: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Ações */}
-      <div className="flex items-center gap-4">
-        <Button onClick={handleSave} disabled={isLoading}>
-          <Save className="h-4 w-4 mr-2" />
-          {isLoading ? 'Salvando...' : 'Salvar Configurações'}
-        </Button>
-      </div>
     </div>
   );
 };

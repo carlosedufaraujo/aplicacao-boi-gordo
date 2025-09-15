@@ -38,16 +38,12 @@ export function useRealDataSync() {
   const syncWithBackend = async () => {
     try {
       setSyncState(prev => ({ ...prev, loading: true, error: null }));
-      console.log('🔄 Sincronizando dados com backend...');
 
       // Buscar TODOS os dados do backend
       const [allData, statsData] = await Promise.all([
         fetch('http://localhost:3001/api/v1/all-data').then(r => r.json()),
         apiService.getStats()
       ]);
-
-      console.log('📦 TODOS os dados recebidos do backend:', { allData, statsData });
-
       // Converter TODOS os dados do backend para o formato do frontend
       if (allData.success && allData.data) {
         const data = allData.data;
@@ -65,7 +61,6 @@ export function useRealDataSync() {
             targetAnimals: cycle.targetAnimals || 0,
             createdAt: new Date(cycle.createdAt)
           }));
-          console.log('🔄 Atualizando ciclos no store:', realCycles);
           setCycles(realCycles);
         }
 
@@ -92,7 +87,6 @@ export function useRealDataSync() {
             freightCost: lot.freightCost || 0,
             otherCosts: lot.otherCosts || 0
           }));
-          console.log('🐄 Atualizando lotes no store:', realLots);
           setCattlePurchases(realLots);
         }
 
@@ -110,7 +104,6 @@ export function useRealDataSync() {
             isActive: partner.isActive,
             createdAt: new Date(partner.createdAt)
           }));
-          console.log('🤝 Atualizando parceiros no store:', realPartners);
           setPartners(realPartners);
         }
 
@@ -128,11 +121,9 @@ export function useRealDataSync() {
             createdAt: new Date(expense.createdAt),
             updatedAt: new Date(expense.updatedAt || expense.createdAt)
           }));
-          console.log('💰 Atualizando despesas no store:', realExpenses);
           if (setExpenses) {
             setExpenses(realExpenses);
           } else {
-            console.warn('⚠️ setExpenses não está disponível');
           }
         }
 
@@ -149,7 +140,6 @@ export function useRealDataSync() {
             createdAt: new Date(revenue.createdAt),
             updatedAt: new Date(revenue.updatedAt || revenue.createdAt)
           }));
-          console.log('💵 Atualizando receitas no store:', realRevenues);
           setRevenues(realRevenues);
         }
 
@@ -165,7 +155,6 @@ export function useRealDataSync() {
             isActive: pen.isActive,
             createdAt: new Date(pen.createdAt)
           }));
-          console.log('🏢 Atualizando currais no store:', realPens);
           setPenRegistrations(realPens);
         }
 
@@ -180,7 +169,6 @@ export function useRealDataSync() {
             totalCost: record.totalCost,
             createdAt: new Date(record.createdAt)
           }));
-          console.log('🏥 Atualizando registros de saúde no store:', realHealthRecords);
           setHealthRecords(realHealthRecords);
         }
 
@@ -195,11 +183,9 @@ export function useRealDataSync() {
             animalCount: reading.animalCount,
             createdAt: new Date(reading.createdAt)
           }));
-          console.log('⚖️ Atualizando leituras de peso no store:', realWeightReadings);
           if (setWeightReadings) {
             setWeightReadings(realWeightReadings);
           } else {
-            console.warn('⚠️ setWeightReadings não está disponível');
           }
         }
       }
@@ -209,9 +195,6 @@ export function useRealDataSync() {
         error: null,
         lastSync: new Date()
       });
-
-      console.log('✅ Sincronização concluída com sucesso!');
-
     } catch (error) {
       console.error('❌ Erro na sincronização:', error);
       setSyncState(prev => ({
@@ -224,7 +207,6 @@ export function useRealDataSync() {
 
   // Sincronizar automaticamente na inicialização
   useEffect(() => {
-    console.log('🔍 Debug - Variáveis do store:', {
       cycles: cycles?.length || 'undefined',
       cattlePurchases: cattlePurchases?.length || 'undefined',
       partners: partners?.length || 'undefined',

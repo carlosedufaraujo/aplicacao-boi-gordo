@@ -158,11 +158,8 @@ export const PurchaseManagement: React.FC = () => {
         loadCattlePurchases(),
         loadPartners()
       ]);
-      
-      console.log('📊 Dados carregados:', {
-        cattlePurchases: cattlePurchases.length,
-        partners: partners.length
-      });
+
+      // Debug removido para limpeza de código
       
     } catch (error) {
       console.error('❌ Erro ao carregar dados:', error);
@@ -179,7 +176,6 @@ export const PurchaseManagement: React.FC = () => {
         const vendor = partners.find(p => p.id === order.vendorId);
         const broker = order.brokerId ? partners.find(p => p.id === order.brokerId) : null;
         
-        console.log(`🔍 Processando ordem ${order.lotCode}:`, {
           order: order,
           lot: lot,
           vendor: vendor?.name,
@@ -291,10 +287,8 @@ export const PurchaseManagement: React.FC = () => {
         } as any;
       });
       
-      console.log('🔄 Dados combinados:', combinedData.length, 'compras');
       setPurchases(combinedData);
     } else {
-      console.log('⏳ Aguardando dados completos...', {
         cattlePurchases: cattlePurchases.length,
         cattlePurchases: cattlePurchases.length,
         partners: partners.length,

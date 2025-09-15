@@ -3,6 +3,9 @@ import React, { useEffect, useRef, memo } from 'react';
 function TradingViewWidget() {
   const container = useRef<HTMLDivElement>(null);
 
+  // Detectar se está em dark mode
+  const isDarkMode = document.documentElement.classList.contains('dark');
+
   useEffect(() => {
     if (!container.current) return;
     
@@ -66,7 +69,7 @@ function TradingViewWidget() {
             "title": "IBOV"
           }
         ],
-        "colorTheme": "light",
+        "colorTheme": "${isDarkMode ? 'dark' : 'light'}",
         "locale": "br",
         "largeChartUrl": "",
         "isTransparent": true,
@@ -83,7 +86,7 @@ function TradingViewWidget() {
         container.current.innerHTML = '';
       }
     };
-  }, []);
+  }, [isDarkMode]);
 
   return (
     <div className="relative w-full h-8 overflow-hidden">

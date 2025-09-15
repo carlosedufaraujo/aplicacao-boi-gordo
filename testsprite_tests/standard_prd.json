@@ -1,0 +1,459 @@
+{
+  "meta": {
+    "project": "BoviControl",
+    "date": "2025-09-13",
+    "prepared_by": "Carlos Eduardo"
+  },
+  "product_overview": "BoviControl is an integrated web-based cattle farming management system designed to streamline and unify all operational, financial, and sanitary processes in cattle farms. It aims to digitalize the entire production cycle, providing real-time data to optimize decisions, reduce operational costs, and increase profitability.",
+  "core_goals": [
+    "Digitalize the complete management of cattle farms.",
+    "Integrate all operational and financial processes into one unified platform.",
+    "Provide real-time data analytics to optimize decision-making.",
+    "Reduce operational costs and decrease animal mortality rates.",
+    "Increase profitability through precise financial and performance analysis."
+  ],
+  "key_features": [
+    "Comprehensive cattle lot management including tracking weights, growth, movements, and mortality.",
+    "Financial center with control of revenues, expenses, cash flow, and automated reconciliation.",
+    "End-to-end purchase pipeline management with supplier controls and purchase tracking.",
+    "Sales pipeline with a visual Kanban, sales simulations, and transaction tracking.",
+    "Sanitary management covering vaccinations, medications, veterinary protocols, and health reports.",
+    "Infrastructure management including pen creation, capacity control, and animal allocations.",
+    "Integrated calendar for scheduling farm activities with reminders and synchronization.",
+    "Secure authentication system with JWT and role-based access controls.",
+    "Robust data protection with encryption, validation, auditing, and compliance with LGPD.",
+    "Mobile-responsive and accessible UI using modern React and Tailwind technologies."
+  ],
+  "user_flow_summary": [
+    "Users authenticate securely via login and maintain sessions managed by JWT tokens.",
+    "Farm managers create and manage cattle lots, track animal performance, and record movements or health events.",
+    "Financial officers record and categorize all financial transactions, monitor cash flows, and generate financial reports automatically.",
+    "Procurement users register and track cattle purchases linked to suppliers and budgets.",
+    "Sales teams manage sales processes through a Kanban board, perform simulations, and document sales and payments.",
+    "Veterinarians and health officers log all health interventions, vaccination schedules and monitor herd health.",
+    "Infrastructure managers set up and maintain pens, monitor capacity and optimize allocations.",
+    "Users schedule and receive reminders for all farm activities using the integrated calendar system."
+  ],
+  "validation_criteria": [
+    "All core features are implemented and operational as defined in the acceptance criteria of respective modules.",
+    "Performance metrics meet targets: API response times under 500ms, UI load times under 2 seconds.",
+    "System uptime exceeds 99% and has zero critical vulnerabilities post security audits.",
+    "Test coverage is above 80% including unit and integration tests.",
+    "User feedback scores are positive including an average rating above 4.5 out of 5 in usability and functionality.",
+    "Data synchronization and integrations with Supabase and other services are reliable with no data loss.",
+    "Alerts, notifications, and automated workflows such as reconciliation and vaccination reminders are operational and timely.",
+    "Compliance with security policies including LGPD and data encryption standards is fully maintained."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "TypeScript",
+      "React 18.3.1",
+      "Node.js",
+      "Express.js",
+      "PostgreSQL",
+      "Prisma ORM",
+      "Vite",
+      "Tailwind CSS",
+      "Shadcn/UI",
+      "Zustand",
+      "JWT",
+      "Supabase"
+    ],
+    "features": [
+      {
+        "name": "Authentication API",
+        "description": "Sistema de autenticação com JWT, login, logout e gestão de usuários",
+        "files": [
+          "backend/src/routes/auth.routes.ts",
+          "backend/src/controllers/auth.controller.ts",
+          "backend/src/services/auth.service.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/v1/auth/login": {
+              "post": {
+                "summary": "Login de usuário",
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "email": {
+                            "type": "string"
+                          },
+                          "password": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "responses": {
+                  "200": {
+                    "description": "Login realizado com sucesso",
+                    "content": {
+                      "application/json": {
+                        "schema": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string"
+                            },
+                            "token": {
+                              "type": "string"
+                            },
+                            "user": {
+                              "type": "object"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Partners Management API",
+        "description": "Gestão completa de parceiros (fornecedores, compradores, investidores)",
+        "files": [
+          "backend/src/routes/partner.routes.ts",
+          "backend/src/controllers/partner.controller.ts",
+          "backend/src/services/partner.service.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/v1/partners": {
+              "get": {
+                "summary": "Lista todos os parceiros",
+                "parameters": [
+                  {
+                    "name": "page",
+                    "in": "query",
+                    "schema": {
+                      "type": "number"
+                    }
+                  },
+                  {
+                    "name": "limit",
+                    "in": "query",
+                    "schema": {
+                      "type": "number"
+                    }
+                  },
+                  {
+                    "name": "type",
+                    "in": "query",
+                    "schema": {
+                      "type": "string",
+                      "enum": [
+                        "VENDOR",
+                        "BROKER",
+                        "BUYER",
+                        "INVESTOR",
+                        "SERVICE_PROVIDER",
+                        "OTHER"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "post": {
+                "summary": "Criar novo parceiro",
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "cpfCnpj": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string"
+                          },
+                          "phone": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Cattle Purchase API",
+        "description": "Gestão de compras de gado, lotes e controle de animais",
+        "files": [
+          "backend/src/routes/cattlePurchase.routes.ts",
+          "backend/src/controllers/cattlePurchase.controller.ts",
+          "backend/src/services/cattlePurchase.service.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/v1/cattle-purchases": {
+              "get": {
+                "summary": "Lista compras de gado"
+              },
+              "post": {
+                "summary": "Registrar nova compra de gado",
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "vendorId": {
+                            "type": "string"
+                          },
+                          "payerAccountId": {
+                            "type": "string"
+                          },
+                          "totalAnimals": {
+                            "type": "number"
+                          },
+                          "totalWeight": {
+                            "type": "number"
+                          },
+                          "pricePerKg": {
+                            "type": "number"
+                          },
+                          "totalAmount": {
+                            "type": "number"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Financial Management API",
+        "description": "Centro financeiro com controle de receitas, despesas e fluxo de caixa",
+        "files": [
+          "backend/src/routes/expense.routes.ts",
+          "backend/src/routes/revenue.routes.ts",
+          "backend/src/routes/cashFlow.routes.ts",
+          "backend/src/controllers/expense.controller.ts",
+          "backend/src/controllers/revenue.controller.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/v1/expenses": {
+              "get": {
+                "summary": "Lista despesas"
+              },
+              "post": {
+                "summary": "Registrar nova despesa",
+                "requestBody": {
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "category": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "totalAmount": {
+                            "type": "number"
+                          },
+                          "dueDate": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "/api/v1/revenues": {
+              "get": {
+                "summary": "Lista receitas"
+              },
+              "post": {
+                "summary": "Registrar nova receita"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Pens Management API",
+        "description": "Gestão de currais e alocação de animais",
+        "files": [
+          "backend/src/routes/pen.routes.ts",
+          "backend/src/routes/penAllocations.routes.ts",
+          "backend/src/controllers/pen.controller.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/v1/pens": {
+              "get": {
+                "summary": "Lista currais"
+              },
+              "post": {
+                "summary": "Criar novo curral"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Sales Management API",
+        "description": "Gestão de vendas e pipeline comercial",
+        "files": [
+          "backend/src/routes/saleRecord.routes.ts",
+          "backend/src/controllers/saleRecord.controller.ts",
+          "backend/src/services/saleRecord.service.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/v1/sale-records": {
+              "get": {
+                "summary": "Lista registros de vendas"
+              },
+              "post": {
+                "summary": "Registrar nova venda"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Interventions API",
+        "description": "Gestão de intervenções veterinárias e sanitárias",
+        "files": [
+          "backend/src/routes/intervention.routes.ts",
+          "backend/src/routes/integratedIntervention.routes.ts",
+          "backend/src/controllers/intervention.controller.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/v1/interventions": {
+              "get": {
+                "summary": "Lista intervenções"
+              },
+              "post": {
+                "summary": "Registrar nova intervenção"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Analytics & Reports API",
+        "description": "Análises financeiras, relatórios e dashboards",
+        "files": [
+          "backend/src/routes/analytics.routes.ts",
+          "backend/src/routes/report.routes.ts",
+          "backend/src/routes/integratedFinancialAnalysis.routes.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/v1/analytics": {
+              "get": {
+                "summary": "Dados analíticos"
+              }
+            },
+            "/api/v1/stats": {
+              "get": {
+                "summary": "Estatísticas do dashboard"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Calendar Events API",
+        "description": "Gestão de eventos e calendário de atividades",
+        "files": [
+          "backend/src/routes/calendarEvent.routes.ts",
+          "backend/src/controllers/calendarEvent.controller.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/v1/calendar-events": {
+              "get": {
+                "summary": "Lista eventos do calendário"
+              },
+              "post": {
+                "summary": "Criar novo evento"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Test Data API",
+        "description": "Endpoints para dados de teste e limpeza automática",
+        "files": [
+          "backend/src/routes/testData.routes.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/api/v1/test-data/auth-token": {
+              "get": {
+                "summary": "Obter token de teste para TestSprite"
+              }
+            },
+            "/api/v1/test-data/cleanup": {
+              "delete": {
+                "summary": "Limpar dados de teste"
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "Health Check API",
+        "description": "Monitoramento de saúde do sistema e banco de dados",
+        "files": [
+          "backend/src/routes/health.routes.ts"
+        ],
+        "api_doc": {
+          "openapi": "3.0.0",
+          "paths": {
+            "/health": {
+              "get": {
+                "summary": "Verificação de saúde do sistema"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

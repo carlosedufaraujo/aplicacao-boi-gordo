@@ -52,10 +52,12 @@ import {
   Shield,
   UserCheck,
   Clock,
-  Building2
+  Building2,
+  Ban,
+  CheckCircle
 } from 'lucide-react';
 import { useBackend } from '@/providers/BackendProvider';
-
+import { toast } from 'sonner';
 // Tipos simplificados (sem funcionalidades de aprovação)
 interface User {
   id: string;
@@ -86,15 +88,16 @@ const statusColors = {
   inactive: 'status-inactive'
 };
 
-export const CleanUserManagement: React.FC = () => {
-  const { user: currentUser } = useBackend();
-  
+const CleanUserManagement: React.FC = () => {
+  const { user: currentUser, updateUser } = useBackend();
+
   // Estados
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{ isOpen: boolean; userId: string | null }>({ isOpen: false, userId: null });
   const [isLoading, setIsLoading] = useState(false);
 
   // Dados reais do Backend
@@ -132,7 +135,6 @@ export const CleanUserManagement: React.FC = () => {
             setUsers(mappedUsers);
           }
         } else {
-          console.warn('Erro ao carregar usuários:', response.status);
           // Fallback para usuário atual apenas
           setUsers([{
             id: currentUser?.id || '1',
@@ -191,11 +193,13 @@ export const CleanUserManagement: React.FC = () => {
   const stats = useMemo(() => {
     const totalUsers = users.length;
     const activeUsers = users.filter(u => u.status === 'active').length;
+    const admins = users.filter(u => u.role === 'ADMIN' || u.role === 'MASTER').length;
     
     return {
       total: totalUsers,
       active: activeUsers,
-      inactive: totalUsers - activeUsers
+      inactive: totalUsers - activeUsers,
+      admins: admins
     };
   }, [users]);
 
@@ -236,27 +240,67 @@ export const CleanUserManagement: React.FC = () => {
     }
   };
 
-  // Handlers com integração real à API
-  const handleDeleteUser = async (userId: string) => {
+  // Handler para alternar status do usuário
+  const handleToggleUserStatus = async (user: User) => {
+    try {
+      setIsLoading(true);
+      await usersService.update(user.id, {
+        isActive: user.status !== 'active'
+      });
+      await loadUsers();
+      toast({
+        title: user.status === 'active' ? 'Usuário Desativado' : 'Usuário Ativado',
+        description: `O usuário ${user.name} foi ${user.status === 'active' ? 'desativado' : 'ativado'} com sucesso.`,
+      });
+    } catch (error: any) {
+      console.error('Erro ao alterar status:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível alterar o status do usuário.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handler para abrir dialog de confirmação
+  const handleDeleteUser = (userId: string) => {
     if (userId === currentUser?.id) {
-      alert('Não é possível excluir seu próprio usuário');
+      toast({
+        title: 'Erro',
+        description: 'Você não pode excluir seu próprio usuário.',
+        variant: 'destructive'
+      });
       return;
     }
-    
-    const confirmed = confirm('Tem certeza que deseja excluir este usuário?');
-    if (confirmed) {
-      try {
-        setIsLoading(true);
-        await usersService.delete(userId);
-        // Recarregar a lista de usuários
-        await loadUsers();
-        alert('Usuário excluído com sucesso!');
-      } catch (error) {
-        console.error('Erro ao excluir usuário:', error);
-        alert('Erro ao excluir usuário. Por favor, tente novamente.');
-      } finally {
-        setIsLoading(false);
-      }
+    setDeleteConfirmDialog({ isOpen: true, userId });
+  };
+
+  // Handler para confirmar exclusão
+  const confirmDeleteUser = async () => {
+    const userId = deleteConfirmDialog.userId;
+    if (!userId) return;
+
+    try {
+      setIsLoading(true);
+      await usersService.delete(userId);
+      // Recarregar a lista de usuários
+      await loadUsers();
+      toast({
+        title: 'Usuário Excluído',
+        description: 'O usuário foi excluído com sucesso.',
+      });
+    } catch (error: any) {
+      console.error('Erro ao excluir usuário:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível excluir o usuário. Tente novamente.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+      setDeleteConfirmDialog({ isOpen: false, userId: null });
     }
   };
 
@@ -270,7 +314,7 @@ export const CleanUserManagement: React.FC = () => {
     
     try {
       setIsLoading(true);
-      await usersService.update(selectedUser.id, {
+      const updatedUser = await usersService.update(selectedUser.id, {
         name: updatedData.name,
         email: updatedData.email,
         role: updatedData.role,
@@ -279,12 +323,31 @@ export const CleanUserManagement: React.FC = () => {
         department: updatedData.department,
         notes: updatedData.notes
       });
+
+      // Se o usuário está atualizando suas próprias informações, atualizar o contexto
+      if (selectedUser.id === currentUser?.id) {
+        updateUser({
+          name: updatedData.name,
+          email: updatedData.email,
+          role: updatedData.role,
+          phone: updatedData.phone,
+          department: updatedData.department
+        });
+      }
+
       await loadUsers();
       setSelectedUser(null);
-      alert('Usuário atualizado com sucesso!');
-    } catch (error) {
+      toast({
+        title: 'Usuário Atualizado',
+        description: 'As informações do usuário foram atualizadas com sucesso.',
+      });
+    } catch (error: any) {
       console.error('Erro ao atualizar usuário:', error);
-      alert('Erro ao atualizar usuário. Por favor, tente novamente.');
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível atualizar o usuário. Tente novamente.',
+        variant: 'destructive'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -296,10 +359,17 @@ export const CleanUserManagement: React.FC = () => {
       await usersService.create(userData);
       await loadUsers();
       setShowCreateDialog(false);
-      alert('Usuário criado com sucesso!');
-    } catch (error) {
+      toast({
+        title: 'Usuário Criado',
+        description: 'O novo usuário foi criado com sucesso.',
+      });
+    } catch (error: any) {
       console.error('Erro ao criar usuário:', error);
-      alert('Erro ao criar usuário. Por favor, tente novamente.');
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível criar o usuário. Tente novamente.',
+        variant: 'destructive'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -328,14 +398,14 @@ export const CleanUserManagement: React.FC = () => {
             Gerencie usuários do sistema - dados reais do banco
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
+        <Button onClick={() => setShowCreateDialog(true)} size="sm">
           <Plus className="h-4 w-4 mr-2" />
           Novo Usuário
         </Button>
       </div>
 
       {/* KPIs Simplificados */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
@@ -353,7 +423,7 @@ export const CleanUserManagement: React.FC = () => {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.active}</div>
+            <div className="text-2xl font-bold">{stats.active}</div>
             <p className="text-xs text-muted-foreground">ativos no sistema</p>
           </CardContent>
         </Card>
@@ -361,11 +431,22 @@ export const CleanUserManagement: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Usuários Inativos</CardTitle>
+            <Ban className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.inactive}</div>
+            <p className="text-xs text-muted-foreground">temporariamente inativos</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Administradores</CardTitle>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.inactive}</div>
-            <p className="text-xs text-muted-foreground">inativos</p>
+            <div className="text-2xl font-bold">{stats.admins}</div>
+            <p className="text-xs text-muted-foreground">com permissões especiais</p>
           </CardContent>
         </Card>
       </div>
@@ -498,28 +579,50 @@ export const CleanUserManagement: React.FC = () => {
                   </TableCell>
                   
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
+                    <div className="flex gap-1 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEditUser(user)}
+                        title="Editar usuário"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      {user.status === 'active' ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleToggleUserStatus(user)}
+                          title="Desativar usuário"
+                          disabled={user.id === currentUser?.id}
+                        >
+                          <Ban className="h-4 w-4" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditUser(user)}>
-                          <Edit className="h-3 w-3 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        {user.id !== currentUser?.id && (
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteUser(user.id)}
-                            className="text-destructive"
-                          >
-                            <Trash2 className="h-3 w-3 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleToggleUserStatus(user)}
+                          title="Ativar usuário"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {user.id !== currentUser?.id && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleDeleteUser(user.id)}
+                          title="Excluir usuário"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -688,6 +791,33 @@ export const CleanUserManagement: React.FC = () => {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <Dialog open={deleteConfirmDialog.isOpen} onOpenChange={(open) => !open && setDeleteConfirmDialog({ isOpen: false, userId: null })}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmDialog({ isOpen: false, userId: null })}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteUser}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Excluindo...' : 'Excluir Usuário'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

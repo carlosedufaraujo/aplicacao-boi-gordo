@@ -108,10 +108,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Categoria não encontrada' });
     }
     
-    // Não permite alterar categorias padrão
-    if (existing.isDefault) {
-      return res.status(400).json({ error: 'Não é possível alterar categorias padrão' });
-    }
+    // Removida restrição de categorias padrão - todas podem ser editadas
     
     // Verifica duplicação de nome
     if (name && name !== existing.name) {
@@ -160,10 +157,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Categoria não encontrada' });
     }
     
-    // Não permite deletar categorias padrão
-    if (existing.isDefault) {
-      return res.status(400).json({ error: 'Não é possível deletar categorias padrão' });
-    }
+    // Removida restrição de categorias padrão - todas podem ser deletadas se não estiverem em uso
     
     // Não permite deletar categorias em uso
     if ((existing as any)._count.cashFlows > 0) {

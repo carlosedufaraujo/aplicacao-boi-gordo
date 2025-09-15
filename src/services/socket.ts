@@ -17,12 +17,10 @@ class SocketService {
     });
 
     this.socket.on('connect', () => {
-      console.log('✅ Socket.io conectado');
       this.connected = true;
     });
 
     this.socket.on('disconnect', () => {
-      console.log('❌ Socket.io desconectado');
       this.connected = false;
     });
 

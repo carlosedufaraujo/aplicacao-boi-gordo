@@ -22,8 +22,8 @@ export function logWebVitals() {
     const { name, value, id } = metric;
     const emoji = getMetricEmoji(name);
     const status = getMetricStatus(name, value);
-    
-    console.log(`${emoji} ${name}: ${value.toFixed(2)}ms [${status}] (${id})`);
+
+    console.log(`${emoji} ${name}: ${value}ms [${status}] (${id})`);
   });
 }
 
@@ -119,7 +119,6 @@ export class PerformanceMonitor {
   measure(name: string, startMark: string): number {
     const start = this.marks.get(startMark);
     if (!start) {
-      console.warn(`Mark '${startMark}' not found`);
       return 0;
     }
     
@@ -133,7 +132,7 @@ export class PerformanceMonitor {
     
     // Log em desenvolvimento
     if (process.env.NODE_ENV === 'development') {
-      console.log(`⏱️ ${name}: ${duration.toFixed(2)}ms`);
+      // Debug removido para limpeza de código
     }
     
     return duration;

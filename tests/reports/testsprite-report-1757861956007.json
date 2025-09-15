@@ -1,0 +1,44 @@
+{
+  "timestamp": "2025-09-14T14:59:16.007Z",
+  "url": "http://localhost:5173",
+  "results": [
+    {
+      "test": "Login",
+      "status": "PASSED"
+    },
+    {
+      "test": "Dashboard",
+      "status": "FAILED"
+    },
+    {
+      "test": "Lots List",
+      "status": "ERROR",
+      "error": "Waiting for selector `table, .lot-card` failed"
+    },
+    {
+      "test": "Financial Center",
+      "status": "ERROR",
+      "error": "SyntaxError: Failed to execute 'querySelector' on 'Document': '*:has-text(\"Receita\")' is not a valid selector."
+    },
+    {
+      "test": "Responsiveness",
+      "status": "PASSED"
+    },
+    {
+      "test": "Performance",
+      "status": "PASSED",
+      "metrics": {
+        "domContentLoaded": 0,
+        "loadComplete": 0,
+        "domInteractive": 5.200000047683716,
+        "firstPaint": 84
+      }
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 1,
+    "errors": 2,
+    "warnings": 0
+  }
+}

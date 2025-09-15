@@ -113,12 +113,6 @@ export const FinancialDataProvider: React.FC<{ children: React.ReactNode }> = ({
   
   // Calcular métricas consolidadas
   const metrics = useMemo((): FinancialMetrics => {
-    console.log('🔍 FinancialDataProvider - Calculando métricas:', {
-      cattlePurchases: cattlePurchases?.length || 0,
-      saleRecords: saleRecords?.length || 0,
-      cattlePurchasesData: cattlePurchases
-    });
-    
     // Métricas de Compras
     const totalPurchases = cattlePurchases?.length || 0;
     const totalPurchaseValue = cattlePurchases?.reduce((sum, p) => sum + (p.purchaseValue || p.totalValue || 0), 0) || 0;
@@ -132,14 +126,7 @@ export const FinancialDataProvider: React.FC<{ children: React.ReactNode }> = ({
       const arrobas = carcassWeight / 15; // 1 arroba = 15kg
       return sum + arrobas;
     }, 0) || 0;
-    
-    console.log('📊 Métricas de Compras:', {
-      totalPurchases,
-      totalPurchaseValue,
-      totalAnimals,
-      primeiraCompra: cattlePurchases?.[0]
-    });
-    
+
     // Métricas de Vendas
     const totalSales = saleRecords?.length || 0;
     const totalSalesValue = saleRecords?.reduce((sum, s) => sum + (s.totalValue || 0), 0) || 0;

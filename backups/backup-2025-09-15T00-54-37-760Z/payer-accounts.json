@@ -1,0 +1,28 @@
+[
+  {
+    "id": "cmfi9fozy0028l584u9qz12h7",
+    "bankName": "IQ Tech",
+    "accountName": "Escrow Quatá",
+    "agency": "0001",
+    "accountNumber": "3938807-8",
+    "accountType": "CHECKING",
+    "balance": 1,
+    "isActive": true,
+    "createdAt": "2025-09-13T12:46:25.103Z",
+    "updatedAt": "2025-09-13T13:05:34.008Z",
+    "initialBalance": 0
+  },
+  {
+    "id": "cmfgqd1un00008ay7pj9p1urn",
+    "bankName": "Fluxo",
+    "accountName": "Fluxo de Caixa",
+    "agency": "00000",
+    "accountNumber": "00000",
+    "accountType": "CHECKING",
+    "balance": 1,
+    "isActive": true,
+    "createdAt": "2025-09-12T11:04:42.912Z",
+    "updatedAt": "2025-09-13T13:15:02.452Z",
+    "initialBalance": 0
+  }
+]

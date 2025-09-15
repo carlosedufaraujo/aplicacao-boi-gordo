@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-09-14T15:35:07.285Z",
+  "url": "http://localhost:5173",
+  "results": [
+    {
+      "test": "Login",
+      "status": "PASSED"
+    },
+    {
+      "test": "Dashboard",
+      "status": "FAILED"
+    },
+    {
+      "test": "Lots List",
+      "status": "ERROR",
+      "error": "Waiting for selector `table, .lot-card` failed"
+    },
+    {
+      "test": "Financial Center",
+      "status": "PASSED"
+    },
+    {
+      "test": "Responsiveness",
+      "status": "PASSED"
+    },
+    {
+      "test": "Performance",
+      "status": "PASSED",
+      "metrics": {
+        "domContentLoaded": 0.10000002384185791,
+        "loadComplete": 0,
+        "domInteractive": 6.899999976158142,
+        "firstPaint": 64
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 1,
+    "errors": 1,
+    "warnings": 0
+  }
+}

@@ -66,7 +66,6 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({
   const handleFormSubmit = (data: any) => {
     // In a real implementation, this would update the sale status to "reconciled"
     // and mark the financial account as paid
-    console.log('Reconciling payment:', data);
     
     // Show success notification
     alert('Pagamento conciliado com sucesso!');

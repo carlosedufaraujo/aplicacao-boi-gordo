@@ -307,7 +307,6 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
 
   // Carregamento inicial
   useEffect(() => {
-    console.log('[usePayerAccountsApi] Montando componente, iniciando carregamento...');
     
     const loadInitialData = async () => {
       try {
@@ -320,7 +319,6 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
         ]);
         
         if (accountsResponse.status === 'success' && accountsResponse.data) {
-          console.log('[usePayerAccountsApi.ts] Initial load - Response data:', accountsResponse.data);
           const items = Array.isArray(accountsResponse.data) 
             ? accountsResponse.data 
             : accountsResponse.data.items || [];
@@ -328,7 +326,6 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
         }
         
         if (statsResponse.status === 'success' && statsResponse.data) {
-          console.log('[usePayerAccountsApi.ts] Initial load - Response data:', statsResponse.data);
           setStats(statsResponse.data);
         }
       } catch (err) {

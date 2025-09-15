@@ -61,8 +61,6 @@ export function Login02({ className }: Login02Props) {
     }
   }, []);
 
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -82,7 +80,6 @@ export function Login02({ className }: Login02Props) {
     setIsLoading(true);
 
     try {
-      console.log('🔐 Iniciando login...');
       await signIn(formData.email, formData.password);
       
       // Salvar/remover email conforme preferência
@@ -92,7 +89,6 @@ export function Login02({ className }: Login02Props) {
         localStorage.removeItem('rememberedEmail');
       }
 
-      console.log('✅ Login bem-sucedido, redirecionando...');
     } catch (error: any) {
       console.error('❌ Erro no login:', error);
       
@@ -139,7 +135,6 @@ export function Login02({ className }: Login02Props) {
       
       setResetEmailSent(true);
       setShowForgotPassword(false);
-      console.log('📧 Email de reset enviado para:', formData.email);
     } catch (error: any) {
       console.error('❌ Erro ao enviar email de reset:', error);
       setError('Erro ao enviar email de recuperação. Tente novamente.');
@@ -162,8 +157,6 @@ export function Login02({ className }: Login02Props) {
 
   return (
     <div className="min-h-screen w-full lg:grid lg:grid-cols-2 bg-background text-foreground">
-
-
       {/* Status de Conexão */}
       {!isOnline && (
         <div className="fixed top-4 right-4 bg-destructive text-destructive-foreground px-4 py-2 rounded-lg shadow-lg flex items-center space-x-2 animate-pulse z-50">

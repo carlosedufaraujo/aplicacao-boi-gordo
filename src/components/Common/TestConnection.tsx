@@ -17,34 +17,27 @@ export const TestConnection: React.FC = () => {
     setStatus(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      console.log('🧪 Testando conexão com backend...');
       
       // Teste 1: Health check
-      console.log('🔍 Testando: http://localhost:3001/health');
       const healthResponse = await fetch('http://localhost:3001/health');
       if (!healthResponse.ok) {
         throw new Error(`Health check falhou: ${healthResponse.status} ${healthResponse.statusText}`);
       }
       const healthData = await healthResponse.json();
-      console.log('✅ Health check:', healthData);
       
       // Teste 2: Stats
-      console.log('🔍 Testando: http://localhost:3001/api/v1/stats');
       const statsResponse = await fetch('http://localhost:3001/api/v1/stats');
       if (!statsResponse.ok) {
         throw new Error(`Stats falhou: ${statsResponse.status} ${statsResponse.statusText}`);
       }
       const statsData = await statsResponse.json();
-      console.log('✅ Stats:', statsData);
       
       // Teste 3: Frontend data
-      console.log('🔍 Testando: http://localhost:3001/api/v1/frontend-data');
       const frontendResponse = await fetch('http://localhost:3001/api/v1/frontend-data');
       if (!frontendResponse.ok) {
         throw new Error(`Frontend data falhou: ${frontendResponse.status} ${frontendResponse.statusText}`);
       }
       const frontendData = await frontendResponse.json();
-      console.log('✅ Frontend data:', frontendData);
       
       setStatus({
         connected: true,

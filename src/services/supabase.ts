@@ -40,15 +40,12 @@ export const userService = {
     return [];
   },
   async createUser(userData: any) {
-    console.warn('userService.createUser: Use a API Backend');
     return null;
   },
   async updateUser(id: string, userData: any) {
-    console.warn('userService.updateUser: Use a API Backend');
     return null;
   },
   async deleteUser(id: string) {
-    console.warn('userService.deleteUser: Use a API Backend');
     return null;
   }
 };

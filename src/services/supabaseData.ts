@@ -219,7 +219,6 @@ export interface FinancialReconciliation {
 
 class DataService {
   private logDeprecation(method: string) {
-    console.warn(`⚠️ dataService.${method} está deprecado. Use os hooks em /hooks/api/`);
   }
 
   // Métodos mantidos para compatibilidade, mas redirecionam para API backend

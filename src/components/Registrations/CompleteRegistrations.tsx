@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNotification } from '@/components/Notifications/NotificationProvider';
 import { 
   Users, 
   Building, 
@@ -45,12 +44,12 @@ import {
   User
 } from 'lucide-react';
 import { formatSafeDate as formatBrazilianDate } from '@/utils/dateUtils';
+import { toast } from 'sonner';
 const formatBrazilianCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 const formatBrazilianNumber = (value: number) => new Intl.NumberFormat('pt-BR').format(value);
 const DATE_CONFIG = { locale: 'pt-BR' };
 import { cleanCpfCnpj, formatCpfCnpj } from '@/utils/cpfCnpjUtils';
-import { categoryService } from '@/services/categoryService';
-import type { Category } from '@/data/defaultCategories';
+import categoryAPI, { Category } from '@/services/api/categoryApi';
 
 // Componentes shadcn/ui
 import {
@@ -137,8 +136,7 @@ const registrationTypes = [
     title: 'Parceiros',
     description: 'Fornecedores, corretores e frigoríficos',
     icon: Users,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
+    color: 'text-blue-600 dark:text-blue-400',
     types: ['vendor', 'broker', 'slaughterhouse', 'transporter']
   },
   {
@@ -146,32 +144,28 @@ const registrationTypes = [
     title: 'Currais',
     description: 'Locais de confinamento e manejo',
     icon: Home,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100'
+    color: 'text-green-600 dark:text-green-400'
   },
   {
     id: 'accounts',
     title: 'Contas Pagadoras',
     description: 'Contas bancárias e financeiras',
     icon: CreditCard,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-100'
+    color: 'text-purple-600 dark:text-purple-400'
   },
   {
     id: 'categories',
     title: 'Categorias',
     description: 'Categorias de receitas e despesas',
     icon: Tags,
-    color: 'text-indigo-600',
-    bgColor: 'bg-indigo-100'
+    color: 'text-indigo-600 dark:text-indigo-400'
   },
   {
     id: 'properties',
     title: 'Propriedades',
     description: 'Fazendas e propriedades rurais',
     icon: Building2,
-    color: 'text-teal-600',
-    bgColor: 'bg-teal-100'
+    color: 'text-teal-600 dark:text-teal-400'
   }
 ];
 
@@ -215,30 +209,30 @@ const ItemCard: React.FC<{
 
   const getPartnerTypeColor = (type: string) => {
     switch (type) {
-      case 'SELLER': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200';
-      case 'VENDOR': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200';
-      case 'BROKER': return 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200';
-      case 'BUYER': return 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200';
-      case 'INVESTOR': return 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-200';
-      case 'SERVICE_PROVIDER': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200';
-      case 'FREIGHT_CARRIER': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-200';
-      case 'OTHER': return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
+      case 'SELLER': return 'border border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400 bg-transparent';
+      case 'VENDOR': return 'border border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400 bg-transparent';
+      case 'BROKER': return 'border border-amber-600 text-amber-600 dark:border-amber-400 dark:text-amber-400 bg-transparent';
+      case 'BUYER': return 'border border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-transparent';
+      case 'INVESTOR': return 'border border-purple-600 text-purple-600 dark:border-purple-400 dark:text-purple-400 bg-transparent';
+      case 'SERVICE_PROVIDER': return 'border border-gray-600 text-gray-600 dark:border-gray-400 dark:text-gray-400 bg-transparent';
+      case 'FREIGHT_CARRIER': return 'border border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 bg-transparent';
+      case 'OTHER': return 'border border-slate-600 text-slate-600 dark:border-slate-400 dark:text-slate-400 bg-transparent';
       // Tipos de currais
-      case 'FATTENING': return 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-200';
-      case 'QUARANTINE': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-200';
-      case 'RECEPTION': return 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-200';
-      case 'HOSPITAL': return 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-200';
+      case 'FATTENING': return 'border border-green-600 text-green-600 dark:border-green-400 dark:text-green-400 bg-transparent';
+      case 'QUARANTINE': return 'border border-yellow-600 text-yellow-600 dark:border-yellow-400 dark:text-yellow-400 bg-transparent';
+      case 'RECEPTION': return 'border border-sky-600 text-sky-600 dark:border-sky-400 dark:text-sky-400 bg-transparent';
+      case 'HOSPITAL': return 'border border-red-600 text-red-600 dark:border-red-400 dark:text-red-400 bg-transparent';
       // Status de currais
-      case 'AVAILABLE': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200';
-      case 'OCCUPIED': return 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-200';
-      case 'MAINTENANCE': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200';
+      case 'AVAILABLE': return 'border border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400 bg-transparent';
+      case 'OCCUPIED': return 'border border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400 bg-transparent';
+      case 'MAINTENANCE': return 'border border-gray-600 text-gray-600 dark:border-gray-400 dark:text-gray-400 bg-transparent';
       // Tipos de contas
-      case 'SAVINGS': return 'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-200';
-      case 'CHECKING': return 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200';
+      case 'SAVINGS': return 'border border-teal-600 text-teal-600 dark:border-teal-400 dark:text-teal-400 bg-transparent';
+      case 'CHECKING': return 'border border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 bg-transparent';
       // Status gerais
-      case 'ACTIVE': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-200';
-      case 'INACTIVE': return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200';
-      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200';
+      case 'ACTIVE': return 'border border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400 bg-transparent';
+      case 'INACTIVE': return 'border border-gray-600 text-gray-600 dark:border-gray-400 dark:text-gray-400 bg-transparent';
+      default: return 'border border-slate-600 text-slate-600 dark:border-slate-400 dark:text-slate-400 bg-transparent';
     }
   };
 
@@ -286,7 +280,7 @@ const ItemCard: React.FC<{
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <CardTitle className="text-sm font-medium truncate">
+              <CardTitle className="text-sm truncate">
                 {item.name || item.penNumber || item.accountName || 'Item'}
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground truncate">
@@ -372,9 +366,9 @@ const ItemCard: React.FC<{
         <div className="flex items-center justify-between pt-1.5 mt-1 border-t">
           <div className="flex items-center gap-1">
             {item.isActive ? (
-              <CheckCircle className="h-3 w-3 text-success" />
+              <CheckCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
             ) : (
-              <XCircle className="h-3 w-3 text-error" />
+              <XCircle className="h-3 w-3 text-red-600 dark:text-red-400" />
             )}
             <span className="text-[10px] text-muted-foreground">
               {item.isActive ? 'Ativo' : 'Inativo'}
@@ -387,7 +381,6 @@ const ItemCard: React.FC<{
                 if (!item.createdAt) return 'Data não informada';
                 return formatBrazilianDate(item.createdAt, 'dd/MM/yyyy');
               } catch (err) {
-                console.warn('Erro ao formatar data:', { date: item.createdAt, error: err });
                 return 'Data inválida';
               }
             })()}
@@ -397,8 +390,6 @@ const ItemCard: React.FC<{
     </Card>
   );
 };
-
-
 
 // Modal de Visualização
 const ItemDetailModal: React.FC<{
@@ -422,8 +413,8 @@ const ItemDetailModal: React.FC<{
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="card-title flex items-center gap-2">
-            <Eye className="h-4 w-4" />
+          <DialogTitle className="text-base font-medium flex items-center gap-2">
+            <Eye className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             Detalhes do {getTypeLabel(type)}
           </DialogTitle>
           <DialogDescription>
@@ -436,31 +427,31 @@ const ItemDetailModal: React.FC<{
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="form-label">Nome</Label>
-                  <p className="text-body-sm">{item.name || 'N/A'}</p>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Nome</Label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.name || 'N/A'}</p>
                 </div>
                 <div>
-                  <Label className="form-label">Tipo</Label>
-                  <p className="text-body-sm">{item.type || 'N/A'}</p>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Tipo</Label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.type || 'N/A'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="form-label">CPF/CNPJ</Label>
-                  <p className="text-body-sm">{item.cpfCnpj || 'N/A'}</p>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">CPF/CNPJ</Label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.cpfCnpj || 'N/A'}</p>
                 </div>
                 <div>
-                  <Label className="form-label">Telefone</Label>
-                  <p className="text-body-sm">{item.phone || 'N/A'}</p>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Telefone</Label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.phone || 'N/A'}</p>
                 </div>
               </div>
               <div>
-                <Label className="form-label">Email</Label>
-                <p className="text-body-sm">{item.email || 'N/A'}</p>
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Email</Label>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{item.email || 'N/A'}</p>
               </div>
               <div>
-                <Label className="form-label">Endereço</Label>
-                <p className="text-body-sm">{item.address || 'N/A'}</p>
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Endereço</Label>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{item.address || 'N/A'}</p>
               </div>
 
             </>
@@ -470,20 +461,20 @@ const ItemDetailModal: React.FC<{
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="form-label">Número</Label>
-                  <p className="text-body-sm">{item.penNumber || 'N/A'}</p>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Número</Label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.penNumber || 'N/A'}</p>
                 </div>
                 <div>
-                  <Label className="form-label">Capacidade</Label>
-                  <p className="text-body-sm">{item.capacity || 'N/A'}</p>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Capacidade</Label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.capacity || 'N/A'}</p>
                 </div>
               </div>
               <div>
-                <Label className="form-label">Localização</Label>
-                <p className="text-body-sm">{item.location || 'N/A'}</p>
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Localização</Label>
+                <p className="text-xs text-gray-600 dark:text-gray-400">{item.location || 'N/A'}</p>
               </div>
               <div>
-                <Label className="form-label">Status</Label>
+                <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Status</Label>
                 <Badge variant={item.isActive ? 'default' : 'secondary'}>
                   {item.isActive ? 'Ativo' : 'Inativo'}
                 </Badge>
@@ -495,22 +486,22 @@ const ItemDetailModal: React.FC<{
             <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="form-label">Nome da Conta</Label>
-                  <p className="text-body-sm">{item.accountName || 'N/A'}</p>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Nome da Conta</Label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.accountName || 'N/A'}</p>
                 </div>
                 <div>
-                  <Label className="form-label">Banco</Label>
-                  <p className="text-body-sm">{item.bankName || 'N/A'}</p>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Banco</Label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.bankName || 'N/A'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="form-label">Agência</Label>
-                  <p className="text-body-sm">{item.agency || 'N/A'}</p>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Agência</Label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.agency || 'N/A'}</p>
                 </div>
                 <div>
-                  <Label className="form-label">Conta</Label>
-                  <p className="text-body-sm">{item.accountNumber || 'N/A'}</p>
+                  <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Conta</Label>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">{item.accountNumber || 'N/A'}</p>
                 </div>
               </div>
             </>
@@ -576,8 +567,8 @@ const DeleteConfirmModal: React.FC<{
     <Dialog open={open} onOpenChange={onCancel}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="card-title flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-5 w-5" />
+          <DialogTitle className="text-base font-medium flex items-center gap-2 text-red-600 dark:text-red-400">
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
             Confirmar Exclusão
           </DialogTitle>
           <DialogDescription>
@@ -587,7 +578,7 @@ const DeleteConfirmModal: React.FC<{
         
         <div className="space-y-4">
           {/* Informações do item */}
-          <div className="p-4 bg-muted/50 rounded-lg border">
+          <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-destructive/10 rounded-lg">
                 {type === 'partners' && <Users className="h-4 w-4 text-destructive" />}
@@ -596,8 +587,8 @@ const DeleteConfirmModal: React.FC<{
                 {type === 'categories' && <Tags className="h-4 w-4 text-destructive" />}
               </div>
               <div>
-                <p className="text-body-sm font-medium">{getItemName(item, type)}</p>
-                <p className="text-caption text-muted-foreground">
+                <p className="text-sm-sm font-medium">{getItemName(item, type)}</p>
+                <p className="text-xs text-muted-foreground">
                   {type === 'partners' && item.type}
                   {type === 'pens' && `Capacidade: ${item.capacity}`}
                   {type === 'accounts' && item.bankName}
@@ -608,12 +599,12 @@ const DeleteConfirmModal: React.FC<{
           </div>
 
           {/* Aviso */}
-          <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
+          <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
             <div className="flex gap-3">
-              <AlertTriangle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-body-sm font-medium text-warning">Atenção</p>
-                <p className="text-body-sm text-muted-foreground mt-1">
+                <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Atenção</p>
+                <p className="text-sm-sm text-muted-foreground mt-1">
                   {getWarningMessage(type)}
                 </p>
               </div>
@@ -621,8 +612,8 @@ const DeleteConfirmModal: React.FC<{
           </div>
 
           {/* Confirmação */}
-          <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-            <p className="text-body-sm text-destructive font-medium">
+          <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-xs text-red-600 dark:text-red-400 font-medium">
               Esta ação não pode ser desfeita.
             </p>
           </div>
@@ -689,20 +680,20 @@ const PartnerForm: React.FC<{
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="form-label">Nome *</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Nome *</Label>
           <Input
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="Nome do parceiro"
             required
-            className="form-input"
+            className="text-sm"
           />
         </div>
         
         <div className="space-y-2">
-          <Label className="form-label">Tipo *</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Tipo *</Label>
           <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-            <SelectTrigger className="form-input">
+            <SelectTrigger className="text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -720,7 +711,7 @@ const PartnerForm: React.FC<{
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="form-label">CPF/CNPJ</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">CPF/CNPJ</Label>
           <Input
             value={formatCpfCnpj(formData.cpfCnpj || '')}
             onChange={(e) => {
@@ -728,52 +719,50 @@ const PartnerForm: React.FC<{
               setFormData({ ...formData, cpfCnpj: formatted });
             }}
             placeholder="000.000.000-00 ou 00.000.000/0000-00"
-            className="form-input"
+            className="text-sm"
             maxLength={18}
           />
         </div>
         
         <div className="space-y-2">
-          <Label className="form-label">Telefone</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Telefone</Label>
           <Input
             value={formData.phone}
             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             placeholder="(00) 00000-0000"
-            className="form-input"
+            className="text-sm"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label className="form-label">Email</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Email</Label>
         <Input
           type="email"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           placeholder="email@exemplo.com"
-          className="form-input"
+          className="text-sm"
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="form-label">Endereço</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Endereço</Label>
         <Input
           value={formData.address}
           onChange={(e) => setFormData({ ...formData, address: e.target.value })}
           placeholder="Endereço completo"
-          className="form-input"
+          className="text-sm"
         />
       </div>
 
-
-
       <div className="space-y-2">
-        <Label className="form-label">Observações</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Observações</Label>
         <Textarea
           value={formData.notes}
           onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           placeholder="Observações adicionais..."
-          className="form-input"
+          className="text-sm"
         />
       </div>
 
@@ -782,7 +771,7 @@ const PartnerForm: React.FC<{
           checked={formData.isActive}
           onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
         />
-        <Label className="form-label">Parceiro ativo</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Parceiro ativo</Label>
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
@@ -805,7 +794,7 @@ const PenForm: React.FC<{
 }> = ({ pen, onSave, onCancel }) => {
   const [formData, setFormData] = useState(pen || {
     penNumber: '',
-    capacity: '',
+    capacity: '150', // Capacidade padrão de 150 animais
     location: '',
     type: 'FATTENING', // Tipo padrão
     status: 'AVAILABLE', // Status padrão
@@ -831,42 +820,42 @@ const PenForm: React.FC<{
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="form-label">Número do Curral *</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Número do Curral *</Label>
           <Input
             value={formData.penNumber}
             onChange={(e) => setFormData({ ...formData, penNumber: e.target.value })}
             placeholder="001"
             required
-            className="form-input"
+            className="text-sm"
           />
         </div>
         
         <div className="space-y-2">
-          <Label className="form-label">Capacidade *</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Capacidade *</Label>
           <Input
             type="number"
             value={formData.capacity}
             onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
-            placeholder="100"
+            placeholder="150"
             required
-            className="form-input"
+            className="text-sm"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label className="form-label">Localização</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Localização</Label>
         <Input
           value={formData.location}
           onChange={(e) => setFormData({ ...formData, location: e.target.value })}
           placeholder="Setor A - Galpão 1"
-          className="form-input"
+          className="text-sm"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="form-label">Tipo</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Tipo</Label>
           <select
             value={formData.type || 'FATTENING'}
             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -880,7 +869,7 @@ const PenForm: React.FC<{
         </div>
         
         <div className="space-y-2">
-          <Label className="form-label">Status</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Status</Label>
           <select
             value={formData.status || 'AVAILABLE'}
             onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -899,7 +888,7 @@ const PenForm: React.FC<{
           checked={formData.isActive}
           onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
         />
-        <Label className="form-label">Ativo</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Ativo</Label>
       </div>
 
       <div className="flex justify-end space-x-2">
@@ -949,57 +938,57 @@ const PayerAccountForm: React.FC<{
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="form-label">Nome da Conta *</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Nome da Conta *</Label>
           <Input
             value={formData.accountName}
             onChange={(e) => setFormData({ ...formData, accountName: e.target.value })}
             placeholder="Conta Principal"
             required
-            className="form-input"
+            className="text-sm"
           />
         </div>
         
         <div className="space-y-2">
-          <Label className="form-label">Banco *</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Banco *</Label>
           <Input
             value={formData.bankName}
             onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
             placeholder="Banco do Brasil"
             required
-            className="form-input"
+            className="text-sm"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="form-label">Agência *</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Agência *</Label>
           <Input
             value={formData.agency}
             onChange={(e) => setFormData({ ...formData, agency: e.target.value })}
             placeholder="1234-5"
             required
-            className="form-input"
+            className="text-sm"
           />
         </div>
         
         <div className="space-y-2">
-          <Label className="form-label">Número da Conta *</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Número da Conta *</Label>
           <Input
             value={formData.accountNumber}
             onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
             placeholder="12345-6"
             required
-            className="form-input"
+            className="text-sm"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="form-label">Tipo de Conta *</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Tipo de Conta *</Label>
           <Select value={formData.accountType} onValueChange={(value) => setFormData({ ...formData, accountType: value })}>
-            <SelectTrigger className="form-input">
+            <SelectTrigger className="text-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1012,14 +1001,14 @@ const PayerAccountForm: React.FC<{
         </div>
         
         <div className="space-y-2">
-          <Label className="form-label">Saldo Inicial</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Saldo Inicial</Label>
           <Input
             type="number"
             step="0.01"
             value={formData.balance || 0}
             onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
             placeholder="0.00"
-            className="form-input"
+            className="text-sm"
           />
         </div>
       </div>
@@ -1029,7 +1018,7 @@ const PayerAccountForm: React.FC<{
           checked={formData.isActive}
           onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
         />
-        <Label className="form-label">Ativo</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Ativo</Label>
       </div>
 
       <div className="flex justify-end space-x-2">
@@ -1105,20 +1094,20 @@ const CycleForm: React.FC<{
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label className="form-label">Nome do Ciclo *</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Nome do Ciclo *</Label>
         <Input
           value={formData.name || ''}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="Ciclo 2024/1"
           required
-          className="form-input"
+          className="text-sm"
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="form-label">Status *</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Status *</Label>
         <Select value={formData.status || 'PLANNED'} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-          <SelectTrigger className="form-input">
+          <SelectTrigger className="text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -1131,58 +1120,58 @@ const CycleForm: React.FC<{
       </div>
 
       <div className="space-y-2">
-        <Label className="form-label">Descrição</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Descrição</Label>
         <Textarea
           value={formData.description || ''}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="Descrição do ciclo..."
-          className="form-input"
+          className="text-sm"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="form-label">Data de Início</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Data de Início</Label>
           <Input
             type="date"
             value={formData.startDate || ''}
             onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-            className="form-input"
+            className="text-sm"
           />
         </div>
         
         <div className="space-y-2">
-          <Label className="form-label">Data de Fim</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Data de Fim</Label>
           <Input
             type="date"
             value={formData.endDate || ''}
             onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-            className="form-input"
+            className="text-sm"
           />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="form-label">Orçamento</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Orçamento</Label>
           <Input
             type="number"
             step="0.01"
             value={formData.budget || 0}
             onChange={(e) => setFormData({ ...formData, budget: parseFloat(e.target.value) || 0 })}
             placeholder="0.00"
-            className="form-input"
+            className="text-sm"
           />
         </div>
         
         <div className="space-y-2">
-          <Label className="form-label">Número de Animais</Label>
+          <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Número de Animais</Label>
           <Input
             type="number"
             value={formData.targetAnimals || 0}
             onChange={(e) => setFormData({ ...formData, targetAnimals: parseInt(e.target.value) || 0 })}
             placeholder="0"
-            className="form-input"
+            className="text-sm"
           />
         </div>
       </div>
@@ -1192,7 +1181,7 @@ const CycleForm: React.FC<{
           checked={formData.isActive}
           onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
         />
-        <Label className="form-label">Ativo</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Ativo</Label>
       </div>
 
       <div className="flex justify-end space-x-2">
@@ -1234,20 +1223,20 @@ const CategoryForm: React.FC<{
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label className="form-label">Nome da Categoria *</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Nome da Categoria *</Label>
         <Input
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="Ex: Alimentação Animal"
           required
-          className="form-input"
+          className="text-sm"
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="form-label">Tipo *</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Tipo *</Label>
         <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
-          <SelectTrigger className="form-input">
+          <SelectTrigger className="text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -1268,7 +1257,7 @@ const CategoryForm: React.FC<{
       </div>
 
       <div className="space-y-2">
-        <Label className="form-label">Cor</Label>
+        <Label className="text-xs font-medium text-gray-700 dark:text-gray-300">Cor</Label>
         <div className="grid grid-cols-10 gap-2">
           {presetColors.map((color) => (
             <button
@@ -1313,7 +1302,6 @@ const CategoryForm: React.FC<{
 
 // Componente Principal
 export const CompleteRegistrations: React.FC = () => {
-  const { showNotification } = useNotification();
   const { partners, loading: partnersLoading, deletePartner, updatePartner, createPartner } = usePartnersApi();
   const { pens, loading: pensLoading, deletePen, updatePen, createPen } = usePensApi();
   const { payerAccounts, loading: accountsLoading, deletePayerAccount, updatePayerAccount, createPayerAccount } = usePayerAccountsApi();
@@ -1327,30 +1315,84 @@ export const CompleteRegistrations: React.FC = () => {
     loadCategories();
   }, []);
   
-  const loadCategories = () => {
+  const loadCategories = async () => {
     setCategoriesLoading(true);
     try {
-      const allCategories = categoryService.getAll();
+      const allCategories = await categoryAPI.getAll();
       setCategories(allCategories);
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar as categorias',
+        variant: 'destructive'
+      });
     } finally {
       setCategoriesLoading(false);
     }
   };
   
-  const createCategory = (data: Omit<Category, 'id'>) => {
-    const newCategory = categoryService.create(data);
-    loadCategories();
-    return newCategory;
+  const createCategory = async (data: Omit<Category, 'id'>) => {
+    try {
+      const newCategory = await categoryAPI.create(data);
+      await loadCategories();
+      toast({
+        title: 'Categoria criada',
+        description: 'Categoria criada com sucesso',
+      });
+      return newCategory;
+    } catch (error: any) {
+      console.error('Erro ao criar categoria:', error);
+      const errorMessage = error.response?.data?.error || 'Não foi possível criar a categoria';
+      toast({
+        title: 'Erro',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+      return null;
+    }
   };
   
-  const updateCategory = (id: string, data: Partial<Omit<Category, 'id'>>) => {
-    categoryService.update(id, data);
-    loadCategories();
+  const updateCategory = async (id: string, data: Partial<Omit<Category, 'id'>>) => {
+    try {
+      await categoryAPI.update(id, data);
+      await loadCategories();
+      toast({
+        title: 'Categoria atualizada',
+        description: 'Categoria atualizada com sucesso',
+      });
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao atualizar categoria:', error);
+      const errorMessage = error.response?.data?.error || 'Não foi possível atualizar a categoria';
+      toast({
+        title: 'Erro',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+      return false;
+    }
   };
   
-  const deleteCategory = (id: string) => {
-    categoryService.delete(id);
-    loadCategories();
+  const deleteCategory = async (id: string) => {
+    try {
+      await categoryAPI.delete(id);
+      await loadCategories();
+      toast({
+        title: 'Categoria excluída',
+        description: 'Categoria excluída com sucesso',
+      });
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao excluir categoria:', error);
+      const errorMessage = error.response?.data?.error || 'Não foi possível excluir a categoria. Verifique se não há movimentações usando esta categoria.';
+      toast({
+        title: 'Erro',
+        description: errorMessage,
+        variant: 'destructive'
+      });
+      return false;
+    }
   };
   
   const [activeTab, setActiveTab] = useState('partners');
@@ -1416,7 +1458,7 @@ export const CompleteRegistrations: React.FC = () => {
       
       return matchesSearch && matchesType && matchesStatus;
     });
-  }, [activeTab, partners, pens, payerAccounts, searchTerm, typeFilter, statusFilter]);
+  }, [activeTab, partners, pens, payerAccounts, categories, searchTerm, typeFilter, statusFilter]);
 
   // Métricas calculadas
   const metrics = useMemo(() => {
@@ -1429,8 +1471,6 @@ export const CompleteRegistrations: React.FC = () => {
     
     const accountsArray = Array.isArray(payerAccounts) ? payerAccounts : [];
     const totalAccounts = accountsArray.length;
-    
-
     return {
       totalPartners: partners?.length || 0,
       activePartners,
@@ -1475,18 +1515,19 @@ export const CompleteRegistrations: React.FC = () => {
           itemName = 'Conta';
           break;
         case 'categories':
-          deleteCategory(itemToDelete.id);
-          itemName = 'Categoria';
+          const deleted = deleteCategory(itemToDelete.id);
+          if (deleted) {
+            itemName = 'Categoria';
+          }
           break;
         default:
-          console.log('Tipo de item não reconhecido');
       }
 
-      if (itemName) {
-        showNotification({
+      // Não mostrar notificação para categorias pois já é mostrada na função deleteCategory
+      if (itemName && activeTab !== 'categories') {
+        toast({
           title: 'Exclusão realizada',
-          message: `${itemName} excluído com sucesso`,
-          type: 'success'
+          description: `${itemName} excluído com sucesso`,
         });
       }
 
@@ -1494,10 +1535,10 @@ export const CompleteRegistrations: React.FC = () => {
       setItemToDelete(null);
     } catch (error) {
       console.error('Erro ao excluir item:', error);
-      showNotification({
-        title: 'Erro na exclusão',
-        message: 'Não foi possível excluir o item. Tente novamente.',
-        type: 'error'
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir o item. Tente novamente.',
+        variant: 'destructive'
       });
     }
   };
@@ -1542,22 +1583,26 @@ export const CompleteRegistrations: React.FC = () => {
           break;
         case 'categories':
           if (editingItem) {
-            updateCategory(editingItem.id, data);
-            isUpdate = true;
+            const updated = updateCategory(editingItem.id, data);
+            if (updated) {
+              isUpdate = true;
+              itemName = 'Categoria';
+            }
           } else {
-            createCategory(data);
+            const created = createCategory(data);
+            if (created) {
+              itemName = 'Categoria';
+            }
           }
-          itemName = 'Categoria';
           break;
         default:
-          console.log('Tipo de item não reconhecido');
       }
 
-      if (itemName) {
-        showNotification({
+      // Não mostrar notificação para categorias pois já é mostrada nas funções específicas
+      if (itemName && activeTab !== 'categories') {
+        toast({
           title: isUpdate ? 'Atualização realizada' : 'Cadastro realizado',
-          message: `${itemName} ${isUpdate ? 'atualizado' : 'cadastrado'} com sucesso`,
-          type: 'success'
+          description: `${itemName} ${isUpdate ? 'atualizado' : 'cadastrado'} com sucesso`,
         });
       }
 
@@ -1565,11 +1610,14 @@ export const CompleteRegistrations: React.FC = () => {
       setEditingItem(null);
     } catch (error) {
       console.error('Erro ao salvar item:', error);
-      showNotification({
-        title: 'Erro ao salvar',
-        message: 'Não foi possível salvar as informações. Tente novamente.',
-        type: 'error'
-      });
+      // Não mostrar notificação de erro para categorias pois já é mostrada nas funções específicas
+      if (activeTab !== 'categories') {
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível salvar as informações. Tente novamente.',
+          variant: 'destructive'
+        });
+      }
     }
   };
 
@@ -1635,19 +1683,19 @@ export const CompleteRegistrations: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="page-title">Cadastros do Sistema</h1>
-            <p className="page-subtitle">
+            <h1 className="text-xl font-bold text-foreground">Cadastros do Sistema</h1>
+            <p className="text-sm text-muted-foreground">
               Gerencie parceiros, currais, contas e todos os cadastros do sistema
             </p>
           </div>
           
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
               Exportar
             </Button>
             <Button variant="outline" size="sm">
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
               Importar
             </Button>
             <Button size="sm" onClick={() => setShowForm(true)}>
@@ -1666,23 +1714,21 @@ export const CompleteRegistrations: React.FC = () => {
             return (
               <Card
                 key={type.id}
-                className={`cursor-pointer transition-all hover:shadow-md ${
-                  isActive ? 'ring-2 ring-primary border-primary' : 'hover:border-gray-300'
+                className={`cursor-pointer transition-all hover:shadow-md dark:hover:shadow-lg ${
+                  isActive ? 'ring-2 ring-primary border-primary dark:ring-primary/50' : 'hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
                 onClick={() => setActiveTab(type.id)}
               >
                 <CardHeader className="p-3 pb-2">
                   <div className="flex items-center justify-between">
-                    <div className={`p-1.5 ${type.bgColor} rounded w-fit`}>
-                      <Icon className={`h-4 w-4 ${type.color}`} />
-                    </div>
+                    <Icon className={`h-5 w-5 ${type.color}`} />
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
                       {getItemCount(type.id)}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="p-3 pt-1">
-                  <h3 className="text-sm font-medium">{type.title}</h3>
+                  <h3 className="text-sm font-medium text-card-foreground">{type.title}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                     {type.description}
                   </p>
@@ -1695,13 +1741,13 @@ export const CompleteRegistrations: React.FC = () => {
         {/* Filtros */}
         <Card>
           <CardHeader className="py-3">
-            <CardTitle className="text-base">Filtros e Busca</CardTitle>
+            <CardTitle className="text-base font-medium">Filtros e Busca</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <Input
                     placeholder="Buscar por nome, documento ou email..."
                     value={searchTerm}
@@ -1794,7 +1840,7 @@ export const CompleteRegistrations: React.FC = () => {
                   <CardTitle className="text-base font-medium">Distribuição por Linha</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                     {(() => {
                       // Agrupar currais por localização (linha)
                       const pensByLocation = filteredData.reduce((acc: any, pen: any) => {
@@ -1805,27 +1851,32 @@ export const CompleteRegistrations: React.FC = () => {
                         acc[location].push(pen.penNumber);
                         return acc;
                       }, {});
-                      
+
                       // Ordenar as linhas alfabeticamente
                       const sortedLocations = Object.keys(pensByLocation).sort();
-                      
+
                       return sortedLocations.map((location, index) => (
-                        <div key={`${location}-${index}`} className="flex flex-col space-y-2 p-3 bg-muted/50 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-sm">{location}</span>
-                            <Badge key={`badge-${location}-${index}`} variant="secondary" className="text-xs">
-                              {pensByLocation[location].length} currais
+                        <div key={`${location}-${index}`} className="flex flex-col space-y-1.5 p-2.5 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="font-medium text-xs truncate" title={location}>{location}</span>
+                            <Badge key={`badge-${location}-${index}`} variant="secondary" className="text-[10px] px-1 py-0">
+                              {pensByLocation[location].length}
                             </Badge>
                           </div>
-                          <div className="flex flex-wrap gap-1">
-                            {pensByLocation[location].sort().map((pen: string, penIndex: number) => (
-                              <Badge key={`${pen}-${penIndex}`} variant="outline" className="text-xs">
+                          <div className="flex flex-wrap gap-0.5">
+                            {pensByLocation[location].sort().slice(0, 3).map((pen: string, penIndex: number) => (
+                              <Badge key={`${pen}-${penIndex}`} variant="outline" className="text-[10px] px-1 py-0">
                                 {pen}
                               </Badge>
                             ))}
+                            {pensByLocation[location].length > 3 && (
+                              <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                +{pensByLocation[location].length - 3}
+                              </Badge>
+                            )}
                           </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Capacidade: {pensByLocation[location].length * 140} animais
+                          <div className="text-[10px] text-muted-foreground">
+                            Cap: {pensByLocation[location].length * 150}
                           </div>
                         </div>
                       ));
@@ -1837,7 +1888,7 @@ export const CompleteRegistrations: React.FC = () => {
                         Total Geral: {filteredData.length} currais
                       </span>
                       <span className="text-sm font-medium">
-                        Capacidade Total: {filteredData.length * 140} animais
+                        Capacidade Total: {filteredData.length * 150} animais
                       </span>
                     </div>
                   </div>
@@ -1921,7 +1972,6 @@ export const CompleteRegistrations: React.FC = () => {
                       </TableHeader>
                       <TableBody>
                         {filteredData.map(item => {
-                          const isProtected = !categoryService.canDelete(item.id);
                           return (
                             <TableRow key={item.id} className="hover:bg-muted/50">
                               <TableCell className="py-2">
@@ -1937,14 +1987,7 @@ export const CompleteRegistrations: React.FC = () => {
                                 </div>
                               </TableCell>
                               <TableCell className="py-2">
-                                <div className="space-y-0.5">
-                                  <p className="text-sm font-medium leading-none">{item.name}</p>
-                                  {item.icon && (
-                                    <p className="text-xs text-muted-foreground">
-                                      {item.icon}
-                                    </p>
-                                  )}
-                                </div>
+                                <p className="text-sm font-medium leading-none">{item.name}</p>
                               </TableCell>
                               <TableCell className="py-2">
                                 <Badge 
@@ -1961,17 +2004,8 @@ export const CompleteRegistrations: React.FC = () => {
                               </TableCell>
                               <TableCell className="py-2">
                                 <div className="flex items-center gap-1.5">
-                                  {isProtected ? (
-                                    <>
-                                      <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                                      <span className="text-xs text-muted-foreground">Sistema</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                      <span className="text-xs text-muted-foreground">Usuário</span>
-                                    </>
-                                  )}
+                                  <Tags className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-xs text-muted-foreground">Categoria</span>
                                 </div>
                               </TableCell>
                               <TableCell className="text-center py-2">
@@ -2039,11 +2073,11 @@ export const CompleteRegistrations: React.FC = () => {
           <TabsContent value="properties" className="space-y-4">
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-lg font-medium text-muted-foreground">
+                <Building2 className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-4" />
+                <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
                   Propriedades Rurais
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Funcionalidade em desenvolvimento
                 </p>
               </CardContent>

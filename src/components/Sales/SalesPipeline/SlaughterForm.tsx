@@ -145,7 +145,6 @@ export const SlaughterForm: React.FC<SlaughterFormProps> = ({
     });
     
     // Resto da lógica existente do abate...
-    console.log('Registering slaughter:', data);
     
     // Show success notification
     alert('Abate registrado com sucesso! Conta a receber criada no módulo financeiro.');

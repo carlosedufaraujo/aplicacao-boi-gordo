@@ -29,10 +29,10 @@ async function importCurraisReais() {
       { penNumber: 'M-09', capacity: 150, type: 'FATTENING', location: 'Setor M' },
       { penNumber: 'O-03', capacity: 80, type: 'FATTENING', location: 'Setor O' },
       { penNumber: 'P-02', capacity: 90, type: 'FATTENING', location: 'Setor P' },
-      { penNumber: 'T-05', capacity: 140, type: 'FATTENING', location: 'Setor T' },
-      { penNumber: 'T-06', capacity: 140, type: 'FATTENING', location: 'Setor T' },
-      { penNumber: 'T-07', capacity: 140, type: 'FATTENING', location: 'Setor T' },
-      { penNumber: 'T-08', capacity: 140, type: 'FATTENING', location: 'Setor T' }
+      { penNumber: 'T-05', capacity: 150, type: 'FATTENING', location: 'Setor T' },
+      { penNumber: 'T-06', capacity: 150, type: 'FATTENING', location: 'Setor T' },
+      { penNumber: 'T-07', capacity: 150, type: 'FATTENING', location: 'Setor T' },
+      { penNumber: 'T-08', capacity: 150, type: 'FATTENING', location: 'Setor T' }
     ];
     
     console.log('📊 Resumo dos 26 currais:');

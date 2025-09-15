@@ -115,12 +115,9 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
   
   // Teste direto da API ao montar o componente
   React.useEffect(() => {
-    console.log('🚀 SalesManagement montado, testando API diretamente...');
     fetch('http://localhost:3001/api/v1/sale-records')
       .then(res => res.json())
       .then(data => {
-        console.log('📊 Resposta direta da API:', data);
-        console.log('📦 Items:', data?.data?.items?.length || 0);
       })
       .catch(err => console.error('❌ Erro no fetch direto:', err));
   }, []);
@@ -178,15 +175,7 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
     });
   }, [saleRecords, searchTerm, filterBuyer, filterDateRange]);
 
-  // Debug logs
-  console.log('🔍 SalesManagement Debug:', {
-    saleRecords: saleRecords?.length || 0,
-    salesLoading,
-    salesError,
-    stats,
-    filteredSales: filteredSales?.length || 0,
-    rawSaleRecords: saleRecords
-  });
+  // Debug removido para limpeza de código
 
   // Métricas calculadas
   const metrics = useMemo(() => {
@@ -232,14 +221,11 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
 
   const handleViewDetails = (sale: any) => {
     // Implementar visualização detalhada
-    console.log('Visualizar detalhes:', sale);
   };
 
   const handleExport = () => {
     showWarningNotification('Exportação em desenvolvimento');
   };
-
-
   const handleImport = () => {
     showWarningNotification("Importação em desenvolvimento");
   };
@@ -293,6 +279,111 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
           </div>
         </div>
 
+        {/* Cards de Estatísticas - Padrão Dashboard */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                <Receipt className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                  VENDAS
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 pt-1">
+              <div className="text-2xl font-bold">{metrics.totalSales}</div>
+              <p className="text-xs text-muted-foreground">
+                vendas realizadas
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                  RECEITA
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 pt-1">
+              <div className="text-2xl font-bold">
+                {formatCompactCurrency(metrics.totalRevenue)}
+              </div>
+              <p className="text-xs text-muted-foreground">receita total</p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                  LÍQUIDO
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 pt-1">
+              <div className="text-2xl font-bold">
+                {formatCompactCurrency(metrics.totalNetValue)}
+              </div>
+              <p className="text-xs text-muted-foreground">valor líquido</p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                <Package className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                  ANIMAIS
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 pt-1">
+              <div className="text-2xl font-bold">
+                {metrics.totalAnimals.toLocaleString('pt-BR')}
+              </div>
+              <p className="text-xs text-muted-foreground">cabeças vendidas</p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                <Scale className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                  ARROBAS
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 pt-1">
+              <div className="text-2xl font-bold">
+                {Math.round(metrics.totalCarcassWeight / 15).toLocaleString('pt-BR')}
+              </div>
+              <p className="text-xs text-muted-foreground">@ carcaça total</p>
+            </CardContent>
+          </Card>
+
+          <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                <BarChart3 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                  R$/@
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 pt-1">
+              <div className="text-2xl font-bold">
+                {formatCurrency(metrics.averagePrice).replace('R$', '')}
+              </div>
+              <p className="text-xs text-muted-foreground">preço médio</p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Filtros */}
         <Card>
           <CardHeader className="pb-3">
@@ -327,8 +418,6 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
                 </SelectContent>
 
               </Select>
-              
-
               <Select value={filterDateRange} onValueChange={setFilterDateRange}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Período" />

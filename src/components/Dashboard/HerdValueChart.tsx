@@ -77,8 +77,6 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
     let totalCapitalComCAP = 0;
     let totalWeightForYield = 0;
     let totalWeightedYield = 0;
-    
-
     cattlePurchases.forEach(purchase => {
       // Usar função centralizada para calcular métricas do lote
       const metrics = calculateLotMetrics(purchase as CattlePurchaseData);
@@ -109,8 +107,6 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
       
       const today = new Date();
       const diasConfinamento = Math.floor((today.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      
       // Calcular ganho de peso total do lote
       const ganhoTotalPeso = averageGMD * diasConfinamento * currentQuantity;
       const pesoAtualLote = purchaseWeight + ganhoTotalPeso;
@@ -219,7 +215,7 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Capital Alocado vs. Valor de Mercado</CardTitle>
+          <CardTitle className="card-title">Capital Alocado vs. Valor de Mercado</CardTitle>
           <CardDescription>
             Análise comparativa baseada em arrobas
           </CardDescription>
@@ -236,87 +232,85 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
   return (
     <div className="space-y-4">
       {/* Card de Parâmetros de Análise */}
-      <Card>
-        <CardHeader>
+      <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+        <CardHeader className="p-3 pb-2">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Parâmetros de Análise</CardTitle>
-              <CardDescription>
-                Configure os valores para simular o valor do rebanho
-              </CardDescription>
-            </div>
-            <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
-              <Settings className="h-4 w-4 text-blue-600" />
-            </div>
+            <Calculator className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+              CONFIG
+            </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="market-price" className="text-sm font-medium">
+        <CardContent className="p-3 pt-1">
+          <div className="kpi-value mb-1">Parâmetros</div>
+          <p className="kpi-label mb-3">Configure os valores para análise</p>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="market-price" className="form-label">
                 Preço de Mercado
               </Label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <Input
                   id="market-price"
                   type="number"
                   value={marketPrice}
                   onChange={(e) => setMarketPrice(Number(e.target.value))}
-                  className="h-9"
+                  className="h-8 text-xs"
                   step="10"
                 />
-                <span className="text-sm text-muted-foreground">R$/@</span>
+                <span className="text-body-sm">R$/@</span>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="gmd" className="text-sm font-medium">
-                GMD (Ganho Médio Diário)
+
+            <div className="space-y-1.5">
+              <Label htmlFor="gmd" className="form-label">
+                GMD
               </Label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <Input
                   id="gmd"
                   type="number"
                   value={averageGMD}
                   onChange={(e) => setAverageGMD(Number(e.target.value))}
-                  className="h-9"
+                  className="h-8 text-xs"
                   step="0.1"
                 />
-                <span className="text-sm text-muted-foreground">kg/dia</span>
+                <span className="text-body-sm">kg</span>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="sale-yield" className="text-sm font-medium">
-                Rendimento de Venda
+
+            <div className="space-y-1.5">
+              <Label htmlFor="sale-yield" className="form-label">
+                Rendimento
               </Label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <Input
                   id="sale-yield"
                   type="number"
                   value={saleYield}
                   onChange={(e) => setSaleYield(Number(e.target.value))}
-                  className="h-9"
+                  className="h-8 text-xs"
                   step="1"
                 />
-                <span className="text-sm text-muted-foreground">%</span>
+                <span className="text-body-sm">%</span>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="cap" className="text-sm font-medium">
-                CAP (Custo Arroba Produzida)
+
+            <div className="space-y-1.5">
+              <Label htmlFor="cap" className="form-label">
+                CAP
               </Label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <Input
                   id="cap"
                   type="number"
                   value={producedArrobaCost}
                   onChange={(e) => setProducedArrobaCost(Number(e.target.value))}
-                  className="h-9"
+                  className="h-8 text-xs"
                   step="10"
                 />
-                <span className="text-sm text-muted-foreground">R$/@</span>
+                <span className="text-body-sm">R$</span>
               </div>
             </div>
           </div>
@@ -328,125 +322,117 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
           {/* KPIs Cards - Métricas Principais */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Card 1: Capital Investido */}
-            <Card>
-              <CardHeader className="pb-2">
+            <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+              <CardHeader className="p-3 pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">
-                    Capital Investido
-                  </CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-purple-100 dark:bg-purple-950 flex items-center justify-center">
-                    <Wallet className="h-4 w-4 text-purple-600" />
-                  </div>
+                  <Wallet className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                    CAP
+                  </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold">
-                    {formatSafeCurrency(allocatedCapital)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Média: R$ {averagePurchasePrice.toFixed(2)}/@
-                  </p>
-                  <div className="flex items-center gap-1 text-xs">
-                    <Calculator className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-muted-foreground">
-                      Incluindo CAP
-                    </span>
-                  </div>
+              <CardContent className="p-3 pt-1">
+                <div className="kpi-value">
+                  {formatSafeCurrency(allocatedCapital)}
+                </div>
+                <p className="kpi-label">Capital Investido</p>
+                <p className="text-body-sm mt-1">
+                  Média: R$ {averagePurchasePrice.toFixed(2)}/@
+                </p>
+                <div className="flex items-center gap-1 text-body-sm mt-1">
+                  <Calculator className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-body-sm">
+                    Incluindo CAP
+                  </span>
                 </div>
               </CardContent>
             </Card>
 
             {/* Card 2: Valor de Mercado */}
-            <Card>
-              <CardHeader className="pb-2">
+            <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+              <CardHeader className="p-3 pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">
-                    Valor de Mercado
-                  </CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-green-100 dark:bg-green-950 flex items-center justify-center">
-                    <DollarSign className="h-4 w-4 text-green-600" />
-                  </div>
+                  <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <Badge variant={profitMargin >= 0 ? "default" : "destructive"} className="text-[10px] px-1.5 py-0.5">
+                    {profitMargin >= 0 ? '+' : ''}{profitMargin.toFixed(1)}%
+                  </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className="text-2xl font-bold">
-                    {formatSafeCurrency(marketValue)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatSafeNumber(totalArrobas)} @ × R$ {marketPrice}
-                  </p>
-                  <div className="flex items-center gap-1">
-                    {profitMargin >= 0 ? (
-                      <TrendingUp className="h-3 w-3 text-green-600" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3 text-red-600" />
-                    )}
-                    <span className={`text-xs ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {profitMargin >= 0 ? '+' : ''}{profitMargin.toFixed(1)}%
-                    </span>
-                  </div>
+              <CardContent className="p-3 pt-1">
+                <div className="kpi-value">
+                  {formatSafeCurrency(marketValue)}
+                </div>
+                <p className="kpi-label">Valor de Mercado</p>
+                <p className="text-body-sm mt-1">
+                  {formatSafeNumber(totalArrobas)} @ × R$ {marketPrice}
+                </p>
+                <div className="flex items-center gap-1 mt-1">
+                  {profitMargin >= 0 ? (
+                    <TrendingUp className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3 text-red-600" />
+                  )}
+                  <span className={`text-body-sm ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    Margem atual
+                  </span>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Card 3: Resultado */}
-            <Card>
-              <CardHeader className="pb-2">
+            {/* Card 3: Resultado Projetado */}
+            <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+              <CardHeader className="p-3 pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">
-                    Resultado Projetado
-                  </CardTitle>
-                  <div className={`h-8 w-8 rounded-lg ${profitMargin >= 0 ? 'bg-emerald-100 dark:bg-emerald-950' : 'bg-red-100 dark:bg-red-950'} flex items-center justify-center`}>
-                    <Percent className={`h-4 w-4 ${profitMargin >= 0 ? 'text-emerald-600' : 'text-red-600'}`} />
-                  </div>
+                  <Percent className={`h-5 w-5 ${profitMargin >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`} />
+                  <Badge variant={profitMargin >= 0 ? "default" : "destructive"} className="text-[10px] px-1.5 py-0.5">
+                    {profitMargin >= 0 ? 'LUCRO' : 'PREJUÍZO'}
+                  </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <p className={`text-2xl font-bold ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {profitMargin >= 0 ? '+' : ''}{formatSafeCurrency(Math.abs(marketValue - allocatedCapital))}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={profitMargin >= 0 ? "default" : "destructive"} className="h-5 px-1">
-                      {profitMargin >= 0 ? "Lucro" : "Prejuízo"}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {profitMargin.toFixed(1)}% margem
-                    </span>
-                  </div>
+              <CardContent className="p-3 pt-1">
+                <div className={`kpi-value ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {profitMargin >= 0 ? '+' : ''}{formatSafeCurrency(Math.abs(marketValue - allocatedCapital))}
+                </div>
+                <p className="kpi-label">Resultado Projetado</p>
+                <p className="text-body-sm mt-1">
+                  Margem: {profitMargin.toFixed(1)}%
+                </p>
+                <div className="flex items-center gap-1 mt-1">
+                  {profitMargin >= 0 ? (
+                    <TrendingUp className="h-3 w-3 text-green-600" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3 text-red-600" />
+                  )}
+                  <span className={`text-body-sm ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    Projeção atual
+                  </span>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Card 4: Produção */}
-            <Card>
-              <CardHeader className="pb-2">
+            {/* Card 4: Produção Total */}
+            <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+              <CardHeader className="p-3 pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium">
-                    Produção Total
-                  </CardTitle>
-                  <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-950 flex items-center justify-center">
-                    <Package className="h-4 w-4 text-amber-600" />
-                  </div>
+                  <Package className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                    @
+                  </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  <div className="flex items-baseline gap-1">
-                    <p className="text-2xl font-bold">{formatSafeNumber(totalArrobas)}</p>
-                    <span className="text-sm text-muted-foreground">@</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Produzidas: {formatSafeNumber(totalArrobasProduzidas)} @
-                  </p>
-                  <div className="flex items-center gap-1 text-xs">
-                    <Activity className="h-3 w-3 text-amber-600" />
-                    <span className="text-amber-600">
-                      GMD: {averageGMD} kg/dia
-                    </span>
-                  </div>
+              <CardContent className="p-3 pt-1">
+                <div className="kpi-value">
+                  {formatSafeNumber(totalArrobas)} @
+                </div>
+                <p className="kpi-label">Produção Total</p>
+                <p className="text-body-sm mt-1">
+                  Produzidas: {formatSafeNumber(totalArrobasProduzidas)} @
+                </p>
+                <div className="flex items-center gap-1 text-body-sm mt-1">
+                  <Activity className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-body-sm">
+                    GMD: {averageGMD} kg/dia
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -457,8 +443,8 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Evolução de Preços</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="card-title">Evolução de Preços</CardTitle>
+                  <CardDescription className="card-subtitle">
                     Comparação entre preço de compra e valor de mercado
                   </CardDescription>
                 </div>
@@ -471,11 +457,11 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis 
                     dataKey="date" 
-                    className="text-xs"
+                    className="text-body-sm"
                     tick={{ fill: 'hsl(var(--muted-foreground))' }}
                   />
                   <YAxis 
-                    className="text-xs"
+                    className="text-body-sm"
                     tick={{ fill: 'hsl(var(--muted-foreground))' }}
                     tickFormatter={(value) => `${value}`}
                   />
@@ -514,23 +500,23 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Composição de Custos</CardTitle>
+                  <CardTitle className="card-title">Composição de Custos</CardTitle>
                   <Scale className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Custo de Compra</span>
-                  <span className="text-sm font-medium">{formatSafeCurrency(totalCapital)}</span>
+                  <span className="text-body-sm">Custo de Compra</span>
+                  <span className="table-cell-important">{formatSafeCurrency(totalCapital)}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Custo de Produção (CAP)</span>
-                  <span className="text-sm font-medium">{formatSafeCurrency(totalArrobasProduzidas * producedArrobaCost)}</span>
+                  <span className="text-body-sm">Custo de Produção (CAP)</span>
+                  <span className="table-cell-important">{formatSafeCurrency(totalArrobasProduzidas * producedArrobaCost)}</span>
                 </div>
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Total Investido</span>
-                    <span className="text-sm font-bold">{formatSafeCurrency(allocatedCapital)}</span>
+                    <span className="table-cell-important">Total Investido</span>
+                    <span className="table-cell-important">{formatSafeCurrency(allocatedCapital)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -540,27 +526,27 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Indicadores Técnicos</CardTitle>
+                  <CardTitle className="card-title">Indicadores Técnicos</CardTitle>
                   <Activity className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">RC Médio Compra</span>
-                  <span className="text-sm font-medium">{averageCarcassYield.toFixed(1)}%</span>
+                  <span className="text-body-sm">RC Médio Compra</span>
+                  <span className="table-cell-important">{averageCarcassYield.toFixed(1)}%</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">RC Venda</span>
-                  <span className="text-sm font-medium">{saleYield}%</span>
+                  <span className="text-body-sm">RC Venda</span>
+                  <span className="table-cell-important">{saleYield}%</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">GMD Aplicado</span>
-                  <span className="text-sm font-medium">{averageGMD} kg/dia</span>
+                  <span className="text-body-sm">GMD Aplicado</span>
+                  <span className="table-cell-important">{averageGMD} kg/dia</span>
                 </div>
                 <div className="pt-2 border-t">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Spread de Preço</span>
-                    <span className={`text-sm font-bold ${marketPrice - averagePurchasePrice >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className="table-cell-important">Spread de Preço</span>
+                    <span className={`table-cell-important ${marketPrice - averagePurchasePrice >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {marketPrice - averagePurchasePrice >= 0 ? '+' : ''}R$ {(marketPrice - averagePurchasePrice).toFixed(2)}/@
                     </span>
                   </div>
@@ -574,8 +560,8 @@ export const HerdValueChart: React.FC<HerdValueChartProps> = ({ marketPrice, set
           <CardContent className="flex items-center justify-center h-[300px]">
             <div className="text-center">
               <DollarSign className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-              <p className="text-sm text-muted-foreground">Sem dados para exibir</p>
-              <p className="text-xs text-muted-foreground mt-1">Registre compras de gado para visualizar o capital alocado</p>
+              <p className="text-body-sm">Sem dados para exibir</p>
+              <p className="text-body-sm text-muted-foreground mt-1">Registre compras de gado para visualizar o capital alocado</p>
             </div>
           </CardContent>
         </Card>

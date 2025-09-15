@@ -487,7 +487,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!order) return state;
     
     let nextStatus: CattlePurchase['status'] = 'order';
-    let updatedState = { ...state };
+    const updatedState = { ...state };
     
     switch (order.status) {
       case 'order':
@@ -709,7 +709,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const financialAccount: FinancialAccount = {
       id: uuidv4(),
       type: 'payable',
-      description: `Protocolo Sanitário - ${record.protocol} - Lote ${state.cattlePurchases.find(l => l.id === record.lotId)?.lotNumber || record.lotId}`,
+      description: `Protocolo Sanitário - ${record.protocol} - ${state.cattlePurchases.find(l => l.id === record.lotId)?.lotNumber || record.lotId}`,
       amount: record.cost,
       dueDate: new Date(), // Pagamento imediato para protocolos
       status: 'pending',
@@ -825,7 +825,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const financialAccount: FinancialAccount = {
       id: uuidv4(),
       type: 'payable',
-      description: `Alimentação - ${cost.feedType} - Lote ${state.cattlePurchases.find(l => l.id === cost.lotId)?.lotNumber || cost.lotId}`,
+      description: `Alimentação - ${cost.feedType} - ${state.cattlePurchases.find(l => l.id === cost.lotId)?.lotNumber || cost.lotId}`,
       amount: cost.totalCost,
       dueDate: new Date(), // Pagamento imediato para alimentação
       status: 'pending',
@@ -1319,7 +1319,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       
       const valorAlocadoTotal = alocacoesDoLote.reduce((sum, alloc) => sum + alloc.valorAlocado, 0);
       
-      let custoAcumulado = { ...lot.custoAcumulado };
+      const custoAcumulado = { ...lot.custoAcumulado };
       
       switch (custoOrigemTipo) {
         case 'health':
@@ -2237,7 +2237,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const mortalityExpense: Omit<NonCashExpense, 'id' | 'createdAt' | 'updatedAt'> = {
       date: new Date(),
       type: 'mortality',
-      description: `Mortalidade de ${currentQuantity} animais - Lote ${lot.lotNumber}`,
+      description: `Mortalidade de ${currentQuantity} animais - ${lot.lotNumber}`,
       relatedEntityType: 'cattle_lot',
       relatedEntityId: lotId,
       currentQuantity,
@@ -2273,7 +2273,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const currentWeightLossExpense: Omit<NonCashExpense, 'id' | 'createdAt' | 'updatedAt'> = {
       date: new Date(),
       type: 'currentWeight_loss',
-      description: `Quebra de peso - Lote ${lot.lotNumber}`,
+      description: `Quebra de peso - ${lot.lotNumber}`,
       relatedEntityType: 'cattle_lot',
       relatedEntityId: lotId,
       currentWeightLoss,

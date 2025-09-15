@@ -31,7 +31,6 @@ export class LotIntegrationService {
    * Executa todas as integrações necessárias quando um lote é criado
    */
   static async integrateNewLot(purchaseOrder: CattlePurchase): Promise<void> {
-    console.log('🔄 Iniciando integrações para novo lote:', purchaseOrder.code);
     
     try {
       // 1. Integração com página Lotes (criar CattlePurchase)
@@ -52,7 +51,6 @@ export class LotIntegrationService {
       // 6. Integração com Conciliação (criar transações pendentes)
       await this.createReconciliationEntries(purchaseOrder);
       
-      console.log('✅ Integrações concluídas para lote:', purchaseOrder.code);
       return cattleLot;
     } catch (error) {
       console.error('❌ Erro nas integrações do lote:', error);
@@ -81,15 +79,7 @@ export class LotIntegrationService {
     const entryQuantity = purchaseOrder.currentQuantity || 0;
     const totalValue = purchaseOrder.totalValue || 0;
     
-    // Log para debug
-    console.log('📝 Criando lote com dados:', {
-      id: lotId,
-      lotNumber: lotNumber,
-      purchaseId: purchaseOrder.id,
-      entryDate: entryDate,
-      entryWeight: entryWeight,
-      entryQuantity: entryQuantity
-    });
+    // Debug removido para limpeza de código
     
     // Gerar timestamps
     const now = new Date().toISOString();
@@ -118,7 +108,6 @@ export class LotIntegrationService {
 
     try {
       const newCattlePurchase = await dataService.createCattlePurchase(cattleLotData);
-      console.log('🐄 Lote de gado criado:', newCattlePurchase.lotNumber);
       return newCattlePurchase;
     } catch (error) {
       console.error('❌ Erro ao criar lote de gado:', error);
@@ -133,7 +122,6 @@ export class LotIntegrationService {
     try {
       // Buscar currais disponíveis
       // Por enquanto, apenas log - a implementação completa depende da estrutura de currais
-      console.log('🏠 Alocando lote em currais:', cattleLot.lotNumber);
       
       // Aqui seria implementada a lógica para:
       // 1. Buscar currais disponíveis com capacidade suficiente
@@ -147,9 +135,6 @@ export class LotIntegrationService {
         allocationDate: cattleLot.arrivalDate,
         status: 'ACTIVE'
       };
-      
-      console.log('🔗 Dados de alocação preparados:', allocationData);
-      
       // TODO: Implementar criação de lot_pen_links quando estrutura estiver definida
       // await dataService.createLotPenLink(allocationData);
       
@@ -167,7 +152,7 @@ export class LotIntegrationService {
     
     // 1. Despesa principal - Compra de animais
     const animalPurchaseExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'> = {
-      description: `Compra de Gado - Lote ${purchaseOrder.code}`,
+      description: `Compra de Gado - ${purchaseOrder.code}`,
       amount: purchaseOrder.totalValue,
       category: 'animal_purchase',
       date: purchaseOrder.purchaseDate,
@@ -187,7 +172,7 @@ export class LotIntegrationService {
     // 2. Comissão do corretor (se houver)
     if (purchaseOrder.brokerId && purchaseOrder.brokerCommission && purchaseOrder.brokerCommission > 0) {
       const commissionExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'> = {
-        description: `Comissão Corretor - Lote ${purchaseOrder.code}`,
+        description: `Comissão Corretor - ${purchaseOrder.code}`,
         amount: purchaseOrder.brokerCommission,
         category: 'commission',
         date: purchaseOrder.purchaseDate,
@@ -207,7 +192,7 @@ export class LotIntegrationService {
     // 3. Frete (se houver)
     if (purchaseOrder.freightCost && purchaseOrder.freightCost > 0) {
       const freightExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'> = {
-        description: `Frete - Lote ${purchaseOrder.code}`,
+        description: `Frete - ${purchaseOrder.code}`,
         amount: purchaseOrder.freightCost,
         category: 'freight',
         date: purchaseOrder.purchaseDate,
@@ -227,7 +212,7 @@ export class LotIntegrationService {
     if (purchaseOrder.additionalCosts && purchaseOrder.additionalCosts.length > 0) {
       for (const additionalCost of purchaseOrder.additionalCosts) {
         const additionalExpense: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'> = {
-          description: `${additionalCost.description} - Lote ${purchaseOrder.code}`,
+          description: `${additionalCost.description} - ${purchaseOrder.code}`,
           amount: additionalCost.value,
           category: 'acquisition_other',
           date: purchaseOrder.purchaseDate,
@@ -247,7 +232,6 @@ export class LotIntegrationService {
     // Criar todas as despesas no Supabase
     for (const expense of expenses) {
       await dataService.createExpense(expense);
-      console.log('💰 Despesa criada:', expense.description);
     }
   }
 
@@ -259,7 +243,7 @@ export class LotIntegrationService {
 
     // 1. Evento de chegada do gado
     const arrivalEvent: Omit<CalendarEvent, 'id'> = {
-      title: `Chegada do Gado - Lote ${purchaseOrder.code}`,
+      title: `Chegada do Gado - ${purchaseOrder.code}`,
       description: `Chegada de ${purchaseOrder.currentQuantity} cabeças de gado do fornecedor ${purchaseOrder.vendorName}`,
       date: new Date(purchaseOrder.arrivalDate || purchaseOrder.purchaseDate),
       type: 'purchase',
@@ -277,7 +261,7 @@ export class LotIntegrationService {
     // 2. Evento de pagamento (se data definida)
     if (purchaseOrder.paymentDate) {
       const paymentEvent: Omit<CalendarEvent, 'id'> = {
-        title: `Pagamento - Lote ${purchaseOrder.code}`,
+        title: `Pagamento - ${purchaseOrder.code}`,
         description: `Pagamento de R$ ${purchaseOrder.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para ${purchaseOrder.vendorName}`,
         date: new Date(purchaseOrder.paymentDate),
         type: 'finance',
@@ -296,7 +280,7 @@ export class LotIntegrationService {
     // 3. Evento de primeira pesagem (7 dias após chegada)
     const firstWeighingDate = addDays(new Date(purchaseOrder.arrivalDate || purchaseOrder.purchaseDate), 7);
     const firstWeighingEvent: Omit<CalendarEvent, 'id'> = {
-      title: `Primeira Pesagem - Lote ${purchaseOrder.code}`,
+      title: `Primeira Pesagem - ${purchaseOrder.code}`,
       description: `Primeira pesagem para controle de peso do lote`,
       date: firstWeighingDate,
       type: 'general',
@@ -313,7 +297,7 @@ export class LotIntegrationService {
     // 4. Evento de vacinação (se necessário - 15 dias após chegada)
     const vaccinationDate = addDays(new Date(purchaseOrder.arrivalDate || purchaseOrder.purchaseDate), 15);
     const vaccinationEvent: Omit<CalendarEvent, 'id'> = {
-      title: `Vacinação - Lote ${purchaseOrder.code}`,
+      title: `Vacinação - ${purchaseOrder.code}`,
       description: `Vacinação e cuidados veterinários do lote`,
       date: vaccinationDate,
       type: 'health',
@@ -332,9 +316,7 @@ export class LotIntegrationService {
       // Verificar se existe tabela de eventos no Supabase
       try {
         // await dataService.createCalendarEvent(event);
-        console.log('📅 Evento criado:', event.title);
       } catch (error) {
-        console.log('⚠️ Tabela de eventos não existe ainda, pulando criação de eventos');
         break;
       }
     }
@@ -345,12 +327,11 @@ export class LotIntegrationService {
    */
   private static async createReconciliationEntries(purchaseOrder: CattlePurchase): Promise<void> {
     // Por enquanto, apenas log - a implementação completa depende da estrutura da conciliação
-    console.log('🏦 Criando entradas para conciliação bancária do lote:', purchaseOrder.code);
     
     // Aqui seria criado um registro de transação esperada para conciliação
     // quando o pagamento for efetuado
     const expectedTransaction = {
-      description: `Pagamento Lote ${purchaseOrder.code}`,
+      description: `Pagamento ${purchaseOrder.code}`,
       amount: -purchaseOrder.totalValue, // Saída de dinheiro
       expectedDate: purchaseOrder.paymentDate || addDays(new Date(purchaseOrder.purchaseDate), 30),
       type: 'expense',
@@ -359,14 +340,12 @@ export class LotIntegrationService {
       status: 'expected'
     };
     
-    console.log('💳 Transação esperada para conciliação:', expectedTransaction);
   }
 
   /**
    * Atualiza as integrações quando um lote é modificado
    */
   static async updateLotIntegrations(purchaseOrder: CattlePurchase): Promise<void> {
-    console.log('🔄 Atualizando integrações para lote modificado:', purchaseOrder.code);
     
     // Aqui seria implementada a lógica para atualizar despesas, eventos, etc.
     // quando uma ordem de compra é modificada
@@ -376,7 +355,6 @@ export class LotIntegrationService {
    * Remove as integrações quando um lote é excluído
    */
   static async removeLotIntegrations(purchaseId: string): Promise<void> {
-    console.log('🗑️ Removendo integrações para lote excluído:', purchaseId);
     
     try {
       // Remover despesas relacionadas
@@ -385,7 +363,6 @@ export class LotIntegrationService {
       // Remover eventos relacionados
       // await dataService.deleteCalendarEventsByLotId(purchaseId);
       
-      console.log('✅ Integrações removidas com sucesso');
     } catch (error) {
       console.error('❌ Erro ao remover integrações:', error);
       throw error;

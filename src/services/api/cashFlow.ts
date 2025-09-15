@@ -139,8 +139,6 @@ class CashFlowService {
   async deleteCategory(id: string) {
     await api.delete(`/financial-categories/${id}`);
   }
-
-
   // Accounts
   async getAccounts() {
     const response = await api.get('/financial-accounts');

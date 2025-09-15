@@ -162,8 +162,7 @@ export const trackSystemChange = (
 ) => {
   // Esta função pode ser usada para rastrear mudanças automaticamente
   // Por enquanto, apenas registra no console
-  console.log(`[System Change] ${type}: ${description} (${category})`);
-  
+
   // TODO: Implementar registro automático de mudanças menores
   // que serão agrupadas em uma próxima versão
 }; 

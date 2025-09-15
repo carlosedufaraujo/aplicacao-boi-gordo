@@ -1,0 +1,44 @@
+{
+  "timestamp": "2025-09-14T15:00:35.224Z",
+  "url": "http://localhost:5173",
+  "results": [
+    {
+      "test": "Login",
+      "status": "ERROR",
+      "error": "this.page.waitForTimeout is not a function"
+    },
+    {
+      "test": "Dashboard",
+      "status": "FAILED"
+    },
+    {
+      "test": "Lots List",
+      "status": "ERROR",
+      "error": "Waiting for selector `table, .lot-card` failed"
+    },
+    {
+      "test": "Financial Center",
+      "status": "PASSED"
+    },
+    {
+      "test": "Responsiveness",
+      "status": "PASSED"
+    },
+    {
+      "test": "Performance",
+      "status": "PASSED",
+      "metrics": {
+        "domContentLoaded": 0,
+        "loadComplete": 0,
+        "domInteractive": 6.700000047683716,
+        "firstPaint": 60
+      }
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 1,
+    "errors": 2,
+    "warnings": 0
+  }
+}

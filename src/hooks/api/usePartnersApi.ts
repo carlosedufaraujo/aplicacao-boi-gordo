@@ -34,11 +34,9 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       
       if (response.status === 'success' && response.data) {
         // Se response.data for um objeto paginado, extrair o array
-        console.log('[usePartnersApi] Response data:', response.data);
         const items = Array.isArray(response.data) 
           ? response.data 
           : response.data.items || [];
-        console.log('[usePartnersApi] Items extraídos:', items);
         setPartners(items);
         
         // Atualizar informações de paginação
@@ -69,7 +67,6 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       
       if (response.status === 'success' && response.data) {
         // Stats não deve sobrescrever os partners, apenas atualizar as estatísticas
-        console.log('Stats carregadas:', response.data);
         // Não chamar setPartners aqui pois isso apaga a lista de parceiros
       }
     } catch (err) {
@@ -291,7 +288,6 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
 
   // Carregamento inicial
   useEffect(() => {
-    console.log('[usePartnersApi] Montando componente, iniciando carregamento...');
     
     const loadInitialData = async () => {
       try {
@@ -304,11 +300,9 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
         ]);
         
         if (partnersResponse.status === 'success' && partnersResponse.data) {
-          console.log('[usePartnersApi] Initial load - Response data:', partnersResponse.data);
           const items = Array.isArray(partnersResponse.data) 
             ? partnersResponse.data 
             : partnersResponse.data.items || [];
-          console.log('[usePartnersApi] Initial load - Items extraídos:', items);
           setPartners(items);
           
           // Atualizar informações de paginação no carregamento inicial

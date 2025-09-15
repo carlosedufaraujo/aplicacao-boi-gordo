@@ -1,0 +1,197 @@
+[
+  {
+    "id": "TC001",
+    "title": "Authentication API Tests",
+    "description": "Test authentication endpoints with correct URLs and JWT token validation",
+    "baseUrl": "http://localhost:3001/api/v1",
+    "tests": [
+      {
+        "name": "Login with valid credentials",
+        "method": "POST",
+        "endpoint": "/auth/login",
+        "body": {
+          "email": "carlosedufaraujo@outlook.com",
+          "password": "368308450Ce*"
+        },
+        "expectedStatus": 200,
+        "expectedFields": ["token", "user"]
+      },
+      {
+        "name": "Login with invalid credentials",
+        "method": "POST",
+        "endpoint": "/auth/login",
+        "body": {
+          "email": "invalid@test.com",
+          "password": "wrongpassword"
+        },
+        "expectedStatus": 401
+      },
+      {
+        "name": "Validate JWT token",
+        "method": "POST",
+        "endpoint": "/auth/validate-token",
+        "body": {
+          "token": "{{JWT_TOKEN}}"
+        },
+        "expectedStatus": 200,
+        "requiresAuth": false
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Dashboard Data API Tests",
+    "description": "Test dashboard data endpoints and statistics",
+    "baseUrl": "http://localhost:3001/api/v1",
+    "tests": [
+      {
+        "name": "Get dashboard statistics",
+        "method": "GET",
+        "endpoint": "/stats",
+        "expectedStatus": 200,
+        "expectedFields": ["totalCattle", "activeLots", "totalRevenue"]
+      },
+      {
+        "name": "Get frontend data",
+        "method": "GET",
+        "endpoint": "/frontend-data",
+        "expectedStatus": 200,
+        "expectedFields": ["cycles", "cattlePurchases", "partners"]
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Cattle Purchase Management API Tests",
+    "description": "Test cattle purchase CRUD operations",
+    "baseUrl": "http://localhost:3001/api/v1",
+    "tests": [
+      {
+        "name": "Get cattle purchases list",
+        "method": "GET",
+        "endpoint": "/cattle-purchases",
+        "expectedStatus": 200,
+        "requiresAuth": true
+      },
+      {
+        "name": "Create new cattle purchase",
+        "method": "POST",
+        "endpoint": "/cattle-purchases",
+        "body": {
+          "vendorId": "test-vendor",
+          "quantity": 50,
+          "averageWeight": 400,
+          "pricePerArroba": 280,
+          "purchaseDate": "2025-09-14"
+        },
+        "expectedStatus": 201,
+        "requiresAuth": true
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Financial Management API Tests",
+    "description": "Test financial endpoints including expenses, revenues and cash flow",
+    "baseUrl": "http://localhost:3001/api/v1",
+    "tests": [
+      {
+        "name": "Get expenses list",
+        "method": "GET",
+        "endpoint": "/expenses",
+        "expectedStatus": 200,
+        "requiresAuth": true
+      },
+      {
+        "name": "Get revenues list",
+        "method": "GET",
+        "endpoint": "/revenues",
+        "expectedStatus": 200,
+        "requiresAuth": true
+      },
+      {
+        "name": "Get cash flows",
+        "method": "GET",
+        "endpoint": "/cash-flows",
+        "expectedStatus": 200,
+        "requiresAuth": true
+      },
+      {
+        "name": "Create new expense",
+        "method": "POST",
+        "endpoint": "/expenses",
+        "body": {
+          "description": "Test expense",
+          "amount": 1000,
+          "categoryId": "cat-exp-01",
+          "date": "2025-09-14"
+        },
+        "expectedStatus": 201,
+        "requiresAuth": true
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Partners and Accounts API Tests",
+    "description": "Test partner and payer account management",
+    "baseUrl": "http://localhost:3001/api/v1",
+    "tests": [
+      {
+        "name": "Get partners list",
+        "method": "GET",
+        "endpoint": "/partners",
+        "expectedStatus": 200,
+        "requiresAuth": true
+      },
+      {
+        "name": "Get payer accounts",
+        "method": "GET",
+        "endpoint": "/payer-accounts",
+        "expectedStatus": 200,
+        "requiresAuth": true
+      },
+      {
+        "name": "Create new partner",
+        "method": "POST",
+        "endpoint": "/partners",
+        "body": {
+          "name": "Test Partner",
+          "type": "VENDOR",
+          "email": "test@partner.com"
+        },
+        "expectedStatus": 201,
+        "requiresAuth": true
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Sales and Analytics API Tests",
+    "description": "Test sales records and analytics endpoints",
+    "baseUrl": "http://localhost:3001/api/v1",
+    "tests": [
+      {
+        "name": "Get sale records",
+        "method": "GET",
+        "endpoint": "/sale-records",
+        "expectedStatus": 200,
+        "requiresAuth": true
+      },
+      {
+        "name": "Get analytics data",
+        "method": "GET",
+        "endpoint": "/analytics",
+        "expectedStatus": 200,
+        "requiresAuth": true
+      },
+      {
+        "name": "Get pens information",
+        "method": "GET",
+        "endpoint": "/pens",
+        "expectedStatus": 200,
+        "requiresAuth": true
+      }
+    ]
+  }
+]

@@ -97,14 +97,16 @@ const saleFormSchema = z.object({
   saleDate: z.date({
     required_error: "Data da venda é obrigatória",
   }),
-  
-  // Seleção de curral e tipo de venda
-  penId: z.string().min(1, "Selecione um curral"),
-  saleType: z.enum(['total', 'partial'], {
-    required_error: "Selecione o tipo de venda",
+
+  // Tipo de seleção
+  selectionType: z.enum(['pen', 'random'], {
+    required_error: "Selecione o tipo de seleção",
   }),
-  quantity: z.number().min(1, "Quantidade deve ser maior que 0").optional(),
-  
+
+  // Seleção por curral ou aleatória
+  penId: z.string().optional(),
+  quantity: z.number().min(1, "Quantidade deve ser maior que 0"),
+
   // Comprador
   buyerId: z.string().min(1, "Selecione um comprador"),
   
@@ -143,6 +145,8 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
   const [selectedPen, setSelectedPen] = useState<any>(null);
+  const [availableQuantity, setAvailableQuantity] = useState(0);
+  const [averageCost, setAverageCost] = useState(0);
 
   // Hooks de API
   const { pens, loading: pensLoading } = usePensApi();
@@ -152,18 +156,71 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
   const { cattlePurchases } = useCattlePurchasesApi();
   const { accounts } = usePayerAccountsApi();
 
-  // Combinar dados de currais com ocupação
+  // Combinar dados de currais com ocupação e calcular custo médio
   const pensWithOccupancy = useMemo(() => {
     return pens.map(pen => {
       const occupancy = occupancyData.find(o => o.penId === pen.id);
+      const currentOccupancy = occupancy?.currentOccupancy || 0;
+
+      // Calcular custo médio dos animais no curral
+      let penAverageCost = 0;
+      if (occupancy?.lots && occupancy.lots.length > 0) {
+        const totalCost = occupancy.lots.reduce((sum, lot) => {
+          const purchase = cattlePurchases.find(p => p.id === lot.purchaseId);
+          if (purchase) {
+            return sum + (purchase.pricePerHead || 0) * lot.quantity;
+          }
+          return sum;
+        }, 0);
+        const totalAnimals = occupancy.lots.reduce((sum, lot) => sum + lot.quantity, 0);
+        penAverageCost = totalAnimals > 0 ? totalCost / totalAnimals : 0;
+      }
+
       return {
         ...pen,
-        currentOccupancy: occupancy?.currentOccupancy || 0,
-        availableAnimals: occupancy?.currentOccupancy || 0,
-        lots: occupancy?.lots || []
+        currentOccupancy,
+        availableAnimals: currentOccupancy,
+        lots: occupancy?.lots || [],
+        averageCost: penAverageCost
       };
     }).filter(pen => pen.currentOccupancy > 0); // Apenas currais com animais
-  }, [pens, occupancyData]);
+  }, [pens, occupancyData, cattlePurchases]);
+
+  // Calcular custo médio total de todos os animais ativos
+  const totalAverageCost = useMemo(() => {
+    const activePurchases = cattlePurchases.filter(p => {
+      const currentQty = p.currentQuantity !== undefined
+        ? p.currentQuantity
+        : (p.initialQuantity || p.quantity || 0) - (p.deaths || p.mortalityCount || 0);
+      return currentQty > 0 && p.status === 'CONFIRMED';
+    });
+
+    const totalCost = activePurchases.reduce((sum, p) => {
+      const currentQty = p.currentQuantity !== undefined
+        ? p.currentQuantity
+        : (p.initialQuantity || p.quantity || 0) - (p.deaths || p.mortalityCount || 0);
+      return sum + (p.pricePerHead || 0) * currentQty;
+    }, 0);
+
+    const totalAnimals = activePurchases.reduce((sum, p) => {
+      const currentQty = p.currentQuantity !== undefined
+        ? p.currentQuantity
+        : (p.initialQuantity || p.quantity || 0) - (p.deaths || p.mortalityCount || 0);
+      return sum + currentQty;
+    }, 0);
+
+    return totalAnimals > 0 ? totalCost / totalAnimals : 0;
+  }, [cattlePurchases]);
+
+  // Calcular total de animais disponíveis
+  const totalAvailableAnimals = useMemo(() => {
+    return cattlePurchases.reduce((sum, p) => {
+      const currentQty = p.currentQuantity !== undefined
+        ? p.currentQuantity
+        : (p.initialQuantity || p.quantity || 0) - (p.deaths || p.mortalityCount || 0);
+      return sum + (p.status === 'CONFIRMED' ? currentQty : 0);
+    }, 0);
+  }, [cattlePurchases]);
 
   // Filtrar compradores ativos
   const buyers = useMemo(() => {
@@ -183,8 +240,9 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
     defaultValues: {
       internalCode: '',
       saleDate: new Date(),
+      selectionType: 'random',
       penId: '',
-      saleType: 'total',
+      quantity: 0,
       buyerId: '',
       exitWeight: 0,
       carcassWeight: 0,
@@ -212,20 +270,31 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
     }
   }, [saleToEdit, form]);
 
-  // Atualizar informações quando curral for selecionado
+  // Atualizar informações baseadas no tipo de seleção
   useEffect(() => {
-    if (watchedValues.penId) {
+    if (watchedValues.selectionType === 'pen' && watchedValues.penId) {
       const pen = pensWithOccupancy.find(p => p.id === watchedValues.penId);
       if (pen) {
         setSelectedPen(pen);
-        
-        // Se venda total, preencher quantidade automaticamente
-        if (watchedValues.saleType === 'total') {
+        setAvailableQuantity(pen.currentOccupancy);
+        setAverageCost(pen.averageCost);
+
+        // Limitar quantidade ao disponível no curral
+        if (watchedValues.quantity > pen.currentOccupancy) {
           form.setValue('quantity', pen.currentOccupancy);
         }
       }
+    } else if (watchedValues.selectionType === 'random') {
+      setSelectedPen(null);
+      setAvailableQuantity(totalAvailableAnimals);
+      setAverageCost(totalAverageCost);
+
+      // Limitar quantidade ao total disponível
+      if (watchedValues.quantity > totalAvailableAnimals) {
+        form.setValue('quantity', totalAvailableAnimals);
+      }
     }
-  }, [watchedValues.penId, watchedValues.saleType, pensWithOccupancy, form]);
+  }, [watchedValues.selectionType, watchedValues.penId, watchedValues.quantity, pensWithOccupancy, totalAvailableAnimals, totalAverageCost, form]);
 
   // Calcular rendimento de carcaça automaticamente
   useEffect(() => {
@@ -240,48 +309,54 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
 
   // Cálculos automáticos
   const calculations = useMemo(() => {
-    const quantity = watchedValues.saleType === 'total' 
-      ? selectedPen?.currentOccupancy || 0 
-      : watchedValues.quantity || 0;
+    const quantity = watchedValues.quantity || 0;
     const exitWeight = watchedValues.exitWeight || 0;
     const carcassWeight = watchedValues.carcassWeight || 0;
     const pricePerArroba = watchedValues.pricePerArroba || 0;
-    
+
     // Cálculos baseados no peso de carcaça
     const arrobas = carcassWeight / 15; // 1 arroba = 15kg
     const grossValue = arrobas * pricePerArroba;
     const averageWeightPerHead = quantity > 0 ? exitWeight / quantity : 0;
     const valuePerHead = quantity > 0 ? grossValue / quantity : 0;
-    
+
+    // Calcular custo dos animais vendidos usando o custo médio apropriado
+    const totalCost = averageCost * quantity;
+    const profit = grossValue - totalCost;
+    const profitMargin = grossValue > 0 ? (profit / grossValue) * 100 : 0;
+
     return {
       quantity,
       arrobas: Math.round(arrobas * 100) / 100,
       grossValue,
-      netValue: grossValue, // Sem comissão para vendas
+      netValue: grossValue,
+      totalCost,
+      profit,
+      profitMargin: Math.round(profitMargin * 100) / 100,
       averageWeight: averageWeightPerHead,
       valuePerHead,
       carcassYield: watchedValues.carcassYield || 0
     };
-  }, [watchedValues, selectedPen]);
+  }, [watchedValues, averageCost]);
 
   const handleSubmit = async (data: SaleFormData) => {
     try {
       setIsSubmitting(true);
 
       // Debug: Verificar dados antes de enviar
-      console.log('🔍 DEBUG - Dados do formulário:', data);
-      console.log('🔍 DEBUG - Cálculos:', calculations);
-      console.log('🔍 DEBUG - Curral selecionado:', selectedPen);
 
       // Preparar dados para envio
       const saleData = {
         ...data,
-        quantity: data.saleType === 'total' ? selectedPen?.currentOccupancy : data.quantity,
+        penId: data.selectionType === 'pen' ? data.penId : null,
+        quantity: data.quantity,
         arrobas: calculations.arrobas,
         totalValue: calculations.grossValue,
         netValue: calculations.netValue,
-        deductions: 0, // Adicionar campo obrigatório
-        status: 'PENDING', // Usar enum correto em maiúsculo
+        deductions: 0,
+        status: 'PENDING',
+        // Adicionar informação sobre tipo de seleção nas observações
+        observations: `${data.observations || ''} [Seleção: ${data.selectionType === 'pen' ? 'Por curral' : 'Aleatória'}]`.trim(),
       };
 
       // Remover campos que podem estar undefined ou strings vazias
@@ -300,17 +375,11 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
       if (!saleData.contractNumber || saleData.contractNumber === '') {
         delete saleData.contractNumber;
       }
-
-      console.log('📤 DEBUG - Dados preparados para envio:', saleData);
-
       if (saleToEdit) {
-        console.log('🔄 DEBUG - Atualizando venda:', saleToEdit.id);
         await updateSaleRecord(saleToEdit.id, saleData);
         showSuccessNotification('Venda atualizada com sucesso!');
       } else {
-        console.log('➕ DEBUG - Criando nova venda');
         const result = await createSaleRecord(saleData);
-        console.log('✅ DEBUG - Venda criada:', result);
         if (result) {
           showSuccessNotification('Venda registrada com sucesso!');
         }
@@ -329,6 +398,8 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
   const handleClose = () => {
     form.reset();
     setSelectedPen(null);
+    setAvailableQuantity(0);
+    setAverageCost(0);
     setActiveTab('basic');
     onClose();
   };
@@ -430,89 +501,44 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
                     />
                   </div>
 
-                  {/* Seleção de Curral */}
+                  {/* Tipo de Seleção */}
                   <FormField
                     control={form.control}
-                    name="penId"
+                    name="selectionType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Curral de Origem</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o curral" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {pensWithOccupancy.map((pen) => (
-                              <SelectItem key={pen.id} value={pen.id}>
-                                <div className="flex items-center justify-between w-full">
-                                  <span className="font-medium">{pen.penNumber || pen.name}</span>
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Badge variant="secondary">
-                                      {pen.currentOccupancy} animais
-                                    </Badge>
-                                    <Badge variant="outline">
-                                      Capacidade: {pen.capacity}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        {selectedPen && (
-                          <Alert className="mt-2">
-                            <Info className="h-4 w-4" />
-                            <AlertDescription>
-                              <div className="space-y-1">
-                                <div>Curral: <strong>{selectedPen.penNumber || selectedPen.name}</strong></div>
-                                <div>Animais disponíveis: <strong>{selectedPen.currentOccupancy}</strong></div>
-                                <div>Capacidade total: <strong>{selectedPen.capacity}</strong></div>
-                                {selectedPen.lots && selectedPen.lots.length > 0 && (
-                                  <div>Lotes no curral: <strong>{selectedPen.lots.length}</strong></div>
-                                )}
-                              </div>
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Tipo de Venda */}
-                  <FormField
-                    control={form.control}
-                    name="saleType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de Venda</FormLabel>
+                        <FormLabel>Tipo de Seleção de Animais</FormLabel>
                         <FormControl>
                           <RadioGroup
                             onValueChange={field.onChange}
                             value={field.value}
-                            defaultValue="total"
+                            defaultValue="random"
                             className="flex flex-col space-y-2"
                           >
                             <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent">
-                              <RadioGroupItem value="total" id="sale-type-total" />
-                              <Label htmlFor="sale-type-total" className="flex-1 cursor-pointer">
-                                <div>
-                                  <div className="font-medium">Venda Total</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    Vender todos os animais do curral
+                              <RadioGroupItem value="random" id="selection-random" />
+                              <Label htmlFor="selection-random" className="flex-1 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-4 w-4" />
+                                  <div>
+                                    <div className="font-medium">Seleção Aleatória</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Selecionar animais de qualquer curral (custo médio geral)
+                                    </div>
                                   </div>
                                 </div>
                               </Label>
                             </div>
                             <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-accent">
-                              <RadioGroupItem value="partial" id="sale-type-partial" />
-                              <Label htmlFor="sale-type-partial" className="flex-1 cursor-pointer">
-                                <div>
-                                  <div className="font-medium">Venda Parcial</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    Vender apenas parte dos animais
+                              <RadioGroupItem value="pen" id="selection-pen" />
+                              <Label htmlFor="selection-pen" className="flex-1 cursor-pointer">
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4" />
+                                  <div>
+                                    <div className="font-medium">Seleção por Curral</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      Selecionar animais de um curral específico (custo médio do curral)
+                                    </div>
                                   </div>
                                 </div>
                               </Label>
@@ -524,31 +550,94 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
                     )}
                   />
 
-                  {/* Quantidade (apenas para venda parcial) */}
-                  {watchedValues.saleType === 'partial' && (
+                  {/* Seleção de Curral (apenas quando tipo = pen) */}
+                  {watchedValues.selectionType === 'pen' && (
                     <FormField
                       control={form.control}
-                      name="quantity"
+                      name="penId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Quantidade de Animais</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                              max={selectedPen?.currentOccupancy || 0}
-                              placeholder="Digite a quantidade"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Máximo disponível: {selectedPen?.currentOccupancy || 0} animais
-                          </FormDescription>
+                          <FormLabel>Curral de Origem</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ''}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione o curral" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {pensWithOccupancy.map((pen) => (
+                                <SelectItem key={pen.id} value={pen.id}>
+                                  <div className="flex items-center justify-between w-full">
+                                    <span className="font-medium">{pen.penNumber || pen.name}</span>
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                      <Badge variant="secondary">
+                                        {pen.currentOccupancy} animais
+                                      </Badge>
+                                      <Badge variant="outline">
+                                        R$ {formatCompactCurrency(pen.averageCost)}/cab
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   )}
+
+                  {/* Informações de Estoque */}
+                  {(watchedValues.selectionType === 'pen' ? selectedPen : availableQuantity > 0) && (
+                    <Alert className="mt-2">
+                      <Info className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="space-y-1">
+                          {watchedValues.selectionType === 'pen' && selectedPen ? (
+                            <>
+                              <div>Curral: <strong>{selectedPen.penNumber || selectedPen.name}</strong></div>
+                              <div>Animais disponíveis: <strong>{selectedPen.currentOccupancy}</strong></div>
+                              <div>Custo médio: <strong>{formatCurrency(selectedPen.averageCost)}/cab</strong></div>
+                            </>
+                          ) : (
+                            <>
+                              <div>Total de animais disponíveis: <strong>{totalAvailableAnimals}</strong></div>
+                              <div>Custo médio geral: <strong>{formatCurrency(totalAverageCost)}/cab</strong></div>
+                            </>
+                          )}
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* Quantidade de Animais */}
+                  <FormField
+                    control={form.control}
+                    name="quantity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Quantidade de Animais</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 0;
+                              const maxQty = availableQuantity || 0;
+                              field.onChange(Math.min(value, maxQty));
+                            }}
+                            max={availableQuantity}
+                            min={1}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Máximo disponível: {availableQuantity} animais
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </TabsContent>
 
                 <TabsContent value="weight" className="space-y-4 mt-4">
@@ -730,24 +819,65 @@ export const EnhancedSalesForm: React.FC<EnhancedSalesFormProps> = ({
                       <CardContent>
                         <div className="space-y-3">
                           <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Quantidade:</span>
+                            <span className="font-medium">
+                              {calculations.quantity} animais
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Arrobas (@):</span>
-                            <span className="font-medium text-lg">
+                            <span className="font-medium">
                               {calculations.arrobas.toFixed(2)} @
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Preço por Arroba:</span>
-                            <span className="font-medium text-lg">
+                            <span className="font-medium">
                               {formatCurrency(watchedValues.pricePerArroba || 0)}
                             </span>
                           </div>
                           <Separator />
                           <div className="flex justify-between items-center">
-                            <span className="font-medium">Valor Total da Venda:</span>
-                            <span className="font-bold text-xl text-primary">
+                            <span className="text-muted-foreground">Valor da Venda:</span>
+                            <span className="font-bold text-lg">
                               {formatCurrency(calculations.grossValue)}
                             </span>
                           </div>
+                          {averageCost > 0 && (
+                            <>
+                              <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Custo dos Animais:</span>
+                                <span className="font-medium text-destructive">
+                                  - {formatCurrency(calculations.totalCost)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Custo Médio/Cab:</span>
+                                <span className="font-medium">
+                                  {formatCurrency(averageCost)}
+                                </span>
+                              </div>
+                              <Separator />
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium">Lucro Estimado:</span>
+                                <span className={cn(
+                                  "font-bold text-xl",
+                                  calculations.profit > 0 ? "text-green-600" : "text-red-600"
+                                )}>
+                                  {formatCurrency(calculations.profit)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Margem de Lucro:</span>
+                                <span className={cn(
+                                  "font-medium",
+                                  calculations.profitMargin > 0 ? "text-green-600" : "text-red-600"
+                                )}>
+                                  {calculations.profitMargin.toFixed(2)}%
+                                </span>
+                              </div>
+                            </>
+                          )}
                           <div className="flex justify-between items-center text-sm">
                             <span className="text-muted-foreground">Valor por Cabeça:</span>
                             <span className="font-medium">

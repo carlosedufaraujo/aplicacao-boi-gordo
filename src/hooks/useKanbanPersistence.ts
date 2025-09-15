@@ -4,9 +4,7 @@ import { KanbanTask, KanbanColumn } from '@/components/ui/kanban';
 import { KanbanSwimlane } from '@/components/ui/advanced-kanban';
 import { kanbanApi, KanbanBoard } from '@/services/api/kanbanApi';
 import { socketService } from '@/services/socket';
-import { useToast } from '@/hooks/use-toast';
-
-
+import { toast } from 'sonner';
 interface UseKanbanPersistenceProps {
   boardId?: string;
   autoSave?: boolean;
@@ -19,7 +17,6 @@ export function useKanbanPersistence({
   syncInterval = 5000
 }: UseKanbanPersistenceProps = {}) {
   const { user } = useBackend();
-  const { toast } = useToast();
   const [board, setBoard] = useState<KanbanBoard | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,9 +49,7 @@ export function useKanbanPersistence({
     } catch (err) {
       console.error('Erro ao carregar board:', err);
       setError(err instanceof Error ? err.message : 'Erro desconhecido');
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar o board',
+      toast.error('Não foi possível carregar o board', {
         variant: 'destructive',
       });
     } finally {
@@ -64,7 +59,6 @@ export function useKanbanPersistence({
 
   // Handler para atualizações em tempo real
   const handleKanbanUpdate = useCallback((data: any) => {
-    console.log('📋 Atualização do Kanban recebida:', data);
     
     if (data.type === 'board_update' && data.board) {
       setBoard(data.board);
@@ -101,7 +95,6 @@ export function useKanbanPersistence({
       const updatedBoard = await kanbanApi.updateBoard(boardToSave.id, boardToSave);
       
       setLastSaved(new Date());
-      console.log('✅ Board salvo com sucesso');
       
       // Emitir atualização via socket
       if (boardToSave.settings.collaborationEnabled) {
@@ -113,9 +106,7 @@ export function useKanbanPersistence({
     } catch (err) {
       console.error('❌ Erro ao salvar board:', err);
       setError(err instanceof Error ? err.message : 'Erro ao salvar');
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível salvar o board',
+      toast.error('Não foi possível salvar o board', {
         variant: 'destructive',
       });
     } finally {
@@ -139,17 +130,12 @@ export function useKanbanPersistence({
       });
       
       setBoard(newBoard);
-      toast({
-        title: 'Sucesso',
-        description: 'Board criado com sucesso',
-      });
+      toast.success('Board criado com sucesso');
       
       return newBoard;
     } catch (err) {
       console.error('Erro ao criar board:', err);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível criar o board',
+      toast.error('Não foi possível criar o board', {
         variant: 'destructive',
       });
       return null;
@@ -197,9 +183,7 @@ export function useKanbanPersistence({
       }
     } catch (err) {
       console.error('Erro ao mover tarefa:', err);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível mover a tarefa',
+      toast.error('Não foi possível mover a tarefa', {
         variant: 'destructive',
       });
     }
@@ -237,9 +221,7 @@ export function useKanbanPersistence({
       return newTask;
     } catch (err) {
       console.error('Erro ao criar tarefa:', err);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível criar a tarefa',
+      toast.error('Não foi possível criar a tarefa', {
         variant: 'destructive',
       });
       return null;

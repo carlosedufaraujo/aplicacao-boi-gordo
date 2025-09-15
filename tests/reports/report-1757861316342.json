@@ -1,0 +1,21 @@
+{
+  "timestamp": "2025-09-14T14:48:36.342Z",
+  "totalTests": 3,
+  "passed": 3,
+  "failed": 0,
+  "results": [
+    {
+      "success": true,
+      "test": "01-login.test.cjs"
+    },
+    {
+      "success": true,
+      "test": "02-cadastro-lote.test.cjs"
+    },
+    {
+      "success": true,
+      "test": "03-centro-financeiro.test.cjs"
+    }
+  ],
+  "duration": 5189
+}

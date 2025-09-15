@@ -1,0 +1,40 @@
+[
+  {
+    "id": "f24bafcf-47e3-4241-b38a-08777d0e3ad9",
+    "email": "carlosedufaraujo@outlook.com",
+    "password": "$2a$10$TV8b3M3n712T7edyoEyPe.TohnKEBPw97FNe80xW6K637c2AeY3by",
+    "name": "Carlos Eduardo ",
+    "role": "ADMIN",
+    "isMaster": true,
+    "isActive": true,
+    "createdAt": "2025-09-12T10:06:55.869Z",
+    "updatedAt": "2025-09-14T13:46:37.332Z",
+    "_count": {
+      "cattlePurchases": 22,
+      "deathRecords": 0,
+      "analysisConfigs": 0,
+      "financialTransactions": 0,
+      "integratedAnalyses": 1,
+      "saleRecords": 0
+    }
+  },
+  {
+    "id": "bbf49ef3-7827-42b4-8809-b278ee8d6e8b",
+    "email": "admin@boigordo.com",
+    "password": "$2a$10$4gvjoOUT5yps6kH6W1VdsODKrz0TJiA5Wtq1kaAv7XitbjVW5KELW",
+    "name": "Administrador",
+    "role": "ADMIN",
+    "isMaster": false,
+    "isActive": true,
+    "createdAt": "2025-09-14T13:43:01.180Z",
+    "updatedAt": "2025-09-14T14:57:06.050Z",
+    "_count": {
+      "cattlePurchases": 0,
+      "deathRecords": 0,
+      "analysisConfigs": 0,
+      "financialTransactions": 0,
+      "integratedAnalyses": 0,
+      "saleRecords": 0
+    }
+  }
+]

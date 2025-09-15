@@ -10,12 +10,12 @@ export const userValidation = {
 
   updateProfile: Joi.object({
     name: Joi.string().min(2).max(100).optional(),
-    phone: Joi.string().max(20).optional(),
+    phone: Joi.string().allow('').max(20).optional(),
   }),
 
   updateUser: Joi.object({
     name: Joi.string().min(2).max(100).optional(),
-    phone: Joi.string().max(20).optional(),
+    phone: Joi.string().allow('').max(20).optional(),
     isActive: Joi.boolean().optional(),
   }),
 

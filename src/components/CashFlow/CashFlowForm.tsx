@@ -29,8 +29,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { validateCashFlow, hasValidationErrors, formatValidationMessage } from '@/utils/cashflow-validations';
-import { useToast } from '@/components/ui/use-toast';
-
+import { toast } from 'sonner';
 interface CashFlowFormProps {
   cashFlow?: any;
   categories: any[];
@@ -46,12 +45,9 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
   onSubmit,
   onCancel,
 }) => {
-  const { toast } = useToast();
   const [errors, setErrors] = useState<any>({});
   
   // Debug: log dos dados recebidos
-  console.log('🔧 [CashFlowForm] Categories:', categories);
-  console.log('🔧 [CashFlowForm] Accounts:', accounts);
   
   // Funções para formatação de moeda
   const formatCurrency = (value: string | number): string => {
@@ -109,8 +105,6 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
   const filteredCategories = categories?.filter(cat => cat.type === formData.type) || [];
   
   // Debug: log das categorias filtradas
-  console.log('🔧 [CashFlowForm] FormData.type:', formData.type);
-  console.log('🔧 [CashFlowForm] Filtered categories:', filteredCategories);
 
   // Função para lidar com mudança no valor
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,7 +129,7 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
       setErrors(validationErrors);
       const message = formatValidationMessage(validationErrors);
       toast({
-        title: 'Erros de validação',
+        title: 'Erro de Validação',
         description: message,
         variant: 'destructive',
         duration: 5000,

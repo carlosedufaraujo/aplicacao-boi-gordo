@@ -75,9 +75,6 @@ export function useInterventionsApi() {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('🏥 Criando intervenção de saúde:', data);
-      
       const response = await apiClient.post('/interventions/health', {
         ...data,
         applicationDate: data.applicationDate instanceof Date 
@@ -112,9 +109,6 @@ export function useInterventionsApi() {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('☠️ Criando registro de mortalidade:', data);
-      
       const response = await apiClient.post('/interventions/mortality', {
         ...data,
         deathDate: data.deathDate instanceof Date 
@@ -144,9 +138,6 @@ export function useInterventionsApi() {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('🔄 Criando movimentação:', data);
-      
       const response = await apiClient.post('/interventions/movement', {
         ...data,
         movementDate: data.movementDate instanceof Date 
@@ -176,9 +167,6 @@ export function useInterventionsApi() {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('⚖️ Criando leitura de peso:', data);
-      
       const response = await apiClient.post('/interventions/weight', {
         ...data,
         weighingDate: data.weighingDate instanceof Date 
@@ -208,9 +196,6 @@ export function useInterventionsApi() {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('🔍 [useInterventionsApi] Buscando histórico com filtros:', filters);
-      
       const params = new URLSearchParams();
       
       if (filters.cattlePurchaseId) params.append('cattlePurchaseId', filters.cattlePurchaseId);
@@ -222,7 +207,6 @@ export function useInterventionsApi() {
           ? filters.startDate.toISOString()
           : filters.startDate;
         params.append('startDate', startDate);
-        console.log('📅 [useInterventionsApi] Data início:', startDate);
       }
       
       if (filters.endDate) {
@@ -230,26 +214,17 @@ export function useInterventionsApi() {
           ? filters.endDate.toISOString()
           : filters.endDate;
         params.append('endDate', endDate);
-        console.log('📅 [useInterventionsApi] Data fim:', endDate);
       }
       
       const queryString = params.toString();
       const url = `/interventions/history${queryString ? `?${queryString}` : ''}`;
-      
-      console.log('🌐 [useInterventionsApi] URL da requisição:', url);
-      
       const response = await apiClient.get(url);
-      
-      console.log('📊 [useInterventionsApi] Resposta do servidor:', response?.data);
-      
       if (response?.data?.data) {
-        console.log('✅ [useInterventionsApi] Retornando dados:', response.data.data.length, 'intervenções');
         return response.data.data; // Retornar apenas o array de intervenções
       }
       
       // Fallback para estruturas diferentes
       if (Array.isArray(response?.data)) {
-        console.log('✅ [useInterventionsApi] Fallback - Retornando array:', response.data.length, 'intervenções');
         return response.data;
       }
       

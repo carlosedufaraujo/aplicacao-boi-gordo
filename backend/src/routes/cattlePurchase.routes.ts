@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { cattlePurchaseController } from '../controllers/cattlePurchase.controller';
 import { authenticate } from '../middlewares/auth';
-import { validateRequest } from '../middlewares/validation';
+import { validate, validateRequest } from '../middlewares/validation';
+import { cattlePurchaseValidation } from '../validations/cattlePurchase.validation';
 import { body, param } from 'express-validator';
 
 const router = Router();
@@ -17,7 +18,7 @@ const createValidation = [
   body('animalType').isIn(['MALE', 'FEMALE', 'MIXED']).withMessage('Tipo de animal inválido'),
   body('initialQuantity').isInt({ min: 1 }).withMessage('Quantidade deve ser maior que zero'),
   body('purchaseWeight').isFloat({ min: 1 }).withMessage('Peso deve ser maior que zero'),
-  body('carcassYield').isFloat({ min: 1, max: 100 }).withMessage('Rendimento deve estar entre 1 e 100'),
+  body('carcassYield').isFloat({ min: 0.01, max: 100 }).withMessage('Rendimento deve estar entre 0.01 e 100'),
   body('pricePerArroba').isFloat({ min: 0 }).withMessage('Preço por arroba deve ser maior ou igual a zero'),
   body('paymentType').isIn(['CASH', 'INSTALLMENT', 'BARTER']).withMessage('Tipo de pagamento inválido')
 ];
@@ -28,7 +29,7 @@ const updateValidation = [
   body('animalType').optional().isIn(['MALE', 'FEMALE', 'MIXED']),
   body('initialQuantity').optional().isInt({ min: 1 }),
   body('purchaseWeight').optional().isFloat({ min: 1 }),
-  body('carcassYield').optional().isFloat({ min: 1, max: 100 }),
+  body('carcassYield').optional().isFloat({ min: 0.01, max: 100 }),
   body('pricePerArroba').optional().isFloat({ min: 0 }),
   body('paymentType').optional().isIn(['CASH', 'INSTALLMENT', 'BARTER'])
 ];
@@ -65,8 +66,8 @@ const confinedValidation = [
   body('notes').optional().isString()
 ];
 
-// Rotas
-router.post('/', createValidation, validateRequest, cattlePurchaseController.create);
+// Rotas - Usando validação robusta Joi
+router.post('/', validate(cattlePurchaseValidation.create), cattlePurchaseController.create);
 router.get('/', cattlePurchaseController.findAll);
 router.get('/statistics', cattlePurchaseController.getStatistics);
 router.get('/:id', cattlePurchaseController.findById);

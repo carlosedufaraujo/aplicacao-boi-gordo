@@ -1,89 +1,34 @@
-import { PrismaClient } from '@prisma/client';
-import { env } from './env';
+// Re-exporta a conexão centralizada do novo sistema
+export { prisma, db } from '../lib/prisma';
+export type { PrismaClient } from '@prisma/client';
+
 import { logger } from './logger';
+import { db } from '../lib/prisma';
 
-// Configuração do Prisma baseada no ambiente
-const prismaClientOptions = {
-  log: env.NODE_ENV === 'development' 
-    ? ['query' as const, 'error' as const, 'warn' as const] 
-    : ['error' as const],
-  errorFormat: env.NODE_ENV === 'development' 
-    ? 'pretty' as const 
-    : 'minimal' as const,
-} as const;
-
-// Cria instância do Prisma Client
-export const prisma = new PrismaClient(prismaClientOptions);
-
-// Middleware para log de queries em desenvolvimento
-if (env.NODE_ENV === 'development') {
-  prisma.$use(async (params, next) => {
-    const before = Date.now();
-    const result = await next(params);
-    const after = Date.now();
-    
-    logger.debug(`Query ${params.model}.${params.action} took ${after - before}ms`);
-    
-    return result;
-  });
-}
-
-// Função para conectar ao banco
+// Função para conectar ao banco (delega para o novo sistema)
 export async function connectDatabase(): Promise<void> {
   try {
-    await prisma.$connect();
-    logger.info('✅ Database connected successfully');
+    await db.connect();
+    logger.info('Database connected via centralized system');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    
-    logger.error(`❌ Database connection failed: ${errorMessage}`, {
-      error: errorMessage,
-      stack: errorStack,
-      timestamp: new Date().toISOString(),
-      databaseUrl: env.DATABASE_URL ? env.DATABASE_URL.replace(/\/\/.*:.*@/, '//***:***@') : 'undefined'
-    });
-    process.exit(1);
+    logger.error(`Database connection failed: ${errorMessage}`);
+    throw error;
   }
 }
 
-// Função para desconectar do banco
+// Função para desconectar do banco (delega para o novo sistema)
 export async function disconnectDatabase(): Promise<void> {
-  await prisma.$disconnect();
-  logger.info('Database disconnected');
+  await db.disconnect();
+  logger.info('Database disconnected via centralized system');
 }
 
-// Gerencia conexão em caso de término do processo
-process.on('SIGINT', async () => {
-  await disconnectDatabase();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  await disconnectDatabase();
-  process.exit(0);
-});
-
-// Tratamento de erros de conexão
-prisma.$connect()
+// Inicializa conexão centralizada
+db.connect()
   .then(() => {
-    logger.info('✅ Conectado ao banco de dados');
+    logger.info('Sistema de conexão centralizado inicializado');
   })
   .catch((error) => {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
-    
-    logger.error(`❌ Erro ao conectar ao banco de dados: ${errorMessage}`, {
-      error: errorMessage,
-      stack: errorStack,
-      timestamp: new Date().toISOString(),
-      databaseUrl: env.DATABASE_URL ? env.DATABASE_URL.replace(/\/\/.*:.*@/, '//***:***@') : 'undefined'
-    });
-    process.exit(1);
-  });
-
-// Desconectar ao encerrar a aplicação
-process.on('beforeExit', async () => {
-  await prisma.$disconnect();
-  logger.info('Desconectado do banco de dados');
-}); 
+    logger.error('Falha ao inicializar sistema de conexão:', error);
+    // Não faz exit aqui, deixa o sistema de retry tentar reconectar
+  }); 

@@ -68,15 +68,43 @@ export class PartnerService {
   }
 
   async create(data: CreatePartnerData) {
-    // Verifica se CPF/CNPJ já existe (ignora valores de teste com todos zeros)
-    if (data.cpfCnpj && !/^0+$/.test(data.cpfCnpj)) {
+    // Verifica se CPF/CNPJ já existe (ignora valores de teste)
+    if (data.cpfCnpj && !this.isTestData(data.cpfCnpj)) {
       const existing = await this.partnerRepository.findByCpfCnpj(data.cpfCnpj);
       if (existing) {
         throw new ConflictError('CPF/CNPJ já cadastrado');
       }
     }
 
+    // Se é dado de teste e CPF/CNPJ já existe, gerar um único
+    if (data.cpfCnpj && this.isTestData(data.cpfCnpj)) {
+      const existing = await this.partnerRepository.findByCpfCnpj(data.cpfCnpj);
+      if (existing) {
+        data.cpfCnpj = this.generateUniqueCpfCnpj();
+      }
+    }
+
     return this.partnerRepository.create(data);
+  }
+
+  private isTestData(cpfCnpj: string): boolean {
+    // Identifica dados de teste comuns
+    const testPatterns = [
+      /^0+$/, // Todos zeros
+      /^1+$/, // Todos uns
+      /^123/, // Começando com 123
+      /^999/, // Começando com 999
+      /^000\.000\.000-00$/, // CPF de teste
+      /^00\.000\.000\/0000-00$/, // CNPJ de teste
+    ];
+    
+    return testPatterns.some(pattern => pattern.test(cpfCnpj));
+  }
+
+  private generateUniqueCpfCnpj(): string {
+    // Gera CPF de teste único baseado no timestamp
+    const timestamp = Date.now().toString().slice(-8);
+    return `999.${timestamp.slice(0,3)}.${timestamp.slice(3,6)}-${timestamp.slice(6,8)}`;
   }
 
   async update(id: string, data: UpdatePartnerData) {

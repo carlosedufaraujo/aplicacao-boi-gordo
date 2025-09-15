@@ -51,15 +51,12 @@ export const AnalyticsDashboard: React.FC = () => {
       switch (type) {
         case 'correlations':
           const correlations = await getWeightBreakCorrelations();
-          console.log('Correlações:', correlations);
           break;
         case 'environmental':
           const environmental = await getEnvironmentalCorrelations();
-          console.log('Análise ambiental:', environmental);
           break;
         case 'treatments':
           const treatments = await getTreatmentEffectiveness();
-          console.log('Eficácia de tratamentos:', treatments);
           break;
       }
     } catch (err) {

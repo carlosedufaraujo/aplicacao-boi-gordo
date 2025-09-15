@@ -31,8 +31,6 @@ import {
 } from 'lucide-react';
 import { useBackend } from '@/providers/BackendProvider';
 import { usersService } from '@/services/api/users';
-import { useToast } from '@/hooks/use-toast';
-
 // Componentes shadcn/ui
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -291,18 +289,15 @@ export const CompleteUserManagement: React.FC = () => {
       switch (action) {
         case 'activate':
           await usersService.activate(userId);
-          console.log(`Usuário ${userId} ativado`);
           await loadUsers();
           break;
         case 'deactivate':
           await usersService.deactivate(userId);
-          console.log(`Usuário ${userId} desativado`);
           await loadUsers();
           break;
         case 'delete':
           if (confirm('Tem certeza que deseja excluir este usuário?')) {
             await usersService.delete(userId);
-            console.log(`Usuário ${userId} excluído`);
             await loadUsers();
           }
           break;
@@ -311,7 +306,6 @@ export const CompleteUserManagement: React.FC = () => {
           alert(`Senha temporária gerada: ${result.temporaryPassword}`);
           break;
         case 'resend_invite':
-          console.log(`Reenviando convite para usuário ${userId}`);
           alert('Funcionalidade de reenviar convite ainda não implementada');
           break;
       }
@@ -344,7 +338,6 @@ export const CompleteUserManagement: React.FC = () => {
         role: roleSelect?.value || 'USER'
       });
       
-      console.log(`Usuário criado: ${emailInput.value}`);
       setShowInviteDialog(false);
       
       // Limpar campos
@@ -382,7 +375,6 @@ export const CompleteUserManagement: React.FC = () => {
         role: roleSelect?.value || editingUser.role
       });
       
-      console.log(`Usuário atualizado: ${editingUser.id}`);
       setShowEditDialog(false);
       setEditingUser(null);
       

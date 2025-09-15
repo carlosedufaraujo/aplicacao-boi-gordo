@@ -13,16 +13,12 @@ export const useSaleRecordsApi = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Carregando registros de venda via API...');
       
       const data = await saleRecordsApi.findAll(filters);
-      console.log('✅ Registros de venda carregados via API:', data);
-      console.log('📊 Tipo de dados recebidos:', typeof data, Array.isArray(data));
       
       // Garantir que sempre temos um array
       const salesArray = Array.isArray(data) ? data : [];
       setSaleRecords(salesArray);
-      console.log('💾 Estado atualizado com', salesArray.length, 'vendas');
     } catch (err: any) {
       console.error('❌ Erro ao carregar registros de venda:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao carregar registros de venda';
@@ -37,9 +33,7 @@ export const useSaleRecordsApi = () => {
   // Carregar estatísticas
   const loadStats = useCallback(async () => {
     try {
-      console.log('🔄 Carregando estatísticas de registros de venda...');
       const statsData = await saleRecordsApi.getStats();
-      console.log('✅ Estatísticas de registros de venda carregadas:', statsData);
       setStats(statsData);
     } catch (err: any) {
       console.error('❌ Erro ao carregar estatísticas de registros de venda:', err);
@@ -51,10 +45,8 @@ export const useSaleRecordsApi = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Buscando registro de venda por ID:', id);
       
       const record = await saleRecordsApi.findById(id);
-      console.log('✅ Registro de venda encontrado:', record);
       
       return record;
     } catch (err: any) {
@@ -73,10 +65,8 @@ export const useSaleRecordsApi = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Criando novo registro de venda:', recordData);
       
       const newRecord = await saleRecordsApi.create(recordData);
-      console.log('✅ Registro de venda criado:', newRecord);
       
       // Atualizar lista local
       setSaleRecords(prev => [newRecord, ...prev]);
@@ -102,10 +92,8 @@ export const useSaleRecordsApi = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Atualizando registro de venda:', id, updates);
       
       const updatedRecord = await saleRecordsApi.update(id, updates);
-      console.log('✅ Registro de venda atualizado:', updatedRecord);
       
       // Atualizar lista local
       setSaleRecords(prev => prev.map(record => 
@@ -133,10 +121,8 @@ export const useSaleRecordsApi = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Excluindo registro de venda:', id);
       
       await saleRecordsApi.delete(id);
-      console.log('✅ Registro de venda excluído');
       
       // Remover da lista local
       setSaleRecords(prev => prev.filter(record => record.id !== id));

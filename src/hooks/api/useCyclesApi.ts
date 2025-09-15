@@ -47,9 +47,7 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('[createCycle] Dados enviados:', data);
       const response = await cycleApi.create(data);
-      console.log('[createCycle] Resposta:', response);
       if (response.status === 'success' && response.data) {
         toast.success('Ciclo criado com sucesso');
         // Recarregar a lista completa para garantir sincronização
@@ -163,11 +161,9 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
 
   // Carregamento inicial
   useEffect(() => {
-    console.log('[useCyclesApi] Montando componente, iniciando carregamento...');
     
     const loadInitialData = async () => {
       try {
-        console.log('[useCyclesApi] Iniciando loadInitialData...');
         setLoading(true);
         
         // Carregar ciclos
@@ -177,15 +173,8 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
         
         // Aguardar ambos
         const [cyclesResponse, statsResponse] = await Promise.all([cyclesPromise, statsPromise]);
-        
-        console.log('[useCyclesApi] Respostas recebidas:', { cyclesResponse, statsResponse });
-        
         if (cyclesResponse.status === 'success' && cyclesResponse.data) {
-          console.log('[useCyclesApi.ts] Response structure:', {
-            isArray: Array.isArray(cyclesResponse.data),
-            hasItems: !!(cyclesResponse.data as any).items,
-            data: cyclesResponse.data
-          });
+          // Debug removido para limpeza de código
           
           // Extrair items corretamente da estrutura paginada
           let items: any[] = [];
@@ -195,19 +184,16 @@ export const useCyclesApi = (initialFilters: CycleFilters = {}) => {
             items = (cyclesResponse.data as any).items;
           }
           
-          console.log('[useCyclesApi.ts] Extracted items:', items);
           setCycles(items);
         }
         
         if (statsResponse.status === 'success' && statsResponse.data) {
-          console.log('[useCyclesApi.ts] Stats data:', statsResponse.data);
           setStats(statsResponse.data);
         }
       } catch (err) {
         console.error('[useCyclesApi] Erro no carregamento inicial:', err);
         setError(err instanceof Error ? err.message : 'Erro desconhecido');
       } finally {
-        console.log('[useCyclesApi] Finalizando carregamento inicial');
         setLoading(false);
       }
     };

@@ -42,7 +42,7 @@ async function syncPurchasesToExpenses() {
       // 1. Despesa principal da compra
       expensesToCreate.push({
         category: 'animal_purchase',
-        description: `Compra de gado - Lote ${purchase.lotCode}`,
+        description: `Compra de gado - ${purchase.lotCode}`,
         totalAmount: purchase.purchaseValue,
         dueDate: purchase.purchaseDate,
         impactsCashFlow: true,
@@ -60,7 +60,7 @@ async function syncPurchasesToExpenses() {
       if (purchase.freightCost && purchase.freightCost > 0) {
         expensesToCreate.push({
           category: 'freight',
-          description: `Frete - Lote ${purchase.lotCode}`,
+          description: `Frete - ${purchase.lotCode}`,
           totalAmount: purchase.freightCost,
           dueDate: purchase.purchaseDate,
           impactsCashFlow: true,
@@ -79,7 +79,7 @@ async function syncPurchasesToExpenses() {
       if (purchase.commission && purchase.commission > 0) {
         expensesToCreate.push({
           category: 'commission',
-          description: `Comissão - Lote ${purchase.lotCode}`,
+          description: `Comissão - ${purchase.lotCode}`,
           totalAmount: purchase.commission,
           dueDate: purchase.purchaseDate,
           impactsCashFlow: true,

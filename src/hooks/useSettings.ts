@@ -213,15 +213,6 @@ export function useSettings() {
         applyTheme(newSettings.theme);
       }
 
-      // Apply language if changed
-      if (newSettings.language !== settings?.language) {
-        applyLanguage(newSettings.language);
-      }
-
-      // Apply session timeout if changed
-      if (newSettings.sessionTimeout !== settings?.sessionTimeout) {
-        applySessionTimeout(newSettings.sessionTimeout);
-      }
 
       toast.success('Configurações salvas com sucesso!');
     } catch (error) {
@@ -244,23 +235,15 @@ export function useSettings() {
     }
   };
 
-  // Apply language settings
+  // Apply language settings (placeholder - i18n not implemented)
   const applyLanguage = (language: string) => {
-    // Store language preference
     localStorage.setItem('language', language);
-    
-    // In a real app, you would update i18n here
-    // For now, we'll just store it
     document.documentElement.setAttribute('lang', language.split('-')[0]);
   };
 
-  // Apply session timeout
+  // Apply session timeout (placeholder - auto-logout not implemented)
   const applySessionTimeout = (timeout: number) => {
-    // Store timeout preference
     localStorage.setItem('sessionTimeout', timeout.toString());
-    
-    // Implement actual session timeout logic
-    // This would typically be handled by an auth provider
   };
 
   // Load backup information
@@ -353,18 +336,6 @@ export function useSettings() {
     }
   };
 
-  // Restore backup function
-  const restoreBackup = async (backupId: string): Promise<boolean> => {
-    try {
-      // In a real application, this would restore from an actual backup
-      toast.success('Backup restaurado com sucesso!');
-      return true;
-    } catch (error) {
-      console.error('Error restoring backup:', error);
-      toast.error('Erro ao restaurar backup');
-      return false;
-    }
-  };
 
   // Export settings
   const exportSettings = (): string => {
@@ -403,7 +374,6 @@ export function useSettings() {
     backupInfo,
     saveSettings,
     performBackup,
-    restoreBackup,
     exportSettings,
     importSettings,
     reloadSettings: loadSettings

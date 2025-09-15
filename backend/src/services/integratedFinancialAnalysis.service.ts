@@ -138,7 +138,7 @@ export class IntegratedFinancialAnalysisService {
     for (const purchase of purchases) {
       await this.createOrUpdateTransaction({
         referenceDate: purchase.purchaseDate,
-        description: `Compra de gado - Lote ${purchase.lotCode}`,
+        description: `Compra de gado - ${purchase.lotCode}`,
         amount: -purchase.purchaseValue, // Negativo por ser despesa
         category: FinancialTransactionCategory.CATTLE_ACQUISITION,
         impactsCash: true,

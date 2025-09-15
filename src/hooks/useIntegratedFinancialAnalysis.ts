@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useToast } from '@/components/ui/use-toast';
 import integratedFinancialAnalysisService, { 
   IntegratedAnalysisResult, 
   DashboardData, 
@@ -8,6 +7,7 @@ import integratedFinancialAnalysisService, {
   ComparisonResult
 } from '@/services/api/integratedFinancialAnalysis';
 
+import { toast } from 'sonner';
 interface UseIntegratedAnalysisOptions {
   autoLoad?: boolean;
   defaultYear?: number;
@@ -29,8 +29,6 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
   const [selectedYear, setSelectedYear] = useState(defaultYear);
   const [selectedPeriod, setSelectedPeriod] = useState<{ year: number; month: number } | null>(null);
   
-  const { toast } = useToast();
-
   /**
    * Gera nova análise integrada
    */
@@ -39,7 +37,6 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
     setError(null);
     
     try {
-      console.log('🔄 Gerando análise integrada...', request);
       const analysis = await integratedFinancialAnalysisService.generateAnalysis(request);
       
       setCurrentAnalysis(analysis);
@@ -55,7 +52,6 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
         description: `Análise integrada de ${request.month}/${request.year} criada com sucesso.`,
       });
       
-      console.log('✅ Análise gerada:', analysis);
       return analysis;
       
     } catch (err: any) {
@@ -63,7 +59,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       setError(errorMessage);
       
       toast({
-        title: 'Erro ao Gerar Análise',
+        title: 'Erro',
         description: errorMessage,
         variant: 'destructive',
       });
@@ -84,13 +80,11 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
     setError(null);
     
     try {
-      console.log(`🔍 Buscando análise para ${month}/${year}...`);
       const analysis = await integratedFinancialAnalysisService.getAnalysisByPeriod(year, month);
       
       setCurrentAnalysis(analysis);
       setSelectedPeriod({ year, month });
       
-      console.log('✅ Análise carregada:', analysis);
       return analysis;
       
     } catch (err: any) {
@@ -99,7 +93,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       
       if (err.response?.status !== 404) {
         toast({
-          title: 'Erro ao Carregar Análise',
+          title: 'Erro',
           description: errorMessage,
           variant: 'destructive',
         });
@@ -121,13 +115,11 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
     setError(null);
     
     try {
-      console.log(`📅 Carregando análises do ano ${year}...`);
       const analyses = await integratedFinancialAnalysisService.getAnalysesByYear(year);
       
       setYearAnalyses(analyses);
       setSelectedYear(year);
       
-      console.log(`✅ ${analyses.length} análises carregadas para ${year}`);
       return analyses;
       
     } catch (err: any) {
@@ -135,7 +127,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       setError(errorMessage);
       
       toast({
-        title: 'Erro ao Carregar Análises',
+        title: 'Erro',
         description: errorMessage,
         variant: 'destructive',
       });
@@ -156,12 +148,10 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
     setError(null);
     
     try {
-      console.log(`📊 Carregando dashboard para ${year}...`);
       const dashboardData = await integratedFinancialAnalysisService.getDashboard(year);
       
       setDashboard(dashboardData);
       
-      console.log('✅ Dashboard carregado:', dashboardData);
       return dashboardData;
       
     } catch (err: any) {
@@ -169,7 +159,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       setError(errorMessage);
       
       toast({
-        title: 'Erro ao Carregar Dashboard',
+        title: 'Erro',
         description: errorMessage,
         variant: 'destructive',
       });
@@ -190,12 +180,10 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
     setError(null);
     
     try {
-      console.log('📈 Comparando análises...', params);
       const comparisonResult = await integratedFinancialAnalysisService.compareAnalyses(params);
       
       setComparison(comparisonResult);
       
-      console.log('✅ Comparação realizada:', comparisonResult);
       return comparisonResult;
       
     } catch (err: any) {
@@ -203,7 +191,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       setError(errorMessage);
       
       toast({
-        title: 'Erro na Comparação',
+        title: 'Erro',
         description: errorMessage,
         variant: 'destructive',
       });
@@ -265,7 +253,6 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
     setError(null);
     
     try {
-      console.log('🔄 Carregando todas as transações financeiras...');
       const response = await integratedFinancialAnalysisService.getAllTransactions();
       
       setAllTransactions(response);
@@ -275,7 +262,6 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
         description: `${response.length} transações financeiras carregadas.`,
       });
       
-      console.log('✅ Transações carregadas:', response.length);
       return response;
       
     } catch (err: any) {
@@ -283,7 +269,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       setError(errorMessage);
       
       toast({
-        title: 'Erro ao Carregar Transações',
+        title: 'Erro',
         description: errorMessage,
         variant: 'destructive',
       });

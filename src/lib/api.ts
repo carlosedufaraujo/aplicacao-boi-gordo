@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAuthToken } from './auth-helper';
 
 // Configuração base da API
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
@@ -9,14 +10,14 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 30000, // Aumentado para 30 segundos
+  withCredentials: true, // Importante para enviar cookies
 });
 
 // Interceptador de requisição para adicionar token de autenticação
 api.interceptors.request.use(
   (config) => {
-    // Em desenvolvimento, não precisamos de token
-    // Em produção, adicione o token aqui se necessário
-    const token = localStorage.getItem('authToken');
+    // Usa o helper para obter token de cookies ou localStorage
+    const token = getAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -37,7 +38,6 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken');
       // Em um caso real, redirecionaria para login
-      console.warn('Token expirado ou inválido');
     }
 
     // Tratar outros erros

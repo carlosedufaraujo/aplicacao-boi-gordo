@@ -217,8 +217,6 @@ interface PenMapData {
 }
 
 // Componente de Card de Lote
-
-
 // Componente de Mapa de Currais
 const PenMapView: React.FC<{ pens: PenMapData[] }> = ({ pens }) => {
   return (
@@ -356,7 +354,6 @@ export const CompleteLots: React.FC = () => {
           }),
           getInterventionStatistics()
         ]);
-        console.log('🎯 INTERVENCOES DEBUG - History:', history, 'Length:', history?.length || 0);
         setInterventionHistory(history || []);
         setInterventionStats(stats || {});
       } catch (error) {
@@ -434,7 +431,6 @@ export const CompleteLots: React.FC = () => {
         }
       } catch (error) {
         console.error('❌ Erro ao carregar dados de mortalidade:', error);
-        console.log('🔧 Definindo dados de mortalidade como vazios devido ao erro');
         // Manter dados zerados em caso de erro
         setMortalityData({
           today: 0,
@@ -460,7 +456,6 @@ export const CompleteLots: React.FC = () => {
     };
 
     const handleLotDeleted = () => {
-      console.log('🗑️ Lote excluído, recarregando lista...');
       setTimeout(() => {
         refreshLots();
         refreshOrders();
@@ -468,7 +463,6 @@ export const CompleteLots: React.FC = () => {
     };
 
     const handleLotUpdated = () => {
-      console.log('✏️ Lote atualizado, recarregando lista...');
       setTimeout(() => {
         refreshLots();
         refreshOrders();
@@ -497,48 +491,56 @@ export const CompleteLots: React.FC = () => {
     if (!cattlePurchases || !Array.isArray(cattlePurchases)) {
       return [];
     }
-    
-    
     // Mapear TODOS os lotes
     return cattlePurchases.map(purchase => {
       const partner = partners?.find(p => p.id === purchase.vendorId);
-      
+
+      // Garantir que temos currentQuantity válido
+      const currentQty = purchase.currentQuantity !== undefined ? purchase.currentQuantity :
+        (purchase.quantity || purchase.initialQuantity || 0);
+
       // Calcular métricas derivadas
-      const averageWeight = purchase.currentQuantity > 0 ? 
-        (purchase.receivedWeight || purchase.purchaseWeight) / purchase.currentQuantity : 0;
-      const deaths = purchase.deathCount || 0;
-      const sales = purchase.initialQuantity - purchase.currentQuantity - deaths;
-      const costPerHead = purchase.currentQuantity > 0 ? purchase.totalCost / purchase.currentQuantity : 0;
-      
+      const initialQty = purchase.initialQuantity || purchase.quantity || 0;
+      const purchaseWeight = purchase.purchaseWeight || purchase.totalWeight || 0;
+      // SEMPRE usar peso médio da COMPRA
+      const averageWeight = initialQty > 0 ? purchaseWeight / initialQty :
+        (purchase.averageWeight || 450);
+      const deaths = purchase.deathCount || purchase.deaths || purchase.mortalityCount || 0;
+      const sales = initialQty - currentQty - deaths;
+      const costPerHead = initialQty > 0 ? (purchase.totalCost || 0) / initialQty : (purchase.pricePerHead || 0);
+
       // Obter todas as alocações de currais
       const penAllocations = purchase.penAllocations || [];
       const mainPenAllocation = penAllocations[0];
       const penId = mainPenAllocation?.penId;
       const penNumber = mainPenAllocation?.pen?.penNumber;
-      
+
       // Criar string com todos os currais alocados
-      const allPensInfo = penAllocations.map(alloc => 
+      const allPensInfo = penAllocations.map(alloc =>
         `Curral ${alloc.pen?.penNumber || 'N/A'}: ${alloc.quantity} (${alloc.percentageOfLot?.toFixed(1)}%)`
       ).join(' | ');
-      
+
       return {
         ...purchase,
         // Mapeamento para compatibilidade com a estrutura de lotes esperada
         lotNumber: purchase.lotCode,
-        entryQuantity: purchase.initialQuantity,
-        entryWeight: purchase.purchaseWeight,
+        entryQuantity: purchase.initialQuantity || purchase.quantity,
+        entryWeight: purchase.purchaseWeight || purchase.totalWeight,
+        // Garantir que currentQuantity está presente
+        currentQuantity: currentQty,
         // Propriedades adicionais calculadas
         partnerName: partner?.name || purchase.vendor?.name || 'N/A',
         purchaseDate: purchase.purchaseDate || purchase.createdAt,
         breed: purchase.animalType || 'Não informado',
-        origin: purchase.city && purchase.state ? 
-          `${purchase.city} - ${purchase.state}` : 
+        origin: purchase.city && purchase.state ?
+          `${purchase.city} - ${purchase.state}` :
           'Não informado',
-        initialQuantity: purchase.initialQuantity,
+        initialQuantity: purchase.initialQuantity || purchase.quantity,
         averageWeight,
         deaths,
         sales,
         costPerHead,
+        totalCost: purchase.totalCost || (purchase.pricePerHead * (purchase.quantity || 0)),
         penId,
         penNumber,
         allPensInfo,
@@ -552,20 +554,26 @@ export const CompleteLots: React.FC = () => {
     if (!cattlePurchases || !Array.isArray(cattlePurchases)) {
       return [];
     }
-    
-    // Filtrar apenas compras confinadas (já alocadas)
+
+    // Filtrar apenas compras confirmadas/recebidas (animais ativos)
     // E reprocessar para ter os mesmos campos
     return cattlePurchases
-      .filter(purchase => purchase.status === 'CONFINED')
+      .filter(purchase => purchase.status === 'CONFIRMED' || purchase.status === 'RECEIVED' || purchase.status === 'CONFINED')
       .map(purchase => {
         const partner = partners?.find(p => p.id === purchase.vendorId);
-        
+
+        // Garantir que temos currentQuantity válido
+        const currentQty = purchase.currentQuantity || purchase.quantity || 0;
+
         // Calcular métricas derivadas
-        const averageWeight = purchase.currentQuantity > 0 ? 
-          (purchase.receivedWeight || purchase.purchaseWeight) / purchase.currentQuantity : 0;
-        const deaths = purchase.deathCount || 0;
-        const sales = purchase.initialQuantity - purchase.currentQuantity - deaths;
-        const costPerHead = purchase.currentQuantity > 0 ? purchase.totalCost / purchase.currentQuantity : 0;
+        const initialQty = purchase.initialQuantity || purchase.quantity || 0;
+        const purchaseWeight = purchase.purchaseWeight || purchase.totalWeight || 0;
+        // SEMPRE usar peso médio da COMPRA
+        const averageWeight = initialQty > 0 ? purchaseWeight / initialQty :
+          (purchase.averageWeight || 450);
+        const deaths = purchase.deathCount || purchase.deaths || purchase.mortalityCount || 0;
+        const sales = initialQty - currentQty - deaths;
+        const costPerHead = initialQty > 0 ? (purchase.totalCost || 0) / initialQty : (purchase.pricePerHead || 0);
         
         // Obter todas as alocações de currais
         const penAllocations = purchase.penAllocations || [];
@@ -640,15 +648,48 @@ export const CompleteLots: React.FC = () => {
 
   // Métricas calculadas
   const metrics = useMemo(() => {
-    // Lotes ativos são aqueles confinados
-    const activeLots = processedLots; // Já filtrados no processedLots
-    const totalAnimals = activeLots.reduce((sum, lot) => sum + lot.currentQuantity, 0);
-    const totalInvestment = activeLots.reduce((sum, lot) => sum + lot.totalCost, 0);
-    const averageWeight = activeLots.length > 0 
-      ? activeLots.reduce((sum, lot) => sum + lot.averageWeight, 0) / activeLots.length 
-      : 0;
-    const totalDeaths = activeLots.reduce((sum, lot) => sum + lot.deaths, 0);
-    const mortalityRate = totalAnimals > 0 ? (totalDeaths / (totalAnimals + totalDeaths)) * 100 : 0;
+    // Usar todos os lotes ativos (confirmados/recebidos)
+    const activeLots = cattlePurchases?.filter(p =>
+      p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'CONFINED'
+    ) || [];
+
+    // Calcular total de animais com fallback correto
+    const totalAnimals = activeLots.reduce((sum, lot) => {
+      const currentQty = lot.currentQuantity !== undefined ? lot.currentQuantity :
+        (lot.quantity || lot.initialQuantity || 0);
+      return sum + currentQty;
+    }, 0);
+
+    // Calcular investimento total
+    const totalInvestment = activeLots.reduce((sum, lot) => {
+      const cost = lot.totalCost || (lot.pricePerHead * (lot.quantity || 0)) || 0;
+      return sum + cost;
+    }, 0);
+
+    // Calcular peso médio ponderado SEMPRE BASEADO NO PESO DA COMPRA
+    let totalWeightSum = 0;
+    let totalAnimalsForWeight = 0;
+    activeLots.forEach(lot => {
+      const initialQty = lot.initialQuantity || lot.quantity || 0;
+      // SEMPRE usar o peso médio da COMPRA inicial
+      const purchaseWeight = lot.purchaseWeight || lot.totalWeight || 0;
+      const weightPerAnimal = initialQty > 0 ? purchaseWeight / initialQty :
+        (lot.averageWeight || lot.pricePerKg ? (lot.pricePerKg * 15) : 450);
+
+      // Usar quantidade inicial para a ponderação
+      totalWeightSum += weightPerAnimal * initialQty;
+      totalAnimalsForWeight += initialQty;
+    });
+    const averageWeight = totalAnimalsForWeight > 0 ? totalWeightSum / totalAnimalsForWeight : 0;
+
+    // Calcular mortalidade
+    const totalDeaths = activeLots.reduce((sum, lot) => {
+      return sum + (lot.deaths || lot.mortalityCount || lot.deathCount || 0);
+    }, 0);
+    const totalInitial = activeLots.reduce((sum, lot) => {
+      return sum + (lot.initialQuantity || lot.quantity || 0);
+    }, 0);
+    const mortalityRate = totalInitial > 0 ? (totalDeaths / totalInitial) * 100 : 0;
 
     return {
       totalLots: activeLots.length,
@@ -857,7 +898,6 @@ export const CompleteLots: React.FC = () => {
           notes: data['death-notes'] || undefined
         };
         
-        console.log('☠️ Enviando dados de mortalidade:', mortalityData);
         await createMortalityRecord(mortalityData);
       } else if (interventionType === 'movement') {
         await createPenMovement({
@@ -971,20 +1011,7 @@ export const CompleteLots: React.FC = () => {
         </div>
 
         {/* Métricas Principais */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-          <Card className="hover-lift">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="kpi-label">Lotes Ativos</CardTitle>
-              <Package className="h-4 w-4 icon-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="kpi-value">{metrics.totalLots}</div>
-              <p className="kpi-variation text-muted-foreground">
-                Em confinamento ativo
-              </p>
-            </CardContent>
-          </Card>
-
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           <Card className="hover-lift">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="kpi-label">Currais Ocupados</CardTitle>
@@ -1010,8 +1037,6 @@ export const CompleteLots: React.FC = () => {
               </p>
             </CardContent>
           </Card>
-
-
           <Card className="hover-lift">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="kpi-label">Peso Médio</CardTitle>
@@ -1036,32 +1061,6 @@ export const CompleteLots: React.FC = () => {
               </div>
               <p className="kpi-variation text-muted-foreground">
                 {mortalityData?.total === 1 ? 'morte registrada' : 'mortes registradas'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover-lift">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="kpi-label">Pendentes</CardTitle>
-              <Clock className="h-4 w-4 icon-warning" />
-            </CardHeader>
-            <CardContent>
-              <div className="kpi-value">{metrics.pendingLots}</div>
-              <p className="kpi-variation text-muted-foreground">
-                Aguardando entrada
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="hover-lift">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="kpi-label">Vendidos</CardTitle>
-              <CheckCircle className="h-4 w-4 icon-success" />
-            </CardHeader>
-            <CardContent>
-              <div className="kpi-value">{metrics.soldLots}</div>
-              <p className="kpi-variation text-success">
-                Este período
               </p>
             </CardContent>
           </Card>
@@ -1504,8 +1503,6 @@ export const CompleteLots: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
-
-
 
           {/* Visualização em Tabela de Lotes */}
           <TabsContent value="table">
@@ -2102,14 +2099,8 @@ export const CompleteLots: React.FC = () => {
                       const pensWithAnimals = pens?.map(pen => {
                         const occupancy = occupancyData?.find(o => o.penId === pen.id);
                         const hasAnimals = occupancy && occupancy.currentOccupancy > 0;
-                        
-                        console.log(`🐮 Curral ${pen.penNumber}:`, {
-                          penId: pen.id,
-                          status: pen.status,
-                          occupancy: occupancy?.currentOccupancy || 0,
-                          capacity: pen.capacity,
-                          hasAnimals
-                        });
+
+                        // Debug removido para limpeza de código
                         
                         // Só mostra currais que têm animais
                         if (!hasAnimals) return null;

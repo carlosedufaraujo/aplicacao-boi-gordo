@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { cattlePurchaseApi } from '@/services/api/cattlePurchaseApi';
 import { CattlePurchase, CreateCattlePurchaseDTO, UpdateCattlePurchaseDTO } from '@/types/cattlePurchase';
-import { useToast } from '@/hooks/use-toast';
-
+import { toast } from 'sonner';
 // Query Keys
 const QUERY_KEYS = {
   all: ['cattle-purchases'] as const,
@@ -39,8 +38,6 @@ export const useCattlePurchase = (id: string) => {
 // Hook para criar cattle purchase
 export const useCreateCattlePurchase = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
-
   return useMutation({
     mutationFn: (data: CreateCattlePurchaseDTO) => cattlePurchaseApi.create(data),
     onSuccess: (newPurchase) => {
@@ -53,15 +50,10 @@ export const useCreateCattlePurchase = () => {
         newPurchase
       );
       
-      toast({
-        title: 'Sucesso',
-        description: 'Compra de gado criada com sucesso',
-      });
+      toast.success('Compra de gado criada com sucesso');
     },
     onError: (error: any) => {
-      toast({
-        title: 'Erro',
-        description: error.response?.data?.message || 'Erro ao criar compra',
+      toast.error(error.response?.data?.message || 'Erro ao criar compra', {
         variant: 'destructive',
       });
     },
@@ -71,8 +63,6 @@ export const useCreateCattlePurchase = () => {
 // Hook para atualizar cattle purchase
 export const useUpdateCattlePurchase = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
-
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateCattlePurchaseDTO }) =>
       cattlePurchaseApi.update(id, data),
@@ -86,15 +76,10 @@ export const useUpdateCattlePurchase = () => {
         updatedPurchase
       );
       
-      toast({
-        title: 'Sucesso',
-        description: 'Compra atualizada com sucesso',
-      });
+      toast.success('Compra atualizada com sucesso');
     },
     onError: (error: any) => {
-      toast({
-        title: 'Erro',
-        description: error.response?.data?.message || 'Erro ao atualizar compra',
+      toast.error(error.response?.data?.message || 'Erro ao atualizar compra', {
         variant: 'destructive',
       });
     },
@@ -104,8 +89,6 @@ export const useUpdateCattlePurchase = () => {
 // Hook para deletar cattle purchase
 export const useDeleteCattlePurchase = () => {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
-
   return useMutation({
     mutationFn: (id: string) => cattlePurchaseApi.delete(id),
     onSuccess: (_, deletedId) => {
@@ -115,15 +98,10 @@ export const useDeleteCattlePurchase = () => {
       // Remover do cache
       queryClient.removeQueries({ queryKey: QUERY_KEYS.detail(deletedId) });
       
-      toast({
-        title: 'Sucesso',
-        description: 'Compra deletada com sucesso',
-      });
+      toast.success('Compra deletada com sucesso');
     },
     onError: (error: any) => {
-      toast({
-        title: 'Erro',
-        description: error.response?.data?.message || 'Erro ao deletar compra',
+      toast.error(error.response?.data?.message || 'Erro ao deletar compra', {
         variant: 'destructive',
       });
     },

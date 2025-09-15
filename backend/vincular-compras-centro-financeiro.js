@@ -61,7 +61,7 @@ async function vincularComprasCentroFinanceiro() {
         const despesa = await prisma.expense.create({
           data: {
             category: 'CATTLE_PURCHASE',
-            description: `Compra de Gado - Lote ${compra.lotCode}`,
+            description: `Compra de Gado - ${compra.lotCode}`,
             totalAmount: compra.purchaseValue,
             dueDate: compra.principalDueDate || compra.purchaseDate,
             paymentDate: compra.paymentType === 'CASH' ? compra.purchaseDate : null,
@@ -81,7 +81,7 @@ async function vincularComprasCentroFinanceiro() {
           await prisma.expense.create({
             data: {
               category: 'FREIGHT',
-              description: `Frete - Lote ${compra.lotCode}`,
+              description: `Frete - ${compra.lotCode}`,
               totalAmount: compra.freightCost,
               dueDate: compra.freightDueDate || compra.purchaseDate,
               paymentDate: compra.paymentType === 'CASH' ? compra.purchaseDate : null,
@@ -100,7 +100,7 @@ async function vincularComprasCentroFinanceiro() {
           await prisma.expense.create({
             data: {
               category: 'COMMISSION',
-              description: `Comissão - Lote ${compra.lotCode}`,
+              description: `Comissão - ${compra.lotCode}`,
               totalAmount: compra.commission,
               dueDate: compra.commissionDueDate || compra.purchaseDate,
               paymentDate: compra.paymentType === 'CASH' ? compra.purchaseDate : null,
@@ -121,7 +121,7 @@ async function vincularComprasCentroFinanceiro() {
             type: 'EXPENSE',
             categoryId: catCompra.id,
             accountId: compra.payerAccountId,
-            description: `Compra de Gado - Lote ${compra.lotCode}`,
+            description: `Compra de Gado - ${compra.lotCode}`,
             amount: compra.purchaseValue,
             date: compra.purchaseDate,
             dueDate: compra.principalDueDate || compra.purchaseDate,
@@ -143,7 +143,7 @@ async function vincularComprasCentroFinanceiro() {
               type: 'EXPENSE',
               categoryId: catFrete.id,
               accountId: compra.payerAccountId,
-              description: `Frete - Lote ${compra.lotCode}`,
+              description: `Frete - ${compra.lotCode}`,
               amount: compra.freightCost,
               date: compra.purchaseDate,
               dueDate: compra.freightDueDate || compra.purchaseDate,
@@ -165,7 +165,7 @@ async function vincularComprasCentroFinanceiro() {
               type: 'EXPENSE',
               categoryId: catComissao.id,
               accountId: compra.payerAccountId,
-              description: `Comissão - Lote ${compra.lotCode}`,
+              description: `Comissão - ${compra.lotCode}`,
               amount: compra.commission,
               date: compra.purchaseDate,
               dueDate: compra.commissionDueDate || compra.purchaseDate,

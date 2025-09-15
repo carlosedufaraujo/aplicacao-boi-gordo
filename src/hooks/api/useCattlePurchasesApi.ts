@@ -356,9 +356,6 @@ export function useCattlePurchasesApi() {
         observations: data.observations,
         penAllocations: data.penAllocations || [],
       };
-      
-      console.log('Payload sendo enviado para API:', payload);
-      
       const response = await apiClient.post(`/cattle-purchases/${id}/reception`, payload);
       
       if (response.data) {
@@ -446,9 +443,6 @@ export function useCattlePurchasesApi() {
         penAllocations: data.penAllocations || [],
         notes: data.notes || data.observations,
       };
-      
-      console.log('Marcando como confinado:', payload);
-      
       const response = await apiClient.post(`/cattle-purchases/${id}/confined`, payload);
       
       if (response.data) {
@@ -520,7 +514,6 @@ export function useCattlePurchasesApi() {
       try {
         await loadPurchases();
       } catch (loadError) {
-        console.log('Erro ao recarregar lista após exclusão:', loadError);
       }
       
       // Retornar true para indicar sucesso

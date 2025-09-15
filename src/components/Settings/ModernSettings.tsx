@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,38 +13,35 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useSettings } from '@/hooks/useSettings';
 import type { SettingsData } from '@/hooks/useSettings';
+
+// Lazy load dos componentes pesados
+const UserManagement = lazy(() => import('@/components/System/UserManagement'));
+const DataImport = lazy(() => import('@/pages/DataImport'));
+const CompleteRegistrations = lazy(() => import('@/components/Registrations/CompleteRegistrations'));
 import {
-  Settings,
   Globe,
-  Clock,
-  DollarSign,
-  FileText,
   Database,
   Shield,
   Save,
   Bell,
-  User,
   Building2,
-  Palette,
   Monitor,
   Smartphone,
   Moon,
   Sun,
-  Key,
   Lock,
   Mail,
   Volume2,
   Wifi,
   HardDrive,
-  Download,
-  Upload,
   RefreshCw,
   AlertTriangle,
-  CheckCircle,
   Info,
-  ChevronRight,
   FileDown,
-  FileUp
+  FileUp,
+  Users,
+  Upload,
+  FolderOpen
 } from 'lucide-react';
 
 export const ModernSettings: React.FC = () => {
@@ -220,12 +217,24 @@ export const ModernSettings: React.FC = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="regional" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="regional">Regional</TabsTrigger>
-          <TabsTrigger value="business">Negócio</TabsTrigger>
-          <TabsTrigger value="system">Sistema</TabsTrigger>
-          <TabsTrigger value="security">Segurança</TabsTrigger>
-          <TabsTrigger value="notifications">Notificações</TabsTrigger>
+        <TabsList className="w-full flex flex-wrap justify-start gap-2 h-auto p-1">
+          <TabsTrigger value="regional" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Regional</TabsTrigger>
+          <TabsTrigger value="business" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Negócio</TabsTrigger>
+          <TabsTrigger value="system" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Sistema</TabsTrigger>
+          <TabsTrigger value="security" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Segurança</TabsTrigger>
+          <TabsTrigger value="notifications" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Notificações</TabsTrigger>
+          <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Users className="h-4 w-4 mr-2" />
+            Usuários
+          </TabsTrigger>
+          <TabsTrigger value="import" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Upload className="h-4 w-4 mr-2" />
+            Importar Dados
+          </TabsTrigger>
+          <TabsTrigger value="registrations" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <FolderOpen className="h-4 w-4 mr-2" />
+            Cadastros
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab Regional */}
@@ -777,6 +786,78 @@ export const ModernSettings: React.FC = () => {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab Usuários */}
+        <TabsContent value="users" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="card-title flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Gerenciamento de Usuários
+              </CardTitle>
+              <CardDescription className="card-subtitle">
+                Gerencie usuários, permissões e acessos ao sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-96">
+                  <Skeleton className="h-full w-full" />
+                </div>
+              }>
+                <UserManagement />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab Importar Dados */}
+        <TabsContent value="import" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="card-title flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Importação de Dados
+              </CardTitle>
+              <CardDescription className="card-subtitle">
+                Importe dados de planilhas Excel, CSV ou outros formatos
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-96">
+                  <Skeleton className="h-full w-full" />
+                </div>
+              }>
+                <DataImport />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab Cadastros */}
+        <TabsContent value="registrations" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="card-title flex items-center gap-2">
+                <FolderOpen className="h-4 w-4" />
+                Cadastros do Sistema
+              </CardTitle>
+              <CardDescription className="card-subtitle">
+                Gerencie todos os cadastros básicos do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={
+                <div className="flex items-center justify-center h-96">
+                  <Skeleton className="h-full w-full" />
+                </div>
+              }>
+                <CompleteRegistrations />
+              </Suspense>
             </CardContent>
           </Card>
         </TabsContent>

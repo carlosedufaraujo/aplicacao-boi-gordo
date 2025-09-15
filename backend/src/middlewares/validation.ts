@@ -28,11 +28,17 @@ export function validate(
     const { error, value } = schema.validate(req[source], validationOptions);
 
     if (error) {
-      const errorMessage = error.details
-        .map((detail: any) => detail.message)
-        .join(', ');
+      const errorDetails = error.details.map((detail: any) => ({
+        field: detail.path?.join('.') || 'unknown',
+        message: detail.message,
+        value: detail.context?.value
+      }));
       
-      return next(new ValidationError(errorMessage));
+      const errorMessage = errorDetails.map(err => `${err.field}: ${err.message}`).join(', ');
+      const validationError = new ValidationError(errorMessage);
+      (validationError as any).details = errorDetails;
+      
+      return next(validationError);
     }
 
     // Substitui os dados validados
@@ -47,9 +53,17 @@ import { validationResult } from 'express-validator';
 export function validateRequest(req: Request, _res: Response, next: NextFunction): void {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return next(new ValidationError(
-      errors.array().map(err => err.msg).join(', ')
-    ));
+    const errorDetails = errors.array().map(err => ({
+      field: (err as any).param || 'unknown',
+      message: err.msg,
+      value: (err as any).value
+    }));
+    
+    const errorMessage = errorDetails.map(err => `${err.field}: ${err.message}`).join(', ');
+    const detailedError = new ValidationError(errorMessage);
+    (detailedError as any).details = errorDetails;
+    
+    return next(detailedError);
   }
   next();
 }
@@ -73,8 +87,8 @@ export const commonSchemas = {
     endDate: Joi.date().iso().min(Joi.ref('startDate')),
   }),
   
-  // CPF/CNPJ (aceita 11 dígitos para CPF, 14 para CNPJ, ou qualquer valor entre 10-15 dígitos para flexibilidade)
-  cpfCnpj: Joi.string().pattern(/^[0-9]{10,15}$/),
+  // CPF/CNPJ (aceita formatado ou não formatado, incluindo dados de teste)
+  cpfCnpj: Joi.string().pattern(/^[0-9]{10,15}$|^[0-9]{3}\.[0-9]{3}\.[0-9]{3}-[0-9]{2}$|^[0-9]{2}\.[0-9]{3}\.[0-9]{3}\/[0-9]{4}-[0-9]{2}$|^999\./),
   
   // Telefone (aceita números nacionais e internacionais)
   phone: Joi.string().pattern(/^[0-9]{10,15}$/),

@@ -1,115 +1,362 @@
-import { Category, DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from '@/data/defaultCategories';
+import { supabase } from '@/services/supabase';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
-const STORAGE_KEY = 'financial_categories';
+export interface Category {
+  id: string;
+  code: string;
+  name: string;
+  type: 'INCOME' | 'EXPENSE';
+  cost_center?: string;
+  color: string;
+  icon?: string;
+  impacts_cash_flow: boolean;
+  is_default: boolean;
+  is_active: boolean;
+  display_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export class CategoryService {
   private categories: Category[] = [];
+  private loading: boolean = false;
+  private channel: RealtimeChannel | null = null;
+  private listeners: Set<() => void> = new Set();
 
   constructor() {
-    this.loadCategories();
+    this.initializeService();
   }
 
-  private loadCategories(): void {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        this.categories = JSON.parse(stored);
-      } catch (error) {
+  private async initializeService(): Promise<void> {
+    await this.loadCategories();
+    this.setupRealtimeSync();
+  }
+
+  // Configurar sincronização em tempo real
+  private setupRealtimeSync(): void {
+    // Inscrever-se para mudanças na tabela categories
+    this.channel = supabase
+      .channel('categories-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'categories'
+        },
+        async (payload) => {
+          console.log('Categoria alterada:', payload);
+          // Recarregar categorias quando houver mudança
+          await this.loadCategories();
+          // Notificar todos os listeners
+          this.notifyListeners();
+        }
+      )
+      .subscribe();
+  }
+
+  // Adicionar listener para mudanças
+  public addChangeListener(callback: () => void): () => void {
+    this.listeners.add(callback);
+    // Retornar função para remover o listener
+    return () => {
+      this.listeners.delete(callback);
+    };
+  }
+
+  // Notificar todos os listeners sobre mudanças
+  private notifyListeners(): void {
+    this.listeners.forEach(listener => listener());
+  }
+
+  // Carregar categorias do banco de dados
+  private async loadCategories(): Promise<void> {
+    try {
+      this.loading = true;
+
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) {
         console.error('Erro ao carregar categorias:', error);
-        this.resetToDefaults();
+        // Fallback para categorias padrão em memória se houver erro
+        this.loadDefaultCategories();
+        return;
       }
-    } else {
-      this.resetToDefaults();
+
+      this.categories = data || [];
+
+      // Se não houver categorias no banco, inserir as padrão
+      if (this.categories.length === 0) {
+        await this.insertDefaultCategories();
+        await this.loadCategories(); // Recarregar após inserir
+      }
+    } catch (error) {
+      console.error('Erro ao carregar categorias:', error);
+      this.loadDefaultCategories();
+    } finally {
+      this.loading = false;
     }
   }
 
-  private saveCategories(): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(this.categories));
+  // Carregar categorias padrão (fallback)
+  private loadDefaultCategories(): void {
+    // Mantém as categorias básicas como fallback
+    this.categories = [
+      { id: '1', code: 'animal_purchase', name: 'Compra de Animais', type: 'EXPENSE', cost_center: 'acquisition', color: '#EF4444', icon: 'ShoppingCart', impacts_cash_flow: true, is_default: true, is_active: true, display_order: 1 },
+      { id: '2', code: 'feed', name: 'Alimentação', type: 'EXPENSE', cost_center: 'fattening', color: '#84CC16', icon: 'Package', impacts_cash_flow: true, is_default: true, is_active: true, display_order: 5 },
+      { id: '3', code: 'health_costs', name: 'Sanidade', type: 'EXPENSE', cost_center: 'fattening', color: '#06B6D4', icon: 'Heart', impacts_cash_flow: true, is_default: true, is_active: true, display_order: 6 },
+      { id: '4', code: 'freight', name: 'Frete', type: 'EXPENSE', cost_center: 'acquisition', color: '#10B981', icon: 'Truck', impacts_cash_flow: true, is_default: true, is_active: true, display_order: 3 },
+      { id: '5', code: 'cattle_sale', name: 'Venda de Gado', type: 'INCOME', cost_center: 'revenue', color: '#10B981', icon: 'DollarSign', impacts_cash_flow: true, is_default: true, is_active: true, display_order: 32 },
+    ];
   }
 
-  public resetToDefaults(): void {
-    this.categories = [...DEFAULT_EXPENSE_CATEGORIES, ...DEFAULT_INCOME_CATEGORIES];
-    this.saveCategories();
+  // Inserir categorias padrão no banco
+  private async insertDefaultCategories(): Promise<void> {
+    // As categorias padrão já são inseridas pela migration SQL
+    // Este método existe apenas para caso precise reinicializar
+    console.log('Categorias padrão já inseridas pela migration');
   }
 
+  // Obter todas as categorias
   public getAll(): Category[] {
     return [...this.categories];
   }
 
+  // Obter categorias por tipo
   public getByType(type: 'INCOME' | 'EXPENSE'): Category[] {
     return this.categories.filter(cat => cat.type === type);
   }
 
+  // Obter categoria por ID
   public getById(id: string): Category | undefined {
     return this.categories.find(cat => cat.id === id);
   }
 
-  public create(category: Omit<Category, 'id'>): Category {
-    const newCategory: Category = {
-      ...category,
-      id: `cat-custom-${Date.now()}`
-    };
-    this.categories.push(newCategory);
-    this.saveCategories();
-    return newCategory;
+  // Obter categoria por código
+  public getByCode(code: string): Category | undefined {
+    return this.categories.find(cat => cat.code === code);
   }
 
-  public update(id: string, updates: Partial<Omit<Category, 'id'>>): Category | null {
-    const index = this.categories.findIndex(cat => cat.id === id);
-    if (index === -1) return null;
+  // Criar nova categoria
+  public async create(category: Omit<Category, 'id' | 'created_at' | 'updated_at'>): Promise<Category | null> {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert([{
+          ...category,
+          code: category.code || `custom_${Date.now()}`,
+          is_default: false
+        }])
+        .select()
+        .single();
 
-    this.categories[index] = {
-      ...this.categories[index],
-      ...updates
-    };
-    this.saveCategories();
-    return this.categories[index];
+      if (error) {
+        console.error('Erro ao criar categoria:', error);
+        throw error;
+      }
+
+      // Recarregar categorias
+      await this.loadCategories();
+      return data;
+    } catch (error) {
+      console.error('Erro ao criar categoria:', error);
+      return null;
+    }
   }
 
-  public delete(id: string): boolean {
-    const index = this.categories.findIndex(cat => cat.id === id);
-    if (index === -1) return false;
+  // Atualizar categoria
+  public async update(id: string, updates: Partial<Omit<Category, 'id' | 'created_at' | 'updated_at'>>): Promise<Category | null> {
+    try {
+      // Verificar se é categoria padrão
+      const category = this.getById(id);
+      if (category?.is_default) {
+        // Limitar alterações em categorias padrão
+        const allowedUpdates = {
+          name: updates.name,
+          color: updates.color,
+          icon: updates.icon,
+          display_order: updates.display_order
+        };
+        updates = allowedUpdates;
+      }
 
-    this.categories.splice(index, 1);
-    this.saveCategories();
-    return true;
+      const { data, error } = await supabase
+        .from('categories')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro ao atualizar categoria:', error);
+        throw error;
+      }
+
+      // Recarregar categorias
+      await this.loadCategories();
+      return data;
+    } catch (error) {
+      console.error('Erro ao atualizar categoria:', error);
+      return null;
+    }
   }
 
-  public canDelete(id: string): boolean {
-    return true;
+  // Deletar categoria (soft delete)
+  public async delete(id: string): Promise<boolean> {
+    try {
+      // Verificar se pode deletar
+      const canDelete = await this.canDelete(id);
+      if (!canDelete) {
+        throw new Error('Categoria está em uso e não pode ser excluída');
+      }
+
+      // Soft delete - apenas marca como inativa
+      const { error } = await supabase
+        .from('categories')
+        .update({ is_active: false })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Erro ao deletar categoria:', error);
+        throw error;
+      }
+
+      // Recarregar categorias
+      await this.loadCategories();
+      return true;
+    } catch (error) {
+      console.error('Erro ao deletar categoria:', error);
+      return false;
+    }
   }
 
+  // Verificar se categoria pode ser deletada
+  public async canDelete(id: string): Promise<boolean> {
+    try {
+      const category = this.getById(id);
+      if (!category) return false;
+
+      // Não permitir deletar categorias padrão
+      if (category.is_default) return false;
+
+      // Verificar se está em uso (chamar função do banco)
+      const { data, error } = await supabase
+        .rpc('category_in_use', { category_code: category.code });
+
+      if (error) {
+        console.error('Erro ao verificar uso da categoria:', error);
+        return false;
+      }
+
+      return !data; // Pode deletar se NÃO está em uso
+    } catch (error) {
+      console.error('Erro ao verificar se pode deletar:', error);
+      return false;
+    }
+  }
+
+  // Buscar categorias
   public search(query: string): Category[] {
     const lowercaseQuery = query.toLowerCase();
-    return this.categories.filter(cat => 
-      cat.name.toLowerCase().includes(lowercaseQuery)
+    return this.categories.filter(cat =>
+      cat.name.toLowerCase().includes(lowercaseQuery) ||
+      cat.code.toLowerCase().includes(lowercaseQuery)
     );
   }
 
-  public exportCategories(): string {
+  // Exportar categorias
+  public async exportCategories(): Promise<string> {
+    await this.loadCategories(); // Garantir dados atualizados
     return JSON.stringify(this.categories, null, 2);
   }
 
-  public importCategories(jsonString: string): boolean {
+  // Importar categorias
+  public async importCategories(jsonString: string): Promise<boolean> {
     try {
       const imported = JSON.parse(jsonString);
-      if (Array.isArray(imported)) {
-        // Validar estrutura básica
-        const isValid = imported.every(cat => 
-          cat.id && cat.name && (cat.type === 'INCOME' || cat.type === 'EXPENSE')
-        );
-        
-        if (isValid) {
-          this.categories = imported;
-          this.saveCategories();
-          return true;
-        }
+      if (!Array.isArray(imported)) {
+        throw new Error('Formato inválido');
       }
-      return false;
+
+      // Validar estrutura
+      const isValid = imported.every(cat =>
+        cat.name &&
+        cat.code &&
+        (cat.type === 'INCOME' || cat.type === 'EXPENSE')
+      );
+
+      if (!isValid) {
+        throw new Error('Categorias inválidas');
+      }
+
+      // Inserir categorias importadas
+      for (const cat of imported) {
+        // Pular se já existe
+        if (this.getByCode(cat.code)) continue;
+
+        await this.create({
+          code: cat.code,
+          name: cat.name,
+          type: cat.type,
+          cost_center: cat.cost_center,
+          color: cat.color || '#6B7280',
+          icon: cat.icon,
+          impacts_cash_flow: cat.impacts_cash_flow !== false,
+          is_default: false,
+          is_active: true,
+          display_order: cat.display_order || 999
+        });
+      }
+
+      return true;
     } catch (error) {
       console.error('Erro ao importar categorias:', error);
       return false;
     }
+  }
+
+  // Resetar para categorias padrão
+  public async resetToDefaults(): Promise<void> {
+    try {
+      // Desativar todas as categorias customizadas
+      const { error } = await supabase
+        .from('categories')
+        .update({ is_active: false })
+        .eq('is_default', false);
+
+      if (error) throw error;
+
+      // Reativar apenas as categorias padrão
+      const { error: reactivateError } = await supabase
+        .from('categories')
+        .update({ is_active: true })
+        .eq('is_default', true);
+
+      if (reactivateError) throw reactivateError;
+
+      // Recarregar
+      await this.loadCategories();
+    } catch (error) {
+      console.error('Erro ao resetar categorias:', error);
+    }
+  }
+
+  // Limpar recursos ao destruir
+  public destroy(): void {
+    if (this.channel) {
+      supabase.removeChannel(this.channel);
+      this.channel = null;
+    }
+    this.listeners.clear();
+  }
+
+  // Verificar se está carregando
+  public isLoading(): boolean {
+    return this.loading;
   }
 }
 

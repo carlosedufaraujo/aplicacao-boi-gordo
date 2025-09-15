@@ -13,10 +13,8 @@ export const useSalesApi = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Carregando vendas via API...');
       
       const data = await salesApi.findAll(filters);
-      console.log('✅ Vendas carregadas via API:', data?.length || 0);
       
       setSales(data || []);
     } catch (err: any) {
@@ -32,9 +30,7 @@ export const useSalesApi = () => {
   // Carregar estatísticas
   const loadStats = useCallback(async () => {
     try {
-      console.log('🔄 Carregando estatísticas de vendas...');
       const statsData = await salesApi.getStats();
-      console.log('✅ Estatísticas de vendas carregadas:', statsData);
       setStats(statsData);
     } catch (err: any) {
       console.error('❌ Erro ao carregar estatísticas de vendas:', err);
@@ -46,10 +42,8 @@ export const useSalesApi = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Buscando venda por ID:', id);
       
       const sale = await salesApi.findById(id);
-      console.log('✅ Venda encontrada:', sale);
       
       return sale;
     } catch (err: any) {
@@ -68,10 +62,8 @@ export const useSalesApi = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Criando nova venda:', saleData);
       
       const newSale = await salesApi.create(saleData);
-      console.log('✅ Venda criada:', newSale);
       
       // Atualizar lista local
       setSales(prev => [newSale, ...prev]);
@@ -97,10 +89,8 @@ export const useSalesApi = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Atualizando venda:', id, updates);
       
       const updatedSale = await salesApi.update(id, updates);
-      console.log('✅ Venda atualizada:', updatedSale);
       
       // Atualizar lista local
       setSales(prev => prev.map(sale => 
@@ -128,10 +118,8 @@ export const useSalesApi = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('🔄 Excluindo venda:', id);
       
       await salesApi.delete(id);
-      console.log('✅ Venda excluída');
       
       // Remover da lista local
       setSales(prev => prev.filter(sale => sale.id !== id));

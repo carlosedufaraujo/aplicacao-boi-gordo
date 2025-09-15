@@ -11,11 +11,12 @@ interface BackendContextType {
   loading: boolean;
   error: string | null;
   initialized: boolean;
-  
+
   // Ações de autenticação
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   checkSession: () => Promise<void>;
+  updateUser: (updatedUserData: any) => void;
 }
 
 const BackendContext = createContext<BackendContextType | undefined>(undefined);
@@ -41,11 +42,12 @@ export function BackendProvider({ children }: BackendProviderProps) {
     loading: auth.loading,
     error: auth.error,
     initialized: auth.initialized,
-    
+
     // Auth actions
     signIn: auth.signIn,
     signOut: auth.signOut,
     checkSession: auth.checkSession,
+    updateUser: auth.updateUser,
   };
 
   return (

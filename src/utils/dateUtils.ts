@@ -13,7 +13,6 @@ export const formatSafeDate = (
   
   const date = new Date(dateValue);
   if (!isValid(date)) {
-    console.warn('Data inválida recebida:', dateValue);
     return 'Data inválida';
   }
   
@@ -56,7 +55,6 @@ export const safeDifferenceInDays = (
   const earlier = new Date(earlierDate);
   
   if (!isValid(later) || !isValid(earlier)) {
-    console.warn('Datas inválidas para cálculo de diferença:', { laterDate, earlierDate });
     return 0;
   }
   
@@ -85,7 +83,6 @@ export const toSafeDate = (dateValue: any, fallback: Date = new Date()): Date =>
   
   const date = new Date(dateValue);
   if (!isValid(date)) {
-    console.warn('Data inválida convertida para fallback:', dateValue);
     return fallback;
   }
   
@@ -106,7 +103,6 @@ export const formatSafeCurrency = (
   const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
   
   if (isNaN(numValue)) {
-    console.warn('Valor monetário inválido:', value);
     return 'R$ --';
   }
   
@@ -151,14 +147,12 @@ export const formatSafeDecimal = (
   fallback: string = '0'
 ): string => {
   if (value === null || value === undefined) {
-    console.warn('Valor decimal undefined/null:', value);
     return fallback;
   }
   
   const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
   
   if (isNaN(numValue)) {
-    console.warn('Valor decimal inválido:', value);
     return '--';
   }
   
@@ -181,7 +175,6 @@ export const toSafeNumber = (value: any, fallback: number = 0): number => {
   const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
   
   if (isNaN(numValue)) {
-    console.warn('Valor numérico inválido convertido para fallback:', value);
     return fallback;
   }
   
@@ -206,7 +199,6 @@ export const safeDivision = (
   const result = num / den;
   
   if (isNaN(result)) {
-    console.warn('Resultado de divisão inválido:', { numerator, denominator, result });
     return fallback;
   }
   
@@ -226,7 +218,6 @@ export const safeMultiplication = (...values: any[]): number => {
   }
   
   if (isNaN(result)) {
-    console.warn('Resultado de multiplicação inválido:', values);
     return 0;
   }
   

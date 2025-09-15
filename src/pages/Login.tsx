@@ -68,7 +68,6 @@ export const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      console.log('🔐 Iniciando login...');
       await signIn(formData.email, formData.password);
       
       // Salvar/remover email conforme preferência
@@ -78,7 +77,6 @@ export const Login: React.FC = () => {
         localStorage.removeItem('rememberedEmail');
       }
 
-      console.log('✅ Login bem-sucedido, redirecionando...');
       // O redirecionamento será feito pelo useEffect acima
     } catch (error: any) {
       console.error('❌ Erro no login:', error);

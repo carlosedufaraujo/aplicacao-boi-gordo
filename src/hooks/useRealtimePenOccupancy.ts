@@ -45,7 +45,6 @@ export const useRealtimePenOccupancy = () => {
 
     // Inscrever-se para atualizações em tempo real via Socket.io
     const handleOccupancyUpdate = (data: any) => {
-      console.log('📊 Atualização de ocupação recebida:', data);
       
       if (data.type === 'full_update') {
         setOccupancyData(data.occupancy);

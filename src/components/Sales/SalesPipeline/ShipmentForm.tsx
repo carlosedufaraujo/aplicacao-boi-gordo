@@ -88,7 +88,6 @@ export const ShipmentForm: React.FC<ShipmentFormProps> = ({
 
   const handleFormSubmit = (data: any) => {
     // In a real implementation, this would update the lot status to "shipped"
-    console.log('Registering shipment:', data);
     
     // Show success notification
     alert('Embarque registrado com sucesso!');

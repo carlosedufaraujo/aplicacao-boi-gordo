@@ -31,38 +31,31 @@ export type {
 // ============================================================================
 
 export const useCattlePurchases = () => {
-  console.warn('⚠️ useCattlePurchases está deprecado. Use useCattlePurchasesApi()');
   return useCattlePurchasesApi();
 };
 
 export const usePartners = () => {
-  console.warn('⚠️ usePartners está deprecado. Use usePartnersApi()');
   return usePartnersApi();
 };
 
 export const usePens = () => {
-  console.warn('⚠️ usePens está deprecado. Use usePensApi()');
   return usePensApi();
 };
 
 export const useExpenses = () => {
-  console.warn('⚠️ useExpenses está deprecado. Use useExpensesApi()');
   return useExpensesApi();
 };
 
 export const useRevenues = () => {
-  console.warn('⚠️ useRevenues está deprecado. Use useRevenuesApi()');
   return useRevenuesApi();
 };
 
 export const usePayerAccounts = () => {
-  console.warn('⚠️ usePayerAccounts está deprecado. Use usePayerAccountsApi()');
   return usePayerAccountsApi();
 };
 
 // Hooks ainda não migrados - retornam estrutura vazia
 export const useCycles = () => {
-  console.warn('⚠️ useCycles precisa ser migrado para API backend');
   return {
     cycles: [],
     loading: false,
@@ -75,7 +68,6 @@ export const useCycles = () => {
 };
 
 export const useSaleRecords = () => {
-  console.warn('⚠️ useSaleRecords precisa ser migrado para API backend');
   return {
     saleRecords: [],
     loading: false,
@@ -88,7 +80,6 @@ export const useSaleRecords = () => {
 };
 
 export const useCostCenters = () => {
-  console.warn('⚠️ useCostCenters precisa ser migrado para API backend');
   return {
     costCenters: [],
     loading: false,
@@ -101,7 +92,6 @@ export const useCostCenters = () => {
 };
 
 export const useBankStatements = () => {
-  console.warn('⚠️ useBankStatements precisa ser migrado para API backend');
   return {
     statements: [],
     loading: false,
@@ -114,7 +104,6 @@ export const useBankStatements = () => {
 };
 
 export const useDashboard = () => {
-  console.warn('⚠️ useDashboard precisa ser migrado para API backend');
   return {
     data: {},
     loading: false,
@@ -124,7 +113,6 @@ export const useDashboard = () => {
 };
 
 export const useFinancialReconciliation = () => {
-  console.warn('⚠️ useFinancialReconciliation precisa ser migrado para API backend');
   return {
     reconciliations: [],
     loading: false,

@@ -64,6 +64,19 @@ export function errorHandler(
   } else if (error instanceof AppError) {
     statusCode = error.statusCode;
     message = error.message;
+    details = error.details;
+  } else if (error.name === 'ValidationError') {
+    statusCode = 400;
+    message = error.message;
+    // Incluir detalhes estruturados se disponíveis
+    if ((error as any).details) {
+      details = {
+        validationErrors: (error as any).details,
+        summary: `${(error as any).details.length} campo(s) com erro`,
+        fields: (error as any).details.map((err: any) => err.field),
+        guide: 'Verifique a documentação da API para campos obrigatórios'
+      };
+    }
   }
 
   // Resposta de erro

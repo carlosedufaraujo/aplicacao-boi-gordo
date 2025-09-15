@@ -49,7 +49,6 @@ export const registerFutureUpdate = (
   _changes: string[]
 ) => {
   // Esta função pode ser chamada quando novas funcionalidades forem implementadas
-  console.log(`Preparando atualização ${version}: ${title}`);
   
   // Quando a atualização estiver pronta, chamar:
   // registerSystemUpdate(version, title, description, 'feature', 'general', 

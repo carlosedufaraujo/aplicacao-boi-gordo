@@ -149,32 +149,24 @@ export const saleRecordsApi = {
     const queryString = params.toString();
     const url = `/sale-records${queryString ? `?${queryString}` : ''}`;
     
-    console.log('🌐 Fazendo requisição para:', url);
     const response = await apiClient.get(url);
-    console.log('📥 Resposta da API:', response.data);
     
     // Tratar resposta paginada se necessário
     let result = [];
     
     // A resposta vem em response.data.data que já é o objeto paginado
     if (response.data?.data?.items && Array.isArray(response.data.data.items)) {
-      console.log('📦 Resposta paginada detectada, items:', response.data.data.items.length);
       result = response.data.data.items;
     } else if (response.data?.items && Array.isArray(response.data.items)) {
-      console.log('📦 Resposta com items direto, items:', response.data.items.length);
       result = response.data.items;
     } else if (response.data?.data && Array.isArray(response.data.data)) {
-      console.log('📦 Array direto detectado, items:', response.data.data.length);
       result = response.data.data;
     } else if (Array.isArray(response.data)) {
-      console.log('📦 Resposta é array direto, items:', response.data.length);
       result = response.data;
     } else {
-      console.warn('⚠️ Formato de resposta não reconhecido:', response.data);
       result = [];
     }
     
-    console.log('✅ Retornando', result.length, 'vendas');
     return result;
   },
 

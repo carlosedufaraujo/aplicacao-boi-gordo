@@ -48,12 +48,13 @@ import CashFlowForm from './CashFlowForm';
 import { SimpleIntegratedAnalysis } from '@/components/FinancialAnalysis/SimpleIntegratedAnalysis';
 import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
-import { useToast } from '@/components/ui/use-toast';
 import StatusChangeButton from './StatusChangeButton';
+import { categoryService } from '@/services/categoryService';
+import { useEffect } from 'react';
 
+import { toast } from 'sonner';
 export const CashFlowDashboard: React.FC = () => {
-  console.log('CashFlowDashboard - Component loaded with EXACT version from 21:04-22:44!');
-  
+
   const [showForm, setShowForm] = useState(false);
   const [editingCashFlow, setEditingCashFlow] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null }>({
@@ -62,7 +63,17 @@ export const CashFlowDashboard: React.FC = () => {
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [editingAccountBalance, setEditingAccountBalance] = useState<{ id: string; balance: number } | null>(null);
-  const { toast } = useToast();
+  const [, forceUpdate] = useState({});
+  // Subscribe to category changes for real-time updates
+  useEffect(() => {
+    const unsubscribe = categoryService.addChangeListener(() => {
+      forceUpdate({}); // Force component re-render when categories change
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
   
   const {
     cashFlows,
@@ -137,29 +148,14 @@ export const CashFlowDashboard: React.FC = () => {
     try {
       if (editingCashFlow) {
         await updateCashFlow(editingCashFlow.id, data);
-        toast({
-          title: 'Movimentação atualizada',
-          description: 'A movimentação foi atualizada com sucesso.',
-          duration: 3000,
-        });
       } else {
         await createCashFlow(data);
-        toast({
-          title: 'Movimentação criada',
-          description: 'A nova movimentação foi criada com sucesso.',
-          duration: 3000,
-        });
       }
       setShowForm(false);
       setEditingCashFlow(null);
     } catch (error) {
       console.error('Erro ao salvar movimentação:', error);
-      toast({
-        title: 'Erro ao salvar',
-        description: 'Não foi possível salvar a movimentação. Verifique os dados e tente novamente.',
-        variant: 'destructive',
-        duration: 5000,
-      });
+      toast.error('Não foi possível salvar a movimentação. Verifique os dados e tente novamente.');
     }
   };
 
@@ -178,19 +174,9 @@ export const CashFlowDashboard: React.FC = () => {
     setIsDeleting(true);
     try {
       await deleteCashFlow(deleteConfirm.id);
-      toast({
-        title: 'Movimentação excluída',
-        description: 'A movimentação foi excluída com sucesso.',
-        duration: 3000,
-      });
       setDeleteConfirm({ isOpen: false, id: null });
     } catch (error) {
-      toast({
-        title: 'Erro ao excluir',
-        description: 'Não foi possível excluir a movimentação. Tente novamente.',
-        variant: 'destructive',
-        duration: 5000,
-      });
+      toast.error('Não foi possível excluir a movimentação. Tente novamente.');
     } finally {
       setIsDeleting(false);
     }
@@ -205,8 +191,6 @@ export const CashFlowDashboard: React.FC = () => {
 
   // Filtrar movimentações por tipo para as abas
   const filteredCashFlows = useMemo(() => {
-    console.log('[CashFlowDashboard] cashFlows da API:', cashFlows);
-    console.log('[CashFlowDashboard] Total de movimentações:', cashFlows?.length || 0);
     
     return {
       all: cashFlows || [],
@@ -214,155 +198,83 @@ export const CashFlowDashboard: React.FC = () => {
       expense: cashFlows?.filter(flow => flow.type === 'EXPENSE') || []
     };
   }, [cashFlows]);
-
-
   // Componente da Tabela de Movimentações - Reformulado
   const CashFlowTable = ({ data, type }: { data: any[], type: 'all' | 'income' | 'expense' }) => {
-    console.log(`[CashFlowTable] Renderizando tabela tipo: ${type}`);
-    console.log(`[CashFlowTable] Dados recebidos:`, data);
-    
+
     // Função para obter o ícone e cor da categoria
     const getCategoryDisplay = (cashFlow: any) => {
-      // Mapear categoryId para o nome da categoria
-      const categoryIdToName: Record<string, string> = {
-        // Despesas
-        'cat-exp-01': 'Compra de Gado',
-        'cat-exp-02': 'Frete de Gado',
-        'cat-exp-03': 'Comissão de Compra',
-        'cat-exp-04': 'Ração',
-        'cat-exp-05': 'Suplementos',
-        'cat-exp-06': 'Sal Mineral',
-        'cat-exp-07': 'Silagem',
-        'cat-exp-08': 'Vacinas',
-        'cat-exp-09': 'Medicamentos',
-        'cat-exp-10': 'Veterinário',
-        'cat-exp-11': 'Exames Laboratoriais',
-        'cat-exp-12': 'Manutenção de Currais',
-        'cat-exp-13': 'Manutenção de Cercas',
-        'cat-exp-14': 'Construções',
-        'cat-exp-15': 'Equipamentos',
-        'cat-exp-16': 'Combustível',
-        'cat-exp-17': 'Energia Elétrica',
-        'cat-exp-18': 'Água',
-        'cat-exp-19': 'Telefone/Internet',
-        'cat-exp-20': 'Salários',
-        'cat-exp-21': 'Encargos Trabalhistas',
-        'cat-exp-22': 'Benefícios',
-        'cat-exp-23': 'Treinamento',
-        'cat-exp-24': 'Material de Escritório',
-        'cat-exp-25': 'Contabilidade',
-        'cat-exp-26': 'Impostos e Taxas',
-        'cat-exp-27': 'Seguros',
-        'cat-exp-28': 'Despesas Bancárias',
-        'cat-exp-29': 'Juros e Multas',
-        'cat-exp-30': 'Outras Despesas',
-        // Receitas
-        'cat-inc-01': 'Venda de Gado Gordo',
-        'cat-inc-02': 'Venda de Bezerros',
-        'cat-inc-03': 'Venda de Matrizes',
-        'cat-inc-04': 'Venda de Reprodutores',
-        'cat-inc-05': 'Arrendamento de Pasto',
-        'cat-inc-06': 'Aluguel de Curral',
-        'cat-inc-07': 'Prestação de Serviços',
-        'cat-inc-08': 'Venda de Esterco',
-        'cat-inc-09': 'Venda de Couro',
-        'cat-inc-10': 'Rendimentos Financeiros',
-        'cat-inc-11': 'Juros Recebidos',
-        'cat-inc-12': 'Dividendos',
-        'cat-inc-13': 'Indenizações',
-        'cat-inc-14': 'Prêmios e Bonificações',
-        'cat-inc-15': 'Outras Receitas'
+      // Buscar categoria dinamicamente do CategoryService
+      let category = null;
+      let categoryName = '';
+
+      // Tentar buscar pelo categoryId ou código da categoria
+      if (cashFlow.categoryId) {
+        category = categoryService.getById(cashFlow.categoryId) || categoryService.getByCode(cashFlow.categoryId);
+      }
+
+      // Se não encontrou, tentar pelo nome da categoria
+      if (!category && cashFlow.category) {
+        const categoryValue = typeof cashFlow.category === 'string' ? cashFlow.category : cashFlow.category.name;
+        category = categoryService.getByCode(categoryValue);
+        if (!category) {
+          // Buscar pelo nome se não encontrou pelo código
+          const allCategories = categoryService.getAll();
+          category = allCategories.find(cat => cat.name === categoryValue);
+        }
+      }
+
+      // Definir o nome da categoria
+      if (category) {
+        categoryName = category.name;
+      } else if (cashFlow.category) {
+        categoryName = typeof cashFlow.category === 'string' ? cashFlow.category : cashFlow.category.name;
+      }
+
+      // Mapear cores baseado no tipo e centro de custo da categoria
+      const getColorByCategory = (cat: any) => {
+        if (!cat) return 'bg-gray-100 text-gray-700 border-gray-300';
+
+        // Usar a cor da categoria se estiver definida
+        if (cat.color && cat.color !== '#6B7280') {
+          // Converter cor hex para classes Tailwind aproximadas
+          const colorMap: Record<string, string> = {
+            '#EF4444': 'bg-red-100 text-red-800 border-red-300',
+            '#F59E0B': 'bg-amber-100 text-amber-800 border-amber-300',
+            '#10B981': 'bg-green-100 text-green-800 border-green-300',
+            '#6B7280': 'bg-gray-100 text-gray-700 border-gray-300',
+            '#84CC16': 'bg-lime-100 text-lime-800 border-lime-300',
+            '#06B6D4': 'bg-cyan-100 text-cyan-800 border-cyan-300',
+            '#8B5CF6': 'bg-violet-100 text-violet-800 border-violet-300',
+            '#DC2626': 'bg-red-100 text-red-800 border-red-300',
+            '#F97316': 'bg-orange-100 text-orange-800 border-orange-300',
+            '#3B82F6': 'bg-blue-100 text-blue-800 border-blue-300',
+            '#EC4899': 'bg-pink-100 text-pink-800 border-pink-300',
+            '#14B8A6': 'bg-teal-100 text-teal-800 border-teal-300',
+            '#6366F1': 'bg-indigo-100 text-indigo-800 border-indigo-300'
+          };
+
+          return colorMap[cat.color] || 'bg-gray-100 text-gray-700 border-gray-300';
+        }
+
+        // Cores padrão baseadas no tipo
+        if (cat.type === 'INCOME') {
+          return 'bg-green-100 text-green-800 border-green-300';
+        } else {
+          // Cores por centro de custo para despesas
+          const costCenterColors: Record<string, string> = {
+            'acquisition': 'bg-red-100 text-red-800 border-red-300',
+            'fattening': 'bg-yellow-100 text-yellow-800 border-yellow-300',
+            'administrative': 'bg-blue-100 text-blue-800 border-blue-300',
+            'financial': 'bg-purple-100 text-purple-800 border-purple-300',
+            'sales': 'bg-orange-100 text-orange-800 border-orange-300'
+          };
+
+          return costCenterColors[cat.cost_center || ''] || 'bg-gray-100 text-gray-700 border-gray-300';
+        }
       };
-      
-      // Primeiro tenta buscar pelo categoryId
-      let categoryName = cashFlow.categoryId ? 
-        categoryIdToName[cashFlow.categoryId] : 
-        (cashFlow.category?.name || cashFlow.category);
-      
-      // Log para debug
-      console.log('CashFlow item:', { 
-        id: cashFlow.id, 
-        categoryId: cashFlow.categoryId, 
-        category: cashFlow.category,
-        resolvedName: categoryName 
-      });
-      
-      const categoryMap: Record<string, { label: string; color: string }> = {
-        // ===== RECEITAS =====
-        // Vendas de Gado
-        'Venda de Gado Gordo': { label: 'Venda de Gado Gordo', color: 'bg-green-100 text-green-800 border-green-300' },
-        'Venda de Bezerros': { label: 'Venda de Bezerros', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
-        'Venda de Matrizes': { label: 'Venda de Matrizes', color: 'bg-green-50 text-green-700 border-green-300' },
-        'Venda de Reprodutores': { label: 'Venda de Reprodutores', color: 'bg-teal-100 text-teal-800 border-teal-300' },
-        
-        // Serviços
-        'Arrendamento de Pasto': { label: 'Arrendamento de Pasto', color: 'bg-lime-100 text-lime-800 border-lime-300' },
-        'Aluguel de Curral': { label: 'Aluguel de Curral', color: 'bg-lime-50 text-lime-700 border-lime-300' },
-        'Prestação de Serviços': { label: 'Prestação de Serviços', color: 'bg-cyan-100 text-cyan-800 border-cyan-300' },
-        
-        // Subprodutos
-        'Venda de Esterco': { label: 'Venda de Esterco', color: 'bg-amber-100 text-amber-800 border-amber-300' },
-        'Venda de Couro': { label: 'Venda de Couro', color: 'bg-amber-50 text-amber-700 border-amber-300' },
-        
-        // Financeiro (Receitas)
-        'Rendimentos Financeiros': { label: 'Rendimentos Financeiros', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-        'Juros Recebidos': { label: 'Juros Recebidos', color: 'bg-blue-50 text-blue-700 border-blue-300' },
-        'Dividendos': { label: 'Dividendos', color: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
-        
-        // Outros (Receitas)
-        'Indenizações': { label: 'Indenizações', color: 'bg-sky-100 text-sky-800 border-sky-300' },
-        'Prêmios e Bonificações': { label: 'Prêmios e Bonificações', color: 'bg-sky-50 text-sky-700 border-sky-300' },
-        'Outras Receitas': { label: 'Outras Receitas', color: 'bg-gray-100 text-gray-700 border-gray-300' },
-        
-        // ===== DESPESAS =====
-        // Compras e Vendas de Gado
-        'Compra de Gado': { label: 'Compra de Gado', color: 'bg-red-100 text-red-800 border-red-300' },
-        'Frete de Gado': { label: 'Frete de Gado', color: 'bg-orange-100 text-orange-800 border-orange-300' },
-        'Comissão de Compra': { label: 'Comissão de Compra', color: 'bg-orange-50 text-orange-700 border-orange-300' },
-        
-        // Alimentação e Nutrição
-        'Ração': { label: 'Ração', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-        'Suplementos': { label: 'Suplementos', color: 'bg-yellow-50 text-yellow-700 border-yellow-300' },
-        'Sal Mineral': { label: 'Sal Mineral', color: 'bg-amber-100 text-amber-800 border-amber-300' },
-        'Silagem': { label: 'Silagem', color: 'bg-lime-100 text-lime-800 border-lime-300' },
-        
-        // Saúde Animal
-        'Vacinas': { label: 'Vacinas', color: 'bg-purple-100 text-purple-800 border-purple-300' },
-        'Medicamentos': { label: 'Medicamentos', color: 'bg-purple-50 text-purple-700 border-purple-300' },
-        'Veterinário': { label: 'Veterinário', color: 'bg-pink-100 text-pink-800 border-pink-300' },
-        'Exames Laboratoriais': { label: 'Exames Laboratoriais', color: 'bg-pink-50 text-pink-700 border-pink-300' },
-        
-        // Infraestrutura
-        'Manutenção de Currais': { label: 'Manutenção de Currais', color: 'bg-gray-100 text-gray-800 border-gray-300' },
-        'Manutenção de Cercas': { label: 'Manutenção de Cercas', color: 'bg-gray-50 text-gray-700 border-gray-300' },
-        'Construções': { label: 'Construções', color: 'bg-slate-100 text-slate-800 border-slate-300' },
-        'Equipamentos': { label: 'Equipamentos', color: 'bg-slate-50 text-slate-700 border-slate-300' },
-        
-        // Operacional
-        'Combustível': { label: 'Combustível', color: 'bg-red-50 text-red-700 border-red-300' },
-        'Energia Elétrica': { label: 'Energia Elétrica', color: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-        'Água': { label: 'Água', color: 'bg-cyan-100 text-cyan-800 border-cyan-300' },
-        'Telefone/Internet': { label: 'Telefone/Internet', color: 'bg-blue-100 text-blue-800 border-blue-300' },
-        
-        // Pessoal
-        'Salários': { label: 'Salários', color: 'bg-indigo-100 text-indigo-800 border-indigo-300' },
-        'Encargos Trabalhistas': { label: 'Encargos Trabalhistas', color: 'bg-indigo-50 text-indigo-700 border-indigo-300' },
-        'Benefícios': { label: 'Benefícios', color: 'bg-violet-100 text-violet-800 border-violet-300' },
-        'Treinamento': { label: 'Treinamento', color: 'bg-violet-50 text-violet-700 border-violet-300' },
-        
-        // Administrativo
-        'Material de Escritório': { label: 'Material de Escritório', color: 'bg-rose-100 text-rose-800 border-rose-300' },
-        'Contabilidade': { label: 'Contabilidade', color: 'bg-rose-50 text-rose-700 border-rose-300' },
-        'Impostos e Taxas': { label: 'Impostos e Taxas', color: 'bg-red-100 text-red-800 border-red-300' },
-        'Seguros': { label: 'Seguros', color: 'bg-red-50 text-red-700 border-red-300' },
-        
-        // Outros (Despesas)
-        'Despesas Bancárias': { label: 'Despesas Bancárias', color: 'bg-zinc-100 text-zinc-800 border-zinc-300' },
-        'Juros e Multas': { label: 'Juros e Multas', color: 'bg-zinc-50 text-zinc-700 border-zinc-300' },
-        'Outras Despesas': { label: 'Outras Despesas', color: 'bg-gray-100 text-gray-700 border-gray-300' }
-      };
-      
-      const categoryInfo = categoryName ? categoryMap[categoryName] || { label: categoryName, color: 'bg-gray-100 text-gray-700 border-gray-300' } : null;
+
+      const color = getColorByCategory(category);
+      const categoryInfo = categoryName ? { label: categoryName, color } : null;
       
       return categoryInfo ? (
         <Badge className={cn("text-xs font-medium border", categoryInfo.color)} variant="secondary">

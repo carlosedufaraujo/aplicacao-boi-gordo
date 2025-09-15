@@ -97,15 +97,28 @@ export class UserService {
     userId: string,
     updateData: Partial<any>
   ): Promise<any> {
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        ...updateData,
-        updatedAt: new Date()
+    try {
+      // Remove campos vazios ou undefined
+      const cleanData: any = {};
+      for (const key in updateData) {
+        if (updateData[key] !== undefined && updateData[key] !== '') {
+          cleanData[key] = updateData[key];
+        }
       }
-    });
 
-    return user;
+      const user = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...cleanData,
+          updatedAt: new Date()
+        }
+      });
+
+      return user;
+    } catch (error) {
+      console.error('[UserService] updateUser - error:', error);
+      throw error;
+    }
   }
 
   /**
@@ -132,31 +145,6 @@ export class UserService {
         updatedAt: new Date()
       }
     });
-  }
-
-  /**
-   * Cria novo usuário
-   */
-  async createUser(userData: {
-    email: string;
-    password: string;
-    name: string;
-    role?: string;
-  }): Promise<any> {
-    const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
-    
-    const user = await prisma.user.create({
-      data: {
-        email: userData.email,
-        password: hashedPassword,
-        name: userData.name,
-        role: userData.role || 'USER',
-        isActive: true
-      }
-    });
-
-    return user;
   }
 
   /**

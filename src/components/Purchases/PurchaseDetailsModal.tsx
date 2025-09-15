@@ -75,8 +75,6 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
 
   if (!data) return null;
 
-  
-
   // Calcular métricas corretamente
   const metrics = {
     averageWeight: data.entryQuantity > 0 ? data.entryWeight / data.entryQuantity : 0,
@@ -751,8 +749,6 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
                           </div>
                         </div>
                       )}
-
-                      
                     </div>
                   </CardContent>
                 </Card>

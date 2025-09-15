@@ -28,7 +28,7 @@ export const useBackendAuth = () => {
   // Login via Backend
   const signIn = useCallback(async (email: string, password: string) => {
     try {
-      console.log('🔐 [BACKEND AUTH] Iniciando login...');
+      
       setAuthState(prev => ({ ...prev, loading: true, error: null }));
       
       const { user, session } = await backendAuth.signIn(email, password);
@@ -58,7 +58,7 @@ export const useBackendAuth = () => {
   // Logout
   const signOut = useCallback(async () => {
     try {
-      console.log('🔐 [BACKEND AUTH] Fazendo logout...');
+      
       await backendAuth.signOut();
       
       if (mountedRef.current) {
@@ -84,20 +84,16 @@ export const useBackendAuth = () => {
   // Verificar sessão
   const checkSession = useCallback(async () => {
     if (initializingRef.current) {
-      console.log('🔐 [BACKEND AUTH] Já inicializando, pulando...');
+      
       return;
     }
 
     initializingRef.current = true;
 
     try {
-      console.log('🔐 [BACKEND AUTH] Verificando sessão...');
-      
       const session = await backendAuth.getCurrentSession();
       
       if (session && mountedRef.current) {
-        console.log('🔐 [BACKEND AUTH] Sessão ativa encontrada');
-        
         // Validar token
         const isValid = await backendAuth.validateToken();
         
@@ -110,7 +106,7 @@ export const useBackendAuth = () => {
             initialized: true
           });
         } else {
-          console.log('🔐 [BACKEND AUTH] Token inválido, removendo sessão');
+          
           await backendAuth.signOut();
           setAuthState({
             user: null,
@@ -121,7 +117,7 @@ export const useBackendAuth = () => {
           });
         }
       } else if (mountedRef.current) {
-        console.log('🔐 [BACKEND AUTH] Nenhuma sessão ativa');
+        
         setAuthState({
           user: null,
           session: null,
@@ -146,6 +142,25 @@ export const useBackendAuth = () => {
     }
   }, []);
 
+  // Atualizar dados do usuário (para quando o usuário atualiza seu perfil)
+  const updateUser = useCallback((updatedUserData: any) => {
+    setAuthState(prev => {
+      const newUser = {
+        ...prev.user,
+        ...updatedUserData
+      };
+
+      return {
+        ...prev,
+        user: newUser,
+        session: prev.session ? {
+          ...prev.session,
+          user: newUser
+        } : null
+      };
+    });
+  }, []);
+
   // Inicialização
   useEffect(() => {
     mountedRef.current = true;
@@ -161,6 +176,7 @@ export const useBackendAuth = () => {
     signIn,
     signOut,
     checkSession,
+    updateUser,
     isAuthenticated: !!authState.user,
     isAdmin: authState.user?.role === 'ADMIN' || authState.user?.role === 'MASTER',
     isMaster: authState.user?.isMaster === true,

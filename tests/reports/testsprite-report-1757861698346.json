@@ -1,0 +1,46 @@
+{
+  "timestamp": "2025-09-14T14:54:58.346Z",
+  "url": "http://localhost:5173",
+  "results": [
+    {
+      "test": "Login",
+      "status": "ERROR",
+      "error": "Navigation timeout of 10000 ms exceeded"
+    },
+    {
+      "test": "Dashboard",
+      "status": "ERROR",
+      "error": "Waiting for selector `main` failed"
+    },
+    {
+      "test": "Lots List",
+      "status": "ERROR",
+      "error": "Waiting for selector `table, .lot-card` failed"
+    },
+    {
+      "test": "Financial Center",
+      "status": "ERROR",
+      "error": "Waiting for selector `.financial-center, main` failed"
+    },
+    {
+      "test": "Responsiveness",
+      "status": "PASSED"
+    },
+    {
+      "test": "Performance",
+      "status": "PASSED",
+      "metrics": {
+        "domContentLoaded": 0,
+        "loadComplete": 0,
+        "domInteractive": 8.199999928474426,
+        "firstPaint": 120
+      }
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "errors": 4,
+    "warnings": 0
+  }
+}

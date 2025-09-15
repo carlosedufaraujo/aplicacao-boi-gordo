@@ -7,7 +7,6 @@ import { TableWithPagination } from '../Common/TableWithPagination';
 import { clsx } from 'clsx';
 
 export const Calendar: React.FC = () => {
-  console.log('📅 Calendar component loaded - ESTE É O CALENDÁRIO ANTIGO!');
   const { bankStatements } = useBankStatementsApi();
   
   // TODO: Implementar financialAccounts quando necessário

@@ -202,8 +202,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
-
-
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
           <div className="space-y-1">

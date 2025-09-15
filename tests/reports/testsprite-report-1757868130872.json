@@ -1,0 +1,46 @@
+{
+  "timestamp": "2025-09-14T16:42:10.872Z",
+  "url": "http://localhost:5173",
+  "results": [
+    {
+      "test": "Login",
+      "status": "ERROR",
+      "error": "SyntaxError: Failed to execute 'querySelector' on 'Document': 'button[type=\"submit\"], button:contains(\"Entrar\"), button:contains(\"Login\")' is not a valid selector."
+    },
+    {
+      "test": "Dashboard",
+      "status": "ERROR",
+      "error": "Waiting for selector `main` failed"
+    },
+    {
+      "test": "Lots List",
+      "status": "ERROR",
+      "error": "Waiting for selector `[role=\"tablist\"], div[class*=\"tabs\"]` failed"
+    },
+    {
+      "test": "Financial Center",
+      "status": "ERROR",
+      "error": "Waiting for selector `.financial-center, main` failed"
+    },
+    {
+      "test": "Responsiveness",
+      "status": "PASSED"
+    },
+    {
+      "test": "Performance",
+      "status": "PASSED",
+      "metrics": {
+        "domContentLoaded": 0,
+        "loadComplete": 0,
+        "domInteractive": 8.799999952316284,
+        "firstPaint": 120
+      }
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "errors": 4,
+    "warnings": 0
+  }
+}

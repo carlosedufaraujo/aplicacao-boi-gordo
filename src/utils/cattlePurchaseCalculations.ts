@@ -203,8 +203,12 @@ export function calculateAggregateMetrics(purchases: CattlePurchaseData[]): Catt
     
     // Quantidades
     const initialQty = toSafeNumber(purchase.initialQuantity || purchase.quantity);
-    const currentQty = toSafeNumber(purchase.currentQuantity || initialQty);
-    
+    // Usar currentQuantity se existir, senão usar initialQuantity menos mortes
+    const deaths = toSafeNumber(purchase.deaths || purchase.mortalityCount, 0);
+    const currentQty = purchase.currentQuantity !== undefined
+      ? toSafeNumber(purchase.currentQuantity)
+      : initialQty - deaths;
+
     totalAnimals += initialQty;
     currentAnimals += currentQty;
     

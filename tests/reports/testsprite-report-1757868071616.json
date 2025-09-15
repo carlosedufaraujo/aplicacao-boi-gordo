@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-09-14T16:41:11.616Z",
+  "url": "http://localhost:5173",
+  "results": [
+    {
+      "test": "Login",
+      "status": "FAILED"
+    },
+    {
+      "test": "Dashboard",
+      "status": "PASSED"
+    },
+    {
+      "test": "Lots List",
+      "status": "ERROR",
+      "error": "SyntaxError: Failed to execute 'querySelector' on 'Document': '[role=\"tab\"]:has-text(\"Tabela\"), button:has-text(\"Tabela\")' is not a valid selector."
+    },
+    {
+      "test": "Financial Center",
+      "status": "PASSED"
+    },
+    {
+      "test": "Responsiveness",
+      "status": "PASSED"
+    },
+    {
+      "test": "Performance",
+      "status": "PASSED",
+      "metrics": {
+        "domContentLoaded": 0.10000002384185791,
+        "loadComplete": 0,
+        "domInteractive": 8,
+        "firstPaint": 72
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 1,
+    "errors": 1,
+    "warnings": 0
+  }
+}

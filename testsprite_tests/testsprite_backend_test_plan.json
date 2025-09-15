@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "test user login functionality",
+    "description": "Verify that the /api/v1/auth/login endpoint successfully authenticates users with valid credentials and returns a JWT token along with user details."
+  },
+  {
+    "id": "TC002",
+    "title": "test partners listing with filters",
+    "description": "Verify that the /api/v1/partners GET endpoint returns a paginated list of partners and correctly filters results based on the type query parameter."
+  },
+  {
+    "id": "TC003",
+    "title": "test create new partner",
+    "description": "Verify that the /api/v1/partners POST endpoint creates a new partner with valid input data and returns the appropriate success response."
+  },
+  {
+    "id": "TC004",
+    "title": "test list cattle purchases",
+    "description": "Verify that the /api/v1/cattle-purchases GET endpoint returns a list of cattle purchase records."
+  },
+  {
+    "id": "TC005",
+    "title": "test register new cattle purchase",
+    "description": "Verify that the /api/v1/cattle-purchases POST endpoint registers a new cattle purchase with valid data including vendorId, payerAccountId, totalAnimals, totalWeight, pricePerKg, and totalAmount."
+  },
+  {
+    "id": "TC006",
+    "title": "test list expenses",
+    "description": "Verify that the /api/v1/expenses GET endpoint returns a list of expenses."
+  },
+  {
+    "id": "TC007",
+    "title": "test register new expense",
+    "description": "Verify that the /api/v1/expenses POST endpoint registers a new expense with valid category, description, totalAmount, and dueDate."
+  },
+  {
+    "id": "TC008",
+    "title": "test list revenues",
+    "description": "Verify that the /api/v1/revenues GET endpoint returns a list of revenues."
+  },
+  {
+    "id": "TC009",
+    "title": "test register new revenue",
+    "description": "Verify that the /api/v1/revenues POST endpoint registers a new revenue record successfully."
+  },
+  {
+    "id": "TC010",
+    "title": "test list pens",
+    "description": "Verify that the /api/v1/pens GET endpoint returns a list of pens with correct details."
+  }
+]

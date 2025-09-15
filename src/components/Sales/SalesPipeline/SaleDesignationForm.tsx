@@ -155,8 +155,6 @@ export const SaleDesignationForm: React.FC<SaleDesignationFormProps> = ({
 
   const handleFormSubmit = (data: any) => {
     // In a real implementation, this would add the selected pens to the sales pipeline
-    console.log('Designating pens for sale:', data);
-    console.log('Selected pens:', selectedPensData);
     
     // Show success notification
     alert(`${selectedPens.length} currais designados para abate com sucesso!`);

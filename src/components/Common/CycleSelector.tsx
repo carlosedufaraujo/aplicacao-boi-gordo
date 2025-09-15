@@ -34,14 +34,11 @@ export const CycleSelector: React.FC<CycleSelectorProps> = ({
 
   // Debug logs
   useEffect(() => {
-    console.log('[CycleSelector] Component mounted with cycles:', cycles);
-    console.log('[CycleSelector] Loading state:', loading);
   }, [cycles, loading]);
 
   useEffect(() => {
     const loadCurrentCycle = async () => {
       const current = await getCurrentCycle();
-      console.log('[CycleSelector] Current cycle loaded:', current);
       if (current) {
         setCurrentCycleId(current.id);
         // Se não há valor selecionado, seleciona o ciclo ativo por padrão
@@ -57,9 +54,6 @@ export const CycleSelector: React.FC<CycleSelectorProps> = ({
   const displayCycles = showAll 
     ? cycles 
     : cycles.filter(c => c.status === 'ACTIVE' || c.status === 'PLANNED');
-  
-  console.log('[CycleSelector] Display cycles:', displayCycles);
-
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVE':

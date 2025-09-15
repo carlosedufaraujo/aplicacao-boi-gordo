@@ -141,13 +141,7 @@ export default function Reports() {
     return { expenses, incomes };
   }, [cashFlows]);
   
-  // Debug logs
-  console.log('📈 Reports - Dados recebidos:', {
-    purchases: purchases?.length || 0,
-    sales: sales?.length || 0,
-    metrics,
-    loading
-  });
+  // Debug removido para limpeza de código
 
   // Função para exportar relatório
   const handleExport = (format: 'json' | 'csv') => {

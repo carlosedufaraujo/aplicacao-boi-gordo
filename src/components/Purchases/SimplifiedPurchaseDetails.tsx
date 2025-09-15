@@ -79,8 +79,6 @@ export function SimplifiedPurchaseDetails({
 
   if (!data) return null;
 
-  
-
   // Calcular métricas usando o estado gmdData atualizado
   const metrics = useMemo(() => {
     const baseMetrics = {

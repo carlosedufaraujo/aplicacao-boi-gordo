@@ -39,7 +39,6 @@ export const SalesKanbanCard: React.FC<SalesKanbanCardProps> = ({ item, stage })
   // Handle viewing details
   const handleViewDetails = () => {
     // In a real implementation, this would open a detailed view
-    console.log('View details for', item.id);
   };
 
   // Determine if this is a pen-based or lot-based card

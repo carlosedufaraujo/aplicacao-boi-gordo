@@ -86,8 +86,6 @@ export function EnhancedPurchaseTable({
         purchase.vendor?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         purchase.location?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      
-      
       return matchesSearch;
     });
   }, [purchases, searchTerm]);
@@ -129,8 +127,6 @@ export function EnhancedPurchaseTable({
       changePage(page);
     }
   };
-
-  
 
   if (loading) {
     return (

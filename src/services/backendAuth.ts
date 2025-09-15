@@ -36,8 +36,6 @@ export class BackendAuthService {
    * Login via Backend API
    */
   async signIn(email: string, password: string): Promise<{ user: User; session: Session }> {
-    console.log('🔐 [BACKEND AUTH] Fazendo login via API Backend...');
-    
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -63,8 +61,6 @@ export class BackendAuthService {
       access_token: data.data.token,
       user: data.data.user
     };
-
-    console.log('✅ [BACKEND AUTH] Login bem-sucedido:', data.data.user.email);
     return { user: data.data.user, session };
   }
 
@@ -72,13 +68,9 @@ export class BackendAuthService {
    * Logout
    */
   async signOut(): Promise<void> {
-    console.log('🔐 [BACKEND AUTH] Fazendo logout...');
-    
     // Limpar localStorage
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
-    
-    console.log('✅ [BACKEND AUTH] Logout realizado');
   }
 
   /**
@@ -130,7 +122,7 @@ export class BackendAuthService {
     return {
       data: {
         subscription: {
-          unsubscribe: () => console.log('🔐 [BACKEND AUTH] Subscription removida')
+          unsubscribe: () => {}
         }
       }
     };

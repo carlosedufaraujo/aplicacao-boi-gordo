@@ -1,0 +1,74 @@
+[
+  {
+    "id": "bovicontrol_frontend_tests",
+    "title": "BoviControl - Testes Frontend Automatizados",
+    "description": "Conjunto completo de testes automatizados para o sistema BoviControl, incluindo login, navegação e funcionalidades principais",
+    "steps": [
+      {
+        "id": "login_test",
+        "name": "Teste de Login",
+        "description": "Verificar processo de autenticação",
+        "action": "navigate",
+        "target": "http://localhost:5173"
+      },
+      {
+        "id": "fill_email",
+        "name": "Preencher Email",
+        "description": "Inserir email de login",
+        "action": "fill",
+        "target": "input[type='email']",
+        "value": "carlosedufaraujo@outlook.com"
+      },
+      {
+        "id": "fill_password",
+        "name": "Preencher Senha",
+        "description": "Inserir senha de login",
+        "action": "fill",
+        "target": "input[type='password']",
+        "value": "368308450Ce*"
+      },
+      {
+        "id": "click_login",
+        "name": "Clicar Login",
+        "description": "Submeter formulário de login",
+        "action": "click",
+        "target": "button[type='submit']"
+      },
+      {
+        "id": "verify_dashboard",
+        "name": "Verificar Dashboard",
+        "description": "Confirmar acesso ao dashboard",
+        "action": "wait",
+        "target": "[data-testid='dashboard'], .dashboard, main"
+      },
+      {
+        "id": "navigate_lots",
+        "name": "Navegar para Lotes",
+        "description": "Acessar página de gestão de lotes",
+        "action": "click",
+        "target": "nav a[href*='lotes'], [href*='lots'], a:contains('Lotes')"
+      },
+      {
+        "id": "verify_lots_page",
+        "name": "Verificar Página de Lotes",
+        "description": "Confirmar carregamento da página de lotes",
+        "action": "wait",
+        "target": "table, [data-testid='lots-table'], .lots-container"
+      },
+      {
+        "id": "navigate_financial",
+        "name": "Navegar para Financeiro",
+        "description": "Acessar centro financeiro",
+        "action": "click",
+        "target": "nav a[href*='financeiro'], [href*='financial'], a:contains('Financeiro')"
+      },
+      {
+        "id": "verify_financial_page",
+        "name": "Verificar Página Financeira",
+        "description": "Confirmar carregamento do centro financeiro",
+        "action": "wait",
+        "target": "[data-testid='financial-dashboard'], .financial-content, .cash-flow"
+      }
+    ]
+  }
+]

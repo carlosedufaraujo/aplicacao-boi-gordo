@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-09-15T00:54:37.770Z",
+  "date": "14/09/2025, 21:54:37",
+  "tables": {
+    "users": 2,
+    "partners": 23,
+    "pens": 44,
+    "payerAccounts": 2,
+    "cattlePurchases": 22,
+    "expenses": 44,
+    "revenues": 0,
+    "saleRecords": 0,
+    "healthInterventions": 0,
+    "cashFlows": 76,
+    "penMovements": 0,
+    "calendarEvents": 62,
+    "costCenters": 0,
+    "categories": 37,
+    "mortalityRecords": 0,
+    "deathRecords": 70,
+    "financialTransactions": 40
+  },
+  "totalRecords": 422
+}

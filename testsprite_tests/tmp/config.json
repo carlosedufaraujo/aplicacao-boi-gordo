@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3001",
+  "backendAuthType": "basic token",
+  "backendUsername": "carlosedufaraujo@outlook.com",
+  "backendPassword": "368308450Ce*",
+  "executionArgs": {
+    "projectName": "BoviControl",
+    "projectPath": "/Users/carloseduardo/App/aplicacao-boi-gordo",
+    "testIds": [],
+    "additionalInstruction": "Execute todos os testes de backend para o sistema BoviControl. O sistema possui todas as melhorias implementadas para compatibilidade com TestSprite, incluindo validação inteligente de CPF/CNPJ, normalização de categorias de despesas, e endpoints de teste dedicados.",
+    "envs": {
+      "API_KEY": "sk-user--qOrsYiHop-KLboNRXaVJZmLPIE2bmJzOGv5ANLbzdM-nTIaU88nHePdFF-vui0oVk4jyX4G19fG1FNmUbS37SYgehu_q3UplmmGl9eBg7fqPqqGfERlTSjw4Hsx0kctBGc"
+    }
+  }
+}

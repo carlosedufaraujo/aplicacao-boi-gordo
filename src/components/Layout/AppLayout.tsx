@@ -111,8 +111,6 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
     };
   }, [open, setOpen, isHovering, autoRetractEnabled]);
 
-
-
   const mainNavItems = [
     {
       title: "Dashboard",
@@ -164,19 +162,9 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
       label: 'Gestão',
       items: [
         {
-          title: "Cadastros",
-          icon: Users,
-          page: "registrations",
-        },
-        {
           title: "Relatórios",
           icon: BarChart3,
           page: "reports",
-        },
-        {
-          title: "Importar Dados",
-          icon: FileUp,
-          page: "data-import",
         },
       ]
     },
@@ -184,24 +172,10 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
       id: 'system',
       label: 'Sistema',
       items: [
-        ...(isAdmin || isMaster
-          ? [
-              {
-                title: "Usuários",
-                icon: Shield,
-                page: "users",
-              },
-            ]
-          : []),
         {
           title: "Configurações",
           icon: Settings,
           page: "settings",
-        },
-        {
-          title: "🧪 Teste API",
-          icon: Settings,
-          page: "api-test",
         },
       ]
     }
@@ -407,8 +381,6 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
     </>
   );
 }
-
-
 
 export function AppLayout({ currentPage, setCurrentPage, children }: AppLayoutProps) {
   return (

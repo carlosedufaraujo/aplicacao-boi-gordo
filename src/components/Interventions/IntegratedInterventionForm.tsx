@@ -46,9 +46,9 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/components/ui/use-toast';
 import { formatCurrency } from '@/lib/utils';
 
+import { toast } from 'sonner';
 interface IntegratedInterventionFormProps {
   isOpen: boolean;
   onClose: () => void;
@@ -66,7 +66,6 @@ export const IntegratedInterventionForm: React.FC<IntegratedInterventionFormProp
   accounts,
   onSubmit
 }) => {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [interventionType, setInterventionType] = useState<'MORTALITY' | 'HEALTH_PROTOCOL'>('MORTALITY');
   const [integrateFinancial, setIntegrateFinancial] = useState(true);
@@ -198,9 +197,7 @@ export const IntegratedInterventionForm: React.FC<IntegratedInterventionFormProp
 
       onClose();
     } catch (error: any) {
-      toast({
-        title: 'Erro ao registrar',
-        description: error.message || 'Erro ao processar intervenção',
+      toast.error(error.message || 'Erro ao processar intervenção', {
         variant: 'destructive'
       });
     } finally {

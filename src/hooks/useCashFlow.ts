@@ -1,16 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useToast } from '@/components/ui/use-toast';
-import cashFlowService, { 
-  CashFlow, 
+import cashFlowService, {
+  CashFlow,
   CashFlowSummary,
   FinancialCategory,
-  FinancialAccount 
+  FinancialAccount
 } from '@/services/api/cashFlow';
-import { categoryService } from '@/services/categoryService';
-import { useNotification } from '@/components/Notifications/NotificationProvider';
+import categoryAPI from '@/services/api/categoryApi';
 import calendarEventService from '@/services/api/calendarEvent';
 import api from '@/lib/api';
 
+import { toast } from 'sonner';
 export const useCashFlow = () => {
   const [cashFlows, setCashFlows] = useState<CashFlow[]>([]);
   const [summary, setSummary] = useState<CashFlowSummary | null>(null);
@@ -18,23 +17,17 @@ export const useCashFlow = () => {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-  const { showNotification } = useNotification();
-
   // Buscar dados do Cash Flow
   const fetchCashFlows = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      console.log('🔄 Buscando dados do Cash Flow...');
       const response = await api.get('/cash-flows');
-      console.log('✅ Dados do Cash Flow carregados:', response.data);
       
       if (Array.isArray(response.data)) {
         setCashFlows(response.data);
       } else {
-        console.warn('Dados não são array:', response.data);
         setCashFlows([]);
       }
     } catch (error: any) {
@@ -49,9 +42,7 @@ export const useCashFlow = () => {
   // Buscar resumo
   const fetchSummary = useCallback(async () => {
     try {
-      console.log('🔄 Buscando resumo do Cash Flow...');
       const response = await api.get('/cash-flows/summary');
-      console.log('✅ Resumo carregado:', response.data);
       setSummary(response.data);
     } catch (error: any) {
       console.error('❌ Erro ao buscar resumo:', error);
@@ -92,10 +83,8 @@ export const useCashFlow = () => {
   // Buscar categorias
   const fetchCategories = useCallback(async () => {
     try {
-      console.log('🔄 Buscando categorias...');
-      // Tenta buscar da API primeiro
-      const response = await api.get('/categories');
-      const formattedCategories = response.data.map((cat: any) => ({
+      const apiCategories = await categoryAPI.getAll();
+      const formattedCategories = apiCategories.map((cat) => ({
         id: cat.id,
         name: cat.name,
         type: cat.type as 'INCOME' | 'EXPENSE',
@@ -103,31 +92,18 @@ export const useCashFlow = () => {
         icon: cat.icon,
         isActive: cat.isActive !== false
       }));
-      console.log('✅ Categorias carregadas da API:', formattedCategories);
       setCategories(formattedCategories);
     } catch (error: any) {
-      console.warn('❌ Erro ao buscar categorias da API, usando cache local:', error);
-      // Fallback para categorias locais
-      const localCategories = categoryService.getAll();
-      const formattedCategories = localCategories.map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        type: cat.type as 'INCOME' | 'EXPENSE',
-        color: cat.color,
-        icon: cat.icon,
-        isActive: true
-      }));
-      console.log('✅ Categorias carregadas do cache:', formattedCategories);
-      setCategories(formattedCategories);
+      console.error('❌ Erro ao buscar categorias:', error);
+      toast.error('Não foi possível carregar as categorias. Tente novamente.');
+      setCategories([]);
     }
-  }, []);
+  }, [toast]);
 
   // Buscar contas
   const fetchAccounts = useCallback(async () => {
     try {
-      console.log('🔄 Buscando contas...');
       const response = await api.get('/payer-accounts');
-      console.log('✅ Contas carregadas:', response.data);
       
       if (response.data.data?.items) {
         const formattedAccounts = response.data.data.items.map((acc: any) => ({
@@ -149,22 +125,14 @@ export const useCashFlow = () => {
   // Criar movimentação
   const createCashFlow = useCallback(async (data: any) => {
     try {
-      console.log('🔄 Criando movimentação:', data);
       const response = await api.post('/cash-flows', data);
-      console.log('✅ Movimentação criada:', response.data);
       
       await fetchCashFlows();
-      
-      toast({
-        title: 'Movimentação criada',
-        description: 'A movimentação foi salva com sucesso.',
-        duration: 3000,
-      });
 
-      showNotification({
+      toast({
         title: data.type === 'INCOME' ? '💵 Nova Receita' : '💸 Nova Despesa',
-        message: `${data.description} - Valor: R$ ${data.amount.toFixed(2)} - Vencimento: ${data.dueDate ? new Date(data.dueDate).toLocaleDateString('pt-BR') : 'Hoje'}`,
-        type: 'success'
+        description: `${data.description} - R$ ${data.amount.toFixed(2)}`,
+        duration: 3000,
       });
 
       // Criar evento no calendário se tiver data de vencimento
@@ -179,115 +147,81 @@ export const useCashFlow = () => {
             relatedEntityType: 'CashFlow'
           });
         } catch (calendarError) {
-          console.warn('Erro ao criar evento no calendário:', calendarError);
         }
       }
 
       return response.data;
     } catch (error: any) {
       console.error('❌ Erro ao criar movimentação:', error);
-      toast({
-        title: 'Erro ao criar',
-        description: error.message || 'Não foi possível criar a movimentação',
+      toast.error(error.message || 'Não foi possível criar a movimentação', {
         variant: 'destructive',
         duration: 5000,
       });
       throw error;
     }
-  }, [fetchCashFlows, toast, showNotification]);
+  }, [fetchCashFlows, toast]);
 
   // Atualizar movimentação
   const updateCashFlow = useCallback(async (id: string, data: any) => {
     try {
-      console.log('🔄 Atualizando movimentação:', id, data);
       const response = await api.put(`/cash-flows/${id}`, data);
-      console.log('✅ Movimentação atualizada:', response.data);
       
       await fetchCashFlows();
-      
-      toast({
-        title: 'Movimentação atualizada',
-        description: 'A movimentação foi atualizada com sucesso.',
-        duration: 3000,
-      });
 
-      showNotification({
+      toast({
         title: '✏️ Movimentação Atualizada',
-        message: `${data.type === 'INCOME' ? 'Receita' : 'Despesa'}: ${data.description} - Valor: R$ ${data.amount.toFixed(2)}`,
-        type: 'info'
+        description: `${data.description} - R$ ${data.amount.toFixed(2)}`,
+        duration: 3000,
       });
 
       return response.data;
     } catch (error: any) {
       console.error('❌ Erro ao atualizar movimentação:', error);
-      toast({
-        title: 'Erro ao atualizar',
-        description: error.message || 'Não foi possível atualizar a movimentação',
+      toast.error(error.message || 'Não foi possível atualizar a movimentação', {
         variant: 'destructive',
         duration: 5000,
       });
-      
-      showNotification({
-        title: '❌ Erro ao Atualizar',
-        message: 'Não foi possível atualizar a movimentação. Tente novamente.',
-        type: 'error'
-      });
+
+      toast.error('Não foi possível atualizar a movimentação. Tente novamente.');
       
       throw error;
     }
-  }, [fetchCashFlows, toast, showNotification]);
+  }, [fetchCashFlows, toast]);
 
   // Deletar movimentação
   const deleteCashFlow = useCallback(async (id: string) => {
     try {
-      console.log('🔄 Deletando movimentação:', id);
       
       // Buscar dados da movimentação antes de deletar para a notificação
       const cashFlow = cashFlows.find(cf => cf.id === id);
       
       await api.delete(`/cash-flows/${id}`);
-      console.log('✅ Movimentação deletada');
       
       await fetchCashFlows();
-      
-      toast({
-        title: 'Movimentação excluída',
-        description: 'A movimentação foi excluída com sucesso.',
-        duration: 3000,
-      });
 
-      showNotification({
+      toast({
         title: '🗑️ Movimentação Excluída',
-        message: cashFlow ? 
-          `${cashFlow.type === 'INCOME' ? 'Receita' : 'Despesa'}: ${cashFlow.description} - Valor: R$ ${cashFlow.amount.toFixed(2)}` :
-          'Movimentação excluída com sucesso',
-        type: 'warning'
+        description: cashFlow ? `${cashFlow.description}` : 'Movimentação excluída com sucesso',
+        duration: 3000,
       });
 
       return true;
     } catch (error: any) {
       console.error('❌ Erro ao deletar movimentação:', error);
-      toast({
-        title: 'Erro ao excluir',
-        description: error.message || 'Não foi possível excluir a movimentação',
+      toast.error(error.message || 'Não foi possível excluir a movimentação', {
         variant: 'destructive',
         duration: 5000,
       });
-      
-      showNotification({
-        title: '❌ Erro ao Excluir',
-        message: 'Não foi possível excluir a movimentação. Tente novamente.',
-        type: 'error'
-      });
+
+      toast.error('Não foi possível excluir a movimentação. Tente novamente.');
       
       throw error;
     }
-  }, [fetchCashFlows, toast, showNotification, cashFlows]);
+  }, [fetchCashFlows, toast, cashFlows]);
 
   // Atualizar status
   const updateStatus = useCallback(async (id: string, status: string, paymentDate?: string) => {
     try {
-      console.log('🔄 Atualizando status:', id, status);
       
       // Buscar dados da movimentação para a notificação
       const cashFlow = cashFlows.find(cf => cf.id === id);
@@ -296,7 +230,6 @@ export const useCashFlow = () => {
         status,
         paymentDate
       });
-      console.log('✅ Status atualizado:', response.data);
       
       await fetchCashFlows();
       
@@ -308,60 +241,47 @@ export const useCashFlow = () => {
 
       // Notificação personalizada baseada no status
       let notificationTitle = '';
-      let notificationType: 'success' | 'info' | 'warning' | 'error' = 'info';
-      
+
       switch(status) {
         case 'PAID':
           notificationTitle = '💰 Despesa Paga';
-          notificationType = 'success';
           break;
         case 'RECEIVED':
           notificationTitle = '💵 Receita Recebida';
-          notificationType = 'success';
           break;
         case 'PENDING':
           notificationTitle = '⏳ Status Pendente';
-          notificationType = 'warning';
           break;
         case 'CANCELLED':
           notificationTitle = '❌ Movimentação Cancelada';
-          notificationType = 'warning';
           break;
         default:
           notificationTitle = '📝 Status Atualizado';
       }
-      
-      showNotification({
+
+      toast({
         title: notificationTitle,
-        message: cashFlow ? 
+        description: cashFlow ?
           `${cashFlow.description} - Valor: R$ ${cashFlow.amount.toFixed(2)}` :
-          'Status da movimentação atualizado',
-        type: notificationType
+          'Status da movimentação atualizado'
       });
 
       return response.data;
     } catch (error: any) {
       console.error('❌ Erro ao atualizar status:', error);
-      toast({
-        title: 'Erro ao atualizar status',
-        description: error.message || 'Não foi possível atualizar o status',
+      toast.error(error.message || 'Não foi possível atualizar o status', {
         variant: 'destructive',
         duration: 5000,
       });
-      
-      showNotification({
-        title: '❌ Erro ao Atualizar Status',
-        message: 'Não foi possível atualizar o status. Tente novamente.',
-        type: 'error'
-      });
+
+      toast.error('Não foi possível atualizar o status. Tente novamente.');
       
       throw error;
     }
-  }, [fetchCashFlows, toast, showNotification, cashFlows]);
+  }, [fetchCashFlows, toast, cashFlows]);
 
   // Carregamento inicial
   useEffect(() => {
-    console.log('🚀 Inicializando useCashFlow...');
     fetchCashFlows();
     fetchCategories();
     fetchAccounts();

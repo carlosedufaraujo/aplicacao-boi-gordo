@@ -52,9 +52,7 @@ export const SimpleIntegratedAnalysis: React.FC = () => {
         const year = now.getFullYear();
         const month = now.getMonth() + 1;
         await loadAnalysisByPeriod(year, month).catch(() => null);
-        console.log('[SimpleIntegratedAnalysis] Dados do período atual carregados (se disponível)');
       } catch (error) {
-        console.log('[SimpleIntegratedAnalysis] Dados do período atual não disponíveis');
       }
     };
     
@@ -95,33 +93,13 @@ export const SimpleIntegratedAnalysis: React.FC = () => {
     // Fee de Crédito - Despesas Financeiras
     const totalFeeCredito = 466012.18; // R$ 466.012,18
     setFeeCredito(totalFeeCredito);
-    
-    console.log('💀 [SimpleIntegratedAnalysis] VALORES MANUAIS DEFINIDOS:');
-    console.log('- Mortalidade histórica:', historicalMortality);
-    console.log('- Mortalidade formatada: R$', historicalMortality.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-    console.log('- Retirada Particular (2x95k + 1x180k):', totalRetiradaParticular);
-    console.log('- Retirada Particular formatada: R$', totalRetiradaParticular.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-    console.log('- Ajustes Mercado Futuro:', totalAjustesMercadoFuturo);
-    console.log('- Ajustes Mercado Futuro formatado: R$', totalAjustesMercadoFuturo.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-    console.log('- Frete de Gado (Pagamento a Terceiros):', totalFreteGado);
-    console.log('- Frete de Gado formatado: R$', totalFreteGado.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-    console.log('- Empréstimos Risco Sacado:', totalEmprestimosTerceiros);
-    console.log('- Empréstimos Risco Sacado formatado: R$', totalEmprestimosTerceiros.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-    console.log('- Pagamento Sicoob:', totalPagamentoSicoob);
-    console.log('- Pagamento Sicoob formatado: R$', totalPagamentoSicoob.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-    console.log('- Pagamento de Juros:', totalPagamentoJuros);
-    console.log('- Pagamento de Juros formatado: R$', totalPagamentoJuros.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
-    console.log('- Fee de Crédito:', totalFeeCredito);
-    console.log('- Fee de Crédito formatado: R$', totalFeeCredito.toLocaleString('pt-BR', { minimumFractionDigits: 2 }));
+
+    // Debug removido para limpeza de código
   }, []); // Sem dependências para definir apenas uma vez
 
   const processFinancialData = () => {
     try {
-      console.log('[SimpleIntegratedAnalysis] Processando dados:', { 
-        cashFlowsCount: cashFlows?.length,
-        categoriesCount: categories?.length,
-        operationalLosses 
-      });
+      // Debug removido para limpeza de código
       
       // Separar receitas e despesas (excluindo mortalidade para evitar duplicação)
       const expenses = cashFlows.filter(cf => {
@@ -160,44 +138,19 @@ export const SimpleIntegratedAnalysis: React.FC = () => {
                            cf.amount === operationalLosses ||
                            cf.amount === 480000;
                            
-        // Log para debug - mostrar todas as despesas para debug
-        console.log('🔍 [ANALISANDO DESPESA]:', {
-          description: cf.description,
-          categoryId: cf.categoryId,
-          categoryName: categoryObj?.name,
-          amount: cf.amount,
-          isMortality: isMortality ? '❌ EXCLUÍDA' : '✅ INCLUÍDA'
-        });
+        // Debug removido para limpeza de código
                            
         return !isMortality;
       });
       const revenues = cashFlows.filter(cf => cf.type === 'INCOME');
-      
-      console.log('🔍 [SimpleIntegratedAnalysis] FILTROS APLICADOS:');
-      console.log('- Total de cash flows:', cashFlows.length);
-      console.log('- Despesas após filtro (sem mortalidade):', expenses.length);
-      console.log('- Receitas:', revenues.length);
-      
-      console.log('[SimpleIntegratedAnalysis] Dados filtrados:', {
-        expensesCount: expenses.length,
-        revenuesCount: revenues.length,
-        operationalLosses,
-        expenses: expenses.slice(0, 3), // Mostrar primeiras 3 para debug
-        revenues: revenues.slice(0, 3)
-      });
+
+      // Debug removido para limpeza de código
 
       // Calcular totais (perdas operacionais serão adicionadas separadamente no DRE)
       const totalCashExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
       const totalExpenses = totalCashExpenses; // Não incluir perdas aqui pois serão adicionadas ao DRE
       const totalRevenues = revenues.reduce((sum, rev) => sum + rev.amount, 0);
       const balance = totalRevenues - totalExpenses - operationalLosses; // Subtrair perdas do balanço final
-      
-      console.log('💰 [SimpleIntegratedAnalysis] CÁLCULOS FINANCEIROS:');
-      console.log('- Despesas do cash flow:', totalCashExpenses);
-      console.log('- Perdas operacionais históricas:', operationalLosses);
-      console.log('- Total de despesas:', totalExpenses);
-      console.log('- Total de receitas:', totalRevenues);
-
       // Mapear categoryId para nome da categoria
       const getCategoryName = (categoryId: string) => {
         const category = categories.find(cat => cat.id === categoryId);
@@ -209,74 +162,51 @@ export const SimpleIntegratedAnalysis: React.FC = () => {
       expenses.forEach((exp) => {
         const categoryName = getCategoryName(exp.categoryId);
         expensesByCategory[categoryName] = (expensesByCategory[categoryName] || 0) + exp.amount;
-        console.log('💼 [CATEGORIZANDO DESPESA]:', {
-          categoryId: exp.categoryId,
-          categoryName,
-          description: exp.description,
-          amount: exp.amount
-        });
+
+        // Debug removido para limpeza de código
       });
-      
-      console.log('📊 [SimpleIntegratedAnalysis] CATEGORIAS DE DESPESAS PROCESSADAS (ANTES DA MORTALIDADE):');
-      Object.entries(expensesByCategory).forEach(([category, amount]) => {
-        console.log(`- ${category}: R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
-      });
-      
+
       // Adicionar perdas operacionais como categoria separada se houver (somente se ainda não existir)
       if (operationalLosses > 0 && !expensesByCategory['Perdas Operacionais (Mortalidade)']) {
         expensesByCategory['Perdas Operacionais (Mortalidade)'] = operationalLosses;
-        console.log('💀 [ADICIONANDO MORTALIDADE MANUAL] Perdas Operacionais (Mortalidade):', operationalLosses);
+        // Debug removido para limpeza de código
       } else if (expensesByCategory['Perdas Operacionais (Mortalidade)']) {
-        console.log('⚠️ [CATEGORIA JÁ EXISTE] Perdas Operacionais (Mortalidade) já existe com valor:', expensesByCategory['Perdas Operacionais (Mortalidade)']);
+        // Debug removido para limpeza de código
       }
       
       // Adicionar Retirada Particular como despesa operacional
       if (retiradaParticular > 0 && !expensesByCategory['Retirada Particular']) {
         expensesByCategory['Retirada Particular'] = retiradaParticular;
-        console.log('💵 [ADICIONANDO RETIRADA PARTICULAR] Retirada Particular - Pagamentos a terceiros:', retiradaParticular);
-        console.log('   Detalhamento: 2 pagamentos de R$ 95.000,00 + 1 pagamento de R$ 180.000,00');
       }
       
       // Adicionar Ajustes Mercado Futuro como despesa administrativa (retiradas operacionais)
       if (ajustesMercadoFuturo > 0 && !expensesByCategory['Ajustes Mercado Futuro']) {
         expensesByCategory['Ajustes Mercado Futuro'] = ajustesMercadoFuturo;
-        console.log('📉 [ADICIONANDO AJUSTES MERCADO FUTURO] Ajustes Mercado Futuro:', ajustesMercadoFuturo);
-        console.log('   Operações de hedge no mercado futuro de commodities - Retiradas Operacionais/Administrativas');
       }
       
       // Adicionar Frete de Gado como custo logístico
       if (freteGado > 0 && !expensesByCategory['Frete de Gado']) {
         expensesByCategory['Frete de Gado'] = freteGado;
-        console.log('🚚 [ADICIONANDO FRETE DE GADO] Frete de Gado - Pagamento a Terceiros:', freteGado);
-        console.log('   Pagamento de frete para transporte de gado');
       }
       
       // Adicionar Empréstimos Risco Sacado como despesa financeira
       if (emprestimosTerceiros > 0 && !expensesByCategory['Empréstimos Risco Sacado']) {
         expensesByCategory['Empréstimos Risco Sacado'] = emprestimosTerceiros;
-        console.log('💰 [ADICIONANDO EMPRÉSTIMOS RISCO SACADO] Empréstimos Risco Sacado:', emprestimosTerceiros);
-        console.log('   Empréstimos Risco Sacado - Despesas Financeiras');
       }
       
       // Adicionar Pagamento Sicoob como despesa administrativa
       if (pagamentoSicoob > 0 && !expensesByCategory['Pagamento Sicoob']) {
         expensesByCategory['Pagamento Sicoob'] = pagamentoSicoob;
-        console.log('🏦 [ADICIONANDO PAGAMENTO SICOOB] Pagamento Sicoob:', pagamentoSicoob);
-        console.log('   Pagamento Sicoob - Despesas Administrativas');
       }
       
       // Adicionar Pagamento de Juros como despesa financeira
       if (pagamentoJuros > 0 && !expensesByCategory['Juros e Multas']) {
         expensesByCategory['Juros e Multas'] = pagamentoJuros;
-        console.log('💸 [ADICIONANDO PAGAMENTO DE JUROS] Juros e Multas:', pagamentoJuros);
-        console.log('   Pagamento de Juros - Despesas Financeiras');
       }
       
       // Adicionar Fee de Crédito como despesa financeira
       if (feeCredito > 0 && !expensesByCategory['Fee de Crédito']) {
         expensesByCategory['Fee de Crédito'] = feeCredito;
-        console.log('💳 [ADICIONANDO FEE DE CRÉDITO] Fee de Crédito:', feeCredito);
-        console.log('   Fee de Crédito - Despesas Financeiras');
       }
 
       // Agrupar receitas por categoria
@@ -292,20 +222,12 @@ export const SimpleIntegratedAnalysis: React.FC = () => {
         category,
         totalAmount: -Math.abs(totalAmount as number)
       }));
-      
-      console.log('📋 [DRE FINAL] Despesas para DRE:', expensesForDRE);
-      
       const revenuesForDRE = Object.entries(revenuesByCategory).map(([category, totalAmount]) => ({
         category,
         totalAmount: Math.abs(totalAmount as number)
       }));
       
-      console.log('[SimpleIntegratedAnalysis] Dados para DRE:', {
-        expensesForDRE,
-        revenuesForDRE,
-        totalExpenses,
-        totalRevenues
-      });
+        // Debug removido para limpeza de código
 
       setData({
         totalExpenses,

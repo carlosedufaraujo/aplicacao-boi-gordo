@@ -32,8 +32,8 @@ export const TableWithPagination: React.FC<TableWithPaginationProps> = ({
     if (!sortField) return data;
 
     return [...data].sort((a, b) => {
-      let valueA = a[sortField];
-      let valueB = b[sortField];
+      const valueA = a[sortField];
+      const valueB = b[sortField];
 
       // Tratamento para datas
       if (valueA instanceof Date && valueB instanceof Date) {

@@ -96,7 +96,6 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
       await loadAnalysisByPeriod(selectedYear, month);
     } catch (error) {
       // Análise não existe ainda para este período
-      console.log(`Análise não existe para ${month}/${selectedYear}`);
     }
   };
 
@@ -425,14 +424,7 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
                   { category: 'mortality', totalAmount: totalHistoricalMortality }
                 ];
                 
-                // Debug: vamos imprimir os dados no console
-                console.log('🔍 DEBUG DRE - Dados sendo passados:', {
-                  totalHistoricalMortality,
-                  otherHistoricalExpenses,
-                  mortalityFromPeriod: currentAnalysis.nonCashBreakdown?.mortality || 0,
-                  expensesWithMortality,
-                  revenues
-                });
+                // Debug removido para limpeza de código
 
                 return (
                   <>

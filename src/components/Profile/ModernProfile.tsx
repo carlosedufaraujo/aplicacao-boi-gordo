@@ -164,22 +164,18 @@ export const ModernProfile: React.FC = () => {
 
   const handleSaveProfile = () => {
     // Implementar salvamento do perfil
-    console.log('Salvando perfil:', profile);
   };
 
   const handleChangePassword = () => {
     // Implementar mudança de senha
-    console.log('Alterando senha');
   };
 
   const handleExportData = () => {
     // Implementar exportação de dados
-    console.log('Exportando dados');
   };
 
   const handleDeleteAccount = () => {
     // Implementar exclusão de conta
-    console.log('Excluindo conta');
   };
 
   return (

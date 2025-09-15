@@ -59,7 +59,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
         await tx.revenue.create({
           data: {
             category: 'cattle_sales',
-            description: `Venda de gado - Lote ${sale.purchaseId}`,
+            description: `Venda de gado - ${sale.purchaseId}`,
             totalAmount: sale.totalValue || 0,
             dueDate: sale.paymentDate || sale.createdAt,
             saleRecordId: sale.id,
@@ -115,7 +115,7 @@ export class SaleRepository extends BaseRepository<SaleRecord> {
           await tx.revenue.create({
             data: {
               category: 'cattle_sales',
-              description: `Venda de gado - Lote ${sale.purchaseId}`,
+              description: `Venda de gado - ${sale.purchaseId}`,
               totalAmount: sale.totalValue || 0,
               dueDate: sale.paymentDate || sale.createdAt,
               saleRecordId: sale.id,

@@ -7,34 +7,69 @@ const prisma = new PrismaClient();
 
 async function createTestUser() {
   try {
-    console.log('🔧 Criando usuário de teste...');
-    
-    const email = 'teste@boigordo.com';
-    const password = '123456';
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    // Deletar usuário existente se houver
-    await prisma.user.deleteMany({
-      where: { email }
+    console.log('🔧 Criando usuário de teste para testes automatizados...\n');
+
+    // Credenciais para o usuário admin de teste
+    const adminEmail = 'admin@boigordo.com';
+    const adminPassword = 'Admin123@';
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+    // Verificar se já existe
+    const existingAdmin = await prisma.user.findUnique({
+      where: { email: adminEmail }
     });
-    
-    // Criar novo usuário
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name: 'Usuário Teste',
-        role: 'ADMIN',
-        isMaster: false,
-        isActive: true
-      }
+
+    if (existingAdmin) {
+      console.log('✅ Usuário admin já existe, atualizando senha...');
+      await prisma.user.update({
+        where: { email: adminEmail },
+        data: {
+          password: hashedPassword,
+          isActive: true,
+          role: 'ADMIN'
+        }
+      });
+    } else {
+      // Criar novo usuário admin
+      await prisma.user.create({
+        data: {
+          email: adminEmail,
+          password: hashedPassword,
+          name: 'Admin Teste',
+          role: 'ADMIN',
+          isMaster: true,
+          isActive: true
+        }
+      });
+    }
+
+    console.log('✅ Usuário admin criado/atualizado com sucesso!');
+    console.log('📧 Email:', adminEmail);
+    console.log('🔑 Senha:', adminPassword);
+    console.log('🎭 Role: ADMIN');
+
+    // Criar também usuário normal
+    const userEmail = 'user@boigordo.com';
+    const existingUser = await prisma.user.findUnique({
+      where: { email: userEmail }
     });
-    
-    console.log('✅ Usuário criado com sucesso!');
-    console.log('📧 Email:', email);
-    console.log('🔑 Senha:', password);
-    console.log('👤 ID:', user.id);
-    console.log('🎭 Role:', user.role);
+
+    if (!existingUser) {
+      await prisma.user.create({
+        data: {
+          email: userEmail,
+          password: hashedPassword,
+          name: 'Usuário Normal',
+          role: 'USER',
+          isMaster: false,
+          isActive: true
+        }
+      });
+      console.log('\n✅ Usuário normal criado!');
+      console.log('📧 Email:', userEmail);
+      console.log('🔑 Senha:', adminPassword);
+      console.log('🎭 Role: USER');
+    }
     
   } catch (error) {
     console.error('❌ Erro ao criar usuário:', error);

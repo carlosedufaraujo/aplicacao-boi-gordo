@@ -29,10 +29,10 @@ async function import26Pens() {
       { penNumber: '15', name: 'Curral 15 - Engorda F1', capacity: 150, type: 'FATTENING', location: 'Setor C - Engorda Fase 1', area: 1100, troughCount: 8 },
       
       // Setor D - Engorda Fase 2 (8 currais)
-      { penNumber: '16', name: 'Curral 16 - Engorda F2', capacity: 140, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1050, troughCount: 7 },
-      { penNumber: '17', name: 'Curral 17 - Engorda F2', capacity: 140, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1050, troughCount: 7 },
-      { penNumber: '18', name: 'Curral 18 - Engorda F2', capacity: 140, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1050, troughCount: 7 },
-      { penNumber: '19', name: 'Curral 19 - Engorda F2', capacity: 140, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1050, troughCount: 7 },
+      { penNumber: '16', name: 'Curral 16 - Engorda F2', capacity: 150, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1050, troughCount: 7 },
+      { penNumber: '17', name: 'Curral 17 - Engorda F2', capacity: 150, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1050, troughCount: 7 },
+      { penNumber: '18', name: 'Curral 18 - Engorda F2', capacity: 150, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1050, troughCount: 7 },
+      { penNumber: '19', name: 'Curral 19 - Engorda F2', capacity: 150, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1050, troughCount: 7 },
       { penNumber: '20', name: 'Curral 20 - Engorda F2', capacity: 160, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1200, troughCount: 8 },
       { penNumber: '21', name: 'Curral 21 - Engorda F2', capacity: 160, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1200, troughCount: 8 },
       { penNumber: '22', name: 'Curral 22 - Engorda F2', capacity: 160, type: 'FATTENING', location: 'Setor D - Engorda Fase 2', area: 1200, troughCount: 8 },

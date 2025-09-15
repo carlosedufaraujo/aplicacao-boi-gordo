@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { PartnerController } from '@/controllers/partner.controller';
 import { validate } from '@/middlewares/validation';
 import { authenticate, authorize } from '@/middlewares/auth';
+import { partnerTypeMapperMiddleware } from '@/middlewares/partnerTypeMapper';
 import { partnerValidation } from '@/validations/partner.validation';
 
 const router = Router();
@@ -102,6 +103,7 @@ router.get(
 router.post(
   '/',
   authorize('ADMIN', 'MANAGER'),
+  partnerTypeMapperMiddleware,
   validate(partnerValidation.create),
   partnerController.create
 );
@@ -109,6 +111,7 @@ router.post(
 router.put(
   '/:id',
   authorize('ADMIN', 'MANAGER'),
+  partnerTypeMapperMiddleware,
   validate(partnerValidation.update),
   partnerController.update
 );

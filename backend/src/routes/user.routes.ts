@@ -20,6 +20,7 @@ router.get('/', checkAdminPermission, userController.getAllUsers.bind(userContro
 router.post('/', checkAdminPermission, validate(userValidation.createUser), userController.createUser.bind(userController));
 router.get('/:id', checkAdminPermission, userController.getUserById.bind(userController));
 router.patch('/:id', checkAdminPermission, validate(userValidation.updateUser), userController.updateUser.bind(userController));
+router.put('/:id', checkAdminPermission, validate(userValidation.updateUser), userController.updateUser.bind(userController));
 router.patch('/:id/activate', checkAdminPermission, userController.activateUser.bind(userController));
 router.patch('/:id/deactivate', checkAdminPermission, userController.deactivateUser.bind(userController));
 

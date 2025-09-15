@@ -33,7 +33,7 @@ async function fixLot2509001() {
     const expense = await prisma.expense.create({
       data: {
         category: 'animal_purchase',
-        description: `Compra de gado - Lote ${purchase.lotCode}`,
+        description: `Compra de gado - ${purchase.lotCode}`,
         totalAmount: purchase.purchaseValue,
         dueDate: purchase.purchaseDate,
         impactsCashFlow: true,

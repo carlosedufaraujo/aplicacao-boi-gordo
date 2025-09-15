@@ -1,5 +1,6 @@
 // Serviço de autenticação
 import { apiRequest } from './index';
+import { setAuthToken, setUser, clearAuth } from '@/lib/auth-helper';
 
 interface LoginData {
   email: string;
@@ -31,10 +32,10 @@ export const authService = {
       body: JSON.stringify(data),
     });
     
-    // Salvar token no localStorage
+    // Salvar token em cookies e localStorage
     if (response.token) {
-      localStorage.setItem('authToken', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      setAuthToken(response.token);
+      setUser(response.user);
     }
     
     return response;
@@ -46,10 +47,10 @@ export const authService = {
       body: JSON.stringify(data),
     });
     
-    // Salvar token no localStorage
+    // Salvar token em cookies e localStorage
     if (response.token) {
-      localStorage.setItem('authToken', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      setAuthToken(response.token);
+      setUser(response.user);
     }
     
     return response;

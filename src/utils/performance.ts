@@ -171,7 +171,7 @@ export const measurePerformance = (name: string) => {
   return {
     end: () => {
       const duration = performance.now() - start;
-      console.log(`⏱️ ${name}: ${duration.toFixed(2)}ms`);
+      // Debug removido para limpeza de código
       
       // Enviar para analytics se configurado
       if (window.gtag) {

@@ -1,0 +1,25 @@
+{
+  "projectName": "Aplicação Boi Gordo",
+  "baseUrl": "http://localhost:5173",
+  "apiUrl": "http://localhost:3001",
+  "viewport": {
+    "width": 1280,
+    "height": 720
+  },
+  "timeout": 30000,
+  "retries": 2,
+  "screenshots": {
+    "onFailure": true,
+    "onSuccess": false,
+    "path": "./tests/screenshots"
+  },
+  "reports": {
+    "path": "./tests/reports",
+    "format": ["html", "json"]
+  },
+  "testUser": {
+    "email": "teste@boigordo.com",
+    "password": "Teste123@",
+    "name": "Usuário Teste"
+  }
+}

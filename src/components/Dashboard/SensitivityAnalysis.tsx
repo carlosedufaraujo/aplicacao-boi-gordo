@@ -185,107 +185,133 @@ export const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
     <Card className="w-full">
       <CardHeader className="space-y-4">
         <div>
-          <CardTitle className="text-2xl font-bold">
+          <CardTitle className="card-title">
             Análise de Sensibilidade - Matriz de Lucratividade
           </CardTitle>
-          <CardDescription className="text-base mt-2">
+          <CardDescription className="card-subtitle">
             Avalie o impacto de diferentes combinações de custos na lucratividade da operação
           </CardDescription>
         </div>
 
-        {/* Parâmetros Configuráveis */}
-        <div className="bg-muted/50 p-4 rounded-lg space-y-3">
-          <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-            <Info className="h-4 w-4" />
-            PARÂMETROS DA ANÁLISE
-          </h3>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="market-price-sens" className="text-xs font-medium">
-                Preço Venda (R$/@)
-              </Label>
-              <Input
-                id="market-price-sens"
-                type="number"
-                value={marketPrice}
-                onChange={(e) => setMarketPrice(Number(e.target.value))}
-                className="w-full"
-                step="10"
-              />
+        {/* Parâmetros Configuráveis - Card Compacto */}
+        <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex items-center justify-between">
+              <Info className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                PARAMS
+              </Badge>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="entry-weight" className="text-xs font-medium">
-                Peso Entrada (kg)
-              </Label>
-              <Input
-                id="entry-weight"
-                type="number"
-                value={entryWeight}
-                onChange={(e) => setEntryWeight(Number(e.target.value))}
-                className="w-full"
-                step="10"
-              />
+          </CardHeader>
+          <CardContent className="p-3 pt-1">
+            <div className="kpi-value mb-1">Parâmetros</div>
+            <p className="kpi-label mb-3">Configure valores da análise</p>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="market-price-sens" className="form-label">
+                  Preço Venda
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    id="market-price-sens"
+                    type="number"
+                    value={marketPrice}
+                    onChange={(e) => setMarketPrice(Number(e.target.value))}
+                    className="h-8 text-xs"
+                    step="10"
+                  />
+                  <span className="text-body-sm">R$/@</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="entry-weight" className="form-label">
+                  Peso Entrada
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    id="entry-weight"
+                    type="number"
+                    value={entryWeight}
+                    onChange={(e) => setEntryWeight(Number(e.target.value))}
+                    className="h-8 text-xs"
+                    step="10"
+                  />
+                  <span className="text-body-sm">kg</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="exit-weight" className="form-label">
+                  Peso Saída
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    id="exit-weight"
+                    type="number"
+                    value={exitWeight}
+                    onChange={(e) => setExitWeight(Number(e.target.value))}
+                    className="h-8 text-xs"
+                    step="10"
+                  />
+                  <span className="text-body-sm">kg</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="fattening-days" className="form-label">
+                  Dias Engorda
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    id="fattening-days"
+                    type="number"
+                    value={fatteningDays}
+                    onChange={(e) => setFatteningDays(Number(e.target.value))}
+                    className="h-8 text-xs"
+                    step="10"
+                  />
+                  <span className="text-body-sm">dias</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="yield-entry" className="form-label">
+                  RC Entrada
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    id="yield-entry"
+                    type="number"
+                    value={carcassYieldEntry}
+                    onChange={(e) => setCarcassYieldEntry(Number(e.target.value))}
+                    className="h-8 text-xs"
+                    step="1"
+                  />
+                  <span className="text-body-sm">%</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="yield-exit" className="form-label">
+                  RC Saída
+                </Label>
+                <div className="flex items-center gap-1">
+                  <Input
+                    id="yield-exit"
+                    type="number"
+                    value={carcassYieldExit}
+                    onChange={(e) => setCarcassYieldExit(Number(e.target.value))}
+                    className="h-8 text-xs"
+                    step="1"
+                  />
+                  <span className="text-body-sm">%</span>
+                </div>
+              </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="exit-weight" className="text-xs font-medium">
-                Peso Saída (kg)
-              </Label>
-              <Input
-                id="exit-weight"
-                type="number"
-                value={exitWeight}
-                onChange={(e) => setExitWeight(Number(e.target.value))}
-                className="w-full"
-                step="10"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="fattening-days" className="text-xs font-medium">
-                Dias Engorda
-              </Label>
-              <Input
-                id="fattening-days"
-                type="number"
-                value={fatteningDays}
-                onChange={(e) => setFatteningDays(Number(e.target.value))}
-                className="w-full"
-                step="10"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="yield-entry" className="text-xs font-medium">
-                RC Entrada (%)
-              </Label>
-              <Input
-                id="yield-entry"
-                type="number"
-                value={carcassYieldEntry}
-                onChange={(e) => setCarcassYieldEntry(Number(e.target.value))}
-                className="w-full"
-                step="1"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="yield-exit" className="text-xs font-medium">
-                RC Saída (%)
-              </Label>
-              <Input
-                id="yield-exit"
-                type="number"
-                value={carcassYieldExit}
-                onChange={(e) => setCarcassYieldExit(Number(e.target.value))}
-                className="w-full"
-                step="1"
-              />
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </CardHeader>
 
       <CardContent className="space-y-6">
@@ -395,72 +421,92 @@ export const SensitivityAnalysis: React.FC<SensitivityAnalysisProps> = ({
           </div>
         </div>
 
-        {/* Resumo da Análise */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Resumo da Análise - Cards KPI */}
+        <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
           {/* Cenário Atual */}
-          <div className={`p-4 rounded-lg border-2 ${
-            currentScenario.profitPerAnimal >= 0 
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
-              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-          }`}>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground">CENÁRIO ATUAL</span>
-              {currentScenario.profitPerAnimal >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-600" />
-              )}
-            </div>
-            <div className="space-y-1">
-              <div className="text-lg font-bold">
+          <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                {currentScenario.profitPerAnimal >= 0 ? (
+                  <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+                ) : (
+                  <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+                )}
+                <Badge
+                  variant={currentScenario.profitPerAnimal >= 0 ? "default" : "destructive"}
+                  className="text-[10px] px-1.5 py-0.5"
+                >
+                  ATUAL
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 pt-1">
+              <div className={`kpi-value ${currentScenario.profitPerAnimal >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {formatSafeCurrency(currentScenario.profitPerAnimal)}/cab
               </div>
-              <div className="text-xs text-muted-foreground">
-                Total Lote: {formatSafeCurrency(currentScenario.totalProfit)}
+              <p className="kpi-label">Cenário Atual</p>
+              <p className="text-body-sm mt-1">
+                Total: {formatSafeCurrency(currentScenario.totalProfit)}
+              </p>
+              <div className="flex items-center gap-1 text-body-sm mt-1">
+                <span className="text-body-sm">
+                  Margem: {currentScenario.margin.toFixed(1)}%
+                </span>
               </div>
-              <div className="text-xs">
-                Margem: {currentScenario.margin.toFixed(1)}%
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Cenário Ótimo */}
-          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-200 dark:border-blue-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground">CENÁRIO ÓTIMO</span>
-              <Target className="h-4 w-4 text-blue-600" />
-            </div>
-            <div className="space-y-1">
-              <div className="text-lg font-bold text-blue-900 dark:text-blue-100">
+          <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                  ÓTIMO
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 pt-1">
+              <div className="kpi-value text-blue-600">
                 {formatSafeCurrency(optimalScenario.profit)}/cab
               </div>
-              <div className="text-xs text-blue-700 dark:text-blue-300">
+              <p className="kpi-label">Cenário Ótimo</p>
+              <p className="text-body-sm mt-1">
                 Compra: R$ {optimalScenario.purchasePrice}/@
+              </p>
+              <div className="flex items-center gap-1 text-body-sm mt-1">
+                <span className="text-body-sm">
+                  Produção: R$ {optimalScenario.productionCost}/@
+                </span>
               </div>
-              <div className="text-xs text-blue-700 dark:text-blue-300">
-                Produção: R$ {optimalScenario.productionCost}/@
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Ponto de Equilíbrio */}
-          <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border-2 border-amber-200 dark:border-amber-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-muted-foreground">PONTO EQUILÍBRIO</span>
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-            </div>
-            <div className="space-y-1">
-              <div className="text-lg font-bold text-amber-900 dark:text-amber-100">
+          <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+            <CardHeader className="p-3 pb-2">
+              <div className="flex items-center justify-between">
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                  BREAK
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 pt-1">
+              <div className="kpi-value text-amber-600">
                 Break-even
               </div>
-              <div className="text-xs text-amber-700 dark:text-amber-300">
+              <p className="kpi-label">Ponto Equilíbrio</p>
+              <p className="text-body-sm mt-1">
                 Compra: R$ {breakEvenPoint.purchasePrice}/@
+              </p>
+              <div className="flex items-center gap-1 text-body-sm mt-1">
+                <span className="text-body-sm">
+                  Produção: R$ {breakEvenPoint.productionCost}/@
+                </span>
               </div>
-              <div className="text-xs text-amber-700 dark:text-amber-300">
-                Produção: R$ {breakEvenPoint.productionCost}/@
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Análise Detalhada */}
