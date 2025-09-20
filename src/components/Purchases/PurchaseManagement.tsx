@@ -176,12 +176,6 @@ export const PurchaseManagement: React.FC = () => {
         const vendor = partners.find(p => p.id === order.vendorId);
         const broker = order.brokerId ? partners.find(p => p.id === order.brokerId) : null;
         
-          order: order,
-          lot: lot,
-          vendor: vendor?.name,
-          broker: broker?.name
-        });
-        
         // Calcular valores usando dados corretos do backend
         const totalWeight = lot?.entryWeight || order.totalWeight || 0;
         const currentQuantity = lot?.entryQuantity || order.animalCount || 1;
@@ -289,7 +283,7 @@ export const PurchaseManagement: React.FC = () => {
       
       setPurchases(combinedData);
     } else {
-        cattlePurchases: cattlePurchases.length,
+      console.log('[PurchaseManagement] Dados de estado:', {
         cattlePurchases: cattlePurchases.length,
         partners: partners.length,
         ordersLoading,

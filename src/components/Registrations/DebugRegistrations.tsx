@@ -77,6 +77,7 @@ export const DebugRegistrations: React.FC = () => {
     console.group('[DEBUG] Status dos Hooks de Cadastros');
     statuses.forEach(status => {
       const icon = status.loading ? '⏳' : status.error ? '❌' : '✅';
+      console.log(
         `${icon} ${status.name}:`,
         {
           loading: status.loading,
@@ -190,6 +191,7 @@ export const DebugRegistrations: React.FC = () => {
             <div className="space-y-2">
               <button
                 onClick={() => {
+                  console.log('Estado completo dos hooks:', {
                     partners: {
                       loading: partners.loading,
                       error: partners.error,

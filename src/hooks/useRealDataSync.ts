@@ -207,6 +207,7 @@ export function useRealDataSync() {
 
   // Sincronizar automaticamente na inicialização
   useEffect(() => {
+    console.log('[RealDataSync] Estado inicial dos dados:', {
       cycles: cycles?.length || 'undefined',
       cattlePurchases: cattlePurchases?.length || 'undefined',
       partners: partners?.length || 'undefined',

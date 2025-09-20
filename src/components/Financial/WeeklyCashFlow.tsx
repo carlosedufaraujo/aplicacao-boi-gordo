@@ -225,7 +225,7 @@ export function WeeklyCashFlow() {
           );
 
           if (weekIndex >= 0 && weekIndex < 4) {
-            const weekKey = `week${weekIndex + 1}` as keyof typeof processedData[3].values;
+            const weekKey = `week${weekIndex + 1}` as keyof typeof processedData[0]['values'];
 
             // Vendas à vista
             const vendasItem = processedData.find(item => item.category === 'Vendas à vista');
@@ -256,7 +256,7 @@ export function WeeklyCashFlow() {
           );
 
           if (weekIndex >= 0 && weekIndex < 4) {
-            const weekKey = `week${weekIndex + 1}` as keyof typeof processedData[8].values;
+            const weekKey = `week${weekIndex + 1}` as keyof typeof processedData[0]['values'];
 
             const fornecedoresItem = processedData.find(item => item.category === 'Fornecedores');
             if (fornecedoresItem) {
@@ -280,7 +280,7 @@ export function WeeklyCashFlow() {
           );
 
           if (weekIndex >= 0 && weekIndex < 4) {
-            const weekKey = `week${weekIndex + 1}` as keyof typeof processedData[7].values;
+            const weekKey = `week${weekIndex + 1}` as keyof typeof processedData[0]['values'];
 
             // Categorizar despesas
             const description = expense.description?.toLowerCase() || '';
