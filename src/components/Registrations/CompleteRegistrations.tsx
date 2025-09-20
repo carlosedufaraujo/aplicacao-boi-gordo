@@ -552,12 +552,16 @@ const DeleteConfirmModal: React.FC<{
   const getWarningMessage = (type: string) => {
     switch (type) {
       case 'partners':
+      {
         return 'Esta ação removerá o parceiro e pode afetar pedidos de compra e vendas associadas.';
       case 'pens':
+      {
         return 'Esta ação removerá o curral e pode afetar lotes que estão alocados neste curral.';
       case 'accounts':
+      {
         return 'Esta ação removerá a conta pagadora e pode afetar transações financeiras associadas.';
       case 'categories':
+      {
         return 'Esta ação removerá a categoria permanentemente. Certifique-se de que não há movimentações financeiras usando esta categoria.';
       default:
         return 'Esta ação não pode ser desfeita.';
@@ -1321,7 +1325,7 @@ export const CompleteRegistrations: React.FC = () => {
     try {
       const allCategories = await categoryAPI.getAll();
       setCategories(allCategories);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao carregar categorias:', error);
       toast({
         title: 'Erro',
@@ -1413,17 +1417,25 @@ export const CompleteRegistrations: React.FC = () => {
     
     switch (activeTab) {
       case 'partners':
+      {
         data = partners || [];
-        break;
+        }
+      break;
       case 'pens':
+      {
         data = pens || [];
-        break;
+        }
+      break;
       case 'accounts':
+      {
         data = payerAccounts || [];
-        break;
+        }
+      break;
       case 'categories':
+      {
         data = categories || [];
-        break;
+        }
+      break;
       default:
         data = [];
     }
@@ -1433,17 +1445,25 @@ export const CompleteRegistrations: React.FC = () => {
       let searchText = '';
       switch (activeTab) {
         case 'partners':
+      {
           searchText = `${item.name || ''} ${item.cpfCnpj || ''} ${item.email || ''}`.toLowerCase();
-          break;
+          }
+      break;
         case 'pens':
+      {
           searchText = `${item.penNumber || ''} ${item.location || ''}`.toLowerCase();
-          break;
+          }
+      break;
         case 'accounts':
+      {
           searchText = `${item.accountName || ''} ${item.bankName || ''} ${item.accountNumber || ''}`.toLowerCase();
-          break;
+          }
+      break;
         case 'categories':
+      {
           searchText = `${item.name || ''}`.toLowerCase();
-          break;
+          }
+      break;
         default:
           searchText = ''
       }
@@ -1504,23 +1524,31 @@ export const CompleteRegistrations: React.FC = () => {
       let itemName = '';
       switch (activeTab) {
         case 'partners':
+      {
           await deletePartner(itemToDelete.id);
           itemName = 'Parceiro';
-          break;
+          }
+      break;
         case 'pens':
+      {
           await deletePen(itemToDelete.id);
           itemName = 'Curral';
-          break;
+          }
+      break;
         case 'accounts':
+      {
           await deletePayerAccount(itemToDelete.id);
           itemName = 'Conta';
-          break;
+          }
+      break;
         case 'categories':
+      {
           const deleted = deleteCategory(itemToDelete.id);
           if (deleted) {
             itemName = 'Categoria';
           }
-          break;
+          }
+      break;
         default:
       }
 
@@ -1534,7 +1562,7 @@ export const CompleteRegistrations: React.FC = () => {
 
       setShowDeleteConfirm(false);
       setItemToDelete(null);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao excluir item:', error);
       toast({
         title: 'Erro',
@@ -1556,6 +1584,7 @@ export const CompleteRegistrations: React.FC = () => {
 
       switch (activeTab) {
         case 'partners':
+      {
           if (editingItem) {
             await updatePartner(editingItem.id, data);
             isUpdate = true;
@@ -1563,8 +1592,10 @@ export const CompleteRegistrations: React.FC = () => {
             await createPartner(data);
           }
           itemName = 'Parceiro';
-          break;
+          }
+      break;
         case 'pens':
+      {
           if (editingItem) {
             await updatePen(editingItem.id, data);
             isUpdate = true;
@@ -1572,8 +1603,10 @@ export const CompleteRegistrations: React.FC = () => {
             await createPen(data);
           }
           itemName = 'Curral';
-          break;
+          }
+      break;
         case 'accounts':
+      {
           if (editingItem) {
             await updatePayerAccount(editingItem.id, data);
             isUpdate = true;
@@ -1581,8 +1614,10 @@ export const CompleteRegistrations: React.FC = () => {
             await createPayerAccount(data);
           }
           itemName = 'Conta';
-          break;
+          }
+      break;
         case 'categories':
+      {
           if (editingItem) {
             const updated = updateCategory(editingItem.id, data);
             if (updated) {
@@ -1595,7 +1630,8 @@ export const CompleteRegistrations: React.FC = () => {
               itemName = 'Categoria';
             }
           }
-          break;
+          }
+      break;
         default:
       }
 
@@ -1609,7 +1645,7 @@ export const CompleteRegistrations: React.FC = () => {
 
       setShowForm(false);
       setEditingItem(null);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao salvar item:', error);
       // Não mostrar notificação de erro para categorias pois já é mostrada nas funções específicas
       if (activeTab !== 'categories') {
@@ -1631,14 +1667,19 @@ export const CompleteRegistrations: React.FC = () => {
   const getItemCount = (typeId: string) => {
     switch (typeId) {
       case 'partners':
+      {
         return partners?.length || 0;
       case 'pens':
+      {
         return pens?.length || 0;
       case 'accounts':
+      {
         return payerAccounts?.length || 0;
       case 'categories':
+      {
         return categories?.length || 0;
       case 'properties':
+      {
         return 0; // Ainda não implementado
       default:
         return 0;

@@ -87,7 +87,8 @@ export function StatusChangeModal({ isOpen, onClose, data, onConfirm }: StatusCh
     });
 
     for (const pen of sortedPens) {
-      if (remaining <= 0) break;
+      if (remaining <= 0) }
+      break;
       
       const available = pen.capacity - pen.currentOccupancy;
       const toAllocate = Math.min(available, remaining);
@@ -188,7 +189,7 @@ export function StatusChangeModal({ isOpen, onClose, data, onConfirm }: StatusCh
       });
 
       onClose();
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao processar recepção:', error);
       toast.error('Erro ao processar recepção. Tente novamente.');
     } finally {

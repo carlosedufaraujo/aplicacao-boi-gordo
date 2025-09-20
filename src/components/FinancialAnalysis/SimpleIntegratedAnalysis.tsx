@@ -52,7 +52,7 @@ export const SimpleIntegratedAnalysis: React.FC = () => {
         const year = now.getFullYear();
         const month = now.getMonth() + 1;
         await loadAnalysisByPeriod(year, month).catch(() => null);
-      } catch (error) {
+      } catch (_error) {
       }
     };
     

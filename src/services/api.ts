@@ -24,7 +24,7 @@ class ApiService {
 
       const data = await response.json();
       return data;
-    } catch (error) {
+    } catch (_error) {
       console.error(`API Error (${endpoint}):`, error);
       throw error;
     }

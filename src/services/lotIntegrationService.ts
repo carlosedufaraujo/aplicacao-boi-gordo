@@ -52,7 +52,7 @@ export class LotIntegrationService {
       await this.createReconciliationEntries(purchaseOrder);
       
       return cattleLot;
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro nas integrações do lote:', error);
       throw error;
     }
@@ -109,7 +109,7 @@ export class LotIntegrationService {
     try {
       const newCattlePurchase = await dataService.createCattlePurchase(cattleLotData);
       return newCattlePurchase;
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro ao criar lote de gado:', error);
       throw error;
     }
@@ -138,7 +138,7 @@ export class LotIntegrationService {
       // TODO: Implementar criação de lot_pen_links quando estrutura estiver definida
       // await dataService.createLotPenLink(allocationData);
       
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro ao alocar lote em currais:', error);
       // Não falha a integração se a alocação falhar
     }
@@ -316,8 +316,9 @@ export class LotIntegrationService {
       // Verificar se existe tabela de eventos no Supabase
       try {
         // await dataService.createCalendarEvent(event);
-      } catch (error) {
-        break;
+      } catch (_error) {
+        }
+      break;
       }
     }
   }
@@ -363,7 +364,7 @@ export class LotIntegrationService {
       // Remover eventos relacionados
       // await dataService.deleteCalendarEventsByLotId(purchaseId);
       
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro ao remover integrações:', error);
       throw error;
     }

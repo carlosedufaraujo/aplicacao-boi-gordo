@@ -491,10 +491,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     switch (order.status) {
       case 'order':
+      {
         nextStatus = 'payment_validation';
-        break;
+        }
+      break;
         
       case 'payment_validation':
+      {
         nextStatus = 'reception';
         
         // 🆕 INTEGRAÇÃO FINANCEIRA: Marcar contas como pagas se validado
@@ -513,9 +516,11 @@ export const useAppStore = create<AppState>((set, get) => ({
           );
         }
         
-        break;
+        }
+      break;
         
       case 'reception':
+      {
         nextStatus = 'confined';
         
         // 🆕 NOVO: Criar conta de frete ao recepcionar (quando temos o KM real)
@@ -586,7 +591,8 @@ export const useAppStore = create<AppState>((set, get) => ({
           updatedState.notifications = [...updatedState.notifications, freightNotification];
         }
         
-        break;
+        }
+      break;
         
       default:
         return state;
@@ -606,14 +612,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     switch (order.status) {
       case 'payment_validation':
+      {
         prevStatus = 'order';
-        break;
+        }
+      break;
       case 'reception':
+      {
         prevStatus = 'payment_validation';
-        break;
+        }
+      break;
       case 'confined':
+      {
         prevStatus = 'reception';
-        break;
+        }
+      break;
       default:
         return state;
     }
@@ -1323,17 +1335,25 @@ export const useAppStore = create<AppState>((set, get) => ({
       
       switch (custoOrigemTipo) {
         case 'health':
+      {
           custoAcumulado.sanidade += valorAlocadoTotal;
-          break;
+          }
+      break;
         case 'feed':
+      {
           custoAcumulado.alimentacao += valorAlocadoTotal;
-          break;
+          }
+      break;
         case 'operational':
+      {
           custoAcumulado.operacional += valorAlocadoTotal;
-          break;
+          }
+      break;
         case 'other':
+      {
           custoAcumulado.outros += valorAlocadoTotal;
-          break;
+          }
+      break;
       }
       
       custoAcumulado.total = 
@@ -1378,17 +1398,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     
     switch (designation.status) {
       case 'next_slaughter':
+      {
         nextStatus = 'scheduled';
-        break;
+        }
+      break;
       case 'scheduled':
+      {
         nextStatus = 'shipped';
-        break;
+        }
+      break;
       case 'shipped':
+      {
         nextStatus = 'slaughtered';
-        break;
+        }
+      break;
       case 'slaughtered':
+      {
         nextStatus = 'reconciled';
-        break;
+        }
+      break;
     }
     
     return {
@@ -2453,23 +2481,36 @@ export const useAppStore = create<AppState>((set, get) => ({
         // Mapear categorias de despesas para o DRE
         switch (expense.category) {
           case 'general_admin':
+      {
           case 'personnel':
+      {
           case 'office':
+      {
           case 'admin_other':
+      {
             dre.operatingExpenses.administrative += expense.purchaseValue;
-            break;
+            }
+      break;
           case 'marketing':
+      {
             dre.operatingExpenses.sales += expense.purchaseValue;
-            break;
+            }
+      break;
           case 'interest':
+      {
           case 'fees':
+      {
           case 'financial_management':
+      {
           case 'financial_other':
+      {
             dre.operatingExpenses.financial += expense.purchaseValue;
-            break;
+            }
+      break;
           default:
             dre.operatingExpenses.other += expense.purchaseValue;
-            break;
+            }
+      break;
         }
       });
       
@@ -2654,23 +2695,31 @@ export const useAppStore = create<AppState>((set, get) => ({
       
       switch (allocationMethod) {
         case 'by_heads':
+      {
           base = lot.entryQuantity - (lot.deaths || 0);
-          break;
+          }
+      break;
           
         case 'by_value':
+      {
           base = state.calculateLotCostsByCategory(lot.id).total;
-          break;
+          }
+      break;
           
         case 'by_days':
+      {
           const entryDate = lot.entryDate;
           const currentDate = new Date();
           const days = Math.floor((currentDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
           base = days * (lot.entryQuantity - (lot.deaths || 0));
-          break;
+          }
+      break;
           
         case 'by_currentWeight':
+      {
           base = lot.entryWeight;
-          break;
+          }
+      break;
       }
       
       entityBases.set(lot.id, base);

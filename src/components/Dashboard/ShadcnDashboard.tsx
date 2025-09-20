@@ -423,7 +423,7 @@ export function ShadcnDashboard() {
       try {
         const stats = await getInterventionStatistics();
         setInterventionStats(stats);
-      } catch (error) {
+      } catch (_error) {
         console.error('❌ Erro ao carregar estatísticas de intervenções:', error);
       }
     };

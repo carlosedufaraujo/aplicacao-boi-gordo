@@ -29,7 +29,7 @@ class CategoryAPI {
 
       const response = await api.get(`/categories${params.toString() ? `?${params}` : ''}`);
       return response.data;
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao buscar categorias:', error);
       throw error;
     }
@@ -40,7 +40,7 @@ class CategoryAPI {
     try {
       const response = await api.get(`/categories/${id}`);
       return response.data;
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao buscar categoria:', error);
       throw error;
     }
@@ -51,7 +51,7 @@ class CategoryAPI {
     try {
       const response = await api.post('/categories', data);
       return response.data;
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao criar categoria:', error);
       throw error;
     }
@@ -62,7 +62,7 @@ class CategoryAPI {
     try {
       const response = await api.put(`/categories/${id}`, data);
       return response.data;
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao atualizar categoria:', error);
       throw error;
     }
@@ -72,7 +72,7 @@ class CategoryAPI {
   async delete(id: string): Promise<void> {
     try {
       await api.delete(`/categories/${id}`);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao deletar categoria:', error);
       throw error;
     }
@@ -83,7 +83,7 @@ class CategoryAPI {
     try {
       const response = await api.get('/categories/stats/summary');
       return response.data;
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao buscar estatísticas:', error);
       throw error;
     }
@@ -99,7 +99,7 @@ class CategoryAPI {
     try {
       const category = await this.getById(id);
       return !category._count || category._count.cashFlows === 0;
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao verificar se pode deletar:', error);
       return false;
     }

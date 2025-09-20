@@ -64,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
     try {
       await signOut();
       setShowProfileMenu(false);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro no logout:', error);
     }
   };

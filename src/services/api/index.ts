@@ -75,7 +75,7 @@ export async function apiRequest<T>(
     }
 
     return JSON.parse(text);
-  } catch (error) {
+  } catch (_error) {
     console.error(`API Error (${endpoint}):`, error);
     throw error;
   }

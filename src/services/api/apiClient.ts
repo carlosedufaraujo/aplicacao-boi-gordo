@@ -47,7 +47,7 @@ export class ApiClient {
 
       const data = await response.json();
       return data;
-    } catch (error) {
+    } catch (_error) {
       // Se backend não estiver disponível, usar Supabase direto como fallback
       throw error; // Os hooks vão usar dados do Supabase como fallback
     }

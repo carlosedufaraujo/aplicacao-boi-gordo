@@ -115,20 +115,28 @@ export const Registrations: React.FC = () => {
   const getItemCount = (type: string) => {
     switch (type) {
       case 'cycles':
+      {
         return cycles.length;
       case 'vendors':
+      {
         return partners.filter(p => p.type === 'vendor' && p.isActive && !p.isTransporter).length;
       case 'transporters':
+      {
         return partners.filter(p => p.type === 'vendor' && p.isActive && p.isTransporter).length;
       case 'brokers':
+      {
         return partners.filter(p => p.type === 'broker' && p.isActive).length;
       case 'slaughterhouses':
+      {
         return partners.filter(p => p.type === 'slaughterhouse' && p.isActive).length;
       case 'payer-accounts':
+      {
         return payerAccounts.filter(acc => acc.isActive).length;
       case 'pens':
+      {
         return penRegistrations.filter(pen => pen.isActive).length;
       case 'financial-institutions':
+      {
         return partners.filter(p => p.type === 'financial' && p.isActive).length;
       default:
         return 0;

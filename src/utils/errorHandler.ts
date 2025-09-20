@@ -227,7 +227,7 @@ export async function handleAsyncOperation<T>(
     }
     
     return result;
-  } catch (error) {
+  } catch (_error) {
     showErrorNotification(error, options?.errorTitle);
     console.error('Operation failed:', error);
     return null;

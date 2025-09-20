@@ -50,14 +50,20 @@ export const AnalyticsDashboard: React.FC = () => {
     try {
       switch (type) {
         case 'correlations':
+      {
           const correlations = await getWeightBreakCorrelations();
-          break;
+          }
+      break;
         case 'environmental':
+      {
           const environmental = await getEnvironmentalCorrelations();
-          break;
+          }
+      break;
         case 'treatments':
+      {
           const treatments = await getTreatmentEffectiveness();
-          break;
+          }
+      break;
       }
     } catch (err) {
       console.error(`Erro ao carregar ${type}:`, err);

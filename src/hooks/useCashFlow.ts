@@ -223,17 +223,25 @@ export const useCashFlow = () => {
 
       switch(status) {
         case 'PAID':
+      {
           notificationTitle = '💰 Despesa Paga';
-          break;
+          }
+      break;
         case 'RECEIVED':
+      {
           notificationTitle = '💵 Receita Recebida';
-          break;
+          }
+      break;
         case 'PENDING':
+      {
           notificationTitle = '⏳ Status Pendente';
-          break;
+          }
+      break;
         case 'CANCELLED':
+      {
           notificationTitle = '❌ Movimentação Cancelada';
-          break;
+          }
+      break;
         default:
           notificationTitle = '📝 Status Atualizado';
       }

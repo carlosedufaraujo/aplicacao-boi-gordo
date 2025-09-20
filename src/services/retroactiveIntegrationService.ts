@@ -52,12 +52,12 @@ export class RetroactiveIntegrationService {
           }
           
           successCount++;
-        } catch (error) {
+        } catch (_error) {
           console.error(`❌ Erro ao integrar ordem ${order.lotCode}:`, error);
           errorCount++;
         }
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro na integração retroativa:', error);
       throw error;
     }
@@ -70,7 +70,7 @@ export class RetroactiveIntegrationService {
     try {
       const lot = await dataService.getCattlePurchaseByCattlePurchaseId(orderId);
       return lot !== null;
-    } catch (error) {
+    } catch (_error) {
       console.error(`Erro ao verificar lote para ordem ${orderId}:`, error);
       return false;
     }
@@ -83,7 +83,7 @@ export class RetroactiveIntegrationService {
     try {
       const expenses = await dataService.getExpensesByCattlePurchaseId(orderId);
       return expenses && expenses.length > 0;
-    } catch (error) {
+    } catch (_error) {
       console.error(`Erro ao verificar despesas para ordem ${orderId}:`, error);
       return false;
     }
@@ -195,7 +195,7 @@ export class RetroactiveIntegrationService {
       }
       
       return report;
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro ao gerar relatório:', error);
       throw error;
     }

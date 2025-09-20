@@ -158,16 +158,22 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
         
         switch (filterDateRange) {
           case 'today':
+      {
             if (saleDate.toDateString() !== now.toDateString()) return false;
-            break;
+            }
+      break;
           case 'week':
+      {
             const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
             if (saleDate < weekAgo) return false;
-            break;
+            }
+      break;
           case 'month':
+      {
             const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             if (saleDate < monthAgo) return false;
-            break;
+            }
+      break;
         }
       }
 
@@ -232,8 +238,10 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
   const getPaymentTypeBadge = (type: string) => {
     switch (type) {
       case 'cash':
+      {
         return <Badge variant="outline" className="text-green-600">À Vista</Badge>;
       case 'installment':
+      {
         return <Badge variant="outline" className="text-blue-600">Parcelado</Badge>;
       default:
         return <Badge variant="outline">{type}</Badge>;

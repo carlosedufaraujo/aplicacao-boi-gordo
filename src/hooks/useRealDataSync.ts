@@ -195,7 +195,7 @@ export function useRealDataSync() {
         error: null,
         lastSync: new Date()
       });
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro na sincronização:', error);
       setSyncState(prev => ({
         ...prev,

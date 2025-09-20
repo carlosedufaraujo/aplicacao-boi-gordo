@@ -248,7 +248,7 @@ export function DataImport() {
           jsonData = XLSX.utils.sheet_to_json(worksheet);
           processImportedData(jsonData);
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('Erro ao processar arquivo:', error);
         toast.error('Erro ao processar arquivo');
         setIsProcessing(false);

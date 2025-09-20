@@ -266,12 +266,16 @@ export function StructuredCashFlowTable({ data, currentDate, initialBalance, onB
     const rowClass = () => {
       switch (type) {
         case 'header':
+      {
           return 'bg-muted/50 font-bold text-sm uppercase tracking-wide';
         case 'subheader':
+      {
           return 'bg-muted/30 font-semibold text-sm';
         case 'total':
+      {
           return 'bg-primary/5 dark:bg-primary/10 font-bold border-t border-b';
         case 'balance':
+      {
           return 'bg-gradient-to-r from-primary/10 to-primary/5 font-bold text-lg';
         default:
           return 'hover:bg-muted/30 transition-colors';

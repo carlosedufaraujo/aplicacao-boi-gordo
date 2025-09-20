@@ -97,7 +97,7 @@ export const OrganizationSettings: React.FC = () => {
           const importedData = JSON.parse(event.target?.result as string);
           setOrganizationData(prev => ({ ...prev, ...importedData }));
           setMessage({ type: 'success', text: 'Configurações importadas com sucesso!' });
-        } catch (error) {
+        } catch (_error) {
           setMessage({ type: 'error', text: 'Erro ao importar configurações. Verifique o formato do arquivo.' });
         }
       };

@@ -42,7 +42,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         } else {
           setIsAuthorized(true);
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('Erro ao verificar autenticação:', error);
         setIsAuthorized(false);
       }

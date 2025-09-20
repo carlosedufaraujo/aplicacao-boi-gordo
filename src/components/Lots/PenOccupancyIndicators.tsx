@@ -45,6 +45,7 @@ export const PenOccupancyIndicators: React.FC<PenOccupancyIndicatorsProps> = ({
   const getStatusConfig = () => {
     switch (status) {
       case 'available':
+      {
         return {
           color: 'text-success',
           bgColor: 'bg-success/10',
@@ -54,6 +55,7 @@ export const PenOccupancyIndicators: React.FC<PenOccupancyIndicatorsProps> = ({
           badgeVariant: 'outline' as const
         };
       case 'partial':
+      {
         return {
           color: 'text-warning',
           bgColor: 'bg-warning/10',
@@ -63,6 +65,7 @@ export const PenOccupancyIndicators: React.FC<PenOccupancyIndicatorsProps> = ({
           badgeVariant: 'outline' as const
         };
       case 'full':
+      {
         return {
           color: 'text-error',
           bgColor: 'bg-error/10',
@@ -72,6 +75,7 @@ export const PenOccupancyIndicators: React.FC<PenOccupancyIndicatorsProps> = ({
           badgeVariant: 'destructive' as const
         };
       case 'maintenance':
+      {
         return {
           color: 'text-muted-foreground',
           bgColor: 'bg-muted/50',

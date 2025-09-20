@@ -83,7 +83,7 @@ export const DataSyncProvider: React.FC<DataSyncProviderProps> = ({
         lastSync: new Date(),
         pendingChanges: 0,
       }));
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro na sincronização:', error);
       setStatus(prev => ({
         ...prev,

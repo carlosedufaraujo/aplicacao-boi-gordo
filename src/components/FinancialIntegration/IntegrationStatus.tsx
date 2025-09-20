@@ -75,7 +75,7 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
           errors: [`Apenas ${expenses.length} despesa(s) criada(s)`]
         });
       }
-    } catch (error) {
+    } catch (_error) {
       setStatus('not_integrated');
       setDetails({
         expenseCount: 0,
@@ -108,7 +108,7 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
       } else {
         throw new Error('Falha na sincronização');
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Erro na sincronização',
         description: 'Não foi possível sincronizar as despesas',
@@ -122,6 +122,7 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
   const getStatusBadge = () => {
     switch (status) {
       case 'integrated':
+      {
         return (
           <Badge variant="outline" className="gap-1 border-green-500 text-green-600">
             <CheckCircle2 className="h-3 w-3" />
@@ -129,6 +130,7 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
           </Badge>
         );
       case 'partial':
+      {
         return (
           <Badge variant="outline" className="gap-1 border-yellow-500 text-yellow-600">
             <AlertCircle className="h-3 w-3" />
@@ -136,6 +138,7 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
           </Badge>
         );
       case 'not_integrated':
+      {
         return (
           <Badge variant="outline" className="gap-1 border-red-500 text-red-600">
             <XCircle className="h-3 w-3" />

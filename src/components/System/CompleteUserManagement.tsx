@@ -203,7 +203,7 @@ export const CompleteUserManagement: React.FC = () => {
         notes: ''
       }));
       setUsers(mappedUsers);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao carregar usuários:', error);
     } finally {
       setLoadingUsers(false);
@@ -288,28 +288,38 @@ export const CompleteUserManagement: React.FC = () => {
     try {
       switch (action) {
         case 'activate':
+      {
           await usersService.activate(userId);
           await loadUsers();
-          break;
+          }
+      break;
         case 'deactivate':
+      {
           await usersService.deactivate(userId);
           await loadUsers();
-          break;
+          }
+      break;
         case 'delete':
+      {
           if (confirm('Tem certeza que deseja excluir este usuário?')) {
             await usersService.delete(userId);
             await loadUsers();
           }
-          break;
+          }
+      break;
         case 'reset_password':
+      {
           const result = await usersService.resetPassword(userId);
           alert(`Senha temporária gerada: ${result.temporaryPassword}`);
-          break;
+          }
+      break;
         case 'resend_invite':
+      {
           alert('Funcionalidade de reenviar convite ainda não implementada');
-          break;
+          }
+      break;
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao executar ação:', error);
       alert(`Erro ao executar ação: ${error.message || 'Erro desconhecido'}`);
     } finally {
@@ -347,7 +357,7 @@ export const CompleteUserManagement: React.FC = () => {
       
       // Recarregar lista de usuários
       await loadUsers();
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao criar usuário:', error);
       alert(error.message || 'Erro ao criar usuário');
     } finally {
@@ -380,7 +390,7 @@ export const CompleteUserManagement: React.FC = () => {
       
       // Recarregar lista de usuários
       await loadUsers();
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao atualizar usuário:', error);
       alert(error.message || 'Erro ao atualizar usuário');
     } finally {

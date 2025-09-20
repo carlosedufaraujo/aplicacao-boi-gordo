@@ -149,7 +149,7 @@ const CleanUserManagement: React.FC = () => {
             notes: 'Usuário do sistema'
           }]);
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('Erro ao carregar usuários:', error);
         // Fallback para usuário atual apenas
         setUsers([{
@@ -233,7 +233,7 @@ const CleanUserManagement: React.FC = () => {
           setUsers(mappedUsers);
         }
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao carregar usuários:', error);
     } finally {
       setLoading(false);

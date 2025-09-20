@@ -33,11 +33,15 @@ export const LotsList: React.FC = () => {
     
     switch (order.status) {
       case 'order':
+      {
       case 'payment_validation':
+      {
         return 'Em Trânsito';
       case 'reception':
+      {
         return 'Aguardando Protocolo';
       case 'confined':
+      {
         return 'Confinado';
       default:
         return 'Desconhecido';
@@ -47,10 +51,13 @@ export const LotsList: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Em Trânsito':
+      {
         return 'bg-warning-100 text-warning-800';
       case 'Aguardando Protocolo':
+      {
         return 'bg-info-100 text-info-800';
       case 'Confinado':
+      {
         return 'bg-success-100 text-success-800';
       default:
         return 'bg-neutral-100 text-neutral-800';

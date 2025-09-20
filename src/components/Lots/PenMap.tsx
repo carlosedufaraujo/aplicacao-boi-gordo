@@ -86,8 +86,10 @@ export const PenMap: React.FC = () => {
     
     switch (pen.status) {
       case 'MAINTENANCE':
+      {
         return 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200';
       case 'INACTIVE':
+      {
         return 'bg-rose-100 border-rose-300 text-rose-800 hover:bg-rose-200';
       default:
         return 'bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50';

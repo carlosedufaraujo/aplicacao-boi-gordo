@@ -161,7 +161,7 @@ export const PurchaseManagement: React.FC = () => {
 
       // Debug removido para limpeza de código
       
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
@@ -335,7 +335,7 @@ export const PurchaseManagement: React.FC = () => {
       
       toast.success('Compra excluída com sucesso');
       loadData();
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao excluir:', error);
       toast.error('Erro ao excluir compra');
     } finally {

@@ -124,7 +124,7 @@ export function SimplifiedPurchaseDetails({
       if (onRefresh) {
         onRefresh();
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao atualizar GMD:', error);
       toast.error('Erro ao atualizar GMD');
     }

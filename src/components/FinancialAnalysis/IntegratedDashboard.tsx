@@ -85,7 +85,7 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
         month: selectedMonth,
         includeNonCashItems: true
       });
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao gerar análise:', error);
     }
   };
@@ -94,7 +94,7 @@ export const IntegratedDashboard: React.FC<IntegratedDashboardProps> = ({ classN
     setSelectedMonth(month);
     try {
       await loadAnalysisByPeriod(selectedYear, month);
-    } catch (error) {
+    } catch (_error) {
       // Análise não existe ainda para este período
     }
   };

@@ -338,7 +338,7 @@ export function EnhancedPurchaseForm({
       onSuccess?.();
       onClose();
       form.reset();
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro ao salvar compra:', error);
       toast.error(error instanceof Error ? error.message : 'Ocorreu um erro ao salvar a compra.');
     } finally {

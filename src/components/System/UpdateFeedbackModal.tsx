@@ -58,7 +58,7 @@ export const UpdateFeedbackModal: React.FC<UpdateFeedbackModalProps> = ({
         setComment('');
         setIsSubmitted(false);
       }, 2000);
-    } catch (error) {
+    } catch (_error) {
       addNotification({
         type: 'error',
         title: 'Erro ao enviar',

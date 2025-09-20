@@ -18,7 +18,7 @@ export const formatSafeDate = (
   
   try {
     return format(date, formatString, { locale: ptBR });
-  } catch (error) {
+  } catch (_error) {
     console.error('Erro ao formatar data:', dateValue, error);
     return 'Erro na formatação';
   }
@@ -60,7 +60,7 @@ export const safeDifferenceInDays = (
   
   try {
     return Math.max(0, differenceInDays(later, earlier));
-  } catch (error) {
+  } catch (_error) {
     console.error('Erro ao calcular diferença de dias:', error);
     return 0;
   }
@@ -108,7 +108,7 @@ export const formatSafeCurrency = (
   
   try {
     return `R$ ${numValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  } catch (error) {
+  } catch (_error) {
     console.error('Erro ao formatar valor monetário:', value, error);
     return fallback;
   }
@@ -133,7 +133,7 @@ export const formatSafeNumber = (
   
   try {
     return numValue.toLocaleString('pt-BR');
-  } catch (error) {
+  } catch (_error) {
     return fallback;
   }
 };
@@ -158,7 +158,7 @@ export const formatSafeDecimal = (
   
   try {
     return numValue.toFixed(decimals);
-  } catch (error) {
+  } catch (_error) {
     console.error('Erro ao formatar decimal:', value, error);
     return fallback;
   }

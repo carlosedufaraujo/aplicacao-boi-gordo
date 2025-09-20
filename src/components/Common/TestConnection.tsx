@@ -46,7 +46,7 @@ export const TestConnection: React.FC = () => {
         data: { health: healthData, stats: statsData, frontend: frontendData }
       });
       
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro na conexão:', error);
       setStatus({
         connected: false,

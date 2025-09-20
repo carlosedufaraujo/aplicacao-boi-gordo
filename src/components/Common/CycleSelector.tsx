@@ -57,6 +57,7 @@ export const CycleSelector: React.FC<CycleSelectorProps> = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ACTIVE':
+      {
         return (
           <Badge variant="success" className="ml-2">
             <CheckCircle className="w-3 h-3 mr-1" />
@@ -64,6 +65,7 @@ export const CycleSelector: React.FC<CycleSelectorProps> = ({
           </Badge>
         );
       case 'PLANNED':
+      {
         return (
           <Badge variant="secondary" className="ml-2">
             <Clock className="w-3 h-3 mr-1" />
@@ -71,6 +73,7 @@ export const CycleSelector: React.FC<CycleSelectorProps> = ({
           </Badge>
         );
       case 'COMPLETED':
+      {
         return (
           <Badge variant="outline" className="ml-2">
             <Calendar className="w-3 h-3 mr-1" />
@@ -78,6 +81,7 @@ export const CycleSelector: React.FC<CycleSelectorProps> = ({
           </Badge>
         );
       case 'CANCELLED':
+      {
         return (
           <Badge variant="destructive" className="ml-2">
             <XCircle className="w-3 h-3 mr-1" />

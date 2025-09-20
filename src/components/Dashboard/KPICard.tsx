@@ -12,16 +12,22 @@ export const KPICard: React.FC<KPICardProps> = ({ kpi }) => {
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'Beef':
+      {
         return <div className="w-4 h-4 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded"></div>;
       case 'Clock':
+      {
         return <Clock className="w-4 h-4 text-neutral-600" />;
       case 'TrendingDown':
+      {
         return <TrendingDownIcon className="w-4 h-4 text-neutral-600" />;
       case 'AlertTriangle':
+      {
         return <AlertTriangle className="w-4 h-4 text-neutral-600" />;
       case 'DollarSign':
+      {
         return <DollarSign className="w-4 h-4 text-neutral-600" />;
       case 'ShoppingCart':
+      {
         return <ShoppingCart className="w-4 h-4 text-neutral-600" />;
       default:
         return <TrendingUp className="w-4 h-4 text-neutral-600" />;

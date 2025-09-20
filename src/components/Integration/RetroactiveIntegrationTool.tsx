@@ -49,7 +49,7 @@ export const RetroactiveIntegrationTool: React.FC = () => {
     try {
       const reportData = await RetroactiveIntegrationService.generateIntegrationReport();
       setReport(reportData);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao gerar relatório:', error);
     } finally {
       setIsGeneratingReport(false);
@@ -78,7 +78,7 @@ export const RetroactiveIntegrationTool: React.FC = () => {
         success: true,
         message: 'Integração retroativa concluída com sucesso!'
       });
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro na integração:', error);
       setIntegrationResults({
         success: false,
@@ -92,10 +92,13 @@ export const RetroactiveIntegrationTool: React.FC = () => {
   const getStatusColor = (status: 'complete' | 'partial' | 'none') => {
     switch (status) {
       case 'complete':
+      {
         return 'status-active';
       case 'partial':
+      {
         return 'bg-warning text-warning-foreground';
       case 'none':
+      {
         return 'status-error';
       default:
         return 'status-inactive';
@@ -105,10 +108,13 @@ export const RetroactiveIntegrationTool: React.FC = () => {
   const getStatusIcon = (status: 'complete' | 'partial' | 'none') => {
     switch (status) {
       case 'complete':
+      {
         return <CheckCircle className="h-4 w-4" />;
       case 'partial':
+      {
         return <AlertTriangle className="h-4 w-4" />;
       case 'none':
+      {
         return <XCircle className="h-4 w-4" />;
       default:
         return <Clock className="h-4 w-4" />;
@@ -118,10 +124,13 @@ export const RetroactiveIntegrationTool: React.FC = () => {
   const getStatusText = (status: 'complete' | 'partial' | 'none') => {
     switch (status) {
       case 'complete':
+      {
         return 'Integrado';
       case 'partial':
+      {
         return 'Parcial';
       case 'none':
+      {
         return 'Não Integrado';
       default:
         return 'Desconhecido';

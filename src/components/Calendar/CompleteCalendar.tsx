@@ -343,7 +343,7 @@ export const CompleteCalendar: React.FC = () => {
       });
       setShowEventDialog(false);
       setSelectedEvent(null);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao criar evento:', error);
     }
   };

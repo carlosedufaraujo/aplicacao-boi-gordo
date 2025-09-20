@@ -155,7 +155,7 @@ export const CashFlowDashboard: React.FC = () => {
       }
       setShowForm(false);
       setEditingCashFlow(null);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao salvar movimentação:', error);
       toast.error('Não foi possível salvar a movimentação. Verifique os dados e tente novamente.');
     }
@@ -177,7 +177,7 @@ export const CashFlowDashboard: React.FC = () => {
     try {
       await deleteCashFlow(deleteConfirm.id);
       setDeleteConfirm({ isOpen: false, id: null });
-    } catch (error) {
+    } catch (_error) {
       toast.error('Não foi possível excluir a movimentação. Tente novamente.');
     } finally {
       setIsDeleting(false);

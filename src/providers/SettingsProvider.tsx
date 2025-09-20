@@ -98,7 +98,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
       try {
         const parsedSettings = JSON.parse(savedSettings);
         setSettings(prev => ({ ...prev, ...parsedSettings }));
-      } catch (error) {
+      } catch (_error) {
         console.error('Erro ao carregar configurações:', error);
       }
     }
@@ -126,7 +126,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     try {
       const importedSettings = JSON.parse(settingsJson);
       setSettings(prev => ({ ...prev, ...importedSettings }));
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao importar configurações:', error);
       throw new Error('Formato de configurações inválido');
     }

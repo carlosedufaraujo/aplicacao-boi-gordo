@@ -62,7 +62,7 @@ export const GeneralSettings: React.FC = () => {
       a.click();
       URL.revokeObjectURL(url);
       setMessage({ type: 'success', text: 'Configurações exportadas com sucesso!' });
-    } catch (error) {
+    } catch (_error) {
       setMessage({ type: 'error', text: 'Erro ao exportar configurações' });
     }
   };
@@ -78,7 +78,7 @@ export const GeneralSettings: React.FC = () => {
           setMessage({ type: 'success', text: 'Configurações importadas com sucesso!' });
           // Recarregar a página para aplicar as configurações
           setTimeout(() => window.location.reload(), 1000);
-        } catch (error) {
+        } catch (_error) {
           setMessage({ type: 'error', text: 'Erro ao importar configurações. Verifique o formato do arquivo.' });
         }
       };

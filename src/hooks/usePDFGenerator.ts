@@ -67,7 +67,7 @@ export const usePDFGenerator = () => {
       pdf.save(filename);
       
       return { success: true, message: 'PDF gerado com sucesso!' };
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao gerar PDF:', error);
       return { 
         success: false, 
@@ -135,7 +135,7 @@ export const usePDFGenerator = () => {
       pdf.save(filename);
       
       return { success: true, message: 'PDF gerado com sucesso!' };
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao gerar PDF:', error);
       return { 
         success: false, 
@@ -253,7 +253,7 @@ export const usePDFGenerator = () => {
       pdf.save(filename);
       
       return { success: true, message: 'Relatório PDF gerado com sucesso!' };
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao gerar relatório PDF:', error);
       return { 
         success: false, 

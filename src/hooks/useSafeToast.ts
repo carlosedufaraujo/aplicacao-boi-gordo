@@ -18,17 +18,25 @@ export const useSafeToast = () => {
     timeoutRef.current = setTimeout(() => {
       switch (type) {
         case 'success':
+      {
           sonnerToast.success(message);
-          break;
+          }
+      break;
         case 'error':
+      {
           sonnerToast.error(message);
-          break;
+          }
+      break;
         case 'info':
+      {
           sonnerToast.info(message);
-          break;
+          }
+      break;
         case 'warning':
+      {
           sonnerToast.warning(message);
-          break;
+          }
+      break;
         default:
           sonnerToast(message);
       }

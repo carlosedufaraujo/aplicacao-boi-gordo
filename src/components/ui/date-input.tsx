@@ -43,7 +43,7 @@ export const DateInputBR: React.FC<DateInputProps> = ({
           setIsoValue(format(date, 'yyyy-MM-dd'));
           setDisplayValue(formatBrazilianDate(date, 'DATE_FULL'));
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('Erro ao processar data inicial:', error);
       }
     } else {
@@ -84,7 +84,7 @@ export const DateInputBR: React.FC<DateInputProps> = ({
             onChange(isoDate);
           }
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('Data inválida:', error);
       }
     }
@@ -102,7 +102,7 @@ export const DateInputBR: React.FC<DateInputProps> = ({
         if (onChange) {
           onChange(isoDate);
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('Erro ao processar data:', error);
       }
     } else {
@@ -182,7 +182,7 @@ export const DateTimeInputBR: React.FC<DateInputProps> = ({
           setIsoValue(format(date, "yyyy-MM-dd'T'HH:mm"));
           setDisplayValue(formatBrazilianDate(date, 'DATETIME_DISPLAY'));
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('Erro ao processar data/hora inicial:', error);
       }
     } else {
@@ -202,7 +202,7 @@ export const DateTimeInputBR: React.FC<DateInputProps> = ({
         if (onChange) {
           onChange(isoDateTime);
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('Erro ao processar data/hora:', error);
       }
     } else {

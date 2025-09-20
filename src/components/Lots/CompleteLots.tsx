@@ -165,7 +165,7 @@ const formatSafeDate = (date: Date | string | null | undefined, formatStr: strin
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(dateObj.getTime())) return 'Data inválida';
     return format(dateObj, formatStr, { locale: ptBR });
-  } catch (error) {
+  } catch (_error) {
     console.error('Erro ao formatar data:', error, date);
     return 'Data inválida';
   }
@@ -179,7 +179,7 @@ const safeDifferenceInDays = (endDate: Date, startDate: Date | string | null | u
     const startDateObj = typeof startDate === 'string' ? new Date(startDate) : startDate;
     if (isNaN(startDateObj.getTime())) return 0;
     return differenceInDays(endDate, startDateObj);
-  } catch (error) {
+  } catch (_error) {
     console.error('Erro ao calcular diferença de dias:', error, startDate);
     return 0;
   }
@@ -379,22 +379,35 @@ export const CompleteLots: React.FC = () => {
           history.forEach((intervention: any) => {
             switch (intervention.type) {
               case 'health':
+      {
               case 'vaccination':
+      {
               case 'treatment':
+      {
                 protocols.push(intervention);
-                break;
+                }
+      break;
               case 'mortality':
+      {
               case 'death':
+      {
                 mortalities.push(intervention);
-                break;
+                }
+      break;
               case 'movement':
+      {
               case 'transfer':
+      {
                 movements.push(intervention);
-                break;
+                }
+      break;
               case 'weighing':
+      {
               case 'weight':
+      {
                 weighings.push(intervention);
-                break;
+                }
+      break;
             }
           });
 
@@ -405,7 +418,7 @@ export const CompleteLots: React.FC = () => {
             weighings
           });
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('❌ Erro ao carregar intervenções:', error);
       }
     };
@@ -478,7 +491,7 @@ export const CompleteLots: React.FC = () => {
             byPhase: []
           });
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('❌ Erro ao carregar dados de mortalidade:', error);
         // Manter dados zerados em caso de erro
         setMortalityData({
@@ -840,7 +853,7 @@ export const CompleteLots: React.FC = () => {
         eventBus.emit(EVENTS.LOT_DELETED, lotToDelete);
         await refreshLots();
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao excluir lote:', error);
     } finally {
       setShowDeleteConfirm(false);
@@ -983,7 +996,7 @@ export const CompleteLots: React.FC = () => {
       setSelectedLot(null);
       setSelectedPenIdForIntervention('');
       
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao salvar intervenção:', error);
     }
   };
@@ -1643,12 +1656,16 @@ export const CompleteLots: React.FC = () => {
                       const getStatusBadge = (status: string) => {
                         switch (status) {
                           case 'available':
+      {
                             return <Badge variant="outline" className="text-caption text-success">Disponível</Badge>;
                           case 'partial':
+      {
                             return <Badge variant="secondary" className="text-caption">Ocupado</Badge>;
                           case 'full':
+      {
                             return <Badge variant="destructive" className="text-caption">Lotado</Badge>;
                           case 'maintenance':
+      {
                             return <Badge variant="outline" className="text-caption text-muted-foreground">Manutenção</Badge>;
                           default:
                             return <Badge variant="outline" className="text-caption">Desconhecido</Badge>;

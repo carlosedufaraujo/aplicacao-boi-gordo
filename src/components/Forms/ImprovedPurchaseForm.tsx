@@ -157,7 +157,7 @@ export function ImprovedPurchaseForm({
       toast.success('Compra cadastrada com sucesso!');
       reset();
       onClose();
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao salvar:', error);
       toast.error('Erro ao cadastrar compra');
     } finally {

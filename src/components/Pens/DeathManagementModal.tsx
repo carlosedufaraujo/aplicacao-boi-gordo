@@ -179,7 +179,7 @@ export function DeathManagementModal({
       });
       
       setActiveTab('history');
-    } catch (error) {
+    } catch (_error) {
       // Erro já tratado no hook
     }
   };

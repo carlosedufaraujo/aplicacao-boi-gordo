@@ -104,7 +104,7 @@ function SupabaseProvider({ children }: SupabaseProviderProps) {
         payerAccounts.loadPayerAccounts(),
         dashboard.loadDashboardData()
       ]);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao atualizar dados:', error);
     }
   };

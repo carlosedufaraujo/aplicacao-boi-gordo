@@ -147,7 +147,7 @@ export const CategoryManagement: React.FC = () => {
       }
       loadCategories();
       setShowCategoryDialog(false);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Erro ao salvar categoria');
     }
   };

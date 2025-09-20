@@ -48,14 +48,19 @@ export const LatestMovements: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'PENDING':
+      {
         return 'bg-neutral-100 text-neutral-700';
       case 'PAYMENT_VALIDATING':
+      {
         return 'bg-warning-100 text-warning-700';
       case 'RECEPTION':
+      {
         return 'bg-info-100 text-info-700';
       case 'CONFINED':
+      {
         return 'bg-success-100 text-success-700';
       case 'CANCELLED':
+      {
         return 'bg-error-100 text-error-700';
       default:
         return 'bg-neutral-100 text-neutral-700';
@@ -65,14 +70,19 @@ export const LatestMovements: React.FC = () => {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'PENDING':
+      {
         return 'Pendente';
       case 'PAYMENT_VALIDATING':
+      {
         return 'Validando Pagamento';
       case 'RECEPTION':
+      {
         return 'Em Recepção';
       case 'CONFINED':
+      {
         return 'Confinado';
       case 'CANCELLED':
+      {
         return 'Cancelado';
       default:
         return status;

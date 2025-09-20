@@ -875,7 +875,7 @@ export const PurchaseDetailsModal: React.FC<PurchaseDetailsModalProps> = ({
               } else {
                 toast.error('Lote não encontrado para atualizar GMD');
               }
-            } catch (error) {
+            } catch (_error) {
               toast.error('Erro ao atualizar GMD');
             }
           }}>

@@ -118,7 +118,7 @@ export const CategoryCostCenterManager: React.FC = () => {
       // TODO: Carregar centros de custo quando a API estiver disponível
       // const costCentersData = await costCenterAPI.getAll();
       // setCostCenters(costCentersData);
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao carregar dados:', error);
       toast.error('Erro ao carregar dados');
     } finally {
@@ -146,7 +146,7 @@ export const CategoryCostCenterManager: React.FC = () => {
         icon: 'tag'
       });
       loadData();
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao salvar categoria:', error);
       toast.error('Erro ao salvar categoria');
     }
@@ -175,7 +175,7 @@ export const CategoryCostCenterManager: React.FC = () => {
         await categoryAPI.delete(id);
         toast.success('Categoria excluída com sucesso');
         loadData();
-      } catch (error) {
+      } catch (_error) {
         console.error('Erro ao excluir categoria:', error);
         toast.error('Erro ao excluir categoria');
       }
@@ -187,7 +187,7 @@ export const CategoryCostCenterManager: React.FC = () => {
       await categoryAPI.update(category.id, { isActive: !category.isActive });
       toast.success(`Categoria ${category.isActive ? 'desativada' : 'ativada'} com sucesso`);
       loadData();
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao alterar status:', error);
       toast.error('Erro ao alterar status da categoria');
     }

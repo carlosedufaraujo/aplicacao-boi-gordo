@@ -38,7 +38,7 @@ export function useRealData() {
         connected: true
       });
 
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro ao carregar dados:', error);
       setState(prev => ({
         ...prev,

@@ -19,7 +19,7 @@ export const useApiIntegration = () => {
           await store.syncWithBackend();
           setIsInitialized(true);
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('Erro ao verificar conexão:', error);
         setConnectionStatus('offline');
       }
@@ -57,26 +57,40 @@ export const useApiData = (dataType: string, filters?: any) => {
         
         switch (dataType) {
           case 'pens':
+      {
             result = await api.cadastros.pens.getAll();
-            break;
+            }
+      break;
           case 'partners':
+      {
             result = await api.cadastros.partners.getAll(filters?.type);
-            break;
+            }
+      break;
           case 'cycles':
+      {
             result = await api.cadastros.cycles.getAll();
-            break;
+            }
+      break;
           case 'cattlePurchases':
+      {
             result = await api.pipeline.cattlePurchases.getAll(filters);
-            break;
+            }
+      break;
           case 'lots':
+      {
             result = await api.lots.lots.getAll(filters);
-            break;
+            }
+      break;
           case 'expenses':
+      {
             result = await api.financial.expenses.getAll(filters);
-            break;
+            }
+      break;
           case 'dashboard':
+      {
             result = await api.dashboard.getAll(filters?.period);
-            break;
+            }
+      break;
           default:
             throw new Error(`Tipo de dados não suportado: ${dataType}`);
         }
@@ -103,26 +117,40 @@ export const useApiData = (dataType: string, filters?: any) => {
         
         switch (dataType) {
           case 'pens':
+      {
             result = await api.cadastros.pens.getAll();
-            break;
+            }
+      break;
           case 'partners':
+      {
             result = await api.cadastros.partners.getAll(filters?.type);
-            break;
+            }
+      break;
           case 'cycles':
+      {
             result = await api.cadastros.cycles.getAll();
-            break;
+            }
+      break;
           case 'cattlePurchases':
+      {
             result = await api.pipeline.cattlePurchases.getAll(filters);
-            break;
+            }
+      break;
           case 'lots':
+      {
             result = await api.lots.lots.getAll(filters);
-            break;
+            }
+      break;
           case 'expenses':
+      {
             result = await api.financial.expenses.getAll(filters);
-            break;
+            }
+      break;
           case 'dashboard':
+      {
             result = await api.dashboard.getAll(filters?.period);
-            break;
+            }
+      break;
           default:
             throw new Error(`Tipo de dados não suportado: ${dataType}`);
         }

@@ -92,7 +92,7 @@ export function useSettings() {
 
       // Load backup info
       await loadBackupInfo();
-    } catch (error) {
+    } catch (_error) {
       console.error('Error loading settings:', error);
       toast.error('Erro ao carregar configurações');
     } finally {
@@ -215,7 +215,7 @@ export function useSettings() {
 
 
       toast.success('Configurações salvas com sucesso!');
-    } catch (error) {
+    } catch (_error) {
       console.error('Error saving settings:', error);
       toast.error('Erro ao salvar configurações');
     } finally {
@@ -269,7 +269,7 @@ export function useSettings() {
           backupSize: formatBytes(backupHistory[0].backup_size || 0)
         }));
       }
-    } catch (error) {
+    } catch (_error) {
       console.error('Error loading backup info:', error);
     }
   };
@@ -279,17 +279,25 @@ export function useSettings() {
     const next = new Date(lastBackup);
     switch (frequency) {
       case 'hourly':
+      {
         next.setHours(next.getHours() + 1);
-        break;
+        }
+      break;
       case 'daily':
+      {
         next.setDate(next.getDate() + 1);
-        break;
+        }
+      break;
       case 'weekly':
+      {
         next.setDate(next.getDate() + 7);
-        break;
+        }
+      break;
       case 'monthly':
+      {
         next.setMonth(next.getMonth() + 1);
-        break;
+        }
+      break;
       default:
         next.setDate(next.getDate() + 1);
     }
@@ -329,7 +337,7 @@ export function useSettings() {
       toast.success('Backup realizado com sucesso!');
       await loadBackupInfo(); // Reload backup info
       return true;
-    } catch (error) {
+    } catch (_error) {
       console.error('Error performing backup:', error);
       toast.error('Erro ao realizar backup');
       return false;
@@ -349,7 +357,7 @@ export function useSettings() {
       const imported = JSON.parse(jsonString) as SettingsData;
       await saveSettings(imported);
       return true;
-    } catch (error) {
+    } catch (_error) {
       console.error('Error importing settings:', error);
       toast.error('Erro ao importar configurações');
       return false;

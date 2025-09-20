@@ -129,8 +129,10 @@ export const UserManagement: React.FC = () => {
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'MASTER':
+      {
         return <ShieldCheck className="h-4 w-4" />;
       case 'ADMIN':
+      {
         return <Shield className="h-4 w-4" />;
       default:
         return <Users className="h-4 w-4" />;
@@ -140,8 +142,10 @@ export const UserManagement: React.FC = () => {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'MASTER':
+      {
         return <Badge variant="destructive">Master</Badge>;
       case 'ADMIN':
+      {
         return <Badge variant="secondary">Admin</Badge>;
       default:
         return <Badge variant="outline">Usuário</Badge>;

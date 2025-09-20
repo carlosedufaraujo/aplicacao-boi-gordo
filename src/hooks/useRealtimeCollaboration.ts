@@ -169,13 +169,21 @@ export function useRealtimeCollaboration({
         // Log dos eventos para debug
         switch (event.type) {
           case 'task_moved':
-            break;
+      {
+            }
+      break;
           case 'task_created':
-            break;
+      {
+            }
+      break;
           case 'task_updated':
-            break;
+      {
+            }
+      break;
           case 'task_deleted':
-            break;
+      {
+            }
+      break;
         }
       }
     };

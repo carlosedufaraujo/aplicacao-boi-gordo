@@ -51,6 +51,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
   const getIconAndColor = () => {
     switch (notification.type) {
       case 'success':
+      {
         return {
           icon: <CheckCircle className="w-5 h-5 text-white" />,
           bgColor: 'bg-success-500',
@@ -59,6 +60,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
           borderColor: 'border-success-200'
         };
       case 'info':
+      {
         return {
           icon: <Info className="w-5 h-5 text-white" />,
           bgColor: 'bg-info-500',
@@ -67,6 +69,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
           borderColor: 'border-info-200'
         };
       case 'warning':
+      {
         return {
           icon: <AlertTriangle className="w-5 h-5 text-white" />,
           bgColor: 'bg-warning-500',
@@ -75,6 +78,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
           borderColor: 'border-warning-200'
         };
       case 'error':
+      {
         return {
           icon: <AlertCircle className="w-5 h-5 text-white" />,
           bgColor: 'bg-error-500',

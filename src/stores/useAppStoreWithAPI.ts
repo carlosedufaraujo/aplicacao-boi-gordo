@@ -229,7 +229,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             ]);
             
             set({ lastSync: new Date() });
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro na sincronização:', error);
             setError('Erro ao sincronizar com o servidor');
           } finally {
@@ -242,7 +242,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const data = await api.getFrontendData();
             set({ cycles: data.cycles || [] });
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro ao carregar ciclos:', error);
             throw error;
           }
@@ -254,7 +254,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const newCycle = await (api as any).cadastros.cycles.create(cycle);
             set(state => ({ cycles: [...state.cycles, newCycle] }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao criar ciclo');
             throw error;
           } finally {
@@ -270,7 +270,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               cycles: state.cycles.map(c => c.id === id ? updatedCycle : c)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao atualizar ciclo');
             throw error;
           } finally {
@@ -286,7 +286,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               cycles: state.cycles.filter(c => c.id !== id)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao deletar ciclo');
             throw error;
           } finally {
@@ -299,7 +299,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const data = await api.getFrontendData();
             set({ partners: data.partners || [] });
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro ao carregar parceiros:', error);
             throw error;
           }
@@ -311,7 +311,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const newPartner = await (api as any).cadastros.partners.create(partner);
             set(state => ({ partners: [...state.partners, newPartner] }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao criar parceiro');
             throw error;
           } finally {
@@ -327,7 +327,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               partners: state.partners.map(p => p.id === id ? updatedPartner : p)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao atualizar parceiro');
             throw error;
           } finally {
@@ -343,7 +343,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               partners: state.partners.filter(p => p.id !== id)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao deletar parceiro');
             throw error;
           } finally {
@@ -356,7 +356,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const data = await api.getFrontendData();
             set({ penRegistrations: data.pens || [] });
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro ao carregar currais:', error);
             throw error;
           }
@@ -368,7 +368,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const newPen = await (api as any).cadastros.pens.create(pen);
             set(state => ({ penRegistrations: [...state.penRegistrations, newPen] }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao criar curral');
             throw error;
           } finally {
@@ -384,7 +384,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               penRegistrations: state.penRegistrations.map(p => p.id === id ? updatedPen : p)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao atualizar curral');
             throw error;
           } finally {
@@ -400,7 +400,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               penRegistrations: state.penRegistrations.filter(p => p.id !== id)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao deletar curral');
             throw error;
           } finally {
@@ -413,7 +413,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const data: any = await api.getFrontendData();
             set({ payerAccounts: data.payerAccounts || [] });
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro ao carregar contas pagadoras:', error);
             throw error;
           }
@@ -425,7 +425,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const newAccount = await (api as any).cadastros.payerAccounts.create(account);
             set(state => ({ payerAccounts: [...state.payerAccounts, newAccount] }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao criar conta pagadora');
             throw error;
           } finally {
@@ -441,7 +441,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               payerAccounts: state.payerAccounts.map(a => a.id === id ? updatedAccount : a)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao atualizar conta pagadora');
             throw error;
           } finally {
@@ -457,7 +457,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               payerAccounts: state.payerAccounts.filter(a => a.id !== id)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao deletar conta pagadora');
             throw error;
           } finally {
@@ -470,7 +470,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const data: any = await api.getFrontendData();
             set({ cattlePurchases: data.cattlePurchases || [] });
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro ao carregar ordens de compra:', error);
             throw error;
           }
@@ -482,7 +482,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const newOrder = await (api as any).pipeline.cattlePurchases.create(order);
             set(state => ({ cattlePurchases: [...state.cattlePurchases, newOrder] }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao criar ordem de compra');
             throw error;
           } finally {
@@ -498,7 +498,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               cattlePurchases: state.cattlePurchases.map(o => o.id === id ? updatedOrder : o)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao atualizar ordem de compra');
             throw error;
           } finally {
@@ -514,7 +514,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               cattlePurchases: state.cattlePurchases.filter(o => o.id !== id)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao deletar ordem de compra');
             throw error;
           } finally {
@@ -530,7 +530,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               cattlePurchases: state.cattlePurchases.map(o => o.id === id ? updatedOrder : o)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao mover ordem para próximo estágio');
             throw error;
           } finally {
@@ -546,7 +546,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               cattlePurchases: state.cattlePurchases.map(o => o.id === id ? updatedOrder : o)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao mover ordem para estágio anterior');
             throw error;
           } finally {
@@ -559,7 +559,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const data: any = await api.getFrontendData();
             set({ cattlePurchases: data.cattlePurchases || [] });
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro ao carregar lotes:', error);
             throw error;
           }
@@ -571,7 +571,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const newLot = await (api as any).lots.lots.create(lot);
             set(state => ({ cattlePurchases: [...state.cattlePurchases, newLot] }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao criar lote');
             throw error;
           } finally {
@@ -587,7 +587,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               cattlePurchases: state.cattlePurchases.map(l => l.id === id ? updatedLot : l)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao atualizar lote');
             throw error;
           } finally {
@@ -603,7 +603,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               cattlePurchases: state.cattlePurchases.filter(l => l.id !== id)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao deletar lote');
             throw error;
           } finally {
@@ -616,7 +616,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const data: any = await api.getFrontendData();
             set({ expenses: data.expenses || [] });
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro ao carregar despesas:', error);
             throw error;
           }
@@ -628,7 +628,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const newExpense = await (api as any).financial.expenses.create(expense);
             set(state => ({ expenses: [...state.expenses, newExpense] }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao criar despesa');
             throw error;
           } finally {
@@ -644,7 +644,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               expenses: state.expenses.map(e => e.id === id ? updatedExpense : e)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao atualizar despesa');
             throw error;
           } finally {
@@ -660,7 +660,7 @@ export const useAppStoreWithAPI = create<AppState>()(
             set(state => ({
               expenses: state.expenses.filter(e => e.id !== id)
             }));
-          } catch (error) {
+          } catch (_error) {
             setError('Erro ao deletar despesa');
             throw error;
           } finally {
@@ -682,7 +682,7 @@ export const useAppStoreWithAPI = create<AppState>()(
               { label: 'Lucro Líquido', value: `R$ ${(data.netProfit || 0).toLocaleString('pt-BR')}`, icon: 'DollarSign' },
             ];
             set({ kpis });
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro ao carregar dados do dashboard:', error);
             throw error;
           }
@@ -722,7 +722,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const { code } = await (api as any).pipeline?.cattlePurchases?.generateCode() || { code: `OC-${Date.now()}` };
             return code;
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro ao gerar código de ordem:', error);
             return `OC-${Date.now()}`;
           }
@@ -732,7 +732,7 @@ export const useAppStoreWithAPI = create<AppState>()(
           try {
             const { number } = await (api as any).lots?.lots?.generateNumber() || { number: `L-${Date.now()}` };
             return number;
-          } catch (error) {
+          } catch (_error) {
             console.error('Erro ao gerar número de lote:', error);
             return `LOT-${Date.now()}`;
           }

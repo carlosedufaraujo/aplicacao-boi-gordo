@@ -41,6 +41,7 @@ const StatusChangeButton: React.FC<StatusChangeButtonProps> = ({
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'PENDING':
+      {
         return {
           label: 'Pendente',
           icon: Clock,
@@ -48,6 +49,7 @@ const StatusChangeButton: React.FC<StatusChangeButtonProps> = ({
           color: 'text-amber-600'
         };
       case 'PAID':
+      {
         return {
           label: transactionType === 'EXPENSE' ? 'Pago' : 'Recebido',
           icon: CheckCircle,
@@ -55,6 +57,7 @@ const StatusChangeButton: React.FC<StatusChangeButtonProps> = ({
           color: 'text-emerald-600'
         };
       case 'RECEIVED':
+      {
         return {
           label: 'Recebido',
           icon: CheckCircle,
@@ -62,6 +65,7 @@ const StatusChangeButton: React.FC<StatusChangeButtonProps> = ({
           color: 'text-emerald-600'
         };
       case 'CANCELLED':
+      {
         return {
           label: 'Cancelado',
           icon: XCircle,

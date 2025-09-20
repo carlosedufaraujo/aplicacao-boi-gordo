@@ -421,6 +421,7 @@ export const ModernRegistrations: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'partners':
+      {
         return (
           <>
             {/* Lista de Parceiros */}
@@ -526,6 +527,7 @@ export const ModernRegistrations: React.FC = () => {
         );
 
       case 'pens':
+      {
         return (
           <>
             {/* Lista de Currais */}
@@ -587,6 +589,7 @@ export const ModernRegistrations: React.FC = () => {
         );
 
       case 'accounts':
+      {
         return (
           <Card>
             <CardHeader>

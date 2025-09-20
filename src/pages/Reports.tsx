@@ -83,7 +83,7 @@ export default function Reports() {
       } else {
         toast.info('Exportação CSV em desenvolvimento');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Erro ao exportar relatório');
     }
   };

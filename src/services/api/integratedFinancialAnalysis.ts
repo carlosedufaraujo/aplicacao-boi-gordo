@@ -265,7 +265,7 @@ class IntegratedFinancialAnalysisService {
     try {
       const response = await api.get('/integrated-analysis/transactions');
       return response.data.data || [];
-    } catch (error) {
+    } catch (_error) {
       console.error('Erro ao buscar todas as transações:', error);
       throw error;
     }
