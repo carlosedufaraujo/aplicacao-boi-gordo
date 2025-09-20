@@ -30,3 +30,7 @@ backend/.env.local
 backend/.env.production
 mcp-supabase-config.json
 *.env
+*.backup_current
+.env.backup*
+docs/Captura*
+docs/Screenshot*
