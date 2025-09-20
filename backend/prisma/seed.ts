@@ -109,7 +109,7 @@ async function main() {
     const partners = [
       {
         name: 'Fazenda São João',
-        type: 'SUPPLIER' as const,
+        type: 'VENDOR' as const,
         cpfCnpj: '12.345.678/0001-90',
         phone: '(11) 98765-4321',
         email: 'contato@fazendaSaojoao.com',
