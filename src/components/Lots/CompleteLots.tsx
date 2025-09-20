@@ -136,6 +136,7 @@ import { EnhancedPurchaseForm } from '@/components/Forms/EnhancedPurchaseForm';
 import { PenOccupancyIndicators, OccupancyStats } from './PenOccupancyIndicators';
 import InterventionHistory from '@/components/Interventions/InterventionHistory';
 import { PenAllocationForm } from './PenAllocationForm';
+import { UnifiedInterventionsTable } from './UnifiedInterventionsTable';
 
 // Funções utilitárias
 const getStatusColor = (status: string) => {
@@ -343,24 +344,72 @@ export const CompleteLots: React.FC = () => {
   const [selectedDeathCause, setSelectedDeathCause] = useState<string>('unknown');
   const [interventionHistory, setInterventionHistory] = useState<any[]>([]);
   const [interventionStats, setInterventionStats] = useState<any>(null);
+  const [recentInterventions, setRecentInterventions] = useState<{
+    protocols: any[];
+    mortalities: any[];
+    movements: any[];
+    weighings: any[];
+  }>({
+    protocols: [],
+    mortalities: [],
+    movements: [],
+    weighings: []
+  });
 
   // Carregar histórico de intervenções
   useEffect(() => {
     const loadInterventions = async () => {
       try {
         const [history, stats] = await Promise.all([
-          getInterventionHistory({ 
+          getInterventionHistory({
             startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() // Últimos 30 dias
           }),
           getInterventionStatistics()
         ]);
         setInterventionHistory(history || []);
         setInterventionStats(stats || {});
+
+        // Processar intervenções para a tabela unificada
+        if (history && Array.isArray(history)) {
+          const protocols: any[] = [];
+          const mortalities: any[] = [];
+          const movements: any[] = [];
+          const weighings: any[] = [];
+
+          history.forEach((intervention: any) => {
+            switch (intervention.type) {
+              case 'health':
+              case 'vaccination':
+              case 'treatment':
+                protocols.push(intervention);
+                break;
+              case 'mortality':
+              case 'death':
+                mortalities.push(intervention);
+                break;
+              case 'movement':
+              case 'transfer':
+                movements.push(intervention);
+                break;
+              case 'weighing':
+              case 'weight':
+                weighings.push(intervention);
+                break;
+            }
+          });
+
+          setRecentInterventions({
+            protocols,
+            mortalities,
+            movements,
+            weighings
+          });
+        }
       } catch (error) {
         console.error('❌ Erro ao carregar intervenções:', error);
       }
     };
-    
+
     loadInterventions();
   }, [getInterventionHistory, getInterventionStatistics]);
 
@@ -1429,79 +1478,15 @@ export const CompleteLots: React.FC = () => {
               </Card>
             </div>
 
-            {/* Resumo dos Currais */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="card-title flex items-center gap-2">
-                  <Home className="h-4 w-4" />
-                  Resumo dos Currais
-                </CardTitle>
-                <CardDescription>
-                  Informações detalhadas sobre capacidade e ocupação
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {occupancyData?.map((occupancy) => {
-                    const pen = pens?.find(p => p.id === occupancy.penId);
-                    const getStatusColor = (status: string) => {
-                      switch (status) {
-                        case 'available': return 'text-success';
-                        case 'partial': return 'text-warning';
-                        case 'full': return 'text-error';
-                        case 'maintenance': return 'text-muted-foreground';
-                        default: return 'text-muted-foreground';
-                      }
-                    };
-
-                    const getStatusLabel = (status: string) => {
-                      switch (status) {
-                        case 'available': return 'Disponível';
-                        case 'partial': return 'Ocupado Parcialmente';
-                        case 'full': return 'Lotado';
-                        case 'maintenance': return 'Em Manutenção';
-                        default: return 'Desconhecido';
-                      }
-                    };
-
-                    return (
-                      <div key={occupancy.penId} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg">
-                            <Home className="h-4 w-4 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-body-sm font-medium">Curral {occupancy.penNumber}</p>
-                            <p className="text-caption text-muted-foreground">
-                              {pen?.location || 'Localização não informada'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-body-sm font-medium">
-                              {occupancy.currentOccupancy}/{occupancy.capacity}
-                            </span>
-                            <Badge variant="outline" className={`text-caption ${getStatusColor(occupancy.status)}`}>
-                              {getStatusLabel(occupancy.status)}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Progress 
-                              value={occupancy.occupancyRate} 
-                              className="h-1.5 w-20" 
-                            />
-                            <span className="text-caption text-muted-foreground">
-                              {occupancy.occupancyRate.toFixed(0)}%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Tabela Unificada de Intervenções - Substitui Resumo dos Currais */}
+            <UnifiedInterventionsTable
+              lotId={selectedLot?.id}
+              protocols={recentInterventions.protocols}
+              mortalities={recentInterventions.mortalities}
+              movements={recentInterventions.movements}
+              weighings={recentInterventions.weighings}
+              occupancyData={occupancyData}
+            />
           </TabsContent>
 
           {/* Visualização em Tabela de Lotes */}

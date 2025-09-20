@@ -26,6 +26,7 @@ const CategoryManagement = lazy(() => import('@/components/Categories/CategoryMa
 
 // Componentes de configurações
 const Reports = lazy(() => import('@/pages/Reports'));
+const FinancialSettings = lazy(() => import('@/pages/FinancialSettings'));
 
 // Página de Login
 const Login02 = lazy(() => import('@/pages/Login02'));
@@ -86,10 +87,14 @@ const AppContent: React.FC = () => {
         return <CompleteCalendar />;
       case 'reports':
         return <Reports />;
+      case 'registrations':
+        return <CompleteRegistrations />;
       case 'settings':
         return <Settings />;
       case 'categories':
         return <CategoryManagement />;
+      case 'financial-settings':
+        return <FinancialSettings />;
       default:
         return (
           <div className="flex items-center justify-center h-64">

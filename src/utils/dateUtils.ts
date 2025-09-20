@@ -107,7 +107,7 @@ export const formatSafeCurrency = (
   }
   
   try {
-    return `R$ ${numValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    return `R$ ${numValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   } catch (error) {
     console.error('Erro ao formatar valor monetário:', value, error);
     return fallback;

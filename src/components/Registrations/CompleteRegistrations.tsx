@@ -50,6 +50,7 @@ const formatBrazilianNumber = (value: number) => new Intl.NumberFormat('pt-BR').
 const DATE_CONFIG = { locale: 'pt-BR' };
 import { cleanCpfCnpj, formatCpfCnpj } from '@/utils/cpfCnpjUtils';
 import categoryAPI, { Category } from '@/services/api/categoryApi';
+import { CategoryCostCenterManager } from '@/components/Financial/CategoryCostCenterManager';
 
 // Componentes shadcn/ui
 import {
@@ -1955,119 +1956,7 @@ export const CompleteRegistrations: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="categories" className="space-y-4">
-            {filteredData.length > 0 ? (
-              <Card>
-                <CardContent className="p-0">
-                  <div className="border rounded-md">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="w-[50px] text-xs font-medium">Cor</TableHead>
-                          <TableHead className="w-[35%] text-xs font-medium">Nome da Categoria</TableHead>
-                          <TableHead className="w-[15%] text-xs font-medium">Tipo</TableHead>
-                          <TableHead className="w-[15%] text-xs font-medium">Status</TableHead>
-                          <TableHead className="w-[15%] text-xs font-medium">Origem</TableHead>
-                          <TableHead className="w-[100px] text-center text-xs font-medium">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredData.map(item => {
-                          return (
-                            <TableRow key={item.id} className="hover:bg-muted/50">
-                              <TableCell className="py-2">
-                                <div className="flex items-center">
-                                  <div 
-                                    className="w-8 h-8 rounded-md border-2"
-                                    style={{ 
-                                      backgroundColor: item.color || '#000000',
-                                      borderColor: item.color || '#000000' 
-                                    }}
-                                    title={item.color}
-                                  />
-                                </div>
-                              </TableCell>
-                              <TableCell className="py-2">
-                                <p className="text-sm font-medium leading-none">{item.name}</p>
-                              </TableCell>
-                              <TableCell className="py-2">
-                                <Badge 
-                                  variant={item.type === 'INCOME' ? 'default' : 'destructive'}
-                                  className="text-xs font-medium"
-                                >
-                                  {item.type === 'INCOME' ? 'Receita' : 'Despesa'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="py-2">
-                                <Badge variant="outline" className="text-xs font-medium">
-                                  {item.isActive !== false ? 'Ativa' : 'Inativa'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="py-2">
-                                <div className="flex items-center gap-1.5">
-                                  <Tags className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span className="text-xs text-muted-foreground">Categoria</span>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-center py-2">
-                                <div className="flex items-center justify-center gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleItemEdit(item)}
-                                    className="h-7 w-7"
-                                  >
-                                    <Edit className="h-3.5 w-3.5" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleItemDelete(item)}
-                                    className="h-7 w-7 text-destructive hover:text-destructive"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  
-                  {/* Rodapé com informações */}
-                  <div className="px-4 py-3 border-t bg-muted/30">
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>
-                        Exibindo {filteredData.length} de {categories.length} categorias
-                      </span>
-                      <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded-full bg-green-600"></div>
-                          {categories.filter(c => c.type === 'INCOME').length} receitas
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded-full bg-red-600"></div>
-                          {categories.filter(c => c.type === 'EXPENSE').length} despesas
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Tags className="h-12 w-12 text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium text-muted-foreground">
-                    Nenhuma categoria encontrada
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Tente ajustar os filtros ou criar uma nova categoria
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+            <CategoryCostCenterManager />
           </TabsContent>
 
           <TabsContent value="properties" className="space-y-4">

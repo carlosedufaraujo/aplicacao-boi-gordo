@@ -46,14 +46,16 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import CashFlowForm from './CashFlowForm';
 import { SimpleIntegratedAnalysis } from '@/components/FinancialAnalysis/SimpleIntegratedAnalysis';
+import { ExpandedCashFlow } from '@/components/Financial/ExpandedCashFlow';
 import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
 import { ConfirmDialog } from '@/components/Common/ConfirmDialog';
 import StatusChangeButton from './StatusChangeButton';
 import { categoryService } from '@/services/categoryService';
 import { useEffect } from 'react';
 
-import { toast } from 'sonner';
+import { useSafeToast } from '@/hooks/useSafeToast';
 export const CashFlowDashboard: React.FC = () => {
+  const toast = useSafeToast();
 
   const [showForm, setShowForm] = useState(false);
   const [editingCashFlow, setEditingCashFlow] = useState<any>(null);
@@ -290,13 +292,13 @@ export const CashFlowDashboard: React.FC = () => {
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="text-xs font-medium w-[25%]">Descrição</TableHead>
-            <TableHead className="text-xs font-medium w-[15%]">Categoria</TableHead>
-            <TableHead className="text-xs font-medium w-[15%]">Conta</TableHead>
-            <TableHead className="text-xs font-medium w-[12%]">Vencimento</TableHead>
-            <TableHead className="text-xs font-medium w-[13%] text-right">Valor</TableHead>
-            <TableHead className="text-xs font-medium w-[12%]">Status</TableHead>
-            <TableHead className="text-xs font-medium w-[8%] text-center">Ações</TableHead>
+            <TableHead className="table-header w-[25%]">Descrição</TableHead>
+            <TableHead className="table-header w-[15%]">Categoria</TableHead>
+            <TableHead className="table-header w-[15%]">Conta</TableHead>
+            <TableHead className="table-header w-[12%]">Vencimento</TableHead>
+            <TableHead className="table-header w-[13%] text-right">Valor</TableHead>
+            <TableHead className="table-header w-[12%]">Status</TableHead>
+            <TableHead className="table-header w-[8%] text-center">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -330,29 +332,35 @@ export const CashFlowDashboard: React.FC = () => {
                 
                 <TableCell className="py-3">
                   {(() => {
-                    // Busca a categoria pelo ID ou nome
-                    const category = categories.find(cat => 
-                      cat.id === cashFlow.categoryId || 
-                      cat.name === cashFlow.category?.name ||
-                      cat.name === cashFlow.category
-                    );
-                    
+                    // Busca a categoria pelo ID
+                    const category = categories.find(cat => cat.id === cashFlow.categoryId);
+
                     if (category) {
+                      // Usar a cor da categoria se existir
+                      const badgeStyle = category.color && category.color !== '#6B7280'
+                        ? {
+                            backgroundColor: `${category.color}20`,
+                            borderColor: category.color,
+                            color: category.color
+                          }
+                        : {};
+
                       return (
-                        <Badge 
+                        <Badge
                           className={cn(
                             "text-xs font-medium border",
-                            cashFlow.type === 'INCOME' 
+                            !category.color && (category.type === 'INCOME'
                               ? "bg-green-100 text-green-800 border-green-300"
-                              : "bg-red-100 text-red-800 border-red-300"
-                          )} 
+                              : "bg-red-100 text-red-800 border-red-300")
+                          )}
+                          style={badgeStyle}
                           variant="secondary"
                         >
                           {category.name}
                         </Badge>
                       );
                     }
-                    
+
                     return <Badge variant="outline" className="text-xs">Sem categoria</Badge>;
                   })()}
                 </TableCell>
@@ -360,8 +368,8 @@ export const CashFlowDashboard: React.FC = () => {
                 <TableCell className="py-3">
                   {cashFlow.account ? (
                     <div className="space-y-0.5">
-                      <p className="text-sm font-medium">{cashFlow.account.accountName}</p>
-                      <p className="text-xs text-muted-foreground">{cashFlow.account.bankName}</p>
+                      <p className="kpi-label">{cashFlow.account.accountName}</p>
+                      <p className="kpi-variation text-muted-foreground">{cashFlow.account.bankName}</p>
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">Não informada</span>
@@ -374,7 +382,7 @@ export const CashFlowDashboard: React.FC = () => {
                       {format(new Date(cashFlow.dueDate || cashFlow.date), 'dd/MM/yyyy', { locale: ptBR })}
                     </p>
                     {cashFlow.dueDate && cashFlow.status === 'PENDING' && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="kpi-variation text-muted-foreground">
                         {(() => {
                           const days = Math.ceil((new Date(cashFlow.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                           if (days < 0) return `Vencido há ${Math.abs(days)} dias`;
@@ -437,15 +445,15 @@ export const CashFlowDashboard: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
+    <div className="p-6 space-y-8">
       {/* Header com símbolo $ */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          <h1 className="page-title flex items-center gap-2">
             <DollarSign className="h-6 w-6 text-green-600" />
             Centro Financeiro
           </h1>
-          <p className="text-sm text-muted-foreground">Gerencie o fluxo de caixa da fazenda</p>
+          <p className="page-subtitle">Gerencie o fluxo de caixa da fazenda</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button 
@@ -469,14 +477,14 @@ export const CashFlowDashboard: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
+              <CardTitle className="kpi-label">Saldo Atual</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl font-semibold">
+              <div className="kpi-value">
                 {formatCurrency(summary.balance)}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="kpi-variation text-muted-foreground">
                 Receitas realizadas - Despesas pagas
               </p>
             </CardContent>
@@ -484,11 +492,11 @@ export const CashFlowDashboard: React.FC = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Receitas</CardTitle>
+              <CardTitle className="kpi-label">Receitas</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl font-semibold text-green-600">
+              <div className="kpi-value text-green-600">
                 {formatCurrency(summary.totalIncome)}
               </div>
               <div className="flex justify-between text-xs">
@@ -504,11 +512,11 @@ export const CashFlowDashboard: React.FC = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Despesas</CardTitle>
+              <CardTitle className="kpi-label">Despesas</CardTitle>
               <TrendingDown className="h-4 w-4 text-red-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl font-semibold text-red-600">
+              <div className="kpi-value text-red-600">
                 {formatCurrency(summary.totalExpense)}
               </div>
               <div className="flex justify-between text-xs">
@@ -524,16 +532,16 @@ export const CashFlowDashboard: React.FC = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Projeção</CardTitle>
+              <CardTitle className="kpi-label">Projeção</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl font-semibold">
+              <div className="kpi-value">
                 {formatCurrency(
                   summary.balance + summary.pendingIncome - summary.pendingExpense
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="kpi-variation text-muted-foreground">
                 Saldo após pendências
               </p>
             </CardContent>
@@ -561,7 +569,7 @@ export const CashFlowDashboard: React.FC = () => {
                 <div className="flex justify-between items-center p-2 bg-muted rounded">
                   <div className="flex-1">
                     <p className="font-medium text-sm">{account.accountName}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="kpi-variation text-muted-foreground">
                       {account.bankName} - {(() => {
                         const types: Record<string, string> = {
                           'CHECKING': 'Conta Corrente',
@@ -648,7 +656,7 @@ export const CashFlowDashboard: React.FC = () => {
             {accountBalances?.length > 0 && (
               <div className="mt-3 pt-3 border-t">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Total Geral</span>
+                  <span className="kpi-label">Total Geral</span>
                   <span className={cn(
                     "text-sm font-bold",
                     accountBalances.reduce((sum, acc) => sum + (acc.calculatedBalance || 0), 0) >= 0 
@@ -683,7 +691,7 @@ export const CashFlowDashboard: React.FC = () => {
                 upcomingDueDates.map(event => (
                   <div key={event.id} className="flex justify-between items-center p-3 bg-muted rounded-lg hover:bg-muted/80 transition-colors">
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{event.title}</p>
+                      <p className="kpi-label">{event.title}</p>
                       <div className="flex items-center gap-4 mt-1">
                         <p className="text-sm text-muted-foreground flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
@@ -729,18 +737,19 @@ export const CashFlowDashboard: React.FC = () => {
                   Gerencie todas as entradas e saídas do fluxo de caixa
                 </p>
               </div>
-              <TabsList className="grid w-full max-w-md grid-cols-4">
+              <TabsList className="grid w-full max-w-md grid-cols-5">
                 <TabsTrigger value="all">Todas</TabsTrigger>
                 <TabsTrigger value="income">Receitas</TabsTrigger>
                 <TabsTrigger value="expense">Despesas</TabsTrigger>
                 <TabsTrigger value="analysis">Análise</TabsTrigger>
+                <TabsTrigger value="cashflow">Fluxo</TabsTrigger>
               </TabsList>
             </div>
 
             <TabsContent value="all" className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base font-medium">Todas as Movimentações</CardTitle>
+                  <CardTitle className="card-title">Todas as Movimentações</CardTitle>
                   <CardDescription>
                     Visualize todas as entradas e saídas do fluxo de caixa
                   </CardDescription>
@@ -819,6 +828,23 @@ export const CashFlowDashboard: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <SimpleIntegratedAnalysis />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="cashflow" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base font-medium flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5 text-purple-600" />
+                    Fluxo de Caixa Expandido
+                  </CardTitle>
+                  <CardDescription>
+                    Visualização detalhada por período com projeções e análises
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ExpandedCashFlow />
                 </CardContent>
               </Card>
             </TabsContent>

@@ -1,5 +1,4 @@
-import { supabase } from '@/services/supabase';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import api from '@/lib/api';
 
 export interface Category {
   id: string;
@@ -20,7 +19,6 @@ export interface Category {
 export class CategoryService {
   private categories: Category[] = [];
   private loading: boolean = false;
-  private channel: RealtimeChannel | null = null;
   private listeners: Set<() => void> = new Set();
 
   constructor() {
@@ -29,31 +27,9 @@ export class CategoryService {
 
   private async initializeService(): Promise<void> {
     await this.loadCategories();
-    this.setupRealtimeSync();
+    // Realtime sync removido - usando polling ou atualização manual
   }
 
-  // Configurar sincronização em tempo real
-  private setupRealtimeSync(): void {
-    // Inscrever-se para mudanças na tabela categories
-    this.channel = supabase
-      .channel('categories-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'categories'
-        },
-        async (payload) => {
-          console.log('Categoria alterada:', payload);
-          // Recarregar categorias quando houver mudança
-          await this.loadCategories();
-          // Notificar todos os listeners
-          this.notifyListeners();
-        }
-      )
-      .subscribe();
-  }
 
   // Adicionar listener para mudanças
   public addChangeListener(callback: () => void): () => void {
@@ -74,20 +50,19 @@ export class CategoryService {
     try {
       this.loading = true;
 
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+      // Usar API REST ao invés do Supabase direto
+      const response = await api.get('/categories');
 
-      if (error) {
-        console.error('Erro ao carregar categorias:', error);
+      if (response.data && Array.isArray(response.data)) {
+        // Filtrar apenas categorias ativas
+        this.categories = response.data
+          .filter((cat: Category) => cat.is_active !== false)
+          .sort((a: Category, b: Category) => (a.display_order || 0) - (b.display_order || 0));
+      } else {
         // Fallback para categorias padrão em memória se houver erro
         this.loadDefaultCategories();
         return;
       }
-
-      this.categories = data || [];
 
       // Se não houver categorias no banco, inserir as padrão
       if (this.categories.length === 0) {
@@ -144,19 +119,15 @@ export class CategoryService {
   // Criar nova categoria
   public async create(category: Omit<Category, 'id' | 'created_at' | 'updated_at'>): Promise<Category | null> {
     try {
-      const { data, error } = await supabase
-        .from('categories')
-        .insert([{
-          ...category,
-          code: category.code || `custom_${Date.now()}`,
-          is_default: false
-        }])
-        .select()
-        .single();
+      const response = await api.post('/categories', {
+        ...category,
+        code: category.code || `custom_${Date.now()}`,
+        is_default: false
+      });
 
-      if (error) {
-        console.error('Erro ao criar categoria:', error);
-        throw error;
+      const data = response.data;
+      if (!data) {
+        throw new Error('Erro ao criar categoria');
       }
 
       // Recarregar categorias
@@ -184,16 +155,11 @@ export class CategoryService {
         updates = allowedUpdates;
       }
 
-      const { data, error } = await supabase
-        .from('categories')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await api.put(`/categories/${id}`, updates);
 
-      if (error) {
-        console.error('Erro ao atualizar categoria:', error);
-        throw error;
+      const data = response.data;
+      if (!data) {
+        throw new Error('Erro ao atualizar categoria');
       }
 
       // Recarregar categorias
@@ -215,15 +181,9 @@ export class CategoryService {
       }
 
       // Soft delete - apenas marca como inativa
-      const { error } = await supabase
-        .from('categories')
-        .update({ is_active: false })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Erro ao deletar categoria:', error);
-        throw error;
-      }
+      await api.delete(`/categories/${id}`);
+      // Ou usar update para soft delete
+      // await api.put(`/categories/${id}`, { is_active: false });
 
       // Recarregar categorias
       await this.loadCategories();
@@ -243,16 +203,9 @@ export class CategoryService {
       // Não permitir deletar categorias padrão
       if (category.is_default) return false;
 
-      // Verificar se está em uso (chamar função do banco)
-      const { data, error } = await supabase
-        .rpc('category_in_use', { category_code: category.code });
-
-      if (error) {
-        console.error('Erro ao verificar uso da categoria:', error);
-        return false;
-      }
-
-      return !data; // Pode deletar se NÃO está em uso
+      // Por enquanto, assumir que categorias customizadas podem ser deletadas
+      // TODO: Implementar verificação via API quando disponível
+      return true;
     } catch (error) {
       console.error('Erro ao verificar se pode deletar:', error);
       return false;

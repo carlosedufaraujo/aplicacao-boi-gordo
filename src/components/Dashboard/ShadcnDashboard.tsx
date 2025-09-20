@@ -723,7 +723,7 @@ export function ShadcnDashboard() {
               </div>
             </CardHeader>
             <CardContent className="p-3 pt-1">
-              <div className="kpi-value">R$ {formatSafeDecimal(averagePurchaseCostPerArroba, 2)}</div>
+              <div className="kpi-value">{formatSafeCurrency(averagePurchaseCostPerArroba)}</div>
               <p className="kpi-label">Média por Arroba</p>
             </CardContent>
           </Card>

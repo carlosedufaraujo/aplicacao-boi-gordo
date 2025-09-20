@@ -23,25 +23,16 @@ import {
   CheckCircle,
   Percent,
   ShoppingBag,
-  Wallet,
   Receipt,
   RefreshCw,
-  Calendar,
   ChevronRight,
   ArrowUpRight,
-  ArrowDownRight,
-  Clock,
-  CalendarClock,
-  AlertTriangle
+  ArrowDownRight
 } from 'lucide-react';
 import { useFinancialData } from '@/providers/FinancialDataProvider';
 import { formatSafeDate } from '@/utils/dateUtils';
 import { toast } from 'sonner';
 import { formatCurrency, formatNumber } from '@/utils/cattlePurchaseCalculations';
-import { useCashFlow } from '@/hooks/useCashFlow';
-import { format, isAfter, isBefore, addDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { getCategoryById } from '@/data/defaultCategories';
 
 export default function Reports() {
   const { 
@@ -55,91 +46,8 @@ export default function Reports() {
     refresh 
   } = useFinancialData();
   
-  const {
-    cashFlows,
-    summary: cashFlowSummary,
-    loading: cashFlowLoading
-  } = useCashFlow();
-  
   const [selectedTab, setSelectedTab] = useState('overview');
   const [selectedPeriod, setSelectedPeriod] = useState('all');
-  
-  // Calcular movimentações a vencer (próximos 30 dias)
-  const upcomingMovements = useMemo(() => {
-    if (!cashFlows) return { expenses: [], revenues: [] };
-    
-    const today = new Date();
-    const thirtyDaysFromNow = addDays(today, 30);
-    
-    const upcomingExpenses = cashFlows.filter(cf => 
-      cf.type === 'EXPENSE' && 
-      cf.status === 'PENDING' &&
-      cf.dueDate &&
-      isAfter(new Date(cf.dueDate), today) &&
-      isBefore(new Date(cf.dueDate), thirtyDaysFromNow)
-    );
-    
-    const upcomingRevenues = cashFlows.filter(cf => 
-      cf.type === 'INCOME' && 
-      cf.status === 'PENDING' &&
-      cf.dueDate &&
-      isAfter(new Date(cf.dueDate), today) &&
-      isBefore(new Date(cf.dueDate), thirtyDaysFromNow)
-    );
-    
-    return {
-      expenses: upcomingExpenses.sort((a, b) => 
-        new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime()
-      ),
-      revenues: upcomingRevenues.sort((a, b) => 
-        new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime()
-      )
-    };
-  }, [cashFlows]);
-  
-  // Calcular totais das movimentações a vencer
-  const upcomingTotals = useMemo(() => {
-    const totalExpenses = upcomingMovements.expenses.reduce((sum, cf) => sum + cf.amount, 0);
-    const totalRevenues = upcomingMovements.revenues.reduce((sum, cf) => sum + cf.amount, 0);
-    return {
-      expenses: totalExpenses,
-      revenues: totalRevenues,
-      balance: totalRevenues - totalExpenses
-    };
-  }, [upcomingMovements]);
-  
-  // Agrupar cash flows por categoria
-  const categoryBreakdown = useMemo(() => {
-    if (!cashFlows) return { expenses: {}, incomes: {} };
-    
-    const expenses: Record<string, { name: string; amount: number; count: number }> = {};
-    const incomes: Record<string, { name: string; amount: number; count: number }> = {};
-    
-    cashFlows.forEach(cf => {
-      // Considerar apenas movimentações pagas/recebidas
-      if (cf.status !== 'PAID' && cf.status !== 'RECEIVED') return;
-      
-      const category = getCategoryById(cf.categoryId);
-      const categoryName = category?.name || 'Outros';
-      const categoryId = cf.categoryId || 'outros';
-      
-      if (cf.type === 'EXPENSE') {
-        if (!expenses[categoryId]) {
-          expenses[categoryId] = { name: categoryName, amount: 0, count: 0 };
-        }
-        expenses[categoryId].amount += cf.amount;
-        expenses[categoryId].count++;
-      } else {
-        if (!incomes[categoryId]) {
-          incomes[categoryId] = { name: categoryName, amount: 0, count: 0 };
-        }
-        incomes[categoryId].amount += cf.amount;
-        incomes[categoryId].count++;
-      }
-    });
-    
-    return { expenses, incomes };
-  }, [cashFlows]);
   
   // Debug removido para limpeza de código
 
@@ -316,10 +224,9 @@ export default function Reports() {
 
       {/* Tabs de Análise */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="lots">Análise por Lote</TabsTrigger>
-          <TabsTrigger value="cashflow">Fluxo de Caixa</TabsTrigger>
         </TabsList>
 
         {/* Tab: Visão Geral */}
@@ -689,275 +596,6 @@ export default function Reports() {
                     <p>Nenhum lote com vendas realizadas</p>
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tab: Fluxo de Caixa */}
-        <TabsContent value="cashflow" className="space-y-4">
-          {/* Resumo Geral do Fluxo de Caixa */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Fluxo de Caixa - Visão Geral
-              </CardTitle>
-              <CardDescription>
-                Movimentação financeira consolidada do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Resumo do Fluxo com dados do Cash Flow */}
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="text-center p-4 border rounded-lg bg-green-50">
-                    <div className="flex items-center justify-center gap-1 mb-2">
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                      <p className="text-sm text-muted-foreground">Total Entradas</p>
-                    </div>
-                    <p className="text-2xl font-bold text-green-600">
-                      {formatCurrency(cashFlowSummary?.totalIncome || 0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {cashFlowSummary?.paidIncome ? `Recebido: ${formatCurrency(cashFlowSummary.paidIncome)}` : ''}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg bg-red-50">
-                    <div className="flex items-center justify-center gap-1 mb-2">
-                      <TrendingDown className="h-4 w-4 text-red-600" />
-                      <p className="text-sm text-muted-foreground">Total Saídas</p>
-                    </div>
-                    <p className="text-2xl font-bold text-red-600">
-                      {formatCurrency(cashFlowSummary?.totalExpense || 0)}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {cashFlowSummary?.paidExpense ? `Pago: ${formatCurrency(cashFlowSummary.paidExpense)}` : ''}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg bg-blue-50">
-                    <div className="flex items-center justify-center gap-1 mb-2">
-                      <Wallet className="h-4 w-4 text-blue-600" />
-                      <p className="text-sm text-muted-foreground">Saldo Atual</p>
-                    </div>
-                    <p className={`text-2xl font-bold ${getStatusColor(cashFlowSummary?.balance || 0)}`}>
-                      {formatCurrency(cashFlowSummary?.balance || 0)}
-                    </p>
-                  </div>
-                  <div className="text-center p-4 border rounded-lg bg-orange-50">
-                    <div className="flex items-center justify-center gap-1 mb-2">
-                      <Clock className="h-4 w-4 text-orange-600" />
-                      <p className="text-sm text-muted-foreground">Pendentes</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm">
-                        <span className="text-green-600 font-medium">
-                          +{formatCurrency(cashFlowSummary?.pendingIncome || 0)}
-                        </span>
-                      </p>
-                      <p className="text-sm">
-                        <span className="text-red-600 font-medium">
-                          -{formatCurrency(cashFlowSummary?.pendingExpense || 0)}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Movimentações Programadas (A Vencer) */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      <CalendarClock className="h-4 w-4" />
-                      Movimentações Programadas (Próximos 30 dias)
-                    </h4>
-                    <Badge variant="outline">
-                      {upcomingMovements.expenses.length + upcomingMovements.revenues.length} pendentes
-                    </Badge>
-                  </div>
-                  
-                  {/* Grid de movimentações a vencer */}
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {/* Receitas a Receber */}
-                    <Card className="border-green-200 bg-green-50/50">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <ArrowUpRight className="h-4 w-4 text-green-600" />
-                            Receitas a Receber
-                          </span>
-                          <span className="text-green-600 font-bold">
-                            {formatCurrency(upcomingTotals.revenues)}
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2 max-h-64 overflow-y-auto">
-                        {upcomingMovements.revenues.length > 0 ? (
-                          upcomingMovements.revenues.map((revenue) => (
-                            <div key={revenue.id} className="flex justify-between items-start p-2 bg-white rounded-lg border border-green-100">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">{revenue.description}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Vence em: {format(new Date(revenue.dueDate!), "dd 'de' MMM", { locale: ptBR })}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm font-bold text-green-600">
-                                  +{formatCurrency(revenue.amount)}
-                                </p>
-                                <Badge variant="outline" className="text-xs">
-                                  {revenue.paymentMethod || 'N/A'}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground text-center py-4">
-                            Nenhuma receita programada
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-
-                    {/* Despesas a Pagar */}
-                    <Card className="border-red-200 bg-red-50/50">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-sm flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <ArrowDownRight className="h-4 w-4 text-red-600" />
-                            Despesas a Pagar
-                          </span>
-                          <span className="text-red-600 font-bold">
-                            {formatCurrency(upcomingTotals.expenses)}
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2 max-h-64 overflow-y-auto">
-                        {upcomingMovements.expenses.length > 0 ? (
-                          upcomingMovements.expenses.map((expense) => (
-                            <div key={expense.id} className="flex justify-between items-start p-2 bg-white rounded-lg border border-red-100">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">{expense.description}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  Vence em: {format(new Date(expense.dueDate!), "dd 'de' MMM", { locale: ptBR })}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm font-bold text-red-600">
-                                  -{formatCurrency(expense.amount)}
-                                </p>
-                                <Badge variant="outline" className="text-xs">
-                                  {expense.paymentMethod || 'N/A'}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground text-center py-4">
-                            Nenhuma despesa programada
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Resumo das Movimentações Programadas */}
-                  {(upcomingMovements.expenses.length > 0 || upcomingMovements.revenues.length > 0) && (
-                    <Alert className={upcomingTotals.balance < 0 ? 'border-red-500' : 'border-blue-500'}>
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        <strong>Projeção próximos 30 dias:</strong> 
-                        <span className="ml-2">Receitas: {formatCurrency(upcomingTotals.revenues)}</span>
-                        <span className="ml-2">| Despesas: {formatCurrency(upcomingTotals.expenses)}</span>
-                        <span className={`ml-2 font-bold ${getStatusColor(upcomingTotals.balance)}`}>
-                          | Saldo Projetado: {formatCurrency(upcomingTotals.balance)}
-                        </span>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-
-                <Separator />
-
-                {/* Detalhamento por Categoria */}
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-sm">Composição das Entradas (Realizadas)</h4>
-                  <div className="space-y-2">
-                    {Object.entries(categoryBreakdown.incomes)
-                      .sort((a, b) => b[1].amount - a[1].amount)
-                      .map(([categoryId, data]) => (
-                        <div key={categoryId} className="flex justify-between items-center text-sm">
-                          <span className="text-muted-foreground">
-                            {data.name} ({data.count})
-                          </span>
-                          <span className="font-medium text-green-600">
-                            +{formatCurrency(data.amount)}
-                          </span>
-                        </div>
-                      ))}
-                    {Object.keys(categoryBreakdown.incomes).length === 0 && (
-                      <div className="text-sm text-muted-foreground">Nenhuma receita realizada</div>
-                    )}
-                  </div>
-
-                  <h4 className="font-semibold text-sm mt-4">Composição das Saídas (Realizadas)</h4>
-                  <div className="space-y-2">
-                    {Object.entries(categoryBreakdown.expenses)
-                      .sort((a, b) => b[1].amount - a[1].amount)
-                      .map(([categoryId, data]) => (
-                        <div key={categoryId} className="flex justify-between items-center text-sm">
-                          <span className="text-muted-foreground">
-                            {data.name} ({data.count})
-                          </span>
-                          <span className="font-medium text-red-600">
-                            -{formatCurrency(data.amount)}
-                          </span>
-                        </div>
-                      ))}
-                    {Object.keys(categoryBreakdown.expenses).length === 0 && (
-                      <div className="text-sm text-muted-foreground">Nenhuma despesa realizada</div>
-                    )}
-                  </div>
-                  
-                  {/* Totais */}
-                  <Separator className="my-2" />
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center text-sm font-semibold">
-                      <span>Total de Receitas</span>
-                      <span className="text-green-600">
-                        +{formatCurrency(cashFlowSummary?.paidIncome || 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm font-semibold">
-                      <span>Total de Despesas</span>
-                      <span className="text-red-600">
-                        -{formatCurrency(cashFlowSummary?.paidExpense || 0)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Alertas de Valores Pendentes */}
-                <div className="space-y-2">
-                  {cashFlowSummary?.pendingIncome && cashFlowSummary.pendingIncome > 0 && (
-                    <Alert>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Há <strong>{formatCurrency(cashFlowSummary.pendingIncome)}</strong> em receitas pendentes de recebimento
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  {cashFlowSummary?.pendingExpense && cashFlowSummary.pendingExpense > 0 && (
-                    <Alert className="border-orange-500">
-                      <AlertCircle className="h-4 w-4 text-orange-600" />
-                      <AlertDescription>
-                        Há <strong>{formatCurrency(cashFlowSummary.pendingExpense)}</strong> em despesas pendentes de pagamento
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
               </div>
             </CardContent>
           </Card>

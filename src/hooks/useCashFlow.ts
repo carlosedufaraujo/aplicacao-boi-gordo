@@ -9,8 +9,9 @@ import categoryAPI from '@/services/api/categoryApi';
 import calendarEventService from '@/services/api/calendarEvent';
 import api from '@/lib/api';
 
-import { toast } from 'sonner';
+import { useSafeToast } from '@/hooks/useSafeToast';
 export const useCashFlow = () => {
+  const toast = useSafeToast();
   const [cashFlows, setCashFlows] = useState<CashFlow[]>([]);
   const [summary, setSummary] = useState<CashFlowSummary | null>(null);
   const [categories, setCategories] = useState<FinancialCategory[]>([]);
@@ -98,7 +99,7 @@ export const useCashFlow = () => {
       toast.error('Não foi possível carregar as categorias. Tente novamente.');
       setCategories([]);
     }
-  }, [toast]);
+  }, []); // toast não deve ser dependência
 
   // Buscar contas
   const fetchAccounts = useCallback(async () => {
@@ -129,11 +130,11 @@ export const useCashFlow = () => {
       
       await fetchCashFlows();
 
-      toast({
-        title: data.type === 'INCOME' ? '💵 Nova Receita' : '💸 Nova Despesa',
-        description: `${data.description} - R$ ${data.amount.toFixed(2)}`,
-        duration: 3000,
-      });
+      const createMessage = data.type === 'INCOME'
+        ? `💵 Nova Receita: ${data.description} - R$ ${data.amount.toFixed(2)}`
+        : `💸 Nova Despesa: ${data.description} - R$ ${data.amount.toFixed(2)}`;
+
+      toast.success(createMessage);
 
       // Criar evento no calendário se tiver data de vencimento
       if (data.dueDate) {
@@ -153,71 +154,55 @@ export const useCashFlow = () => {
       return response.data;
     } catch (error: any) {
       console.error('❌ Erro ao criar movimentação:', error);
-      toast.error(error.message || 'Não foi possível criar a movimentação', {
-        variant: 'destructive',
-        duration: 5000,
-      });
+      toast.error(error.message || 'Não foi possível criar a movimentação');
       throw error;
     }
-  }, [fetchCashFlows, toast]);
+  }, [fetchCashFlows]); // toast não deve ser dependência
 
   // Atualizar movimentação
   const updateCashFlow = useCallback(async (id: string, data: any) => {
     try {
       const response = await api.put(`/cash-flows/${id}`, data);
-      
+
       await fetchCashFlows();
 
-      toast({
-        title: '✏️ Movimentação Atualizada',
-        description: `${data.description} - R$ ${data.amount.toFixed(2)}`,
-        duration: 3000,
-      });
+      const updateMessage = `✏️ Movimentação Atualizada: ${data.description} - R$ ${data.amount.toFixed(2)}`;
+      toast.success(updateMessage);
 
       return response.data;
     } catch (error: any) {
       console.error('❌ Erro ao atualizar movimentação:', error);
-      toast.error(error.message || 'Não foi possível atualizar a movimentação', {
-        variant: 'destructive',
-        duration: 5000,
-      });
-
-      toast.error('Não foi possível atualizar a movimentação. Tente novamente.');
+      toast.error(error.message || 'Não foi possível atualizar a movimentação. Tente novamente.');
       
       throw error;
     }
-  }, [fetchCashFlows, toast]);
+  }, [fetchCashFlows]); // toast não deve ser dependência
 
   // Deletar movimentação
   const deleteCashFlow = useCallback(async (id: string) => {
     try {
-      
+
       // Buscar dados da movimentação antes de deletar para a notificação
       const cashFlow = cashFlows.find(cf => cf.id === id);
-      
+
       await api.delete(`/cash-flows/${id}`);
-      
+
       await fetchCashFlows();
 
-      toast({
-        title: '🗑️ Movimentação Excluída',
-        description: cashFlow ? `${cashFlow.description}` : 'Movimentação excluída com sucesso',
-        duration: 3000,
-      });
+      const message = cashFlow
+        ? `Movimentação excluída: ${cashFlow.description}`
+        : 'Movimentação excluída com sucesso';
+
+      toast.success(message);
 
       return true;
     } catch (error: any) {
       console.error('❌ Erro ao deletar movimentação:', error);
-      toast.error(error.message || 'Não foi possível excluir a movimentação', {
-        variant: 'destructive',
-        duration: 5000,
-      });
+      toast.error(error.message || 'Não foi possível excluir a movimentação. Tente novamente.');
 
-      toast.error('Não foi possível excluir a movimentação. Tente novamente.');
-      
       throw error;
     }
-  }, [fetchCashFlows, toast, cashFlows]);
+  }, [fetchCashFlows, cashFlows]); // toast não deve ser dependência
 
   // Atualizar status
   const updateStatus = useCallback(async (id: string, status: string, paymentDate?: string) => {
@@ -232,12 +217,6 @@ export const useCashFlow = () => {
       });
       
       await fetchCashFlows();
-      
-      toast({
-        title: 'Status atualizado',
-        description: `Status alterado para ${status}`,
-        duration: 3000,
-      });
 
       // Notificação personalizada baseada no status
       let notificationTitle = '';
@@ -259,26 +238,21 @@ export const useCashFlow = () => {
           notificationTitle = '📝 Status Atualizado';
       }
 
-      toast({
-        title: notificationTitle,
-        description: cashFlow ?
-          `${cashFlow.description} - Valor: R$ ${cashFlow.amount.toFixed(2)}` :
-          'Status da movimentação atualizado'
-      });
+      const notificationMessage = cashFlow ?
+        `${notificationTitle} - ${cashFlow.description} - Valor: R$ ${cashFlow.amount.toFixed(2)}` :
+        `${notificationTitle} - Status da movimentação atualizado`;
+
+      // Apenas uma chamada de toast
+      toast.success(notificationMessage);
 
       return response.data;
     } catch (error: any) {
       console.error('❌ Erro ao atualizar status:', error);
-      toast.error(error.message || 'Não foi possível atualizar o status', {
-        variant: 'destructive',
-        duration: 5000,
-      });
-
-      toast.error('Não foi possível atualizar o status. Tente novamente.');
+      toast.error(error.message || 'Não foi possível atualizar o status. Tente novamente.');
       
       throw error;
     }
-  }, [fetchCashFlows, toast, cashFlows]);
+  }, [fetchCashFlows, cashFlows]); // toast não deve ser dependência
 
   // Carregamento inicial
   useEffect(() => {
