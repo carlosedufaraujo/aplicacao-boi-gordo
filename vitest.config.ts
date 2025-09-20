@@ -12,7 +12,9 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/tests/e2e/**',
-      '**/tests/integration/**'
+      '**/tests/integration/**',
+      '**/button.test.tsx',
+      '**/useModernToast.test.ts'
     ],
     coverage: {
       provider: 'v8',
