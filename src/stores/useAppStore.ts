@@ -2911,7 +2911,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     cycles: [],
     partners: [],
     cattlePurchases: [],
-    cattlePurchases: [],
     currentWeightReadings: [],
     healthRecords: [],
     feedCosts: [],

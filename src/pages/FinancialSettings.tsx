@@ -159,3 +159,5 @@ export const FinancialSettings: React.FC = () => {
     </div>
   );
 };
+
+export default FinancialSettings;
