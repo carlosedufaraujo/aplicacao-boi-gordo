@@ -20,7 +20,7 @@ async function executeRetroactiveIntegration() {
     // 4. Mostrar diferenças
     const ordersIntegrated = finalReport.integratedOrders - initialReport.integratedOrders;
     
-  } catch (_error) {
+  } catch (error) {
     console.error('❌ Erro durante a execução:', error);
   }
 }

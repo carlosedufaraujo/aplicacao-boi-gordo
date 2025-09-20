@@ -69,7 +69,7 @@ export class CategoryService {
         await this.insertDefaultCategories();
         await this.loadCategories(); // Recarregar após inserir
       }
-    } catch (_error) {
+    } catch (error) {
       console.error('Erro ao carregar categorias:', error);
       this.loadDefaultCategories();
     } finally {
@@ -133,7 +133,7 @@ export class CategoryService {
       // Recarregar categorias
       await this.loadCategories();
       return data;
-    } catch (_error) {
+    } catch (error) {
       console.error('Erro ao criar categoria:', error);
       return null;
     }
@@ -165,7 +165,7 @@ export class CategoryService {
       // Recarregar categorias
       await this.loadCategories();
       return data;
-    } catch (_error) {
+    } catch (error) {
       console.error('Erro ao atualizar categoria:', error);
       return null;
     }
@@ -188,7 +188,7 @@ export class CategoryService {
       // Recarregar categorias
       await this.loadCategories();
       return true;
-    } catch (_error) {
+    } catch (error) {
       console.error('Erro ao deletar categoria:', error);
       return false;
     }
@@ -206,7 +206,7 @@ export class CategoryService {
       // Por enquanto, assumir que categorias customizadas podem ser deletadas
       // TODO: Implementar verificação via API quando disponível
       return true;
-    } catch (_error) {
+    } catch (error) {
       console.error('Erro ao verificar se pode deletar:', error);
       return false;
     }
@@ -266,7 +266,7 @@ export class CategoryService {
       }
 
       return true;
-    } catch (_error) {
+    } catch (error) {
       console.error('Erro ao importar categorias:', error);
       return false;
     }
@@ -293,7 +293,7 @@ export class CategoryService {
 
       // Recarregar
       await this.loadCategories();
-    } catch (_error) {
+    } catch (error) {
       console.error('Erro ao resetar categorias:', error);
     }
   }
