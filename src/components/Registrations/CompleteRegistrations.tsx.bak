@@ -552,12 +552,16 @@ const DeleteConfirmModal: React.FC<{
   const getWarningMessage = (type: string) => {
     switch (type) {
       case 'partners':
+      {
         return 'Esta ação removerá o parceiro e pode afetar pedidos de compra e vendas associadas.';
       case 'pens':
+      {
         return 'Esta ação removerá o curral e pode afetar lotes que estão alocados neste curral.';
       case 'accounts':
+      {
         return 'Esta ação removerá a conta pagadora e pode afetar transações financeiras associadas.';
       case 'categories':
+      {
         return 'Esta ação removerá a categoria permanentemente. Certifique-se de que não há movimentações financeiras usando esta categoria.';
       default:
         return 'Esta ação não pode ser desfeita.';
@@ -1663,14 +1667,19 @@ export const CompleteRegistrations: React.FC = () => {
   const getItemCount = (typeId: string) => {
     switch (typeId) {
       case 'partners':
+      {
         return partners?.length || 0;
       case 'pens':
+      {
         return pens?.length || 0;
       case 'accounts':
+      {
         return payerAccounts?.length || 0;
       case 'categories':
+      {
         return categories?.length || 0;
       case 'properties':
+      {
         return 0; // Ainda não implementado
       default:
         return 0;

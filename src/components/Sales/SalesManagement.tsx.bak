@@ -238,8 +238,10 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
   const getPaymentTypeBadge = (type: string) => {
     switch (type) {
       case 'cash':
+      {
         return <Badge variant="outline" className="text-green-600">À Vista</Badge>;
       case 'installment':
+      {
         return <Badge variant="outline" className="text-blue-600">Parcelado</Badge>;
       default:
         return <Badge variant="outline">{type}</Badge>;

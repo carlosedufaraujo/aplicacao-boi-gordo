@@ -72,40 +72,28 @@ const AppContent: React.FC = () => {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard':
-      {
         return <ShadcnDashboard />;
       case 'lots':
-      {
         return <CompleteLots />;
       case 'integrated-analysis':
-      {
         return <IntegratedDashboard />;
       case 'financial':
-      {
         return <CashFlowDashboard />;
       case 'sales':
-      {
         return <SalesManagement />;
       case 'purchases':
-      {
         return <PurchaseManagement />;
       case 'calendar':
-      {
         return <CompleteCalendar />;
       case 'reports':
-      {
         return <Reports />;
       case 'registrations':
-      {
         return <CompleteRegistrations />;
       case 'settings':
-      {
         return <Settings />;
       case 'categories':
-      {
         return <CategoryManagement />;
       case 'financial-settings':
-      {
         return <FinancialSettings />;
       default:
         return (

@@ -317,7 +317,8 @@ export class LotIntegrationService {
       try {
         // await dataService.createCalendarEvent(event);
       } catch (_error) {
-        // Ignorar erro por enquanto
+        }
+      break;
       }
     }
   }
@@ -363,7 +364,7 @@ export class LotIntegrationService {
       // Remover eventos relacionados
       // await dataService.deleteCalendarEventsByLotId(purchaseId);
       
-    } catch (error) {
+    } catch (_error) {
       console.error('❌ Erro ao remover integrações:', error);
       throw error;
     }

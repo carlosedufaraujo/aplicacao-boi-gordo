@@ -132,13 +132,10 @@ export const LotIntegrationDemo: React.FC = () => {
   const getStatusIcon = (status: IntegrationStep['status']) => {
     switch (status) {
       case 'completed':
-      {
         return <CheckCircle className="h-4 w-4 text-success" />;
       case 'processing':
-      {
         return <Clock className="h-4 w-4 text-warning animate-spin" />;
       case 'error':
-      {
         return <AlertCircle className="h-4 w-4 text-error" />;
       default:
         return <Clock className="h-4 w-4 text-muted-foreground" />;
@@ -148,13 +145,10 @@ export const LotIntegrationDemo: React.FC = () => {
   const getStatusColor = (status: IntegrationStep['status']) => {
     switch (status) {
       case 'completed':
-      {
         return 'status-active';
       case 'processing':
-      {
         return 'bg-warning text-warning-foreground';
       case 'error':
-      {
         return 'status-error';
       default:
         return 'status-inactive';

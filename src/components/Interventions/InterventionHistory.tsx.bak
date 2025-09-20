@@ -80,12 +80,16 @@ const InterventionHistory: React.FC<InterventionHistoryProps> = ({ isOpen = true
   const getInterventionTitle = (intervention: any) => {
     switch (intervention.type) {
       case 'health':
+      {
         return `${intervention.productName} - ${intervention.interventionType}`;
       case 'mortality':
+      {
         return `${intervention.quantity} morte(s) - ${intervention.cause}`;
       case 'movement':
+      {
         return `Movimentação: ${intervention.quantity} animais`;
       case 'weight':
+      {
         return `Pesagem: ${intervention.averageWeight}kg (média)`;
       default:
         return 'Intervenção';

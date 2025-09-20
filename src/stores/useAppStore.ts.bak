@@ -2481,23 +2481,36 @@ export const useAppStore = create<AppState>((set, get) => ({
         // Mapear categorias de despesas para o DRE
         switch (expense.category) {
           case 'general_admin':
+      {
           case 'personnel':
+      {
           case 'office':
+      {
           case 'admin_other':
+      {
             dre.operatingExpenses.administrative += expense.purchaseValue;
-            break;
+            }
+      break;
           case 'marketing':
+      {
             dre.operatingExpenses.sales += expense.purchaseValue;
-            break;
+            }
+      break;
           case 'interest':
+      {
           case 'fees':
+      {
           case 'financial_management':
+      {
           case 'financial_other':
+      {
             dre.operatingExpenses.financial += expense.purchaseValue;
-            break;
+            }
+      break;
           default:
             dre.operatingExpenses.other += expense.purchaseValue;
-            break;
+            }
+      break;
         }
       });
       

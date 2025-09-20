@@ -73,12 +73,16 @@ export const PenMapIntegrated: React.FC = () => {
   const getPenStatusColor = (status: string) => {
     switch (status) {
       case 'full':
+      {
         return 'bg-red-100 border-red-300 text-red-800 hover:bg-red-200';
       case 'partial':
+      {
         return 'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200';
       case 'maintenance':
+      {
         return 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200';
       case 'available':
+      {
       default:
         return 'bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50';
     }

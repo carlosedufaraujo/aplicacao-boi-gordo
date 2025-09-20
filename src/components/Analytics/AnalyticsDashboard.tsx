@@ -49,21 +49,18 @@ export const AnalyticsDashboard: React.FC = () => {
   const loadAdditionalData = async (type: string) => {
     try {
       switch (type) {
-        case 'correlations':
-      {
+        case 'correlations': {
           const correlations = await getWeightBreakCorrelations();
-          }
-      break;
-        case 'environmental':
-      {
+          break;
+        }
+        case 'environmental': {
           const environmental = await getEnvironmentalCorrelations();
-          }
-      break;
-        case 'treatments':
-      {
+          break;
+        }
+        case 'treatments': {
           const treatments = await getTreatmentEffectiveness();
-          }
-      break;
+          break;
+        }
       }
     } catch (err) {
       console.error(`Erro ao carregar ${type}:`, err);

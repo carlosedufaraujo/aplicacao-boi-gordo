@@ -140,16 +140,12 @@ export const SystemUpdates: React.FC = () => {
   const getUpdateIcon = (type: string) => {
     switch (type) {
       case 'major':
-      {
         return <Sparkles className="h-4 w-4" />;
       case 'minor':
-      {
         return <Package className="h-4 w-4" />;
       case 'patch':
-      {
         return <Bug className="h-4 w-4" />;
       case 'security':
-      {
         return <Shield className="h-4 w-4" />;
       default:
         return <Package className="h-4 w-4" />;
@@ -163,16 +159,12 @@ export const SystemUpdates: React.FC = () => {
     
     switch (type) {
       case 'major':
-      {
         return <Badge className="bg-purple-500">Major</Badge>;
       case 'minor':
-      {
         return <Badge className="bg-blue-500">Minor</Badge>;
       case 'patch':
-      {
         return <Badge variant="secondary">Patch</Badge>;
       case 'security':
-      {
         return <Badge className="bg-orange-500">Segurança</Badge>;
       default:
         return <Badge variant="outline">Atualização</Badge>;
@@ -182,19 +174,14 @@ export const SystemUpdates: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'available':
-      {
         return <Download className="h-4 w-4 text-blue-600" />;
       case 'downloading':
-      {
         return <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />;
       case 'installing':
-      {
         return <RefreshCw className="h-4 w-4 text-orange-600 animate-spin" />;
       case 'installed':
-      {
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'failed':
-      {
         return <AlertCircle className="h-4 w-4 text-red-600" />;
       default:
         return <Clock className="h-4 w-4 text-gray-600" />;
@@ -204,19 +191,14 @@ export const SystemUpdates: React.FC = () => {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'available':
-      {
         return 'Disponível';
       case 'downloading':
-      {
         return 'Baixando...';
       case 'installing':
-      {
         return 'Instalando...';
       case 'installed':
-      {
         return 'Instalado';
       case 'failed':
-      {
         return 'Falhou';
       default:
         return 'Desconhecido';

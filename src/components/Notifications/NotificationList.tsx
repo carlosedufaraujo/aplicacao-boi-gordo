@@ -50,16 +50,12 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'success':
-      {
         return <CheckCircle className="w-4 h-4 text-success-500" />;
       case 'info':
-      {
         return <Info className="w-4 h-4 text-info-500" />;
       case 'warning':
-      {
         return <AlertTriangle className="w-4 h-4 text-warning-500" />;
       case 'error':
-      {
         return <AlertCircle className="w-4 h-4 text-error-500" />;
       default:
         return <Info className="w-4 h-4 text-info-500" />;
@@ -70,16 +66,12 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   const getNotificationBgColor = (type: string) => {
     switch (type) {
       case 'success':
-      {
         return 'bg-success-50 hover:bg-success-100';
       case 'info':
-      {
         return 'bg-info-50 hover:bg-info-100';
       case 'warning':
-      {
         return 'bg-warning-50 hover:bg-warning-100';
       case 'error':
-      {
         return 'bg-error-50 hover:bg-error-100';
       default:
         return 'bg-neutral-50 hover:bg-neutral-100';

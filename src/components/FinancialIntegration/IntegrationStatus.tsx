@@ -122,7 +122,6 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
   const getStatusBadge = () => {
     switch (status) {
       case 'integrated':
-      {
         return (
           <Badge variant="outline" className="gap-1 border-green-500 text-green-600">
             <CheckCircle2 className="h-3 w-3" />
@@ -130,7 +129,6 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
           </Badge>
         );
       case 'partial':
-      {
         return (
           <Badge variant="outline" className="gap-1 border-yellow-500 text-yellow-600">
             <AlertCircle className="h-3 w-3" />
@@ -138,7 +136,6 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
           </Badge>
         );
       case 'not_integrated':
-      {
         return (
           <Badge variant="outline" className="gap-1 border-red-500 text-red-600">
             <XCircle className="h-3 w-3" />

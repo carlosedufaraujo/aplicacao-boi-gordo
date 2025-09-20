@@ -379,22 +379,35 @@ export const CompleteLots: React.FC = () => {
           history.forEach((intervention: any) => {
             switch (intervention.type) {
               case 'health':
+      {
               case 'vaccination':
+      {
               case 'treatment':
+      {
                 protocols.push(intervention);
-                break;
+                }
+      break;
               case 'mortality':
+      {
               case 'death':
+      {
                 mortalities.push(intervention);
-                break;
+                }
+      break;
               case 'movement':
+      {
               case 'transfer':
+      {
                 movements.push(intervention);
-                break;
+                }
+      break;
               case 'weighing':
+      {
               case 'weight':
+      {
                 weighings.push(intervention);
-                break;
+                }
+      break;
             }
           });
 
@@ -405,7 +418,7 @@ export const CompleteLots: React.FC = () => {
             weighings
           });
         }
-      } catch (error) {
+      } catch (_error) {
         console.error('❌ Erro ao carregar intervenções:', error);
       }
     };
@@ -1643,12 +1656,16 @@ export const CompleteLots: React.FC = () => {
                       const getStatusBadge = (status: string) => {
                         switch (status) {
                           case 'available':
+      {
                             return <Badge variant="outline" className="text-caption text-success">Disponível</Badge>;
                           case 'partial':
+      {
                             return <Badge variant="secondary" className="text-caption">Ocupado</Badge>;
                           case 'full':
+      {
                             return <Badge variant="destructive" className="text-caption">Lotado</Badge>;
                           case 'maintenance':
+      {
                             return <Badge variant="outline" className="text-caption text-muted-foreground">Manutenção</Badge>;
                           default:
                             return <Badge variant="outline" className="text-caption">Desconhecido</Badge>;

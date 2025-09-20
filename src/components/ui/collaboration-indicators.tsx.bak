@@ -195,14 +195,19 @@ export const ActivityFeed = React.forwardRef<HTMLDivElement, {
   const getEventDescription = (event: RealtimeEvent) => {
     switch (event.type) {
       case 'task_moved':
+      {
         return `moveu "${event.data.taskTitle}" para ${event.data.toColumn}`;
       case 'task_created':
+      {
         return `criou a tarefa "${event.data.task.title}"`;
       case 'task_updated':
+      {
         return `atualizou "${event.data.task.title}"`;
       case 'task_deleted':
+      {
         return `excluiu "${event.data.taskTitle}"`;
       case 'task_selected':
+      {
         return 'selecionou uma tarefa';
       default:
         return 'realizou uma ação';
