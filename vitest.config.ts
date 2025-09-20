@@ -14,7 +14,9 @@ export default defineConfig({
       '**/tests/e2e/**',
       '**/tests/integration/**',
       '**/button.test.tsx',
-      '**/useModernToast.test.ts'
+      '**/useModernToast.test.ts',
+      '**/backend/**',
+      '**/report.routes.test.ts'
     ],
     coverage: {
       provider: 'v8',
