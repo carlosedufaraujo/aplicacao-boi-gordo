@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { saleRecordsApi, SaleRecord, CreateSaleRecordData, UpdateSaleRecordData, SaleRecordFilters, SaleRecordStats } from '@/services/api/saleRecordsApi';
 import { toast } from 'sonner';
+import { activityLogger } from '@/services/activityLogger';
 
 export const useSaleRecordsApi = () => {
   const [saleRecords, setSaleRecords] = useState<SaleRecord[]>([]);
@@ -13,17 +14,20 @@ export const useSaleRecordsApi = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const data = await saleRecordsApi.findAll(filters);
-      
+
       // Garantir que sempre temos um array
       const salesArray = Array.isArray(data) ? data : [];
       setSaleRecords(salesArray);
     } catch (err: any) {
-      console.error('❌ Erro ao carregar registros de venda:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Erro ao carregar registros de venda';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      // Não mostrar erro se for problema de autenticação
+      if (!err.message?.includes('autenticado')) {
+        console.error('❌ Erro ao carregar registros de venda:', err);
+        const errorMessage = err.response?.data?.message || err.message || 'Erro ao carregar registros de venda';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
       setSaleRecords([]); // Garantir array vazio em caso de erro
     } finally {
       setLoading(false);
@@ -70,10 +74,22 @@ export const useSaleRecordsApi = () => {
       
       // Atualizar lista local
       setSaleRecords(prev => [newRecord, ...prev]);
-      
+
+      // Registrar atividade
+      activityLogger.logCreate(
+        'sale',
+        `Venda #${newRecord.id} - ${newRecord.quantity} animais`,
+        newRecord.id,
+        {
+          quantity: newRecord.quantity,
+          totalValue: newRecord.totalValue,
+          buyerId: newRecord.buyerId
+        }
+      );
+
       // Atualizar estatísticas
       await loadStats();
-      
+
       toast.success('Registro de venda criado com sucesso!');
       return newRecord;
     } catch (err: any) {
@@ -93,16 +109,26 @@ export const useSaleRecordsApi = () => {
       setLoading(true);
       setError(null);
       
+      const oldRecord = saleRecords.find(r => r.id === id);
       const updatedRecord = await saleRecordsApi.update(id, updates);
-      
+
       // Atualizar lista local
-      setSaleRecords(prev => prev.map(record => 
+      setSaleRecords(prev => prev.map(record =>
         record.id === id ? updatedRecord : record
       ));
-      
+
+      // Registrar atividade
+      activityLogger.logUpdate(
+        'sale',
+        `Venda #${id} - ${updatedRecord.quantity} animais`,
+        id,
+        oldRecord,
+        updatedRecord
+      );
+
       // Atualizar estatísticas
       await loadStats();
-      
+
       toast.success('Registro de venda atualizado com sucesso!');
       return updatedRecord;
     } catch (err: any) {
@@ -122,14 +148,25 @@ export const useSaleRecordsApi = () => {
       setLoading(true);
       setError(null);
       
+      const deletedRecord = saleRecords.find(r => r.id === id);
       await saleRecordsApi.delete(id);
-      
+
       // Remover da lista local
       setSaleRecords(prev => prev.filter(record => record.id !== id));
-      
+
+      // Registrar atividade
+      if (deletedRecord) {
+        activityLogger.logDelete(
+          'sale',
+          `Venda #${id} - ${deletedRecord.quantity} animais`,
+          id,
+          deletedRecord
+        );
+      }
+
       // Atualizar estatísticas
       await loadStats();
-      
+
       toast.success('Registro de venda excluído com sucesso!');
       return true;
     } catch (err: any) {

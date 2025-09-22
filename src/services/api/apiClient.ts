@@ -17,6 +17,15 @@ export class ApiClient {
   }
 
   /**
+   * Verifica se o usuário está autenticado
+   */
+  private isAuthenticated(): boolean {
+    const token = localStorage.getItem('authToken');
+    const user = localStorage.getItem('user');
+    return !!(token && user);
+  }
+
+  /**
    * Executa uma requisição HTTP com fallback para Supabase
    */
   private async request<T>(
@@ -24,9 +33,25 @@ export class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     try {
+      // Verificar se precisa de autenticação (endpoints públicos não precisam)
+      const publicEndpoints = ['/auth/login', '/auth/register', '/auth/verify-token'];
+      const isPublicEndpoint = publicEndpoints.some(ep => endpoint.includes(ep));
+
       const token = await this.getAuthToken();
+
+      // Se não há token e não é endpoint público, retornar resposta vazia
+      if (!token && !isPublicEndpoint) {
+        console.warn(`[ApiClient] Requisição não autenticada para: ${endpoint}`);
+        // Retornar resposta padrão para não quebrar a aplicação
+        return {
+          status: 'error',
+          data: null,
+          message: 'Usuário não autenticado'
+        } as T;
+      }
+
       const url = `${this.baseURL}${endpoint}`;
-      
+
       const config: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
@@ -36,12 +61,18 @@ export class ApiClient {
         ...options,
       };
 
-      // Debug removido para limpeza de código
-
       const response = await fetch(url, config);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        // Se erro for de autenticação (401), limpar token inválido
+        if (response.status === 401) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          localStorage.removeItem('session');
+        }
+
         throw new Error(errorData.message || `HTTP Error: ${response.status}`);
       }
 

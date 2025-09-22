@@ -126,6 +126,7 @@ import { HerdValueChart } from './HerdValueChart';
 import { CostAllocationPieChart } from './CostAllocationPieChart';
 import { PurchaseByStateChart } from './PurchaseByStateChart';
 import { AdvancedSensitivityAnalysis } from './AdvancedSensitivityAnalysis';
+import { SystemActivities } from './SystemActivities';
 
 // Componente de integração
 import { FinancialIntegrationStatus } from '../Integration/FinancialIntegrationStatus';
@@ -1069,104 +1070,7 @@ export function ShadcnDashboard() {
           </TabsContent>
 
           <TabsContent value="activities" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="card-title">Atividades Recentes</CardTitle>
-                    <CardDescription>
-                      Últimas movimentações no sistema
-                    </CardDescription>
-                  </div>
-                  <Select value={activityFilter} onValueChange={setActivityFilter}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Filtrar atividades" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas</SelectItem>
-                      <SelectItem value="purchase">Compras</SelectItem>
-                      <SelectItem value="sale">Vendas</SelectItem>
-                      <SelectItem value="expense">Despesas</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentActivities.length > 0 ? (
-                    recentActivities.map((activity) => (
-                      <div 
-                        key={activity.id} 
-                        className="flex items-center justify-between hover:bg-muted/50 p-3 rounded-lg transition-colors cursor-pointer"
-                        onClick={() => handleActivityClick(activity)}
-                      >
-                        <div className="flex items-center space-x-4">
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback className="text-xs">
-                              {activity.user.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium leading-none">
-                              {activity.description}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {activity.user} • {activity.time}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge 
-                            variant={
-                              activity.type === 'purchase' ? 'default' :
-                              activity.type === 'sale' ? 'secondary' :
-                              activity.type === 'expense' ? 'destructive' :
-                              'outline'
-                            }
-                          >
-                            {activity.amount}
-                          </Badge>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Ver detalhes
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <FileText className="mr-2 h-4 w-4" />
-                                Gerar relatório
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Activity className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p>Nenhuma atividade encontrada no período selecionado</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-              {recentActivities.length > 0 && (
-                <CardFooter>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => setShowAllActivities(!showAllActivities)}
-                  >
-                    {showAllActivities ? 'Ver menos' : 'Ver todas as atividades'}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardFooter>
-              )}
-            </Card>
+            <SystemActivities />
           </TabsContent>
         </Tabs>
         </div>

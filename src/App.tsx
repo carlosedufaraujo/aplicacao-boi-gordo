@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { NotificationProvider } from '@/components/Notifications/NotificationProvider';
 import { BackendProvider, useBackend } from '@/providers/BackendProvider';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/Auth/ProtectedRoute';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { SettingsProvider } from '@/providers/SettingsProvider';
 import { FinancialDataProvider } from '@/providers/FinancialDataProvider';
@@ -122,33 +124,39 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="bovicontrol-ui-theme">
-      <BackendProvider>
-        <SettingsProvider>
-          <FinancialDataProvider>
-            <NotificationProvider>
-              <PenNavigationProvider>
-                <div className="min-h-screen bg-background font-sans antialiased">
-                  <Routes>
-                    <Route path="/login" element={
-                      <Suspense fallback={<PageLoader />}>
-                        <Login02 />
-                      </Suspense>
-                    } />
-                    <Route path="/*" element={<AppContent />} />
-                  </Routes>
-                  <Toaster
-                    position="top-right"
-                    richColors
-                    closeButton
-                    duration={4000}
-                    theme="light"
-                  />
-                </div>
-              </PenNavigationProvider>
-            </NotificationProvider>
-          </FinancialDataProvider>
-        </SettingsProvider>
-      </BackendProvider>
+      <AuthProvider>
+        <BackendProvider>
+          <SettingsProvider>
+            <FinancialDataProvider>
+              <NotificationProvider>
+                <PenNavigationProvider>
+                  <div className="min-h-screen bg-background font-sans antialiased">
+                    <Routes>
+                      <Route path="/login" element={
+                        <Suspense fallback={<PageLoader />}>
+                          <Login02 />
+                        </Suspense>
+                      } />
+                      <Route path="/*" element={
+                        <ProtectedRoute>
+                          <AppContent />
+                        </ProtectedRoute>
+                      } />
+                    </Routes>
+                    <Toaster
+                      position="top-right"
+                      richColors
+                      closeButton
+                      duration={4000}
+                      theme="light"
+                    />
+                  </div>
+                </PenNavigationProvider>
+              </NotificationProvider>
+            </FinancialDataProvider>
+          </SettingsProvider>
+        </BackendProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

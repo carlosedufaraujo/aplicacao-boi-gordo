@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { apiClient } from '@/services/api/apiClient';
 import { toast } from 'sonner';
+import { activityLogger } from '@/services/activityLogger';
 
 export interface CattlePurchase {
   id: string;
@@ -183,7 +184,7 @@ export function useCattlePurchasesApi() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const params = new URLSearchParams();
       if (filters?.status) params.append('status', filters.status);
       if (filters?.vendorId) params.append('vendorId', filters.vendorId);
@@ -191,31 +192,48 @@ export function useCattlePurchasesApi() {
       if (filters?.endDate) params.append('endDate', filters.endDate);
       params.append('page', String(filters?.page || currentPage));
       params.append('limit', String(filters?.limit || pageSize));
-      
+
       const queryString = params.toString();
       const url = `/cattle-purchases${queryString ? `?${queryString}` : ''}`;
-      
+
       const response = await apiClient.get(url);
-      
+
+      // Verificar se a resposta é de erro de autenticação
+      if (response && response.status === 'error' && response.message === 'Usuário não autenticado') {
+        // Não mostrar erro, apenas retornar array vazio
+        setPurchases([]);
+        setTotalItems(0);
+        setTotalPages(1);
+        setCurrentPage(1);
+        return [];
+      }
+
       if (response && response.items !== undefined) {
         // Backend retorna 'items' para listagens
         const purchases = response.items || [];
         setPurchases(purchases);
-        
+
         // Atualizar informações de paginação
         setTotalItems(response.results || response.total || purchases.length);
         setTotalPages(response.totalPages || Math.ceil((response.results || purchases.length) / pageSize));
         setCurrentPage(response.page || 1);
-        
+
         return purchases;
+      } else if (!response) {
+        // Sem resposta (provavelmente não autenticado)
+        setPurchases([]);
+        return [];
       } else {
         throw new Error('Resposta inválida do servidor');
       }
     } catch (err: any) {
-      console.error('❌ Erro ao carregar compras:', err);
-      const errorMessage = err.message || err.response?.data?.message || 'Erro ao carregar compras';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      // Não mostrar erro se for problema de autenticação
+      if (!err.message?.includes('autenticado')) {
+        console.error('❌ Erro ao carregar compras:', err);
+        const errorMessage = err.message || err.response?.data?.message || 'Erro ao carregar compras';
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
       return [];
     } finally {
       setLoading(false);
@@ -273,6 +291,20 @@ export function useCattlePurchasesApi() {
       if (response.data) {
         const newPurchase = response.data;
         setPurchases(prev => [newPurchase, ...prev]);
+
+        // Registrar atividade
+        activityLogger.logCreate(
+          'cattle_purchase',
+          `Lote ${newPurchase.lotCode} - ${newPurchase.initialQuantity} animais`,
+          newPurchase.id,
+          {
+            quantity: newPurchase.initialQuantity,
+            value: newPurchase.purchaseValue,
+            vendor: newPurchase.vendorId,
+            location: newPurchase.location || newPurchase.city || newPurchase.state
+          }
+        );
+
         toast.success('Compra criada com sucesso!');
         return newPurchase;
       } else {
@@ -305,8 +337,19 @@ export function useCattlePurchasesApi() {
       const response = await apiClient.put(`/cattle-purchases/${id}`, payload);
       
       if (response.data) {
+        const oldPurchase = purchases.find(p => p.id === id);
         const updatedPurchase = response.data;
         setPurchases(prev => prev.map(p => p.id === id ? updatedPurchase : p));
+
+        // Registrar atividade
+        activityLogger.logUpdate(
+          'cattle_purchase',
+          `Lote ${updatedPurchase.lotCode} - ${updatedPurchase.initialQuantity} animais`,
+          id,
+          oldPurchase,
+          updatedPurchase
+        );
+
         toast.success('Compra atualizada com sucesso!');
         return updatedPurchase;
       } else {
@@ -361,6 +404,16 @@ export function useCattlePurchasesApi() {
       if (response.data) {
         const updatedPurchase = response.data;
         setPurchases(prev => prev.map(p => p.id === id ? updatedPurchase : p));
+
+        // Registrar atividade
+        activityLogger.logStatusChange(
+          'cattle_purchase',
+          `Lote ${updatedPurchase.lotCode}`,
+          'CONFIRMADO',
+          'RECEBIDO',
+          id
+        );
+
         toast.success('Recepção registrada com sucesso!');
         return updatedPurchase;
       } else {
@@ -385,8 +438,21 @@ export function useCattlePurchasesApi() {
       const response = await apiClient.patch(`/cattle-purchases/${id}/status`, { status });
       
       if (response.data) {
+        const oldPurchase = purchases.find(p => p.id === id);
         const updatedPurchase = response.data;
         setPurchases(prev => prev.map(p => p.id === id ? updatedPurchase : p));
+
+        // Registrar atividade
+        if (oldPurchase) {
+          activityLogger.logStatusChange(
+            'cattle_purchase',
+            `Lote ${updatedPurchase.lotCode}`,
+            oldPurchase.status,
+            status,
+            id
+          );
+        }
+
         toast.success('Status atualizado com sucesso!');
         return updatedPurchase;
       } else {
@@ -418,6 +484,22 @@ export function useCattlePurchasesApi() {
       if (response.data) {
         const updatedPurchase = response.data;
         setPurchases(prev => prev.map(p => p.id === id ? updatedPurchase : p));
+
+        // Registrar atividade
+        activityLogger.log({
+          type: 'update',
+          action: 'edited',
+          category: 'cattle_purchase',
+          title: 'Morte Registrada',
+          description: `${count} morte(s) registrada(s) no Lote ${updatedPurchase.lotCode}`,
+          entityId: id,
+          entityName: `Lote ${updatedPurchase.lotCode}`,
+          newValue: { deathCount: updatedPurchase.deathCount },
+          importance: 'high',
+          icon: 'AlertTriangle',
+          color: '#ef4444'
+        });
+
         toast.success(`${count} morte(s) registrada(s)`);
         return updatedPurchase;
       } else {
@@ -503,9 +585,22 @@ export function useCattlePurchasesApi() {
       // Se chegou aqui sem erro, a exclusão foi bem sucedida
       // (o apiClient já tratou erros HTTP)
       
+      // Obter dados da compra antes de excluir
+      const deletedPurchase = purchases.find(p => p.id === id);
+
       // Remover da lista local imediatamente
       setPurchases(prev => prev.filter(p => p.id !== id));
-      
+
+      // Registrar atividade
+      if (deletedPurchase) {
+        activityLogger.logDelete(
+          'cattle_purchase',
+          `Lote ${deletedPurchase.lotCode} - ${deletedPurchase.initialQuantity} animais`,
+          id,
+          deletedPurchase
+        );
+      }
+
       // Mostrar mensagem de sucesso
       const successMessage = response.data?.message || response.message || 'Compra excluída com sucesso!';
       toast.success(successMessage);

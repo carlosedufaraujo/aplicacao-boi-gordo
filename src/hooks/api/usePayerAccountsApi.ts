@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { payerAccountApi, PayerAccount, CreatePayerAccountData, UpdatePayerAccountData, PayerAccountFilters, PayerAccountStats } from '@/services/api/payerAccountApi';
 import { toast } from 'sonner';
 import { showErrorNotification, showSuccessNotification } from '@/utils/errorHandler';
+import { activityLogger } from '@/services/activityLogger';
 
 /**
  * Hook para gerenciar PayerAccounts via API Backend
@@ -72,8 +73,22 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const response = await payerAccountApi.create(data);
       
       if (response.status === 'success' && response.data) {
+        // Registrar atividade
+        activityLogger.logCreate(
+          'financial',
+          `Conta ${response.data.name}`,
+          response.data.id,
+          {
+            accountNumber: response.data.accountNumber,
+            bankName: response.data.bankName,
+            type: response.data.type,
+            balance: response.data.balance,
+            active: response.data.active
+          }
+        );
+
         showSuccessNotification('Conta pagadora criada com sucesso');
-        
+
         // Recarregar a lista completa para garantir sincronização
         await loadPayerAccounts();
         await loadStats();
@@ -104,8 +119,19 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const response = await payerAccountApi.update(id, data);
       
       if (response.status === 'success' && response.data) {
+        const oldAccount = payerAccounts.find(a => a.id === id);
+
+        // Registrar atividade
+        activityLogger.logUpdate(
+          'financial',
+          `Conta ${response.data.name}`,
+          id,
+          oldAccount,
+          response.data
+        );
+
         showSuccessNotification('Conta pagadora atualizada com sucesso');
-        
+
         // Recarregar a lista completa para garantir sincronização
         await loadPayerAccounts();
         await loadStats();
@@ -204,7 +230,19 @@ export const usePayerAccountsApi = (initialFilters: PayerAccountFilters = {}) =>
       const response = await payerAccountApi.remove(id);
       
       if (response.status === 'success') {
+        const deletedAccount = payerAccounts.find(a => a.id === id);
         setPayerAccounts(prev => prev.filter(account => account.id !== id));
+
+        // Registrar atividade
+        if (deletedAccount) {
+          activityLogger.logDelete(
+            'financial',
+            `Conta ${deletedAccount.name}`,
+            id,
+            deletedAccount
+          );
+        }
+
         showSuccessNotification('Conta pagadora removida com sucesso');
         
         // Recarregar estatísticas

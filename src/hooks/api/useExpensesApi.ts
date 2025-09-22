@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { expenseApi, Expense, CreateExpenseData, UpdateExpenseData, ExpenseFilters, ExpenseStats } from '@/services/api/expenseApi';
 import { toast } from 'sonner';
+import { activityLogger } from '@/services/activityLogger';
 
 /**
  * Hook para gerenciar Expenses via API Backend
@@ -24,34 +25,51 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
       setLoading(true);
       setError(null);
 
-      const response = await expenseApi.getAll({ 
-        ...initialFilters, 
+      const response = await expenseApi.getAll({
+        ...initialFilters,
         ...filters,
         page: filters.page || currentPage,
-        limit: filters.limit || pageSize 
+        limit: filters.limit || pageSize
       });
-      
+
+      // Verificar se a resposta é de erro de autenticação
+      if (response && response.status === 'error' && response.message === 'Usuário não autenticado') {
+        // Não mostrar erro, apenas definir lista vazia
+        setExpenses([]);
+        setTotalItems(0);
+        setTotalPages(1);
+        setCurrentPage(1);
+        return;
+      }
+
       if (response.status === 'success' && response.data) {
         // Se response.data for um objeto paginado, extrair o array
-        const items = Array.isArray(response.data) 
-          ? response.data 
+        const items = Array.isArray(response.data)
+          ? response.data
           : response.data.items || [];
         setExpenses(items);
-        
+
         // Atualizar informações de paginação
         if (response.data && !Array.isArray(response.data)) {
           setTotalItems(response.data.total || items.length);
           setTotalPages(response.data.totalPages || Math.ceil((response.data.total || items.length) / pageSize));
           setCurrentPage(response.data.page || 1);
         }
+      } else if (!response) {
+        // Sem resposta (provavelmente não autenticado)
+        setExpenses([]);
       } else {
         throw new Error(response.message || 'Erro ao carregar despesas');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      setError(errorMessage);
-      console.error('Erro ao carregar despesas:', err);
-      toast.error('Erro ao carregar despesas');
+      // Não mostrar erro se for problema de autenticação
+      if (!err.message?.includes('autenticado')) {
+        const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+        setError(errorMessage);
+        console.error('Erro ao carregar despesas:', err);
+        toast.error('Erro ao carregar despesas');
+      }
+      setExpenses([]);
     } finally {
       setLoading(false);
     }
@@ -95,11 +113,25 @@ export const useExpensesApi = (initialFilters: ExpenseFilters = {}) => {
       
       if (response.status === 'success' && response.data) {
         setExpenses(prev => [response.data!, ...prev]);
+
+        // Registrar atividade
+        activityLogger.logFinancialTransaction(
+          'expense',
+          `${response.data.description} - ${response.data.category}`,
+          response.data.totalAmount,
+          response.data.id,
+          {
+            category: response.data.category,
+            vendor: response.data.vendorId,
+            dueDate: response.data.dueDate
+          }
+        );
+
         toast.success('Despesa criada com sucesso');
-        
+
         // Recarregar estatísticas
         loadStats();
-        
+
         return response.data;
       } else {
         throw new Error(response.message || 'Erro ao criar despesa');

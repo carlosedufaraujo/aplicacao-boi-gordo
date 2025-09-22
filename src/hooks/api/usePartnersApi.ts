@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { partnerApi, Partner, CreatePartnerData, UpdatePartnerData, PartnerFilters, PartnerStats } from '@/services/api/partnerApi';
 import { toast } from 'sonner';
 import { showErrorNotification, showSuccessNotification } from '@/utils/errorHandler';
+import { activityLogger } from '@/services/activityLogger';
 
 /**
  * Hook para gerenciar Partners via API Backend
@@ -85,8 +86,23 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const response = await partnerApi.create(data);
       
       if (response.status === 'success' && response.data) {
+        // Registrar atividade
+        activityLogger.logCreate(
+          'partner',
+          response.data.name,
+          response.data.id,
+          {
+            type: response.data.type,
+            document: response.data.document,
+            city: response.data.city,
+            state: response.data.state,
+            phone: response.data.phone,
+            email: response.data.email
+          }
+        );
+
         showSuccessNotification('Parceiro criado com sucesso');
-        
+
         // Recarregar a lista completa para garantir sincronização
         await loadPartners();
         await loadStats();
@@ -119,8 +135,19 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const response = await partnerApi.update(id, data);
       
       if (response.status === 'success' && response.data) {
+        const oldPartner = partners.find(p => p.id === id);
+
+        // Registrar atividade
+        activityLogger.logUpdate(
+          'partner',
+          response.data.name,
+          id,
+          oldPartner,
+          response.data
+        );
+
         showSuccessNotification('Parceiro atualizado com sucesso');
-        
+
         // Recarregar a lista completa para garantir sincronização
         await loadPartners();
         await loadStats();
@@ -185,7 +212,19 @@ export const usePartnersApi = (initialFilters: PartnerFilters = {}) => {
       const response = await partnerApi.remove(id);
       
       if (response.status === 'success') {
+        const deletedPartner = partners.find(p => p.id === id);
         setPartners(prev => prev.filter(partner => partner.id !== id));
+
+        // Registrar atividade
+        if (deletedPartner) {
+          activityLogger.logDelete(
+            'partner',
+            deletedPartner.name,
+            id,
+            deletedPartner
+          );
+        }
+
         showSuccessNotification('Parceiro removido com sucesso');
         
         // Recarregar estatísticas

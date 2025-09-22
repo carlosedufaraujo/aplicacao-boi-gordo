@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { revenueApi, Revenue, CreateRevenueData, UpdateRevenueData, RevenueFilters, RevenueStats } from '@/services/api/revenueApi';
 import { toast } from 'sonner';
+import { activityLogger } from '@/services/activityLogger';
 
 /**
  * Hook para gerenciar Revenues via API Backend
@@ -24,34 +25,51 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
       setLoading(true);
       setError(null);
 
-      const response = await revenueApi.getAll({ 
-        ...initialFilters, 
+      const response = await revenueApi.getAll({
+        ...initialFilters,
         ...filters,
         page: filters.page || currentPage,
-        limit: filters.limit || pageSize 
+        limit: filters.limit || pageSize
       });
-      
+
+      // Verificar se a resposta é de erro de autenticação
+      if (response && response.status === 'error' && response.message === 'Usuário não autenticado') {
+        // Não mostrar erro, apenas definir lista vazia
+        setRevenues([]);
+        setTotalItems(0);
+        setTotalPages(1);
+        setCurrentPage(1);
+        return;
+      }
+
       if (response.status === 'success' && response.data) {
         // Se response.data for um objeto paginado, extrair o array
-        const items = Array.isArray(response.data) 
-          ? response.data 
+        const items = Array.isArray(response.data)
+          ? response.data
           : response.data.items || [];
         setRevenues(items);
-        
+
         // Atualizar informações de paginação
         if (response.data && !Array.isArray(response.data)) {
           setTotalItems(response.data.total || items.length);
           setTotalPages(response.data.totalPages || Math.ceil((response.data.total || items.length) / pageSize));
           setCurrentPage(response.data.page || 1);
         }
+      } else if (!response) {
+        // Sem resposta (provavelmente não autenticado)
+        setRevenues([]);
       } else {
         throw new Error(response.message || 'Erro ao carregar receitas');
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
-      setError(errorMessage);
-      console.error('Erro ao carregar receitas:', err);
-      toast.error('Erro ao carregar receitas');
+      // Não mostrar erro se for problema de autenticação
+      if (!err.message?.includes('autenticado')) {
+        const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+        setError(errorMessage);
+        console.error('Erro ao carregar receitas:', err);
+        toast.error('Erro ao carregar receitas');
+      }
+      setRevenues([]);
     } finally {
       setLoading(false);
     }
@@ -84,6 +102,20 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
       
       if (response.status === 'success' && response.data) {
         setRevenues(prev => [response.data!, ...prev]);
+
+        // Registrar atividade
+        activityLogger.logFinancialTransaction(
+          'revenue',
+          response.data.description,
+          response.data.amount,
+          response.data.id,
+          {
+            category: response.data.category,
+            source: response.data.source,
+            dueDate: response.data.dueDate
+          }
+        );
+
         toast.success('Receita criada com sucesso');
         
         // Recarregar estatísticas
@@ -115,9 +147,20 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
       const response = await revenueApi.update(id, data);
       
       if (response.status === 'success' && response.data) {
-        setRevenues(prev => prev.map(revenue => 
+        const oldRevenue = revenues.find(r => r.id === id);
+        setRevenues(prev => prev.map(revenue =>
           revenue.id === id ? response.data! : revenue
         ));
+
+        // Registrar atividade
+        activityLogger.logUpdate(
+          'revenue',
+          response.data.description,
+          id,
+          oldRevenue,
+          response.data
+        );
+
         toast.success('Receita atualizada com sucesso');
         
         // Recarregar estatísticas
@@ -149,9 +192,19 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
       const response = await revenueApi.markAsReceived(id, receivedValue, receivedDate);
       
       if (response.status === 'success' && response.data) {
-        setRevenues(prev => prev.map(revenue => 
+        setRevenues(prev => prev.map(revenue =>
           revenue.id === id ? response.data! : revenue
         ));
+
+        // Registrar atividade
+        activityLogger.logStatusChange(
+          'revenue',
+          response.data.description,
+          'PENDENTE',
+          'RECEBIDO',
+          id
+        );
+
         toast.success('Receita marcada como recebida');
         
         // Recarregar estatísticas
@@ -183,7 +236,19 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
       const response = await revenueApi.remove(id);
       
       if (response.status === 'success') {
+        const deletedRevenue = revenues.find(r => r.id === id);
         setRevenues(prev => prev.filter(revenue => revenue.id !== id));
+
+        // Registrar atividade
+        if (deletedRevenue) {
+          activityLogger.logDelete(
+            'revenue',
+            deletedRevenue.description,
+            id,
+            deletedRevenue
+          );
+        }
+
         toast.success('Receita removida com sucesso');
         
         // Recarregar estatísticas

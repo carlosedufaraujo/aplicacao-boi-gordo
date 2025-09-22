@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { penApi, Pen, PenOccupancy, CreatePenData, UpdatePenData, PenFilters, PenStats } from '@/services/api/penApi';
 import { toast } from 'sonner';
+import { activityLogger } from '@/services/activityLogger';
 
 export const usePensApi = (initialFilters: PenFilters = {}) => {
   const [pens, setPens] = useState<Pen[]>([]);
@@ -49,6 +50,19 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
       setError(null);
       const response = await penApi.create(data);
       if (response.status === 'success' && response.data) {
+        // Registrar atividade
+        activityLogger.logCreate(
+          'pen',
+          response.data.name,
+          response.data.id,
+          {
+            capacity: response.data.capacity,
+            type: response.data.type,
+            status: response.data.status,
+            currentOccupancy: response.data.currentOccupancy
+          }
+        );
+
         toast.success('Curral criado com sucesso');
         // Recarregar a lista completa para garantir sincronização
         await loadPens();
@@ -74,6 +88,17 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
       setError(null);
       const response = await penApi.update(id, data);
       if (response.status === 'success' && response.data) {
+        const oldPen = pens.find(p => p.id === id);
+
+        // Registrar atividade
+        activityLogger.logUpdate(
+          'pen',
+          response.data.name,
+          id,
+          oldPen,
+          response.data
+        );
+
         toast.success('Curral atualizado com sucesso');
         // Recarregar a lista completa para garantir sincronização
         await loadPens();
@@ -99,7 +124,19 @@ export const usePensApi = (initialFilters: PenFilters = {}) => {
       setError(null);
       const response = await penApi.remove(id);
       if (response.status === 'success') {
+        const deletedPen = pens.find(p => p.id === id);
         setPens(prev => prev.filter(pen => pen.id !== id));
+
+        // Registrar atividade
+        if (deletedPen) {
+          activityLogger.logDelete(
+            'pen',
+            deletedPen.name,
+            id,
+            deletedPen
+          );
+        }
+
         toast.success('Curral removido com sucesso');
         loadStats();
         return true;
