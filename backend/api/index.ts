@@ -13,7 +13,7 @@ const app = createApp();
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Configura headers CORS para produção
   const allowedOrigins = [
-    'https://aplicacao-boi-gordo.vercel.app',
+    'https://b3xcompany.com',
     'https://aplicacao-boi-gordo.vercel.app',
     'http://localhost:5173',
     'http://localhost:3000'

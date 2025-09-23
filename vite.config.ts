@@ -53,6 +53,7 @@ export default defineConfig({
   build: {
     // Configurações simplificadas
     sourcemap: false,
-    chunkSizeWarningLimit: 1000
+    // Aumenta o limite para 2MB para evitar warnings
+    chunkSizeWarningLimit: 2000
   }
 }); 

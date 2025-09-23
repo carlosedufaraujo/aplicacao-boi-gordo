@@ -17,20 +17,21 @@
     }
   },
   "functions": {
-    "backend/api/**/*.ts": {
+    "backend/api/index.ts": {
       "runtime": "nodejs20.x",
       "maxDuration": 30,
-      "memory": 1024
+      "memory": 1024,
+      "includeFiles": "backend/**"
     }
   },
   "rewrites": [
     {
-      "source": "/api/v1/:path*",
-      "destination": "https://aplicacao-boi-gordo-backend.vercel.app/api/v1/:path*"
+      "source": "/api/v1/(.*)",
+      "destination": "/backend/api"
     },
     {
-      "source": "/api/:path*",
-      "destination": "/backend/api/:path*"
+      "source": "/api/(.*)",
+      "destination": "/backend/api"
     },
     {
       "source": "/(.*)",
@@ -96,40 +97,6 @@
           "value": "public, max-age=31536000, immutable"
         }
       ]
-    },
-    {
-      "source": "/images/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=86400"
-        }
-      ]
-    },
-    {
-      "source": "/fonts/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/v1/(.*)",
-      "headers": {
-        "Location": "https://aplicacao-boi-gordo-backend.vercel.app/api/v1/$1"
-      },
-      "status": 308
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/.*",
-      "dest": "/index.html"
     }
   ],
   "trailingSlash": false,
@@ -137,6 +104,5 @@
   "github": {
     "enabled": true,
     "autoAlias": true
-  },
-  "public": true
+  }
 }
