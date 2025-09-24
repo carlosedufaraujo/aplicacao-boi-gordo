@@ -4,10 +4,24 @@
   "framework": "vite",
   "rewrites": [
     {
+      "source": "/api/v1/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1.js"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }
   ],
+  "functions": {
+    "api/*.js": {
+      "runtime": "@vercel/node@3.0.0",
+      "maxDuration": 30
+    }
+  },
   "env": {
     "DATABASE_URL": "postgresql://postgres.vffxtvuqhlhcbbyqmynz:368308450Ce*@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
   },
