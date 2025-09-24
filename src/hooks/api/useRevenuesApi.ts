@@ -42,24 +42,47 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
         return;
       }
 
-      if (response.status === 'success' && response.data) {
-        // Se response.data for um objeto paginado, extrair o array
-        const items = Array.isArray(response.data)
-          ? response.data
-          : response.data.items || [];
-        setRevenues(items);
+      if (response.status === 'success') {
+        // Se temos uma resposta de sucesso, processar os dados
+        if (response.data) {
+          // Se response.data for um objeto paginado, extrair o array
+          const items = Array.isArray(response.data)
+            ? response.data
+            : response.data.items || [];
+          setRevenues(items);
 
-        // Atualizar informações de paginação
-        if (response.data && !Array.isArray(response.data)) {
-          setTotalItems(response.data.total || items.length);
-          setTotalPages(response.data.totalPages || Math.ceil((response.data.total || items.length) / pageSize));
-          setCurrentPage(response.data.page || 1);
+          // Atualizar informações de paginação
+          if (response.data && !Array.isArray(response.data)) {
+            setTotalItems(response.data.total || items.length);
+            setTotalPages(response.data.totalPages || Math.ceil((response.data.total || items.length) / pageSize));
+            setCurrentPage(response.data.page || 1);
+          }
+        } else if (response.items !== undefined) {
+          // Se a resposta tem o campo items diretamente
+          setRevenues(response.items || []);
+          setTotalItems(response.total || response.results || 0);
+          setTotalPages(response.totalPages || 1);
+          setCurrentPage(response.page || 1);
+        } else {
+          // Nenhum dado, mas ainda é sucesso (lista vazia)
+          setRevenues([]);
+          setTotalItems(0);
+          setTotalPages(1);
+          setCurrentPage(1);
         }
       } else if (!response) {
         // Sem resposta (provavelmente não autenticado)
         setRevenues([]);
       } else {
-        throw new Error(response.message || 'Erro ao carregar receitas');
+        // Só lançar erro se realmente for um erro, não uma mensagem informativa
+        if (!response.message?.includes('Nenhuma') && !response.message?.includes('encontrad')) {
+          throw new Error(response.message || 'Erro ao carregar receitas');
+        }
+        // Se for uma mensagem informativa, apenas definir lista vazia
+        setRevenues([]);
+        setTotalItems(0);
+        setTotalPages(1);
+        setCurrentPage(1);
       }
     } catch (err) {
       // Não mostrar erro se for problema de autenticação
