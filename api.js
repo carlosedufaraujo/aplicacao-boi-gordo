@@ -30,11 +30,19 @@ function createResponse(statusCode, body, headers = {}) {
 
 // Handler principal
 module.exports = async (req, res) => {
-  const { method, url, body } = req;
-  // No Vercel, o path vem como query parameter quando usando rewrites
-  const path = req.query && req.query.path
-    ? `/api/${req.query.path}`
-    : (url || req.url || '/api').split('?')[0];
+  const { method, url, body, query } = req;
+
+  // Debug para ver o que está chegando
+  console.log('[API] URL original:', url);
+  console.log('[API] Query params:', query);
+
+  // Construir o path baseado nos query parameters ou URL
+  let path = '/api';
+  if (query && query.path) {
+    path = `/api/${query.path}`;
+  } else if (url) {
+    path = url.split('?')[0];
+  }
 
   console.log('[API] Requisição recebida:', method, path);
   console.log('[API] Headers:', JSON.stringify(req.headers).substring(0, 200));
@@ -43,6 +51,19 @@ module.exports = async (req, res) => {
   if (method === 'OPTIONS') {
     console.log('[API] CORS preflight');
     return res.status(200).json({ ok: true });
+  }
+
+  // Debug endpoint
+  if (path === '/api' && !query?.path) {
+    return res.status(200).json({
+      message: 'API funcionando',
+      debug: {
+        url: url || 'undefined',
+        query: query || {},
+        method: method,
+        path: path
+      }
+    });
   }
 
   // Teste de conexão
