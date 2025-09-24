@@ -3,9 +3,16 @@ const postgres = require('./postgres.js');
 
 module.exports = async (req, res) => {
   const url = req.url || '';
-  const path = url.replace(/\?.*$/, '').replace(/^\/api\//, '');
+  // Extrair o path corretamente - remover /api/ e index se presente
+  let path = url.replace(/\?.*$/, '').replace(/^\/api\//, '');
+  if (path === 'index') path = '';
 
-  console.log('[MAIN] Path requisitado:', path);
+  // Se vier query param com o path real
+  if (req.query && req.query.path) {
+    path = req.query.path;
+  }
+
+  console.log('[MAIN] URL:', url, '| Path final:', path);
 
   // CORS
   if (req.method === 'OPTIONS') {
@@ -123,6 +130,26 @@ module.exports = async (req, res) => {
             token: 'jwt_' + Date.now()
           });
         }
+
+      case '':
+      case 'index':
+        // Endpoint raiz - retornar informações da API
+        return res.status(200).json({
+          message: 'API BoviControl',
+          version: '1.0.0',
+          endpoints: [
+            '/api/cattle-purchases',
+            '/api/expenses',
+            '/api/expenses-stats',
+            '/api/revenues',
+            '/api/revenues-stats',
+            '/api/sale-records',
+            '/api/sale-records-stats',
+            '/api/partners',
+            '/api/dashboard-stats',
+            '/api/login'
+          ]
+        });
 
       default:
         return res.status(404).json({ error: 'Endpoint não encontrado: ' + path });
