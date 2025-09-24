@@ -41,8 +41,7 @@ module.exports = async (req, res) => {
     console.log('[DEBUG] Executando query de cattle_purchases...');
     const purchases = await client.query(`
       SELECT cp.*,
-             p.name as vendor_name,
-             p.document as vendor_document
+             p.name as vendor_name
       FROM cattle_purchases cp
       LEFT JOIN partners p ON cp."vendorId" = p.id
       ORDER BY cp."purchaseDate" DESC
