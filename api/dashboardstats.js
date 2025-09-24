@@ -1,29 +1,25 @@
-// Endpoint para estatísticas do dashboard
+// Endpoint para compras de gado
 const postgres = require('./postgres.js');
 
 module.exports = async (req, res) => {
-  console.log('[DASHBOARD-STATS] Requisição recebida');
+  console.log('[CATTLE-PURCHASES] Requisição recebida');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).json({ ok: true });
   }
 
   try {
-    const stats = await postgres.getStats();
-    console.log('[DASHBOARD-STATS] Estatísticas obtidas:', stats);
-    return res.status(200).json(stats);
-  } catch (error) {
-    console.error('[DASHBOARD-STATS] Erro:', error);
+    const purchases = await postgres.getCattlePurchases();
+    console.log('[CATTLE-PURCHASES] Compras encontradas:', purchases.length);
     return res.status(200).json({
-      totalCattle: 0,
-      activeLots: 0,
-      occupiedPens: 0,
-      totalRevenue: 0,
-      totalExpenses: 0,
-      netProfit: 0,
-      averageWeight: 0,
-      mortalityRate: 0,
-      lastUpdated: new Date().toISOString()
+      items: purchases,
+      results: purchases.length
+    });
+  } catch (error) {
+    console.error('[CATTLE-PURCHASES] Erro:', error);
+    return res.status(200).json({
+      items: [],
+      results: 0
     });
   }
 };
