@@ -141,7 +141,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const expenses = await supabaseRequest('expenses?select=*');
         res.status(200).json({
           status: 'success',
-          data: expenses || [],
+          items: expenses || [],
+          results: (expenses || []).length,
+          total: (expenses || []).length,
+          page: 1,
+          totalPages: 1,
           message: 'Despesas carregadas com sucesso'
         });
         return;
@@ -149,7 +153,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('Error fetching expenses:', error);
         res.status(200).json({
           status: 'success',
-          data: [],
+          items: [],
+          results: 0,
+          total: 0,
+          page: 1,
+          totalPages: 1,
           message: 'Nenhuma despesa encontrada'
         });
         return;
@@ -162,7 +170,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const revenues = await supabaseRequest('revenues?select=*');
         res.status(200).json({
           status: 'success',
-          data: revenues || [],
+          items: revenues || [],
+          results: (revenues || []).length,
+          total: (revenues || []).length,
+          page: 1,
+          totalPages: 1,
           message: 'Receitas carregadas com sucesso'
         });
         return;
@@ -170,7 +182,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('Error fetching revenues:', error);
         res.status(200).json({
           status: 'success',
-          data: [],
+          items: [],
+          results: 0,
+          total: 0,
+          page: 1,
+          totalPages: 1,
           message: 'Nenhuma receita encontrada'
         });
         return;
@@ -183,7 +199,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const cattlePurchases = await supabaseRequest('cattle_purchases?select=*');
         res.status(200).json({
           status: 'success',
-          data: cattlePurchases || [],
+          items: cattlePurchases || [],  // Mudando de 'data' para 'items'
+          results: (cattlePurchases || []).length,
+          total: (cattlePurchases || []).length,
+          page: 1,
+          totalPages: 1,
           message: 'Compras de gado carregadas com sucesso'
         });
         return;
@@ -191,7 +211,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('Error fetching cattle purchases:', error);
         res.status(200).json({
           status: 'success',
-          data: [],
+          items: [],  // Mudando de 'data' para 'items'
+          results: 0,
+          total: 0,
+          page: 1,
+          totalPages: 1,
           message: 'Nenhuma compra encontrada'
         });
         return;
@@ -204,7 +228,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const partners = await supabaseRequest('partners?select=*');
         res.status(200).json({
           status: 'success',
-          data: partners || [],
+          items: partners || [],
+          results: (partners || []).length,
+          total: (partners || []).length,
+          page: 1,
+          totalPages: 1,
           message: 'Parceiros carregados com sucesso'
         });
         return;
@@ -212,7 +240,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('Error fetching partners:', error);
         res.status(200).json({
           status: 'success',
-          data: [],
+          items: [],
+          results: 0,
+          total: 0,
+          page: 1,
+          totalPages: 1,
           message: 'Nenhum parceiro encontrado'
         });
         return;
@@ -258,7 +290,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const saleRecords = await supabaseRequest('sale_records?select=*');
         res.status(200).json({
           status: 'success',
-          data: saleRecords || [],
+          items: saleRecords || [],
+          results: (saleRecords || []).length,
+          total: (saleRecords || []).length,
+          page: 1,
+          totalPages: 1,
           message: 'Registros de venda carregados com sucesso'
         });
         return;
@@ -266,7 +302,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('Error fetching sale records:', error);
         res.status(200).json({
           status: 'success',
-          data: [],
+          items: [],
+          results: 0,
+          total: 0,
+          page: 1,
+          totalPages: 1,
           message: 'Nenhum registro de venda encontrado'
         });
         return;
