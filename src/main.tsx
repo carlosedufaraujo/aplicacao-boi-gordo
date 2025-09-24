@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+// Force complete rebuild - API fixes v2.2
 import { Toaster } from 'sonner';
 import App from './App.tsx';
 import './index.css';
