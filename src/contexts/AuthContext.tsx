@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { backendAuth, User, Session } from '@/services/backendAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -36,9 +36,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Verificar autenticação ao carregar
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
-  const checkAuth = async (): Promise<boolean> => {
+  const checkAuth = useCallback(async (): Promise<boolean> => {
     try {
       setLoading(true);
 
@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (currentSession && currentUser) {
         // Validar token com o backend
-        const isValid = await backendAuth.verifyToken();
+        const isValid = await backendAuth.validateToken();
 
         if (isValid) {
           setSession(currentSession);
@@ -56,7 +56,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return true;
         } else {
           // Token inválido, limpar
-          await signOut();
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          setUser(null);
+          setSession(null);
           return false;
         }
       }
@@ -68,7 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {

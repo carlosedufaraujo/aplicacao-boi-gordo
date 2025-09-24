@@ -164,12 +164,16 @@ export const useBackendAuth = () => {
   // Inicialização
   useEffect(() => {
     mountedRef.current = true;
-    checkSession();
+    
+    // Verificar sessão apenas uma vez na inicialização
+    if (!authState.initialized) {
+      checkSession();
+    }
 
     return () => {
       mountedRef.current = false;
     };
-  }, [checkSession]);
+  }, [checkSession, authState.initialized]);
 
   return {
     ...authState,
