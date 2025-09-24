@@ -5,11 +5,7 @@
   "rewrites": [
     {
       "source": "/api/v1/(.*)",
-      "destination": "/api/index.js"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1.js"
+      "destination": "/api/v1"
     },
     {
       "source": "/(.*)",
@@ -17,9 +13,12 @@
     }
   ],
   "functions": {
-    "api/*.js": {
+    "api/v1.js": {
       "runtime": "@vercel/node@3.0.0",
-      "maxDuration": 30
+      "includeFiles": "api/**"
+    },
+    "api/*.js": {
+      "runtime": "@vercel/node@3.0.0"
     }
   },
   "env": {
