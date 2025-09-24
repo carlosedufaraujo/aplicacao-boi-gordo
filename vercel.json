@@ -2,27 +2,20 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": null,
-  "installCommand": "npm install && cd backend && npm install",
+  "installCommand": "npm install",
   "regions": ["gru1"],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "DATABASE_URL": "postgresql://postgres.vffxtvuqhlhcbbyqmynz:368308450Ce*@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true",
+    "JWT_SECRET": "bovicontrol-super-secret-jwt-key-2025-production",
+    "API_PREFIX": "/api/v1"
   },
   "build": {
     "env": {
       "VITE_API_URL": "https://aplicacao-boi-gordo.vercel.app/api/v1",
       "VITE_SUPABASE_URL": "https://vffxtvuqhlhcbbyqmynz.supabase.co",
       "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwNjA1NzAsImV4cCI6MjA1MDYzNjU3MH0.KsVx8CJLm9s5EqiTQPTFB1CsGPMmf93pALCWNMpkUEI",
-      "VITE_APP_ENV": "production",
-      "DATABASE_URL": "postgresql://postgres.vffxtvuqhlhcbbyqmynz:368308450Ce*@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true",
-      "JWT_SECRET": "bovicontrol-super-secret-jwt-key-2025-production",
-      "API_PREFIX": "/api/v1",
-      "MASTER_ADMIN_EMAIL": "admin@b3xcompany.com"
-    }
-  },
-  "functions": {
-    "api/index.ts": {
-      "runtime": "nodejs20.x"
+      "VITE_APP_ENV": "production"
     }
   },
   "rewrites": [
