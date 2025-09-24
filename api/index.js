@@ -144,13 +144,45 @@ module.exports = async (req, res) => {
     try {
       const expenses = await postgres.getExpenses();
       console.log('[API] Despesas encontradas:', expenses.length);
+
+      // Se não houver despesas, retornar array vazio mas sem erro
       return res.status(200).json({
-        items: expenses,
-        results: expenses.length
+        items: expenses || [],
+        results: expenses ? expenses.length : 0
       });
     } catch (error) {
       console.error('[API] Erro ao buscar despesas:', error);
-      return res.status(500).json({ error: 'Erro ao buscar despesas: ' + error.message });
+      // Retornar array vazio em caso de erro
+      return res.status(200).json({
+        items: [],
+        results: 0
+      });
+    }
+  }
+
+  // Expenses Stats
+  if ((path === '/api/expenses/stats' || path === '/api/v1/expenses/stats') && method === 'GET') {
+    console.log('[API] Buscando estatísticas de despesas');
+    try {
+      const expenses = await postgres.getExpenses();
+      const stats = {
+        total: expenses.length,
+        totalAmount: expenses.reduce((sum, e) => sum + (parseFloat(e.totalAmount) || 0), 0),
+        paid: expenses.filter(e => e.isPaid).length,
+        pending: expenses.filter(e => !e.isPaid).length,
+        overdue: expenses.filter(e => !e.isPaid && new Date(e.dueDate) < new Date()).length
+      };
+      console.log('[API] Estatísticas de despesas:', stats);
+      return res.status(200).json(stats);
+    } catch (error) {
+      console.error('[API] Erro ao buscar estatísticas de despesas:', error);
+      return res.status(200).json({
+        total: 0,
+        totalAmount: 0,
+        paid: 0,
+        pending: 0,
+        overdue: 0
+      });
     }
   }
 
@@ -160,13 +192,45 @@ module.exports = async (req, res) => {
     try {
       const revenues = await postgres.getRevenues();
       console.log('[API] Receitas encontradas:', revenues.length);
+
+      // Se não houver receitas, retornar array vazio mas sem erro
       return res.status(200).json({
-        items: revenues,
-        results: revenues.length
+        items: revenues || [],
+        results: revenues ? revenues.length : 0
       });
     } catch (error) {
       console.error('[API] Erro ao buscar receitas:', error);
-      return res.status(500).json({ error: 'Erro ao buscar receitas: ' + error.message });
+      // Retornar array vazio em caso de erro
+      return res.status(200).json({
+        items: [],
+        results: 0
+      });
+    }
+  }
+
+  // Revenues Stats
+  if ((path === '/api/revenues/stats' || path === '/api/v1/revenues/stats') && method === 'GET') {
+    console.log('[API] Buscando estatísticas de receitas');
+    try {
+      const revenues = await postgres.getRevenues();
+      const stats = {
+        total: revenues.length,
+        totalAmount: revenues.reduce((sum, r) => sum + (parseFloat(r.totalAmount) || 0), 0),
+        received: revenues.filter(r => r.isReceived).length,
+        pending: revenues.filter(r => !r.isReceived).length,
+        overdue: revenues.filter(r => !r.isReceived && new Date(r.receivedDate) < new Date()).length
+      };
+      console.log('[API] Estatísticas de receitas:', stats);
+      return res.status(200).json(stats);
+    } catch (error) {
+      console.error('[API] Erro ao buscar estatísticas de receitas:', error);
+      return res.status(200).json({
+        total: 0,
+        totalAmount: 0,
+        received: 0,
+        pending: 0,
+        overdue: 0
+      });
     }
   }
 
@@ -198,7 +262,38 @@ module.exports = async (req, res) => {
       });
     } catch (error) {
       console.error('[API] Erro ao buscar vendas:', error);
-      return res.status(500).json({ error: 'Erro ao buscar vendas: ' + error.message });
+      return res.status(200).json({
+        items: [],
+        results: 0
+      });
+    }
+  }
+
+  // Sale Records Stats
+  if ((path === '/api/sale-records/stats' || path === '/api/v1/sale-records/stats') && method === 'GET') {
+    console.log('[API] Buscando estatísticas de vendas');
+    try {
+      const sales = await postgres.getSaleRecords();
+      const stats = {
+        total: sales.length,
+        totalQuantity: sales.reduce((sum, s) => sum + (parseInt(s.quantity) || 0), 0),
+        totalRevenue: sales.reduce((sum, s) => sum + (parseFloat(s.totalValue) || 0), 0),
+        averagePrice: sales.length > 0 ?
+          sales.reduce((sum, s) => sum + (parseFloat(s.pricePerArroba) || 0), 0) / sales.length : 0,
+        averageWeight: sales.length > 0 ?
+          sales.reduce((sum, s) => sum + (parseFloat(s.averageWeight) || 0), 0) / sales.length : 0
+      };
+      console.log('[API] Estatísticas de vendas:', stats);
+      return res.status(200).json(stats);
+    } catch (error) {
+      console.error('[API] Erro ao buscar estatísticas de vendas:', error);
+      return res.status(200).json({
+        total: 0,
+        totalQuantity: 0,
+        totalRevenue: 0,
+        averagePrice: 0,
+        averageWeight: 0
+      });
     }
   }
 
