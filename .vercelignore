@@ -1,0 +1,11 @@
+# Force clean build - ignore all cache files
+node_modules/.vite
+dist
+.vite
+*.tsbuildinfo
+.cache
+.parcel-cache
+.next
+.nuxt
+.output
+.vercel

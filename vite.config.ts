@@ -51,13 +51,16 @@ export default defineConfig({
     force: true
   },
   build: {
-    // Configurações simplificadas
+    // FORÇA REBUILD COMPLETO - CACHE BUSTING EXTREMO
     sourcemap: false,
-    // Aumenta o limite para 2MB para evitar warnings
     chunkSizeWarningLimit: 2000,
-    // Configurações de chunk manual para evitar problemas de circular dependency
+    // FORÇA NOVOS HASHES - TIMESTAMP ÚNICO
     rollupOptions: {
       output: {
+        // FORÇA HASH ÚNICO BASEADO EM TIMESTAMP
+        entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
+        chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
+        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`,
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-ui': [
