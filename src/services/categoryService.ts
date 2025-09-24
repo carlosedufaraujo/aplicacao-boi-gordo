@@ -329,13 +329,22 @@ export const getCategoryService = (): CategoryService => {
   return categoryServiceInstance;
 };
 
-// Export for backward compatibility with error handling
-let categoryServiceSingleton: CategoryService | null = null;
-try {
-  categoryServiceSingleton = getCategoryService();
-} catch (error) {
-  console.error('Error initializing categoryService singleton:', error);
-  categoryServiceSingleton = getCategoryService(); // Try again
-}
-
-export const categoryService = categoryServiceSingleton!;
+// Export for backward compatibility - completely deferred initialization
+export const categoryService = {
+  get instance() {
+    return getCategoryService();
+  },
+  // Proxy all methods to the singleton instance
+  async getCategories() { return this.instance.getCategories(); },
+  async getCategoryById(id: string) { return this.instance.getCategoryById(id); },
+  async createCategory(category: Omit<FinancialCategory, 'id' | 'createdAt' | 'updatedAt'>) { 
+    return this.instance.createCategory(category); 
+  },
+  async updateCategory(id: string, updates: Partial<FinancialCategory>) { 
+    return this.instance.updateCategory(id, updates); 
+  },
+  async deleteCategory(id: string) { return this.instance.deleteCategory(id); },
+  async canDelete(id: string) { return this.instance.canDelete(id); },
+  async importCategories(categories: any[]) { return this.instance.importCategories(categories); },
+  isLoading() { return this.instance.isLoading(); }
+};

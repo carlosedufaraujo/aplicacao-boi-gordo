@@ -358,23 +358,18 @@ const generateInitialPens = () => {
   return { penRegistrations, penStatuses };
 };
 
-// Generate initial pens with lazy initialization and error handling
-let initialPensCache: { penRegistrations: PenRegistration[]; penStatuses: PenStatus[] } | null = null;
-
+// Generate initial pens with deferred initialization to avoid temporal dead zone
 const getInitialPens = () => {
-  if (!initialPensCache) {
-    try {
-      initialPensCache = generateInitialPens();
-    } catch (error) {
-      console.error('Error generating initial pens:', error);
-      // Fallback to empty arrays
-      initialPensCache = {
-        penRegistrations: [],
-        penStatuses: []
-      };
-    }
+  try {
+    return generateInitialPens();
+  } catch (error) {
+    console.error('Error generating initial pens:', error);
+    // Fallback to empty arrays
+    return {
+      penRegistrations: [],
+      penStatuses: []
+    };
   }
-  return initialPensCache;
 };
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -414,9 +409,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       icon: 'AlertTriangle'
     }
   ],
-  penRegistrations: getInitialPens().penRegistrations,
+  penRegistrations: [],
   penAllocations: [],
-  penStatuses: getInitialPens().penStatuses,
+  penStatuses: [],
   debts: [],
   bankStatements: [],
   financialReconciliations: [],
@@ -3099,5 +3094,21 @@ export const useAppStore = create<AppState>((set, get) => ({
     const { systemUpdates, lastViewedUpdateDate } = get();
     if (!lastViewedUpdateDate) return systemUpdates.length;
     return systemUpdates.filter(update => update.releaseDate > lastViewedUpdateDate).length;
+  },
+
+  // Função para inicializar dados após o store estar pronto
+  initializeStore: () => {
+    const state = get();
+    if (state.penRegistrations.length === 0) {
+      try {
+        const initialPens = getInitialPens();
+        set({
+          penRegistrations: initialPens.penRegistrations,
+          penStatuses: initialPens.penStatuses
+        });
+      } catch (error) {
+        console.error('Error initializing store:', error);
+      }
+    }
   }
 }));

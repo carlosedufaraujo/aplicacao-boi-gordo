@@ -424,16 +424,40 @@ export const getActivityLogger = (): ActivityLoggerService => {
   return activityLoggerInstance;
 };
 
-// Export for backward compatibility with error handling
-let activityLoggerSingleton: ActivityLoggerService | null = null;
-try {
-  activityLoggerSingleton = getActivityLogger();
-} catch (error) {
-  console.error('Error initializing activityLogger singleton:', error);
-  activityLoggerSingleton = getActivityLogger(); // Try again
-}
-
-export const activityLogger = activityLoggerSingleton!;
+// Export for backward compatibility - completely deferred initialization
+export const activityLogger = {
+  get instance() {
+    return getActivityLogger();
+  },
+  // Proxy all methods to the singleton instance
+  logCreate(entity: string, entityId: string, details?: any) { 
+    return this.instance.logCreate(entity, entityId, details); 
+  },
+  logUpdate(entity: string, entityId: string, changes?: any, details?: any) { 
+    return this.instance.logUpdate(entity, entityId, changes, details); 
+  },
+  logDelete(entity: string, entityId: string, details?: any) { 
+    return this.instance.logDelete(entity, entityId, details); 
+  },
+  logCustom(action: string, entity: string, entityId: string, details?: any) { 
+    return this.instance.logCustom(action, entity, entityId, details); 
+  },
+  getActivities(filters?: any) { 
+    return this.instance.getActivities(filters); 
+  },
+  getEntityHistory(entity: string, entityId: string) { 
+    return this.instance.getEntityHistory(entity, entityId); 
+  },
+  getUserActivities(userId: string, limit?: number) { 
+    return this.instance.getUserActivities(userId, limit); 
+  },
+  getRecentActivities(limit?: number) { 
+    return this.instance.getRecentActivities(limit); 
+  },
+  clearOldActivities(daysToKeep?: number) { 
+    return this.instance.clearOldActivities(daysToKeep); 
+  }
+};
 
 // Exporta também a classe para testes
 export { ActivityLoggerService };

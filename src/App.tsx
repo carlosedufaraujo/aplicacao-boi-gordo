@@ -10,6 +10,7 @@ import { SettingsProvider } from '@/providers/SettingsProvider';
 import { FinancialDataProvider } from '@/providers/FinancialDataProvider';
 import { PenNavigationProvider } from '@/contexts/PenNavigationContext';
 import { registerExistingUpdates } from '@/utils/systemUpdates';
+import { useStoreInitializer } from '@/hooks/useStoreInitializer';
 import { Toaster } from 'sonner';
 
 // ============================================================================
@@ -51,6 +52,9 @@ const PageLoader = () => (
 const AppContent: React.FC = () => {
   const [currentPage, setCurrentPage] = React.useState('dashboard');
   const { isAuthenticated, loading } = useBackend();
+  
+  // Inicializar o store de forma segura
+  useStoreInitializer();
 
   useEffect(() => {
     registerExistingUpdates();
