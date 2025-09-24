@@ -54,6 +54,32 @@ export default defineConfig({
     // Configurações simplificadas
     sourcemap: false,
     // Aumenta o limite para 2MB para evitar warnings
-    chunkSizeWarningLimit: 2000
+    chunkSizeWarningLimit: 2000,
+    // Configurações de chunk manual para evitar problemas de circular dependency
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': [
+            '@radix-ui/react-slot',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-separator',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-checkbox'
+          ],
+          'vendor-utils': [
+            'clsx',
+            'tailwind-merge',
+            'class-variance-authority',
+            'axios',
+            'date-fns',
+            'zod'
+          ]
+        }
+      }
+    }
   }
 }); 

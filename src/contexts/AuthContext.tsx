@@ -33,11 +33,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Verificar autenticação ao carregar
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
-
   const checkAuth = useCallback(async (): Promise<boolean> => {
     try {
       setLoading(true);
@@ -72,6 +67,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  // Verificar autenticação ao carregar
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const signIn = async (email: string, password: string) => {
     try {

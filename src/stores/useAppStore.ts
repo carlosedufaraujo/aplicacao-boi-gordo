@@ -316,52 +316,47 @@ interface AppState {
   getUnviewedUpdatesCount: () => number;
 }
 
-// Helper function to generate 50 pens
-const generateInitialPens = () => {
-  const penRegistrations: PenRegistration[] = [];
-  const penStatuses: PenStatus[] = [];
-  
-  // Criar 15 currais por linha, total de 60 currais (4 linhas)
-  const pensPerLine = 15;
-  const totalLines = 4;
-  const totalPens = pensPerLine * totalLines;
-  
-  // Letras para as linhas
-  const lineLetters = ['A', 'B', 'C', 'D'];
-  
-  for (let i = 1; i <= totalPens; i++) {
-    const penNumber = i.toString();
-    const lineIndex = Math.floor((i - 1) / pensPerLine);
-    const lineLetter = lineLetters[lineIndex];
-    
-    // Create pen registration
-    penRegistrations.push({
-      id: `pen-${i}`,
-      penNumber,
-      capacity: 130, // Mantido temporariamente para compatibilidade
-      location: `Linha ${lineLetter}`,
-      description: '-',
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-    
-    // Create pen status
-    penStatuses.push({
-      penNumber,
-      capacity: 130, // Mantido temporariamente para compatibilidade
-      currentAnimals: 0,
-      status: 'available'
-    });
-  }
-  
-  return { penRegistrations, penStatuses };
-};
-
-// Generate initial pens with deferred initialization to avoid temporal dead zone
+// Generate initial pens with completely safe initialization
 const getInitialPens = () => {
   try {
-    return generateInitialPens();
+    const penRegistrations: PenRegistration[] = [];
+    const penStatuses: PenStatus[] = [];
+    
+    // Criar 15 currais por linha, total de 60 currais (4 linhas)
+    const pensPerLine = 15;
+    const totalLines = 4;
+    const totalPens = pensPerLine * totalLines;
+    
+    // Letras para as linhas
+    const lineLetters = ['A', 'B', 'C', 'D'];
+    
+    for (let i = 1; i <= totalPens; i++) {
+      const penNumber = i.toString();
+      const lineIndex = Math.floor((i - 1) / pensPerLine);
+      const lineLetter = lineLetters[lineIndex];
+      
+      // Create pen registration
+      penRegistrations.push({
+        id: `pen-${i}`,
+        penNumber,
+        capacity: 130, // Mantido temporariamente para compatibilidade
+        location: `Linha ${lineLetter}`,
+        description: '-',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      // Create pen status
+      penStatuses.push({
+        penNumber,
+        capacity: 130, // Mantido temporariamente para compatibilidade
+        currentAnimals: 0,
+        status: 'available'
+      });
+    }
+    
+    return { penRegistrations, penStatuses };
   } catch (error) {
     console.error('Error generating initial pens:', error);
     // Fallback to empty arrays
