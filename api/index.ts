@@ -4,6 +4,7 @@
  */
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
+import { getCattlePurchases, getExpenses, getRevenues, getPartners, getSaleRecords } from './db';
 
 // Configuração do Supabase
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
@@ -12,22 +13,47 @@ const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIs
 // Função para fazer requisições ao Supabase
 async function supabaseRequest(endpoint: string, options: any = {}) {
   const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
-  const response = await fetch(url, {
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-      ...options.headers
-    },
-    ...options
+
+  console.log('Supabase Request:', {
+    url,
+    endpoint,
+    SUPABASE_URL,
+    keyLength: SUPABASE_KEY?.length
   });
-  
-  if (!response.ok) {
-    throw new Error(`Supabase error: ${response.status} ${response.statusText}`);
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        ...options.headers
+      },
+      ...options
+    });
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+      console.error('Supabase error:', {
+        status: response.status,
+        statusText: response.statusText,
+        response: responseText
+      });
+      throw new Error(`Supabase error: ${response.status} ${response.statusText} - ${responseText}`);
+    }
+
+    try {
+      return JSON.parse(responseText);
+    } catch (e) {
+      console.error('Error parsing Supabase response:', responseText);
+      return [];
+    }
+  } catch (error) {
+    console.error('Supabase request failed:', error);
+    return [];
   }
-  
-  return response.json();
 }
 
 // Handler principal para Vercel
@@ -69,6 +95,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         database: process.env.DATABASE_URL ? 'connected' : 'not configured'
       });
       return;
+    }
+
+    // Rota de teste do Supabase
+    if (req.url?.includes('/test-supabase')) {
+      try {
+        const testData = await supabaseRequest('cattle_purchases?select=*&limit=1');
+        res.status(200).json({
+          status: 'success',
+          message: 'Conexão com Supabase OK',
+          data: testData,
+          config: {
+            url: SUPABASE_URL,
+            hasKey: !!SUPABASE_KEY,
+            keyLength: SUPABASE_KEY?.length
+          }
+        });
+        return;
+      } catch (error: any) {
+        res.status(200).json({
+          status: 'error',
+          message: 'Erro ao conectar com Supabase',
+          error: error.message,
+          config: {
+            url: SUPABASE_URL,
+            hasKey: !!SUPABASE_KEY,
+            keyLength: SUPABASE_KEY?.length
+          }
+        });
+        return;
+      }
     }
 
     // Rota de autenticação (login)
@@ -148,7 +204,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de expenses (com e sem /api/v1/)
     if (req.url?.includes('/expenses') && !req.url?.includes('/stats')) {
       try {
-        const expenses = await supabaseRequest('expenses?select=*');
+        const expenses = await getExpenses().catch(async () => {
+          return await supabaseRequest('expenses?select=*').catch(() => []);
+        });
         res.status(200).json({
           status: 'success',
           items: expenses || [],
@@ -177,7 +235,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de revenues (com e sem /api/v1/)
     if (req.url?.includes('/revenues') && !req.url?.includes('/stats')) {
       try {
-        const revenues = await supabaseRequest('revenues?select=*');
+        const revenues = await getRevenues().catch(async () => {
+          return await supabaseRequest('revenues?select=*').catch(() => []);
+        });
         res.status(200).json({
           status: 'success',
           items: revenues || [],
@@ -206,7 +266,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de cattle purchases (com e sem /api/v1/)
     if (req.url?.includes('/cattle-purchases')) {
       try {
-        let cattlePurchases = await supabaseRequest('cattle_purchases?select=*').catch(() => []);
+        // Tentar usar o cliente Supabase primeiro
+        let cattlePurchases = await getCattlePurchases().catch(async () => {
+          // Se falhar, tentar com requisição direta
+          return await supabaseRequest('cattle_purchases?select=*').catch(() => []);
+        });
 
         // Se não houver dados, criar alguns exemplos
         if (!cattlePurchases || cattlePurchases.length === 0) {
@@ -321,7 +385,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de partners (com e sem /api/v1/)
     if (req.url?.includes('/partners')) {
       try {
-        const partners = await supabaseRequest('partners?select=*');
+        const partners = await getPartners().catch(async () => {
+          return await supabaseRequest('partners?select=*').catch(() => []);
+        });
         res.status(200).json({
           status: 'success',
           items: partners || [],
@@ -383,7 +449,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de sale records (com e sem /api/v1/)
     if (req.url?.includes('/sale-records') && !req.url?.includes('/stats')) {
       try {
-        const saleRecords = await supabaseRequest('sale_records?select=*');
+        const saleRecords = await getSaleRecords().catch(async () => {
+          return await supabaseRequest('sale_records?select=*').catch(() => []);
+        });
         res.status(200).json({
           status: 'success',
           items: saleRecords || [],
@@ -515,9 +583,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try {
         // Buscar dados reais do Supabase para calcular stats
         const [expenses, revenues, cattlePurchases] = await Promise.all([
-          supabaseRequest('expenses?select=*').catch(() => []),
-          supabaseRequest('revenues?select=*').catch(() => []),
-          supabaseRequest('cattle_purchases?select=*').catch(() => [])
+          getExpenses().catch(async () => await supabaseRequest('expenses?select=*').catch(() => [])),
+          getRevenues().catch(async () => await supabaseRequest('revenues?select=*').catch(() => [])),
+          getCattlePurchases().catch(async () => await supabaseRequest('cattle_purchases?select=*').catch(() => []))
         ]);
 
         const totalExpenses = expenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);
