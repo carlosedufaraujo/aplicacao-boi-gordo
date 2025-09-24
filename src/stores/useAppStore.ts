@@ -358,8 +358,15 @@ const generateInitialPens = () => {
   return { penRegistrations, penStatuses };
 };
 
-// Generate initial pens
-const initialPens = generateInitialPens();
+// Generate initial pens with lazy initialization
+let initialPensCache: { penRegistrations: PenRegistration[]; penStatuses: PenStatus[] } | null = null;
+
+const getInitialPens = () => {
+  if (!initialPensCache) {
+    initialPensCache = generateInitialPens();
+  }
+  return initialPensCache;
+};
 
 export const useAppStore = create<AppState>((set, get) => ({
   // Estado inicial
@@ -398,9 +405,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       icon: 'AlertTriangle'
     }
   ],
-  penRegistrations: initialPens.penRegistrations,
+  penRegistrations: getInitialPens().penRegistrations,
   penAllocations: [],
-  penStatuses: initialPens.penStatuses,
+  penStatuses: getInitialPens().penStatuses,
   debts: [],
   bankStatements: [],
   financialReconciliations: [],

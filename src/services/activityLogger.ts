@@ -408,8 +408,18 @@ class ActivityLoggerService {
   }
 }
 
-// Exporta instância única (singleton)
-export const activityLogger = new ActivityLoggerService();
+// Singleton instance with lazy initialization
+let activityLoggerInstance: ActivityLoggerService | null = null;
+
+export const getActivityLogger = (): ActivityLoggerService => {
+  if (!activityLoggerInstance) {
+    activityLoggerInstance = new ActivityLoggerService();
+  }
+  return activityLoggerInstance;
+};
+
+// Export for backward compatibility
+export const activityLogger = getActivityLogger();
 
 // Exporta também a classe para testes
 export { ActivityLoggerService };

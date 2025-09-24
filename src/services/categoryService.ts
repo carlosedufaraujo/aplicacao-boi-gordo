@@ -313,5 +313,15 @@ export class CategoryService {
   }
 }
 
-// Singleton instance
-export const categoryService = new CategoryService();
+// Singleton instance with lazy initialization
+let categoryServiceInstance: CategoryService | null = null;
+
+export const getCategoryService = (): CategoryService => {
+  if (!categoryServiceInstance) {
+    categoryServiceInstance = new CategoryService();
+  }
+  return categoryServiceInstance;
+};
+
+// Export for backward compatibility
+export const categoryService = getCategoryService();

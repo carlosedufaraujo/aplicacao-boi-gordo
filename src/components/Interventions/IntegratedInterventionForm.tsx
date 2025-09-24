@@ -155,7 +155,7 @@ export const IntegratedInterventionForm: React.FC<IntegratedInterventionFormProp
         totalAnimalsInPen: totalAnimals
       });
 
-    } catch (_error) {
+    } catch (error) {
       console.error('Erro ao calcular perda:', error);
       setMortalityCalculation(null);
     }
