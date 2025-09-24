@@ -42,7 +42,13 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
         return;
       }
 
-      if (response.status === 'success') {
+      // Verificar primeiro se a resposta tem items (formato da nossa API)
+      if (response && response.items !== undefined) {
+        setRevenues(response.items || []);
+        setTotalItems(response.results || response.total || 0);
+        setTotalPages(response.totalPages || 1);
+        setCurrentPage(response.page || 1);
+      } else if (response && response.status === 'success') {
         // Se temos uma resposta de sucesso, processar os dados
         if (response.data) {
           // Se response.data for um objeto paginado, extrair o array
@@ -57,12 +63,6 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
             setTotalPages(response.data.totalPages || Math.ceil((response.data.total || items.length) / pageSize));
             setCurrentPage(response.data.page || 1);
           }
-        } else if (response.items !== undefined) {
-          // Se a resposta tem o campo items diretamente
-          setRevenues(response.items || []);
-          setTotalItems(response.total || response.results || 0);
-          setTotalPages(response.totalPages || 1);
-          setCurrentPage(response.page || 1);
         } else {
           // Nenhum dado, mas ainda é sucesso (lista vazia)
           setRevenues([]);
@@ -75,10 +75,10 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
         setRevenues([]);
       } else {
         // Só lançar erro se realmente for um erro, não uma mensagem informativa
-        if (!response.message?.includes('Nenhuma') && !response.message?.includes('encontrad')) {
+        if (response.message && !response.message.includes('Nenhuma') && !response.message.includes('encontrad')) {
           throw new Error(response.message || 'Erro ao carregar receitas');
         }
-        // Se for uma mensagem informativa, apenas definir lista vazia
+        // Se for uma mensagem informativa ou resposta vazia, apenas definir lista vazia
         setRevenues([]);
         setTotalItems(0);
         setTotalPages(1);
