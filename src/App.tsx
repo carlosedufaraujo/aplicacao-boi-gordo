@@ -1,5 +1,6 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+// Force rebuild to update API calls - v2.1
 import { AppLayout } from '@/components/Layout/AppLayout';
 import { NotificationProvider } from '@/components/Notifications/NotificationProvider';
 import { BackendProvider, useBackend } from '@/providers/BackendProvider';
