@@ -8,9 +8,18 @@
     "url": "http://localhost:5173"
   },
   "api": {
-    "url": "http://localhost:3001/api/v1"
+    "url": "http://localhost:3001/api/v1",
+    "production_url": "https://aplicacao-boi-gordo.vercel.app/api/v1"
   },
   "database": {
     "url": "postgresql://postgres.vffxtvuqhlhcbbyqmynz:368308450Ce*@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+  },
+  "vercel": {
+    "domains": [
+      "aplicacao-boi-gordo.vercel.app",
+      "b3xcompany.com",
+      "www.b3xcompany.com"
+    ],
+    "api_url": "https://aplicacao-boi-gordo.vercel.app/api/v1"
   }
 }
