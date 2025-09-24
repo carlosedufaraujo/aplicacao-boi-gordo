@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient, safeExtractData } from './apiClient';
 
 export interface SaleRecord {
   id: string;
@@ -173,7 +173,7 @@ export const saleRecordsApi = {
   // Buscar registro de venda por ID
   async findById(id: string): Promise<SaleRecord> {
     const response = await apiClient.get(`/sale-records/${id}`);
-    return response.data.data;
+    return safeExtractData(response, {} as SaleRecord);
   },
 
   // Criar novo registro de venda
@@ -184,7 +184,7 @@ export const saleRecordsApi = {
       status: recordData.status?.toUpperCase() || 'PENDING'
     };
     const response = await apiClient.post('/sale-records', data);
-    return response.data.data;
+    return safeExtractData(response, {} as SaleRecord);
   },
 
   // Atualizar registro de venda
@@ -195,7 +195,7 @@ export const saleRecordsApi = {
       status: updates.status.toUpperCase()
     } : updates;
     const response = await apiClient.put(`/sale-records/${id}`, data);
-    return response.data.data;
+    return safeExtractData(response, {} as SaleRecord);
   },
 
   // Excluir registro de venda
@@ -206,6 +206,16 @@ export const saleRecordsApi = {
   // Buscar estatísticas
   async getStats(): Promise<SaleRecordStats> {
     const response = await apiClient.get('/sale-records/stats');
-    return response.data.data;
+    // Verificar se response e response.data existem
+    if (response && response.data) {
+      return response.data;
+    }
+    // Retornar estatísticas vazias se não houver dados
+    return {
+      totalSales: 0,
+      totalRevenue: 0,
+      averagePrice: 0,
+      totalWeight: 0
+    };
   }
 };

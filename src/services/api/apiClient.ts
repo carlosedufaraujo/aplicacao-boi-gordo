@@ -1,4 +1,14 @@
 /**
+ * Função utilitária para extrair dados de resposta de forma segura
+ */
+export function safeExtractData<T>(response: any, fallback: T): T {
+  if (response && response.data !== null && response.data !== undefined) {
+    return response.data;
+  }
+  return fallback;
+}
+
+/**
  * Cliente API para comunicação com o Backend
  * Usa autenticação JWT própria via localStorage
  */
@@ -34,20 +44,18 @@ export class ApiClient {
   ): Promise<T> {
     try {
       // Verificar se precisa de autenticação (endpoints públicos não precisam)
-      const publicEndpoints = ['/auth/login', '/auth/register', '/auth/verify-token'];
+      const publicEndpoints = [
+        '/auth/login', '/auth/register', '/auth/verify-token',
+        '/cattle-purchases', '/expenses', '/revenues', '/partners', 
+        '/sale-records', '/interventions', '/stats', '/health'
+      ];
       const isPublicEndpoint = publicEndpoints.some(ep => endpoint.includes(ep));
 
       const token = await this.getAuthToken();
 
-      // Se não há token e não é endpoint público, retornar resposta vazia
+      // Se não há token e não é endpoint público, fazer requisição sem token
       if (!token && !isPublicEndpoint) {
         console.warn(`[ApiClient] Requisição não autenticada para: ${endpoint}`);
-        // Retornar resposta padrão para não quebrar a aplicação
-        return {
-          status: 'error',
-          data: null,
-          message: 'Usuário não autenticado'
-        } as T;
       }
 
       const url = `${this.baseURL}${endpoint}`;
