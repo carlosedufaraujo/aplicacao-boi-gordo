@@ -188,6 +188,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Rota de sale records
+    if (req.url?.includes('/api/v1/sale-records') && !req.url?.includes('/stats')) {
+      try {
+        const saleRecords = await supabaseRequest('sale_records?select=*');
+        res.status(200).json({
+          status: 'success',
+          data: saleRecords || [],
+          message: 'Registros de venda carregados com sucesso'
+        });
+        return;
+      } catch (error) {
+        console.error('Error fetching sale records:', error);
+        res.status(200).json({
+          status: 'success',
+          data: [],
+          message: 'Nenhum registro de venda encontrado'
+        });
+        return;
+      }
+    }
+
     // Rota de sale records stats
     if (req.url?.includes('/api/v1/sale-records/stats')) {
       try {
@@ -214,6 +235,76 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             totalWeight: 0
           },
           message: 'Estatísticas de vendas não disponíveis'
+        });
+        return;
+      }
+    }
+
+    // Rota de expenses stats
+    if (req.url?.includes('/api/v1/expenses/stats')) {
+      try {
+        const expenses = await supabaseRequest('expenses?select=*').catch(() => []);
+        res.status(200).json({
+          status: 'success',
+          data: {
+            totalExpenses: expenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0),
+            count: expenses.length,
+            averageAmount: expenses.length > 0 ? expenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0) / expenses.length : 0,
+            byCategory: expenses.reduce((acc: any, exp: any) => {
+              const category = exp.category || 'Outros';
+              acc[category] = (acc[category] || 0) + (exp.amount || 0);
+              return acc;
+            }, {})
+          },
+          message: 'Estatísticas de despesas carregadas com sucesso'
+        });
+        return;
+      } catch (error) {
+        console.error('Error fetching expenses stats:', error);
+        res.status(200).json({
+          status: 'success',
+          data: {
+            totalExpenses: 0,
+            count: 0,
+            averageAmount: 0,
+            byCategory: {}
+          },
+          message: 'Estatísticas de despesas não disponíveis'
+        });
+        return;
+      }
+    }
+
+    // Rota de revenues stats
+    if (req.url?.includes('/api/v1/revenues/stats')) {
+      try {
+        const revenues = await supabaseRequest('revenues?select=*').catch(() => []);
+        res.status(200).json({
+          status: 'success',
+          data: {
+            totalRevenues: revenues.reduce((sum: number, rev: any) => sum + (rev.amount || 0), 0),
+            count: revenues.length,
+            averageAmount: revenues.length > 0 ? revenues.reduce((sum: number, rev: any) => sum + (rev.amount || 0), 0) / revenues.length : 0,
+            byCategory: revenues.reduce((acc: any, rev: any) => {
+              const category = rev.category || 'Outros';
+              acc[category] = (acc[category] || 0) + (rev.amount || 0);
+              return acc;
+            }, {})
+          },
+          message: 'Estatísticas de receitas carregadas com sucesso'
+        });
+        return;
+      } catch (error) {
+        console.error('Error fetching revenues stats:', error);
+        res.status(200).json({
+          status: 'success',
+          data: {
+            totalRevenues: 0,
+            count: 0,
+            averageAmount: 0,
+            byCategory: {}
+          },
+          message: 'Estatísticas de receitas não disponíveis'
         });
         return;
       }
@@ -282,9 +373,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         '/api/health',
         '/api/v1/stats',
         '/api/v1/expenses',
+        '/api/v1/expenses/stats',
         '/api/v1/revenues',
+        '/api/v1/revenues/stats',
         '/api/v1/cattle-purchases',
-        '/api/v1/partners'
+        '/api/v1/partners',
+        '/api/v1/sale-records',
+        '/api/v1/sale-records/stats',
+        '/api/v1/interventions/statistics'
       ]
     });
 
