@@ -4,7 +4,7 @@
  */
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getCattlePurchases, getExpenses, getRevenues, getPartners, getSaleRecords } from './db';
+import * as postgres from './postgres';
 
 // Configuração do Supabase
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
@@ -135,29 +135,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       try {
-        // Pegar o email do body da requisição
         const body = req.body || {};
-        const email = body.email || 'user@example.com';
-        const name = email.split('@')[0].charAt(0).toUpperCase() + email.split('@')[0].slice(1);
+        const email = body.email;
+        const password = body.password;
 
-        // Retornar um usuário com os dados fornecidos
-        const mockUser = {
-          id: '1',
-          email: email,
-          name: name,
-          role: 'ADMIN',
-          isActive: true,
-          isMaster: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+        if (!email) {
+          res.status(400).json({
+            status: 'error',
+            message: 'Email é obrigatório'
+          });
+          return;
+        }
 
-        const mockToken = 'mock-jwt-token-' + Date.now();
+        // Buscar usuário real no banco
+        const user = await postgres.getUserByEmail(email);
+
+        if (!user) {
+          res.status(401).json({
+            status: 'error',
+            message: 'Usuário não encontrado'
+          });
+          return;
+        }
+
+        // Por enquanto, aceitar qualquer senha (depois implementar bcrypt)
+        const mockToken = 'jwt-' + Buffer.from(JSON.stringify({ id: user.id, email: user.email })).toString('base64');
 
         res.status(200).json({
           status: 'success',
           data: {
-            user: mockUser,
+            user: {
+              id: user.id,
+              email: user.email,
+              name: user.name || user.email.split('@')[0],
+              role: user.role || 'ADMIN',
+              isActive: true,
+              isMaster: user.is_master || false,
+              createdAt: user.created_at,
+              updatedAt: user.updated_at
+            },
             token: mockToken
           },
           message: 'Login realizado com sucesso'
@@ -204,9 +220,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de expenses (com e sem /api/v1/)
     if (req.url?.includes('/expenses') && !req.url?.includes('/stats')) {
       try {
-        const expenses = await getExpenses().catch(async () => {
-          return await supabaseRequest('expenses?select=*').catch(() => []);
-        });
+        const expenses = await postgres.getExpenses();
         res.status(200).json({
           status: 'success',
           items: expenses || [],
@@ -235,9 +249,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de revenues (com e sem /api/v1/)
     if (req.url?.includes('/revenues') && !req.url?.includes('/stats')) {
       try {
-        const revenues = await getRevenues().catch(async () => {
-          return await supabaseRequest('revenues?select=*').catch(() => []);
-        });
+        const revenues = await postgres.getRevenues();
         res.status(200).json({
           status: 'success',
           items: revenues || [],
@@ -266,73 +278,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de cattle purchases (com e sem /api/v1/)
     if (req.url?.includes('/cattle-purchases')) {
       try {
-        // Tentar usar o cliente Supabase primeiro
-        let cattlePurchases = await getCattlePurchases().catch(async () => {
-          // Se falhar, tentar com requisição direta
-          return await supabaseRequest('cattle_purchases?select=*').catch(() => []);
-        });
-
-        // Se não houver dados, criar alguns exemplos
-        if (!cattlePurchases || cattlePurchases.length === 0) {
-          cattlePurchases = [
-            {
-              id: '1',
-              lotCode: 'LOT-2025-001',
-              vendorId: '1',
-              vendor: { name: 'Fazenda São João' },
-              location: 'São Paulo',
-              city: 'Ribeirão Preto',
-              state: 'SP',
-              purchaseDate: new Date().toISOString(),
-              animalType: 'MALE',
-              initialQuantity: 100,
-              currentQuantity: 98,
-              deathCount: 2,
-              purchaseWeight: 45000,
-              averageWeight: 450,
-              carcassYield: 52,
-              pricePerArroba: 280,
-              purchaseValue: 420000,
-              freightCost: 5000,
-              commission: 8400,
-              totalCost: 433400,
-              status: 'CONFINED',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            },
-            {
-              id: '2',
-              lotCode: 'LOT-2025-002',
-              vendorId: '2',
-              vendor: { name: 'Fazenda Santa Maria' },
-              location: 'Mato Grosso do Sul',
-              city: 'Campo Grande',
-              state: 'MS',
-              purchaseDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-              animalType: 'FEMALE',
-              initialQuantity: 80,
-              currentQuantity: 80,
-              deathCount: 0,
-              purchaseWeight: 32000,
-              averageWeight: 400,
-              carcassYield: 50,
-              pricePerArroba: 275,
-              purchaseValue: 293333,
-              freightCost: 4500,
-              commission: 5867,
-              totalCost: 303700,
-              status: 'RECEIVED',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
-            }
-          ];
-        }
+        // Buscar dados reais do PostgreSQL
+        const cattlePurchases = await postgres.getCattlePurchases();
 
         res.status(200).json({
           status: 'success',
-          items: cattlePurchases,
-          results: cattlePurchases.length,
-          total: cattlePurchases.length,
+          items: cattlePurchases || [],
+          results: cattlePurchases?.length || 0,
+          total: cattlePurchases?.length || 0,
           page: 1,
           totalPages: 1,
           message: 'Compras de gado carregadas com sucesso'
@@ -340,43 +293,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return;
       } catch (error) {
         console.error('Error fetching cattle purchases:', error);
-        // Retornar dados de exemplo mesmo em caso de erro
-        const mockData = [
-          {
-            id: '1',
-            lotCode: 'LOT-DEMO-001',
-            vendorId: '1',
-            vendor: { name: 'Fazenda Demo' },
-            location: 'São Paulo',
-            city: 'São Paulo',
-            state: 'SP',
-            purchaseDate: new Date().toISOString(),
-            animalType: 'MALE',
-            initialQuantity: 50,
-            currentQuantity: 50,
-            deathCount: 0,
-            purchaseWeight: 22500,
-            averageWeight: 450,
-            carcassYield: 52,
-            pricePerArroba: 280,
-            purchaseValue: 210000,
-            freightCost: 2500,
-            commission: 4200,
-            totalCost: 216700,
-            status: 'CONFINED',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ];
-
         res.status(200).json({
           status: 'success',
-          items: mockData,
-          results: mockData.length,
-          total: mockData.length,
+          items: [],
+          results: 0,
+          total: 0,
           page: 1,
           totalPages: 1,
-          message: 'Dados de demonstração carregados'
+          message: 'Erro ao carregar dados'
         });
         return;
       }
@@ -385,9 +309,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de partners (com e sem /api/v1/)
     if (req.url?.includes('/partners')) {
       try {
-        const partners = await getPartners().catch(async () => {
-          return await supabaseRequest('partners?select=*').catch(() => []);
-        });
+        const partners = await postgres.getPartners();
         res.status(200).json({
           status: 'success',
           items: partners || [],
@@ -449,9 +371,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de sale records (com e sem /api/v1/)
     if (req.url?.includes('/sale-records') && !req.url?.includes('/stats')) {
       try {
-        const saleRecords = await getSaleRecords().catch(async () => {
-          return await supabaseRequest('sale_records?select=*').catch(() => []);
-        });
+        const saleRecords = await postgres.getSaleRecords();
         res.status(200).json({
           status: 'success',
           items: saleRecords || [],
@@ -581,29 +501,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de stats
     if (req.url === '/api/v1/stats' || req.url?.includes('stats')) {
       try {
-        // Buscar dados reais do Supabase para calcular stats
-        const [expenses, revenues, cattlePurchases] = await Promise.all([
-          getExpenses().catch(async () => await supabaseRequest('expenses?select=*').catch(() => [])),
-          getRevenues().catch(async () => await supabaseRequest('revenues?select=*').catch(() => [])),
-          getCattlePurchases().catch(async () => await supabaseRequest('cattle_purchases?select=*').catch(() => []))
-        ]);
-
-        const totalExpenses = expenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);
-        const totalRevenues = revenues.reduce((sum: number, rev: any) => sum + (rev.amount || 0), 0);
-        const totalCattle = cattlePurchases.reduce((sum: number, purchase: any) => sum + (purchase.quantity || purchase.initialQuantity || purchase.currentQuantity || 0), 0);
-
-        // Se não houver dados, usar valores de exemplo
-        const stats = {
-          totalCattle: totalCattle || 178,
-          activeLots: cattlePurchases.length || 2,
-          occupiedPens: Math.ceil((cattlePurchases.length || 2) * 0.6),
-          totalRevenue: totalRevenues || 713333,
-          totalExpenses: totalExpenses || 737100,
-          netProfit: (totalRevenues || 713333) - (totalExpenses || 737100),
-          averageWeight: 450,
-          mortalityRate: 1.1,
-          lastUpdated: new Date().toISOString()
-        };
+        // Buscar estatísticas reais do PostgreSQL
+        const stats = await postgres.getStats();
 
         res.status(200).json({
           status: 'success',
@@ -613,21 +512,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return;
       } catch (error) {
         console.error('Error fetching stats:', error);
-        // Retornar dados de exemplo mesmo em caso de erro
         res.status(200).json({
           status: 'success',
           data: {
-            totalCattle: 178,
-            activeLots: 2,
-            occupiedPens: 2,
-            totalRevenue: 713333,
-            totalExpenses: 737100,
-            netProfit: -23767,
-            averageWeight: 425,
-            mortalityRate: 1.1,
+            totalCattle: 0,
+            activeLots: 0,
+            occupiedPens: 0,
+            totalRevenue: 0,
+            totalExpenses: 0,
+            netProfit: 0,
+            averageWeight: 0,
+            mortalityRate: 0,
             lastUpdated: new Date().toISOString()
           },
-          message: 'Dados de demonstração carregados'
+          message: 'Erro ao carregar estatísticas'
         });
         return;
       }
