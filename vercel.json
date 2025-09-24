@@ -4,8 +4,8 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/v1/(.*)",
-      "destination": "/api/v1"
+      "source": "/api/:path*",
+      "destination": "/api/[...slug]"
     },
     {
       "source": "/(.*)",
@@ -13,7 +13,7 @@
     }
   ],
   "functions": {
-    "api/v1.js": {
+    "api/[...slug].js": {
       "runtime": "@vercel/node@3.0.0",
       "includeFiles": "api/**"
     },
