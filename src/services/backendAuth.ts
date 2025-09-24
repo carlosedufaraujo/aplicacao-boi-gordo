@@ -1,11 +1,13 @@
 /**
  * SISTEMA DE AUTENTICAÇÃO 100% BACKEND
- * 
+ *
  * Substitui completamente o Supabase Auth
  * Usa apenas nossa API backend com JWT
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+import { getApiBaseUrl } from '@/config/api.config';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
 
 export interface User {
   id: string;

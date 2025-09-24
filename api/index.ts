@@ -71,6 +71,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
+    // Rota de autenticação (login)
+    if (req.url?.includes('/auth/login')) {
+      if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+      }
+
+      try {
+        // Por enquanto, vamos retornar um usuário mock para testes
+        const mockUser = {
+          id: '1',
+          email: 'admin@bovicontrol.com',
+          name: 'Admin',
+          role: 'ADMIN',
+          isActive: true,
+          isMaster: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+
+        const mockToken = 'mock-jwt-token-' + Date.now();
+
+        res.status(200).json({
+          status: 'success',
+          data: {
+            user: mockUser,
+            token: mockToken
+          },
+          message: 'Login realizado com sucesso'
+        });
+        return;
+      } catch (error) {
+        console.error('Error in auth/login:', error);
+        res.status(500).json({
+          status: 'error',
+          message: 'Erro ao fazer login'
+        });
+        return;
+      }
+    }
+
+    // Rota de validação de token
+    if (req.url?.includes('/auth/validate')) {
+      // Por enquanto, sempre retorna válido para testes
+      res.status(200).json({
+        status: 'success',
+        data: {
+          valid: true,
+          user: {
+            id: '1',
+            email: 'admin@bovicontrol.com',
+            name: 'Admin',
+            role: 'ADMIN',
+            isActive: true,
+            isMaster: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        },
+        message: 'Token válido'
+      });
+      return;
+    }
+
     // Rota de expenses (com e sem /api/v1/)
     if (req.url?.includes('/expenses') && !req.url?.includes('/stats')) {
       try {

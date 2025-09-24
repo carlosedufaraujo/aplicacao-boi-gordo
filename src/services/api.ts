@@ -1,14 +1,24 @@
 // Serviço de API para conectar com o backend
 import { backendAuth } from './backendAuth';
 
-const API_BASE_URL = 'http://localhost:3001/api/v1';
+// Detectar ambiente e usar URL apropriada
+const getApiBaseUrl = () => {
+  // Em produção (Vercel), usar a URL de produção
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return window.location.origin + '/api/v1';
+  }
+  // Em desenvolvimento, usar localhost
+  return 'http://localhost:3001/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     try {
       // Obter headers de autenticação
       const authHeaders = backendAuth.getAuthHeader();
-      
+
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -33,7 +43,10 @@ class ApiService {
   // Health check
   async healthCheck() {
     // Health check está na raiz, não no /api/v1
-    const response = await fetch('http://localhost:3001/health');
+    const baseUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? window.location.origin
+      : 'http://localhost:3001';
+    const response = await fetch(`${baseUrl}/health`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
