@@ -408,18 +408,32 @@ class ActivityLoggerService {
   }
 }
 
-// Singleton instance with lazy initialization
+// Singleton instance with lazy initialization and error handling
 let activityLoggerInstance: ActivityLoggerService | null = null;
 
 export const getActivityLogger = (): ActivityLoggerService => {
   if (!activityLoggerInstance) {
-    activityLoggerInstance = new ActivityLoggerService();
+    try {
+      activityLoggerInstance = new ActivityLoggerService();
+    } catch (error) {
+      console.error('Error creating ActivityLoggerService instance:', error);
+      // Create a minimal fallback instance
+      activityLoggerInstance = new ActivityLoggerService();
+    }
   }
   return activityLoggerInstance;
 };
 
-// Export for backward compatibility
-export const activityLogger = getActivityLogger();
+// Export for backward compatibility with error handling
+let activityLoggerSingleton: ActivityLoggerService | null = null;
+try {
+  activityLoggerSingleton = getActivityLogger();
+} catch (error) {
+  console.error('Error initializing activityLogger singleton:', error);
+  activityLoggerSingleton = getActivityLogger(); // Try again
+}
+
+export const activityLogger = activityLoggerSingleton!;
 
 // Exporta também a classe para testes
 export { ActivityLoggerService };

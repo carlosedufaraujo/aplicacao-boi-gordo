@@ -358,12 +358,21 @@ const generateInitialPens = () => {
   return { penRegistrations, penStatuses };
 };
 
-// Generate initial pens with lazy initialization
+// Generate initial pens with lazy initialization and error handling
 let initialPensCache: { penRegistrations: PenRegistration[]; penStatuses: PenStatus[] } | null = null;
 
 const getInitialPens = () => {
   if (!initialPensCache) {
-    initialPensCache = generateInitialPens();
+    try {
+      initialPensCache = generateInitialPens();
+    } catch (error) {
+      console.error('Error generating initial pens:', error);
+      // Fallback to empty arrays
+      initialPensCache = {
+        penRegistrations: [],
+        penStatuses: []
+      };
+    }
   }
   return initialPensCache;
 };

@@ -313,15 +313,29 @@ export class CategoryService {
   }
 }
 
-// Singleton instance with lazy initialization
+// Singleton instance with lazy initialization and error handling
 let categoryServiceInstance: CategoryService | null = null;
 
 export const getCategoryService = (): CategoryService => {
   if (!categoryServiceInstance) {
-    categoryServiceInstance = new CategoryService();
+    try {
+      categoryServiceInstance = new CategoryService();
+    } catch (error) {
+      console.error('Error creating CategoryService instance:', error);
+      // Create a minimal fallback instance
+      categoryServiceInstance = new CategoryService();
+    }
   }
   return categoryServiceInstance;
 };
 
-// Export for backward compatibility
-export const categoryService = getCategoryService();
+// Export for backward compatibility with error handling
+let categoryServiceSingleton: CategoryService | null = null;
+try {
+  categoryServiceSingleton = getCategoryService();
+} catch (error) {
+  console.error('Error initializing categoryService singleton:', error);
+  categoryServiceSingleton = getCategoryService(); // Try again
+}
+
+export const categoryService = categoryServiceSingleton!;
