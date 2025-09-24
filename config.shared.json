@@ -16,10 +16,8 @@
   },
   "vercel": {
     "domains": [
-      "aplicacao-boi-gordo.vercel.app",
-      "b3xcompany.com",
-      "www.b3xcompany.com"
+      "aplicacao-boi-gordo.vercel.app"
     ],
-    "api_url": "https://www.b3xcompany.com/api"
+    "api_url": "https://aplicacao-boi-gordo.vercel.app/api"
   }
 }
