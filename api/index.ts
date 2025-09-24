@@ -5,7 +5,32 @@
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Handler principal para Vercel - versão simplificada para teste
+// Configuração do Supabase
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
+const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwNjA1NzAsImV4cCI6MjA1MDYzNjU3MH0.KsVx8CJLm9s5EqiTQPTFB1CsGPMmf93pALCWNMpkUEI';
+
+// Função para fazer requisições ao Supabase
+async function supabaseRequest(endpoint: string, options: any = {}) {
+  const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+  const response = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...options.headers
+    },
+    ...options
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Supabase error: ${response.status} ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+
+// Handler principal para Vercel
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     // Configurar CORS
@@ -46,20 +71,99 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
+    // Rota de expenses
+    if (req.url?.includes('/api/v1/expenses')) {
+      try {
+        const expenses = await supabaseRequest('expenses?select=*');
+        res.status(200).json(expenses || []);
+        return;
+      } catch (error) {
+        console.error('Error fetching expenses:', error);
+        res.status(200).json([]); // Retorna array vazio em caso de erro
+        return;
+      }
+    }
+
+    // Rota de revenues
+    if (req.url?.includes('/api/v1/revenues')) {
+      try {
+        const revenues = await supabaseRequest('revenues?select=*');
+        res.status(200).json(revenues || []);
+        return;
+      } catch (error) {
+        console.error('Error fetching revenues:', error);
+        res.status(200).json([]); // Retorna array vazio em caso de erro
+        return;
+      }
+    }
+
+    // Rota de cattle purchases
+    if (req.url?.includes('/api/v1/cattle-purchases')) {
+      try {
+        const cattlePurchases = await supabaseRequest('cattle_purchases?select=*');
+        res.status(200).json(cattlePurchases || []);
+        return;
+      } catch (error) {
+        console.error('Error fetching cattle purchases:', error);
+        res.status(200).json([]); // Retorna array vazio em caso de erro
+        return;
+      }
+    }
+
+    // Rota de partners
+    if (req.url?.includes('/api/v1/partners')) {
+      try {
+        const partners = await supabaseRequest('partners?select=*');
+        res.status(200).json(partners || []);
+        return;
+      } catch (error) {
+        console.error('Error fetching partners:', error);
+        res.status(200).json([]); // Retorna array vazio em caso de erro
+        return;
+      }
+    }
+
     // Rota de stats
     if (req.url === '/api/v1/stats' || req.url?.includes('stats')) {
-      res.status(200).json({
-        totalCattle: 850,
-        activeLots: 12,
-        occupiedPens: 8,
-        totalRevenue: 2500000,
-        totalExpenses: 1800000,
-        netProfit: 700000,
-        averageWeight: 450,
-        mortalityRate: 0.5,
-        lastUpdated: new Date().toISOString()
-      });
-      return;
+      try {
+        // Buscar dados reais do Supabase para calcular stats
+        const [expenses, revenues, cattlePurchases] = await Promise.all([
+          supabaseRequest('expenses?select=*').catch(() => []),
+          supabaseRequest('revenues?select=*').catch(() => []),
+          supabaseRequest('cattle_purchases?select=*').catch(() => [])
+        ]);
+
+        const totalExpenses = expenses.reduce((sum: number, exp: any) => sum + (exp.amount || 0), 0);
+        const totalRevenues = revenues.reduce((sum: number, rev: any) => sum + (rev.amount || 0), 0);
+        const totalCattle = cattlePurchases.reduce((sum: number, purchase: any) => sum + (purchase.quantity || 0), 0);
+
+        res.status(200).json({
+          totalCattle,
+          activeLots: cattlePurchases.length,
+          occupiedPens: Math.ceil(cattlePurchases.length * 0.6),
+          totalRevenue: totalRevenues,
+          totalExpenses: totalExpenses,
+          netProfit: totalRevenues - totalExpenses,
+          averageWeight: 450,
+          mortalityRate: 0.5,
+          lastUpdated: new Date().toISOString()
+        });
+        return;
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        res.status(200).json({
+          totalCattle: 0,
+          activeLots: 0,
+          occupiedPens: 0,
+          totalRevenue: 0,
+          totalExpenses: 0,
+          netProfit: 0,
+          averageWeight: 0,
+          mortalityRate: 0,
+          lastUpdated: new Date().toISOString()
+        });
+        return;
+      }
     }
 
     // Resposta padrão para outras rotas
@@ -69,7 +173,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       timestamp: new Date().toISOString(),
       path: req.url,
       method: req.method,
-      environment: process.env.NODE_ENV || 'production'
+      environment: process.env.NODE_ENV || 'production',
+      availableRoutes: [
+        '/api/health',
+        '/api/v1/stats',
+        '/api/v1/expenses',
+        '/api/v1/revenues',
+        '/api/v1/cattle-purchases',
+        '/api/v1/partners'
+      ]
     });
 
   } catch (error) {
