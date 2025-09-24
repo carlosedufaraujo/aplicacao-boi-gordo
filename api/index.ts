@@ -71,8 +71,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    // Rota de expenses
-    if (req.url?.includes('/api/v1/expenses')) {
+    // Rota de expenses (com e sem /api/v1/)
+    if (req.url?.includes('/expenses') && !req.url?.includes('/stats')) {
       try {
         const expenses = await supabaseRequest('expenses?select=*');
         res.status(200).json({
@@ -92,8 +92,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de revenues
-    if (req.url?.includes('/api/v1/revenues')) {
+    // Rota de revenues (com e sem /api/v1/)
+    if (req.url?.includes('/revenues') && !req.url?.includes('/stats')) {
       try {
         const revenues = await supabaseRequest('revenues?select=*');
         res.status(200).json({
@@ -113,8 +113,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de cattle purchases
-    if (req.url?.includes('/api/v1/cattle-purchases')) {
+    // Rota de cattle purchases (com e sem /api/v1/)
+    if (req.url?.includes('/cattle-purchases')) {
       try {
         const cattlePurchases = await supabaseRequest('cattle_purchases?select=*');
         res.status(200).json({
@@ -134,8 +134,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de partners
-    if (req.url?.includes('/api/v1/partners')) {
+    // Rota de partners (com e sem /api/v1/)
+    if (req.url?.includes('/partners')) {
       try {
         const partners = await supabaseRequest('partners?select=*');
         res.status(200).json({
@@ -155,8 +155,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de interventions statistics
-    if (req.url?.includes('/api/v1/interventions/statistics')) {
+    // Rota de interventions statistics (com e sem /api/v1/)
+    if (req.url?.includes('/interventions/statistics')) {
       try {
         // Simular estatísticas de intervenções
         res.status(200).json({
@@ -188,8 +188,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de sale records
-    if (req.url?.includes('/api/v1/sale-records') && !req.url?.includes('/stats')) {
+    // Rota de sale records (com e sem /api/v1/)
+    if (req.url?.includes('/sale-records') && !req.url?.includes('/stats')) {
       try {
         const saleRecords = await supabaseRequest('sale_records?select=*');
         res.status(200).json({
@@ -209,8 +209,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de sale records stats
-    if (req.url?.includes('/api/v1/sale-records/stats')) {
+    // Rota de sale records stats (com e sem /api/v1/)
+    if (req.url?.includes('/sale-records/stats')) {
       try {
         const saleRecords = await supabaseRequest('sale_records?select=*').catch(() => []);
         res.status(200).json({
@@ -240,8 +240,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de expenses stats
-    if (req.url?.includes('/api/v1/expenses/stats')) {
+    // Rota de expenses stats (com e sem /api/v1/)
+    if (req.url?.includes('/expenses/stats')) {
       try {
         const expenses = await supabaseRequest('expenses?select=*').catch(() => []);
         res.status(200).json({
@@ -275,8 +275,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de revenues stats
-    if (req.url?.includes('/api/v1/revenues/stats')) {
+    // Rota de revenues stats (com e sem /api/v1/)
+    if (req.url?.includes('/revenues/stats')) {
       try {
         const revenues = await supabaseRequest('revenues?select=*').catch(() => []);
         res.status(200).json({
