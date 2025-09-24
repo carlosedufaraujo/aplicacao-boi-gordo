@@ -31,7 +31,10 @@ function createResponse(statusCode, body, headers = {}) {
 // Handler principal
 module.exports = async (req, res) => {
   const { method, url, body } = req;
-  const path = url.split('?')[0];
+  // No Vercel, o path vem como query parameter quando usando rewrites
+  const path = req.query && req.query.path
+    ? `/api/${req.query.path}`
+    : (url || req.url || '/api').split('?')[0];
 
   console.log('[API] Requisição recebida:', method, path);
   console.log('[API] Headers:', JSON.stringify(req.headers).substring(0, 200));
