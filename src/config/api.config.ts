@@ -6,7 +6,7 @@
 export const getApiBaseUrl = (): string => {
   // Em produção (Vercel), usar a URL relativa
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return window.location.origin + '/api/v1';
+    return window.location.origin + '/api';
   }
   // Em desenvolvimento, usar localhost
   return 'http://localhost:3001/api/v1';
