@@ -16,7 +16,12 @@ export class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+    // Em produção, usar cattle-purchases como proxy
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      this.baseURL = window.location.origin + '/api/cattle-purchases';
+    } else {
+      this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+    }
   }
 
   /**
