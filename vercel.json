@@ -12,11 +12,6 @@
       "API_PREFIX": "/api"
     }
   },
-  "functions": {
-    "api/index.ts": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/v1/(.*)",
