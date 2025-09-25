@@ -1,5 +1,4 @@
 {
-  "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
@@ -13,6 +12,11 @@
       "API_PREFIX": "/api"
     }
   },
+  "functions": {
+    "api/index.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/v1/(.*)",
@@ -23,7 +27,7 @@
       "destination": "/api/index"
     },
     {
-      "source": "/((?!api|_next|favicon.ico|.*\\.).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
