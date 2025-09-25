@@ -117,7 +117,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const cattlePurchases = await supabaseRequest('cattle_purchases?select=*');
         res.status(200).json({
           status: 'success',
-          data: cattlePurchases || [],
+          items: cattlePurchases || [],
+          results: cattlePurchases?.length || 0,
+          total: cattlePurchases?.length || 0,
+          page: 1,
+          totalPages: 1,
           message: 'Compras de gado carregadas com sucesso'
         });
         return;
@@ -125,7 +129,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('Error fetching cattle purchases:', error);
         res.status(200).json({
           status: 'success',
-          data: [],
+          items: [],
+          results: 0,
+          total: 0,
+          page: 1,
+          totalPages: 1,
           message: 'Nenhuma compra encontrada'
         });
         return;
