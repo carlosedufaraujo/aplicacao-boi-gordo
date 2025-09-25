@@ -1,12 +1,30 @@
 {
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://aplicacao-boi-gordo.vercel.app/api",
+      "VITE_SUPABASE_URL": "https://vffxtvuqhlhcbbyqmynz.supabase.co",
+      "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwNjA1NzAsImV4cCI6MjA1MDYzNjU3MH0.KsVx8CJLm9s5EqiTQPTFB1CsGPMmf93pALCWNMpkUEI",
+      "DATABASE_URL": "postgresql://postgres.vffxtvuqhlhcbbyqmynz:Ceac@2024@aws-0-sa-east-1.pooler.supabase.com:6543/postgres",
+      "JWT_SECRET": "sua-chave-secreta-jwt",
+      "API_PREFIX": "/api"
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "source": "/api/v1/(.*)",
+      "destination": "/api/index"
     },
     {
-      "source": "/(.*)",
-      "destination": "/"
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/((?!api|_next|favicon.ico|.*\\.).*)",
+      "destination": "/index.html"
     }
   ]
 }
