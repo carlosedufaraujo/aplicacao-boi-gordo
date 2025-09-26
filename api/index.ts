@@ -7,15 +7,37 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Configuração do Supabase
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
-const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwNjA1NzAsImV4cCI6MjA1MDYzNjU3MH0.KsVx8CJLm9s5EqiTQPTFB1CsGPMmf93pALCWNMpkUEI';
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3MTQ2MDcsImV4cCI6MjA3MTI5MDYwN30.MH5C-ZmQ1udG5Obre4_furNk68NNeUohZTdrKtfagmc';
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTcxNDYwNywiZXhwIjoyMDcxMjkwNjA3fQ.8U_SEhK7xB33ABE3KYdVhGsMzuF9fqIGTGfew_KPKb8';
 
 // Função para fazer requisições ao Supabase
 async function supabaseRequest(endpoint: string, options: any = {}) {
   const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
   const response = await fetch(url, {
     headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...options.headers
+    },
+    ...options
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Supabase error: ${response.status} ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+
+// Função para fazer requisições ao Supabase com service key (para autenticação)
+async function supabaseAuthRequest(endpoint: string, options: any = {}) {
+  const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+  const response = await fetch(url, {
+    headers: {
+      'apikey': SUPABASE_SERVICE_KEY,
+      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
       ...options.headers
@@ -92,38 +114,69 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return;
         }
 
-        // Por enquanto, vamos simular um login bem-sucedido para teste
-        // TODO: Implementar validação real com Supabase
-        if (email === 'admin@bovicontrol.com' && password === 'admin123') {
-          const user = {
-            id: '1',
-            email: email,
-            name: 'Administrador',
-            role: 'ADMIN' as const,
-            isActive: true,
-            isMaster: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-
-          const token = 'mock-jwt-token-' + Date.now();
-
-          res.status(200).json({
-            status: 'success',
-            data: {
-              user,
-              token
-            },
-            message: 'Login realizado com sucesso'
-          });
-          return;
-        } else {
+        // Buscar usuário no Supabase
+        const users = await supabaseAuthRequest(`users?email=eq.${email}&select=*`);
+        
+        if (!users || users.length === 0) {
           res.status(401).json({
             status: 'error',
             message: 'Email ou senha inválidos'
           });
           return;
         }
+
+        const user = users[0];
+
+        // Verificar se o usuário está ativo
+        if (!user.is_active) {
+          res.status(401).json({
+            status: 'error',
+            message: 'Usuário inativo'
+          });
+          return;
+        }
+
+        // Por enquanto, vamos aceitar qualquer senha para usuários existentes
+        // TODO: Implementar hash de senha com bcrypt
+        // const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+        
+        // Simular validação de senha (aceitar qualquer senha por enquanto)
+        const isPasswordValid = true;
+
+        if (!isPasswordValid) {
+          res.status(401).json({
+            status: 'error',
+            message: 'Email ou senha inválidos'
+          });
+          return;
+        }
+
+        // Gerar token JWT simples (por enquanto usando timestamp)
+        // TODO: Implementar JWT real com jsonwebtoken
+        const token = `jwt-${user.id}-${Date.now()}`;
+
+        // Formatar resposta do usuário
+        const userResponse = {
+          id: user.id,
+          email: user.email,
+          name: user.name || user.email,
+          role: user.role || 'USER',
+          isActive: user.is_active || true,
+          isMaster: user.is_master || false,
+          createdAt: user.created_at,
+          updatedAt: user.updated_at
+        };
+
+        res.status(200).json({
+          status: 'success',
+          data: {
+            user: userResponse,
+            token
+          },
+          message: 'Login realizado com sucesso'
+        });
+        return;
+
       } catch (error) {
         console.error('Error in login:', error);
         res.status(500).json({
@@ -146,29 +199,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return;
         }
 
-        // Por enquanto, aceitar qualquer token que comece com 'mock-jwt-token'
         const token = authHeader.replace('Bearer ', '');
-        if (token.startsWith('mock-jwt-token')) {
-          res.status(200).json({
-            status: 'success',
-            data: {
-              id: '1',
-              email: 'admin@bovicontrol.com',
-              name: 'Administrador',
-              role: 'ADMIN',
-              isActive: true,
-              isMaster: true
-            },
-            message: 'Token válido'
-          });
-          return;
-        } else {
+        
+        // Validar formato do token (jwt-{userId}-{timestamp})
+        if (!token.startsWith('jwt-')) {
           res.status(401).json({
             status: 'error',
             message: 'Token inválido'
           });
           return;
         }
+
+        // Extrair userId do token
+        const tokenParts = token.split('-');
+        if (tokenParts.length < 3) {
+          res.status(401).json({
+            status: 'error',
+            message: 'Token inválido'
+          });
+          return;
+        }
+
+        const userId = tokenParts[1];
+
+        // Buscar usuário no Supabase
+        const users = await supabaseAuthRequest(`users?id=eq.${userId}&select=*`);
+        
+        if (!users || users.length === 0) {
+          res.status(401).json({
+            status: 'error',
+            message: 'Token inválido'
+          });
+          return;
+        }
+
+        const user = users[0];
+
+        // Verificar se o usuário ainda está ativo
+        if (!user.is_active) {
+          res.status(401).json({
+            status: 'error',
+            message: 'Usuário inativo'
+          });
+          return;
+        }
+
+        // Formatar resposta do usuário
+        const userResponse = {
+          id: user.id,
+          email: user.email,
+          name: user.name || user.email,
+          role: user.role || 'USER',
+          isActive: user.is_active || true,
+          isMaster: user.is_master || false,
+          createdAt: user.created_at,
+          updatedAt: user.updated_at
+        };
+
+        res.status(200).json({
+          status: 'success',
+          data: userResponse,
+          message: 'Token válido'
+        });
+        return;
+
       } catch (error) {
         console.error('Error in token validation:', error);
         res.status(500).json({
