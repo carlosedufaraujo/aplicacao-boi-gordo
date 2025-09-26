@@ -1,1 +1,244 @@
-[]
+[
+  {
+    "id": "cmfgqd98w00428ay7va1rkcbd",
+    "averageWeight": 446.1,
+    "pricePerArroba": 295,
+    "purchaseDate": "2025-08-15T00:00:00.000Z",
+    "vendor": "FREDERICO SANTOS NOGUEIRA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:52.496Z",
+    "updatedAt": "2025-09-12T12:57:50.723Z"
+  },
+  {
+    "id": "cmfgqd8ys003w8ay7tgh6vbsz",
+    "averageWeight": 409.9047317073171,
+    "pricePerArroba": 295,
+    "purchaseDate": "2025-08-18T00:00:00.000Z",
+    "vendor": "AGNALDO DOS REIS BRITO",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:52.132Z",
+    "updatedAt": "2025-09-12T12:57:50.373Z"
+  },
+  {
+    "id": "cmfgqd8oi003q8ay7hpyf73kg",
+    "averageWeight": 366.3,
+    "pricePerArroba": 289.66,
+    "purchaseDate": "2025-08-10T00:00:00.000Z",
+    "vendor": "FREDERICO SANTOS NOGUEIRA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:51.762Z",
+    "updatedAt": "2025-09-12T12:57:50.543Z"
+  },
+  {
+    "id": "cmfgqd8eh003k8ay7zih5px31",
+    "averageWeight": 369,
+    "pricePerArroba": 289.41,
+    "purchaseDate": "2025-08-08T00:00:00.000Z",
+    "vendor": "ANDRÉ CARDOSO FAGUNDES",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:51.402Z",
+    "updatedAt": "2025-09-12T12:58:37.276Z"
+  },
+  {
+    "id": "cmfgqd84o003e8ay7i2gxch1o",
+    "averageWeight": 346.2,
+    "pricePerArroba": 275,
+    "purchaseDate": "2025-08-08T00:00:00.000Z",
+    "vendor": "JEAN DE JESUS OLIVEIRA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:51.048Z",
+    "updatedAt": "2025-09-12T12:59:12.435Z"
+  },
+  {
+    "id": "cmfgqd7ut00388ay7ljtvvv82",
+    "averageWeight": 384.9,
+    "pricePerArroba": 300.08,
+    "purchaseDate": "2025-07-28T00:00:00.000Z",
+    "vendor": "RAFAEL MACHADO BRAZ",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:50.693Z",
+    "updatedAt": "2025-09-12T12:57:49.988Z"
+  },
+  {
+    "id": "cmfgqd7kp00328ay76f0460pj",
+    "averageWeight": 361.8,
+    "pricePerArroba": 300.19,
+    "purchaseDate": "2025-07-28T00:00:00.000Z",
+    "vendor": "MICHELY REGINA SOUZA DE JESUS",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:50.329Z",
+    "updatedAt": "2025-09-12T12:57:49.591Z"
+  },
+  {
+    "id": "cmfgqd7ak002w8ay7z6p26ex7",
+    "averageWeight": 334.2,
+    "pricePerArroba": 297.67,
+    "purchaseDate": "2025-07-22T00:00:00.000Z",
+    "vendor": "RONALDO FERREIRA SILVA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:49.964Z",
+    "updatedAt": "2025-09-12T12:57:47.396Z"
+  },
+  {
+    "id": "cmfgqd6zz002q8ay7udccjgou",
+    "averageWeight": 390,
+    "pricePerArroba": 310.32,
+    "purchaseDate": "2025-07-21T00:00:00.000Z",
+    "vendor": "JOLFRE REZENDE FILHO",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:49.583Z",
+    "updatedAt": "2025-09-12T12:57:49.406Z"
+  },
+  {
+    "id": "cmfgqd6ph002k8ay7tog61d57",
+    "averageWeight": 342.6,
+    "pricePerArroba": 295.86,
+    "purchaseDate": "2025-07-17T00:00:00.000Z",
+    "vendor": "FREDERICO SANTOS NOGUEIRA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:49.206Z",
+    "updatedAt": "2025-09-12T12:57:49.250Z"
+  },
+  {
+    "id": "cmfgqd6ea002e8ay7ssljybzo",
+    "averageWeight": 340.5,
+    "pricePerArroba": 304.92,
+    "purchaseDate": "2025-07-14T00:00:00.000Z",
+    "vendor": "MARIA GORETE DE OLIVEIRA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:48.802Z",
+    "updatedAt": "2025-09-12T12:57:48.347Z"
+  },
+  {
+    "id": "cmfgqd62q00288ay7ptk1ethn",
+    "averageWeight": 371.4,
+    "pricePerArroba": 305.95,
+    "purchaseDate": "2025-07-11T00:00:00.000Z",
+    "vendor": "FREDERICO SANTOS NOGUEIRA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:48.387Z",
+    "updatedAt": "2025-09-12T12:57:49.070Z"
+  },
+  {
+    "id": "cmfgqd5so00228ay7ul4v4efa",
+    "averageWeight": 289.5,
+    "pricePerArroba": 320.29,
+    "purchaseDate": "2025-07-08T00:00:00.000Z",
+    "vendor": "GUILHERME COELHO LEMOS",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:48.024Z",
+    "updatedAt": "2025-09-12T12:57:48.908Z"
+  },
+  {
+    "id": "cmfgqd5iq001w8ay7mjg0ysg0",
+    "averageWeight": 336,
+    "pricePerArroba": 298.91,
+    "purchaseDate": "2025-07-04T00:00:00.000Z",
+    "vendor": "ANDRÉ CARDOSO FAGUNDES",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:47.666Z",
+    "updatedAt": "2025-09-12T12:58:53.760Z"
+  },
+  {
+    "id": "cmfgqd58r001q8ay7tbuiwyz7",
+    "averageWeight": 361.2,
+    "pricePerArroba": 315.44,
+    "purchaseDate": "2025-06-10T00:00:00.000Z",
+    "vendor": "PETRONIO CARDOZO FAGUNDES",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:47.307Z",
+    "updatedAt": "2025-09-12T12:58:28.077Z"
+  },
+  {
+    "id": "cmfgqd4yg001k8ay72shov6w2",
+    "averageWeight": 307.5,
+    "pricePerArroba": 310.13,
+    "purchaseDate": "2025-06-11T00:00:00.000Z",
+    "vendor": "JHONLAINY DIEMETON DE MELO BORGES",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:46.936Z",
+    "updatedAt": "2025-09-12T12:58:32.885Z"
+  },
+  {
+    "id": "cmfgqd4ol001e8ay76g6owkhs",
+    "averageWeight": 321.6,
+    "pricePerArroba": 307.21,
+    "purchaseDate": "2025-06-11T00:00:00.000Z",
+    "vendor": "LUCIANO FAUSTO DA SILVA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:46.582Z",
+    "updatedAt": "2025-09-12T12:57:47.202Z"
+  },
+  {
+    "id": "cmfgqd4en00188ay77q7xoxkj",
+    "averageWeight": 579.3,
+    "pricePerArroba": 280.13,
+    "purchaseDate": "2025-06-10T00:00:00.000Z",
+    "vendor": "WILSON DA COSTA FILHO",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:46.223Z",
+    "updatedAt": "2025-09-12T12:57:47.029Z"
+  },
+  {
+    "id": "cmfgqd44p00128ay7r1n1ftpr",
+    "averageWeight": 389.4,
+    "pricePerArroba": 310.21,
+    "purchaseDate": "2025-06-07T00:00:00.000Z",
+    "vendor": "ISAIAS BORGES DE LARCERDA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:45.865Z",
+    "updatedAt": "2025-09-12T12:57:47.832Z"
+  },
+  {
+    "id": "cmfgqd3us000w8ay7phc16fou",
+    "averageWeight": 365.1,
+    "pricePerArroba": 300.21,
+    "purchaseDate": "2025-06-06T00:00:00.000Z",
+    "vendor": "BRAZ SOARES DE ARAGÃO",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:45.508Z",
+    "updatedAt": "2025-09-12T12:57:48.184Z"
+  },
+  {
+    "id": "cmfgqd3kx000q8ay7d5od1h4e",
+    "averageWeight": 346.5,
+    "pricePerArroba": 307.13,
+    "purchaseDate": "2025-06-05T00:00:00.000Z",
+    "vendor": "ADIO SOUZA DA SILVA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:45.153Z",
+    "updatedAt": "2025-09-12T12:59:03.217Z"
+  },
+  {
+    "id": "cmfgqd30v000k8ay72t32k2uy",
+    "averageWeight": 338.7,
+    "pricePerArroba": 295.08,
+    "purchaseDate": "2025-06-03T00:00:00.000Z",
+    "vendor": "LAURENTINO FERNANDES BATISTA",
+    "payerAccount": "Fluxo de Caixa",
+    "status": "CONFIRMED",
+    "createdAt": "2025-09-12T11:04:44.431Z",
+    "updatedAt": "2025-09-12T12:59:13.447Z"
+  }
+]
