@@ -69,6 +69,116 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
+    // Rota de login
+    if (req.url?.includes('/auth/login') && req.method === 'POST') {
+      try {
+        // Processar body da requisição
+        let body: any = {};
+        if (req.body) {
+          if (typeof req.body === 'string') {
+            body = JSON.parse(req.body);
+          } else {
+            body = req.body;
+          }
+        }
+        const { email, password } = body;
+
+        // Validação básica
+        if (!email || !password) {
+          res.status(400).json({
+            status: 'error',
+            message: 'Email e senha são obrigatórios'
+          });
+          return;
+        }
+
+        // Por enquanto, vamos simular um login bem-sucedido para teste
+        // TODO: Implementar validação real com Supabase
+        if (email === 'admin@bovicontrol.com' && password === 'admin123') {
+          const user = {
+            id: '1',
+            email: email,
+            name: 'Administrador',
+            role: 'ADMIN' as const,
+            isActive: true,
+            isMaster: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+
+          const token = 'mock-jwt-token-' + Date.now();
+
+          res.status(200).json({
+            status: 'success',
+            data: {
+              user,
+              token
+            },
+            message: 'Login realizado com sucesso'
+          });
+          return;
+        } else {
+          res.status(401).json({
+            status: 'error',
+            message: 'Email ou senha inválidos'
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Error in login:', error);
+        res.status(500).json({
+          status: 'error',
+          message: 'Erro interno do servidor'
+        });
+        return;
+      }
+    }
+
+    // Rota de validação de token
+    if (req.url?.includes('/auth/me') && req.method === 'GET') {
+      try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          res.status(401).json({
+            status: 'error',
+            message: 'Token não fornecido'
+          });
+          return;
+        }
+
+        // Por enquanto, aceitar qualquer token que comece com 'mock-jwt-token'
+        const token = authHeader.replace('Bearer ', '');
+        if (token.startsWith('mock-jwt-token')) {
+          res.status(200).json({
+            status: 'success',
+            data: {
+              id: '1',
+              email: 'admin@bovicontrol.com',
+              name: 'Administrador',
+              role: 'ADMIN',
+              isActive: true,
+              isMaster: true
+            },
+            message: 'Token válido'
+          });
+          return;
+        } else {
+          res.status(401).json({
+            status: 'error',
+            message: 'Token inválido'
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Error in token validation:', error);
+        res.status(500).json({
+          status: 'error',
+          message: 'Erro interno do servidor'
+        });
+        return;
+      }
+    }
+
     // Rota de expenses (com e sem /api/v1/)
     if (req.url?.includes('/expenses') && !req.url?.includes('/stats')) {
       try {
@@ -377,6 +487,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       environment: process.env.NODE_ENV || 'production',
       availableRoutes: [
         '/api/health',
+        '/api/auth/login (POST)',
+        '/api/auth/me (GET)',
         '/api/v1/stats',
         '/api/v1/expenses',
         '/api/v1/expenses/stats',
