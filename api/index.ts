@@ -7,8 +7,10 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Configuração do Supabase
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU3MTQ2MDcsImV4cCI6MjA3MTI5MDYwN30.MH5C-ZmQ1udG5Obre4_furNk68NNeUohZTdrKtfagmc';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTcxNDYwNywiZXhwIjoyMDcxMjkwNjA3fQ.8U_SEhK7xB33ABE3KYdVhGsMzuF9fqIGTGfew_KPKb8';
+// Nova chave publishable (substitui anon key legacy)
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_5CxV6hVfcusfBQAvd0EgYQ_py12RoLG';
+// Nova chave secret (substitui service_role key legacy)
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'sb_secret_uHV4ZGqTu2sLFiswOob1bQ_X9uhL2zo';
 
 // Função para fazer requisições ao Supabase
 async function supabaseRequest(endpoint: string, options: any = {}) {
@@ -114,40 +116,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return;
         }
 
-        // Por enquanto, usar usuários hardcoded até resolver as chaves do Supabase
-        const hardcodedUsers = [
-          {
-            id: 'admin-001',
-            email: 'admin@bovicontrol.com',
-            name: 'Administrador',
-            role: 'ADMIN',
-            is_active: true,
-            is_master: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: 'user-001',
-            email: 'usuario@bovicontrol.com',
-            name: 'Usuário',
-            role: 'USER',
-            is_active: true,
-            is_master: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ];
-
-        // Buscar usuário nos dados hardcoded
-        const user = hardcodedUsers.find(u => u.email === email);
+        // Buscar usuário real no Supabase
+        const users = await supabaseAuthRequest(`users?email=eq.${email}&select=*`);
         
-        if (!user) {
+        if (!users || users.length === 0) {
           res.status(401).json({
             status: 'error',
             message: 'Email ou senha inválidos'
           });
           return;
         }
+
+        const user = users[0];
 
         // Verificar se o usuário está ativo
         if (!user.is_active) {
@@ -244,40 +224,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const userId = tokenParts[1];
 
-        // Por enquanto, usar usuários hardcoded até resolver as chaves do Supabase
-        const hardcodedUsers = [
-          {
-            id: 'admin-001',
-            email: 'admin@bovicontrol.com',
-            name: 'Administrador',
-            role: 'ADMIN',
-            is_active: true,
-            is_master: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          },
-          {
-            id: 'user-001',
-            email: 'usuario@bovicontrol.com',
-            name: 'Usuário',
-            role: 'USER',
-            is_active: true,
-            is_master: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ];
-
-        // Buscar usuário nos dados hardcoded
-        const user = hardcodedUsers.find(u => u.id === userId);
+        // Buscar usuário real no Supabase
+        const users = await supabaseAuthRequest(`users?id=eq.${userId}&select=*`);
         
-        if (!user) {
+        if (!users || users.length === 0) {
           res.status(401).json({
             status: 'error',
             message: 'Token inválido'
           });
           return;
         }
+
+        const user = users[0];
 
         // Verificar se o usuário ainda está ativo
         if (!user.is_active) {
@@ -320,58 +278,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de expenses (com e sem /api/v1/)
     if (req.url?.includes('/expenses') && !req.url?.includes('/stats')) {
       try {
-        // Dados mock estruturados para demonstração
-        const mockExpenses = [
-          {
-            id: 'exp-001',
-            description: 'Ração para gado',
-            amount: 2500.00,
-            category: 'Alimentação',
-            date: '2025-09-20',
-            supplier: 'Fornecedor ABC',
-            created_at: '2025-09-20T10:00:00Z'
-          },
-          {
-            id: 'exp-002',
-            description: 'Medicamentos veterinários',
-            amount: 850.00,
-            category: 'Saúde Animal',
-            date: '2025-09-18',
-            supplier: 'Veterinária XYZ',
-            created_at: '2025-09-18T14:30:00Z'
-          },
-          {
-            id: 'exp-003',
-            description: 'Manutenção de cercas',
-            amount: 1200.00,
-            category: 'Infraestrutura',
-            date: '2025-09-15',
-            supplier: 'Construções Rurais',
-            created_at: '2025-09-15T08:15:00Z'
-          },
-          {
-            id: 'exp-004',
-            description: 'Combustível para tratores',
-            amount: 680.00,
-            category: 'Combustível',
-            date: '2025-09-22',
-            supplier: 'Posto Rural',
-            created_at: '2025-09-22T16:45:00Z'
-          }
-        ];
-
+        const expenses = await supabaseRequest('expenses?select=*');
         res.status(200).json({
           status: 'success',
-          data: mockExpenses,
-          message: 'Despesas carregadas com sucesso'
+          data: expenses || [],
+          message: expenses?.length > 0 ? 'Despesas carregadas com sucesso' : 'Nenhuma despesa encontrada'
         });
         return;
       } catch (error) {
         console.error('Error fetching expenses:', error);
-        res.status(200).json({
-          status: 'success',
-          data: [],
-          message: 'Nenhuma despesa encontrada'
+        res.status(500).json({
+          status: 'error',
+          message: 'Erro ao carregar despesas: ' + (error as Error).message
         });
         return;
       }
@@ -380,58 +298,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de revenues (com e sem /api/v1/)
     if (req.url?.includes('/revenues') && !req.url?.includes('/stats')) {
       try {
-        // Dados mock estruturados para demonstração
-        const mockRevenues = [
-          {
-            id: 'rev-001',
-            description: 'Venda de gado - Lote 15',
-            amount: 45000.00,
-            category: 'Venda de Animais',
-            date: '2025-09-21',
-            buyer: 'Frigorífico Central',
-            created_at: '2025-09-21T09:30:00Z'
-          },
-          {
-            id: 'rev-002',
-            description: 'Venda de leite - Setembro',
-            amount: 8500.00,
-            category: 'Produção Leiteira',
-            date: '2025-09-19',
-            buyer: 'Laticínios do Vale',
-            created_at: '2025-09-19T11:15:00Z'
-          },
-          {
-            id: 'rev-003',
-            description: 'Aluguel de pasto',
-            amount: 2200.00,
-            category: 'Arrendamento',
-            date: '2025-09-17',
-            buyer: 'Fazenda Vizinha',
-            created_at: '2025-09-17T13:45:00Z'
-          },
-          {
-            id: 'rev-004',
-            description: 'Venda de bezerros',
-            amount: 12800.00,
-            category: 'Venda de Animais',
-            date: '2025-09-23',
-            buyer: 'Pecuária São José',
-            created_at: '2025-09-23T15:20:00Z'
-          }
-        ];
-
+        const revenues = await supabaseRequest('revenues?select=*');
         res.status(200).json({
           status: 'success',
-          data: mockRevenues,
-          message: 'Receitas carregadas com sucesso'
+          data: revenues || [],
+          message: revenues?.length > 0 ? 'Receitas carregadas com sucesso' : 'Nenhuma receita encontrada'
         });
         return;
       } catch (error) {
         console.error('Error fetching revenues:', error);
-        res.status(200).json({
-          status: 'success',
-          data: [],
-          message: 'Nenhuma receita encontrada'
+        res.status(500).json({
+          status: 'error',
+          message: 'Erro ao carregar receitas: ' + (error as Error).message
         });
         return;
       }
@@ -440,78 +318,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de cattle purchases (com e sem /api/v1/)
     if (req.url?.includes('/cattle-purchases')) {
       try {
-        // Dados mock estruturados para demonstração
-        const mockCattlePurchases = [
-          {
-            id: 'cp-001',
-            supplier: 'Fazenda Santa Maria',
-            quantity: 25,
-            unit_price: 1800.00,
-            total_amount: 45000.00,
-            purchase_date: '2025-09-10',
-            breed: 'Nelore',
-            weight_range: '450-500kg',
-            status: 'completed',
-            created_at: '2025-09-10T08:00:00Z'
-          },
-          {
-            id: 'cp-002',
-            supplier: 'Pecuária do Norte',
-            quantity: 15,
-            unit_price: 2200.00,
-            total_amount: 33000.00,
-            purchase_date: '2025-09-05',
-            breed: 'Angus',
-            weight_range: '500-550kg',
-            status: 'completed',
-            created_at: '2025-09-05T10:30:00Z'
-          },
-          {
-            id: 'cp-003',
-            supplier: 'Criação São Pedro',
-            quantity: 30,
-            unit_price: 1650.00,
-            total_amount: 49500.00,
-            purchase_date: '2025-08-28',
-            breed: 'Brahman',
-            weight_range: '400-450kg',
-            status: 'completed',
-            created_at: '2025-08-28T14:15:00Z'
-          },
-          {
-            id: 'cp-004',
-            supplier: 'Fazenda Boa Vista',
-            quantity: 20,
-            unit_price: 1950.00,
-            total_amount: 39000.00,
-            purchase_date: '2025-09-15',
-            breed: 'Canchim',
-            weight_range: '480-520kg',
-            status: 'pending',
-            created_at: '2025-09-15T16:45:00Z'
-          }
-        ];
-
+        const cattlePurchases = await supabaseRequest('cattle_purchases?select=*');
         res.status(200).json({
           status: 'success',
-          items: mockCattlePurchases,
-          results: mockCattlePurchases.length,
-          total: mockCattlePurchases.length,
+          items: cattlePurchases || [],
+          results: cattlePurchases?.length || 0,
+          total: cattlePurchases?.length || 0,
           page: 1,
           totalPages: 1,
-          message: 'Compras de gado carregadas com sucesso'
+          message: cattlePurchases?.length > 0 ? 'Compras de gado carregadas com sucesso' : 'Nenhuma compra encontrada'
         });
         return;
       } catch (error) {
         console.error('Error fetching cattle purchases:', error);
-        res.status(200).json({
-          status: 'success',
-          items: [],
-          results: 0,
-          total: 0,
-          page: 1,
-          totalPages: 1,
-          message: 'Nenhuma compra encontrada'
+        res.status(500).json({
+          status: 'error',
+          message: 'Erro ao carregar compras: ' + (error as Error).message
         });
         return;
       }
@@ -520,70 +342,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de partners (com e sem /api/v1/)
     if (req.url?.includes('/partners')) {
       try {
-        // Dados mock estruturados para demonstração
-        const mockPartners = [
-          {
-            id: 'partner-001',
-            name: 'Frigorífico Central',
-            type: 'buyer',
-            contact: 'João Silva',
-            phone: '(11) 99999-1234',
-            email: 'joao@frigorifico.com',
-            address: 'Rua das Indústrias, 123',
-            city: 'São Paulo',
-            state: 'SP',
-            created_at: '2025-08-15T10:00:00Z'
-          },
-          {
-            id: 'partner-002',
-            name: 'Fazenda Santa Maria',
-            type: 'supplier',
-            contact: 'Maria Santos',
-            phone: '(11) 88888-5678',
-            email: 'maria@santamaria.com',
-            address: 'Estrada Rural, Km 45',
-            city: 'Ribeirão Preto',
-            state: 'SP',
-            created_at: '2025-08-10T14:30:00Z'
-          },
-          {
-            id: 'partner-003',
-            name: 'Veterinária XYZ',
-            type: 'service_provider',
-            contact: 'Dr. Carlos Oliveira',
-            phone: '(11) 77777-9012',
-            email: 'carlos@vetxyz.com',
-            address: 'Av. Veterinária, 456',
-            city: 'Campinas',
-            state: 'SP',
-            created_at: '2025-08-05T09:15:00Z'
-          },
-          {
-            id: 'partner-004',
-            name: 'Laticínios do Vale',
-            type: 'buyer',
-            contact: 'Ana Costa',
-            phone: '(11) 66666-3456',
-            email: 'ana@laticinios.com',
-            address: 'Rua do Leite, 789',
-            city: 'Sorocaba',
-            state: 'SP',
-            created_at: '2025-08-20T16:45:00Z'
-          }
-        ];
-
+        const partners = await supabaseRequest('partners?select=*');
         res.status(200).json({
           status: 'success',
-          data: mockPartners,
-          message: 'Parceiros carregados com sucesso'
+          data: partners || [],
+          message: partners?.length > 0 ? 'Parceiros carregados com sucesso' : 'Nenhum parceiro encontrado'
         });
         return;
       } catch (error) {
         console.error('Error fetching partners:', error);
-        res.status(200).json({
-          status: 'success',
-          data: [],
-          message: 'Nenhum parceiro encontrado'
+        res.status(500).json({
+          status: 'error',
+          message: 'Erro ao carregar parceiros: ' + (error as Error).message
         });
         return;
       }
@@ -592,45 +362,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de interventions statistics (com e sem /api/v1/)
     if (req.url?.includes('/interventions/statistics')) {
       try {
-        // Simular estatísticas de intervenções
-        // Dados mock estruturados para demonstração
-        const mockStats = {
-          totalInterventions: 45,
-          activeInterventions: 8,
-          completedInterventions: 35,
-          pendingInterventions: 2,
-          byType: {
-            vaccination: 20,
-            treatment: 15,
-            checkup: 10
-          },
-          byMonth: {
-            'Jul': 12,
-            'Ago': 18,
-            'Set': 15
-          },
-          averageCost: 125.50,
-          successRate: 92.5
+        const interventions = await supabaseRequest('interventions?select=*');
+        
+        // Calcular estatísticas reais baseadas nos dados do banco
+        const stats = {
+          totalInterventions: interventions?.length || 0,
+          activeInterventions: interventions?.filter((i: any) => i.status === 'active')?.length || 0,
+          completedInterventions: interventions?.filter((i: any) => i.status === 'completed')?.length || 0,
+          pendingInterventions: interventions?.filter((i: any) => i.status === 'pending')?.length || 0,
+          byType: {},
+          byMonth: {},
+          averageCost: 0,
+          successRate: 0
         };
         
         res.status(200).json({
           status: 'success',
-          data: mockStats,
-          message: 'Estatísticas de intervenções carregadas com sucesso'
+          data: stats,
+          message: interventions?.length > 0 ? 'Estatísticas de intervenções carregadas com sucesso' : 'Nenhuma intervenção encontrada'
         });
         return;
       } catch (error) {
         console.error('Error fetching intervention statistics:', error);
-        res.status(200).json({
-          status: 'success',
-          data: {
-            totalInterventions: 0,
-            byType: {},
-            byMonth: {},
-            averageCost: 0,
-            successRate: 0
-          },
-          message: 'Estatísticas não disponíveis'
+        res.status(500).json({
+          status: 'error',
+          message: 'Erro ao carregar estatísticas: ' + (error as Error).message
         });
         return;
       }
