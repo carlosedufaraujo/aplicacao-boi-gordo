@@ -114,18 +114,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return;
         }
 
-        // Buscar usuário no Supabase
-        const users = await supabaseAuthRequest(`users?email=eq.${email}&select=*`);
+        // Por enquanto, usar usuários hardcoded até resolver as chaves do Supabase
+        const hardcodedUsers = [
+          {
+            id: 'admin-001',
+            email: 'admin@bovicontrol.com',
+            name: 'Administrador',
+            role: 'ADMIN',
+            is_active: true,
+            is_master: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          {
+            id: 'user-001',
+            email: 'usuario@bovicontrol.com',
+            name: 'Usuário',
+            role: 'USER',
+            is_active: true,
+            is_master: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ];
+
+        // Buscar usuário nos dados hardcoded
+        const user = hardcodedUsers.find(u => u.email === email);
         
-        if (!users || users.length === 0) {
+        if (!user) {
           res.status(401).json({
             status: 'error',
             message: 'Email ou senha inválidos'
           });
           return;
         }
-
-        const user = users[0];
 
         // Verificar se o usuário está ativo
         if (!user.is_active) {
@@ -222,18 +244,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const userId = tokenParts[1];
 
-        // Buscar usuário no Supabase
-        const users = await supabaseAuthRequest(`users?id=eq.${userId}&select=*`);
+        // Por enquanto, usar usuários hardcoded até resolver as chaves do Supabase
+        const hardcodedUsers = [
+          {
+            id: 'admin-001',
+            email: 'admin@bovicontrol.com',
+            name: 'Administrador',
+            role: 'ADMIN',
+            is_active: true,
+            is_master: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          {
+            id: 'user-001',
+            email: 'usuario@bovicontrol.com',
+            name: 'Usuário',
+            role: 'USER',
+            is_active: true,
+            is_master: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ];
+
+        // Buscar usuário nos dados hardcoded
+        const user = hardcodedUsers.find(u => u.id === userId);
         
-        if (!users || users.length === 0) {
+        if (!user) {
           res.status(401).json({
             status: 'error',
             message: 'Token inválido'
           });
           return;
         }
-
-        const user = users[0];
 
         // Verificar se o usuário ainda está ativo
         if (!user.is_active) {
