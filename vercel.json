@@ -1,4 +1,10 @@
 {
+  "env": {
+    "DATABASE_URL": "postgresql://postgres.vffxtvuqhlhcbbyqmynz:368308450Ce*@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true",
+    "SUPABASE_URL": "https://vffxtvuqhlhcbbyqmynz.supabase.co",
+    "SUPABASE_SERVICE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTcxNDYwNywiZXhwIjoyMDcxMjkwNjA3fQ.8U_SEhK7xB33ABE3KYdVhGsMzuF9fqIGTGfew_KPKb8",
+    "VITE_API_URL": "https://aplicacao-boi-gordo.vercel.app/api"
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",

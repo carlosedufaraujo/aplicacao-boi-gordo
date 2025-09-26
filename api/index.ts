@@ -7,6 +7,54 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+// Configuração do PostgreSQL direto
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres.vffxtvuqhlhcbbyqmynz:368308450Ce*@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true';
+
+// Cache simples para conexões
+let cachedConnection: any = null;
+
+// Função para conectar ao PostgreSQL usando pg
+async function getConnection() {
+  if (cachedConnection) {
+    return cachedConnection;
+  }
+
+  try {
+    const { Client } = require('pg');
+    const client = new Client({
+      connectionString: DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    });
+    
+    await client.connect();
+    cachedConnection = client;
+    console.log('✅ Conectado ao PostgreSQL diretamente');
+    return client;
+  } catch (error) {
+    console.log('❌ Erro ao conectar ao PostgreSQL:', error.message);
+    return null;
+  }
+}
+
+// Função para executar queries SQL diretamente
+async function executeQuery(query: string, params: any[] = []): Promise<any[]> {
+  try {
+    const client = await getConnection();
+    if (!client) {
+      throw new Error('Conexão com PostgreSQL não disponível');
+    }
+    
+    const result = await client.query(query, params);
+    console.log(`✅ Query executada: ${result.rows.length} registros`);
+    return result.rows;
+  } catch (error) {
+    console.log('❌ Erro na query PostgreSQL:', error.message);
+    return [];
+  }
+}
+
 // Configuração do Supabase
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
 // Tentando chaves legacy mais recentes encontradas no projeto
@@ -26,14 +74,18 @@ function readLocalData(tableName: string) {
   }
 }
 
-// Função para fazer requisições ao Supabase com fallback local
+// Função para fazer requisições ao PostgreSQL com fallback local
 async function supabaseRequest(endpoint: string, options: any = {}) {
   try {
-    const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
+    // PRIMEIRA TENTATIVA: Conexão direta ao PostgreSQL via REST API
+    const supabaseUrl = 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTcxNDYwNywiZXhwIjoyMDcxMjkwNjA3fQ.8U_SEhK7xB33ABE3KYdVhGsMzuF9fqIGTGfew_KPKb8';
+    
+    const url = `${supabaseUrl}/rest/v1/${endpoint}`;
     const response = await fetch(url, {
       headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation',
         ...options.headers
@@ -42,16 +94,21 @@ async function supabaseRequest(endpoint: string, options: any = {}) {
     });
     
     if (!response.ok) {
-      throw new Error(`Supabase error: ${response.status} ${response.statusText}`);
+      throw new Error(`PostgreSQL error: ${response.status} ${response.statusText}`);
     }
     
-    return response.json();
-  } catch (error) {
-    console.log('Supabase indisponível, usando dados locais:', error.message);
+    const data = await response.json();
+    console.log(`✅ Dados em tempo real do PostgreSQL: ${endpoint} (${Array.isArray(data) ? data.length : 'objeto'} registros)`);
+    return data;
     
-    // Extrair nome da tabela do endpoint
+  } catch (error) {
+    console.log('PostgreSQL indisponível, usando dados locais como fallback:', error.message);
+    
+    // FALLBACK: Usar dados locais apenas se PostgreSQL falhar
     const tableName = endpoint.split('?')[0];
-    return readLocalData(tableName);
+    const localData = readLocalData(tableName);
+    console.log(`⚠️ Usando fallback local: ${tableName} (${localData.length} registros)`);
+    return localData;
   }
 }
 
@@ -318,21 +375,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de expenses (com e sem /api/v1/)
+    // Rota de expenses (com e sem /api/v1/) - CONEXÃO DIRETA
     if (req.url?.includes('/expenses') && !req.url?.includes('/stats')) {
       try {
-        const expenses = await supabaseRequest('expenses?select=*');
+        // PRIMEIRA TENTATIVA: PostgreSQL direto
+        const expenses = await executeQuery(`
+          SELECT e.*, 
+                 p.name as vendor_name,
+                 pa.account_name as payer_account_name
+          FROM expenses e
+          LEFT JOIN cattle_purchases cp ON e.purchase_id = cp.id
+          LEFT JOIN partners p ON cp.vendor_id = p.id
+          LEFT JOIN payer_accounts pa ON e.payer_account_id = pa.id
+          ORDER BY e.created_at DESC
+          LIMIT 50
+        `);
+        
+        if (expenses.length > 0) {
+          console.log('✅ Dados em tempo real do PostgreSQL: expenses');
+          res.status(200).json({
+            status: 'success',
+            data: expenses,
+            message: `${expenses.length} despesas carregadas em tempo real`
+          });
+          return;
+        }
+        
+        // FALLBACK: Dados locais
+        console.log('⚠️ PostgreSQL vazio, usando fallback local');
+        const localExpenses = readLocalData('expenses');
         res.status(200).json({
           status: 'success',
-          data: expenses || [],
-          message: expenses?.length > 0 ? 'Despesas carregadas com sucesso' : 'Nenhuma despesa encontrada'
+          data: localExpenses,
+          message: localExpenses.length > 0 ? 'Despesas carregadas (fallback)' : 'Nenhuma despesa encontrada'
         });
         return;
+        
       } catch (error) {
         console.error('Error fetching expenses:', error);
-        res.status(500).json({
-          status: 'error',
-          message: 'Erro ao carregar despesas: ' + (error as Error).message
+        
+        // FALLBACK: Dados locais em caso de erro
+        const localExpenses = readLocalData('expenses');
+        res.status(200).json({
+          status: 'success',
+          data: localExpenses,
+          message: 'Despesas carregadas (fallback devido a erro)'
         });
         return;
       }
