@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useBackend } from '@/providers/BackendProvider';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, loading, checkAuth } = useAuth();
+  const { isAuthenticated, loading, checkSession } = useBackend();
   const location = useLocation();
   const hasCheckedRef = useRef(false);
 
@@ -16,9 +16,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     // Verificar autenticação apenas uma vez ao montar o componente
     if (!isAuthenticated && !loading && !hasCheckedRef.current) {
       hasCheckedRef.current = true;
-      checkAuth();
+      checkSession();
     }
-  }, [isAuthenticated, loading, checkAuth]);
+  }, [isAuthenticated, loading, checkSession]);
 
   // Mostrar loading enquanto verifica autenticação
   if (loading) {
