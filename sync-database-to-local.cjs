@@ -30,8 +30,11 @@ class DatabaseSync {
         take: 50, // Limitar para não sobrecarregar
         orderBy: { createdAt: 'desc' },
         include: {
-          vendor: { select: { name: true } },
-          payerAccount: { select: { accountName: true } }
+          purchase: {
+            include: {
+              vendor: { select: { name: true } }
+            }
+          }
         }
       });
 
@@ -43,8 +46,9 @@ class DatabaseSync {
         dueDate: expense.dueDate,
         paymentDate: expense.paymentDate,
         isPaid: expense.isPaid,
-        vendor: expense.vendor?.name || null,
-        payerAccount: expense.payerAccount?.accountName || null,
+        impactsCashFlow: expense.impactsCashFlow,
+        vendor: expense.purchase?.vendor?.name || null,
+        notes: expense.notes,
         createdAt: expense.createdAt,
         updatedAt: expense.updatedAt
       }));
