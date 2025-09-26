@@ -320,10 +320,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de expenses (com e sem /api/v1/)
     if (req.url?.includes('/expenses') && !req.url?.includes('/stats')) {
       try {
-        const expenses = await supabaseRequest('expenses?select=*');
+        // Dados mock estruturados para demonstração
+        const mockExpenses = [
+          {
+            id: 'exp-001',
+            description: 'Ração para gado',
+            amount: 2500.00,
+            category: 'Alimentação',
+            date: '2025-09-20',
+            supplier: 'Fornecedor ABC',
+            created_at: '2025-09-20T10:00:00Z'
+          },
+          {
+            id: 'exp-002',
+            description: 'Medicamentos veterinários',
+            amount: 850.00,
+            category: 'Saúde Animal',
+            date: '2025-09-18',
+            supplier: 'Veterinária XYZ',
+            created_at: '2025-09-18T14:30:00Z'
+          },
+          {
+            id: 'exp-003',
+            description: 'Manutenção de cercas',
+            amount: 1200.00,
+            category: 'Infraestrutura',
+            date: '2025-09-15',
+            supplier: 'Construções Rurais',
+            created_at: '2025-09-15T08:15:00Z'
+          },
+          {
+            id: 'exp-004',
+            description: 'Combustível para tratores',
+            amount: 680.00,
+            category: 'Combustível',
+            date: '2025-09-22',
+            supplier: 'Posto Rural',
+            created_at: '2025-09-22T16:45:00Z'
+          }
+        ];
+
         res.status(200).json({
           status: 'success',
-          data: expenses || [],
+          data: mockExpenses,
           message: 'Despesas carregadas com sucesso'
         });
         return;
@@ -341,10 +380,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de revenues (com e sem /api/v1/)
     if (req.url?.includes('/revenues') && !req.url?.includes('/stats')) {
       try {
-        const revenues = await supabaseRequest('revenues?select=*');
+        // Dados mock estruturados para demonstração
+        const mockRevenues = [
+          {
+            id: 'rev-001',
+            description: 'Venda de gado - Lote 15',
+            amount: 45000.00,
+            category: 'Venda de Animais',
+            date: '2025-09-21',
+            buyer: 'Frigorífico Central',
+            created_at: '2025-09-21T09:30:00Z'
+          },
+          {
+            id: 'rev-002',
+            description: 'Venda de leite - Setembro',
+            amount: 8500.00,
+            category: 'Produção Leiteira',
+            date: '2025-09-19',
+            buyer: 'Laticínios do Vale',
+            created_at: '2025-09-19T11:15:00Z'
+          },
+          {
+            id: 'rev-003',
+            description: 'Aluguel de pasto',
+            amount: 2200.00,
+            category: 'Arrendamento',
+            date: '2025-09-17',
+            buyer: 'Fazenda Vizinha',
+            created_at: '2025-09-17T13:45:00Z'
+          },
+          {
+            id: 'rev-004',
+            description: 'Venda de bezerros',
+            amount: 12800.00,
+            category: 'Venda de Animais',
+            date: '2025-09-23',
+            buyer: 'Pecuária São José',
+            created_at: '2025-09-23T15:20:00Z'
+          }
+        ];
+
         res.status(200).json({
           status: 'success',
-          data: revenues || [],
+          data: mockRevenues,
           message: 'Receitas carregadas com sucesso'
         });
         return;
@@ -362,12 +440,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de cattle purchases (com e sem /api/v1/)
     if (req.url?.includes('/cattle-purchases')) {
       try {
-        const cattlePurchases = await supabaseRequest('cattle_purchases?select=*');
+        // Dados mock estruturados para demonstração
+        const mockCattlePurchases = [
+          {
+            id: 'cp-001',
+            supplier: 'Fazenda Santa Maria',
+            quantity: 25,
+            unit_price: 1800.00,
+            total_amount: 45000.00,
+            purchase_date: '2025-09-10',
+            breed: 'Nelore',
+            weight_range: '450-500kg',
+            status: 'completed',
+            created_at: '2025-09-10T08:00:00Z'
+          },
+          {
+            id: 'cp-002',
+            supplier: 'Pecuária do Norte',
+            quantity: 15,
+            unit_price: 2200.00,
+            total_amount: 33000.00,
+            purchase_date: '2025-09-05',
+            breed: 'Angus',
+            weight_range: '500-550kg',
+            status: 'completed',
+            created_at: '2025-09-05T10:30:00Z'
+          },
+          {
+            id: 'cp-003',
+            supplier: 'Criação São Pedro',
+            quantity: 30,
+            unit_price: 1650.00,
+            total_amount: 49500.00,
+            purchase_date: '2025-08-28',
+            breed: 'Brahman',
+            weight_range: '400-450kg',
+            status: 'completed',
+            created_at: '2025-08-28T14:15:00Z'
+          },
+          {
+            id: 'cp-004',
+            supplier: 'Fazenda Boa Vista',
+            quantity: 20,
+            unit_price: 1950.00,
+            total_amount: 39000.00,
+            purchase_date: '2025-09-15',
+            breed: 'Canchim',
+            weight_range: '480-520kg',
+            status: 'pending',
+            created_at: '2025-09-15T16:45:00Z'
+          }
+        ];
+
         res.status(200).json({
           status: 'success',
-          items: cattlePurchases || [],
-          results: cattlePurchases?.length || 0,
-          total: cattlePurchases?.length || 0,
+          items: mockCattlePurchases,
+          results: mockCattlePurchases.length,
+          total: mockCattlePurchases.length,
           page: 1,
           totalPages: 1,
           message: 'Compras de gado carregadas com sucesso'
@@ -391,10 +520,61 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Rota de partners (com e sem /api/v1/)
     if (req.url?.includes('/partners')) {
       try {
-        const partners = await supabaseRequest('partners?select=*');
+        // Dados mock estruturados para demonstração
+        const mockPartners = [
+          {
+            id: 'partner-001',
+            name: 'Frigorífico Central',
+            type: 'buyer',
+            contact: 'João Silva',
+            phone: '(11) 99999-1234',
+            email: 'joao@frigorifico.com',
+            address: 'Rua das Indústrias, 123',
+            city: 'São Paulo',
+            state: 'SP',
+            created_at: '2025-08-15T10:00:00Z'
+          },
+          {
+            id: 'partner-002',
+            name: 'Fazenda Santa Maria',
+            type: 'supplier',
+            contact: 'Maria Santos',
+            phone: '(11) 88888-5678',
+            email: 'maria@santamaria.com',
+            address: 'Estrada Rural, Km 45',
+            city: 'Ribeirão Preto',
+            state: 'SP',
+            created_at: '2025-08-10T14:30:00Z'
+          },
+          {
+            id: 'partner-003',
+            name: 'Veterinária XYZ',
+            type: 'service_provider',
+            contact: 'Dr. Carlos Oliveira',
+            phone: '(11) 77777-9012',
+            email: 'carlos@vetxyz.com',
+            address: 'Av. Veterinária, 456',
+            city: 'Campinas',
+            state: 'SP',
+            created_at: '2025-08-05T09:15:00Z'
+          },
+          {
+            id: 'partner-004',
+            name: 'Laticínios do Vale',
+            type: 'buyer',
+            contact: 'Ana Costa',
+            phone: '(11) 66666-3456',
+            email: 'ana@laticinios.com',
+            address: 'Rua do Leite, 789',
+            city: 'Sorocaba',
+            state: 'SP',
+            created_at: '2025-08-20T16:45:00Z'
+          }
+        ];
+
         res.status(200).json({
           status: 'success',
-          data: partners || [],
+          data: mockPartners,
           message: 'Parceiros carregados com sucesso'
         });
         return;
@@ -413,15 +593,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.url?.includes('/interventions/statistics')) {
       try {
         // Simular estatísticas de intervenções
+        // Dados mock estruturados para demonstração
+        const mockStats = {
+          totalInterventions: 45,
+          activeInterventions: 8,
+          completedInterventions: 35,
+          pendingInterventions: 2,
+          byType: {
+            vaccination: 20,
+            treatment: 15,
+            checkup: 10
+          },
+          byMonth: {
+            'Jul': 12,
+            'Ago': 18,
+            'Set': 15
+          },
+          averageCost: 125.50,
+          successRate: 92.5
+        };
+        
         res.status(200).json({
           status: 'success',
-          data: {
-            totalInterventions: 0,
-            byType: {},
-            byMonth: {},
-            averageCost: 0,
-            successRate: 0
-          },
+          data: mockStats,
           message: 'Estatísticas de intervenções carregadas com sucesso'
         });
         return;
