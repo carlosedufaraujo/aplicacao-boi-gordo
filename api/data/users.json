@@ -1,8 +1,8 @@
 [
   {
     "id": "user-001",
-    "email": "admin@bovicontrol.com",
-    "name": "Administrador",
+    "email": "carlosedufaraujo@outlook.com",
+    "name": "Carlos Eduardo",
     "role": "ADMIN",
     "is_active": true,
     "is_master": true,
@@ -11,9 +11,9 @@
   },
   {
     "id": "user-002", 
-    "email": "gerente@bovicontrol.com",
-    "name": "Gerente",
-    "role": "MANAGER",
+    "email": "admin@boigordo.com",
+    "name": "Administrador",
+    "role": "ADMIN",
     "is_active": true,
     "is_master": false,
     "created_at": "2025-08-20T14:30:00Z",
