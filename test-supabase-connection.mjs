@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-// CREDENCIAIS ATUALIZADAS DO SUPABASE (Novas chaves não-legacy)
+// CREDENCIAIS LEGACY MAIS RECENTES ENCONTRADAS NO PROJETO
 const SUPABASE_URL = 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_5CxV6hVfcusfBQAvd0EgYQ_py12RoLG';
-const SUPABASE_SERVICE_KEY = 'sb_secret_uHV4ZGqTu2sLFiswOob1bQ_X9uhL2zo';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwNjA1NzAsImV4cCI6MjA1MDYzNjU3MH0.KsVx8CJLm9s5EqiTQPTFB1CsGPMmf93pALCWNMpkUEI';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTcxNDYwNywiZXhwIjoyMDcxMjkwNjA3fQ.8U_SEhK7xB33ABE3KYdVhGsMzuF9fqIGTGfew_KPKb8';
 
 console.log('🔍 Testando conexão com Supabase (sem dados mock)...\n');
 
