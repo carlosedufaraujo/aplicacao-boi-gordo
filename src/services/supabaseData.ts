@@ -224,31 +224,31 @@ class DataService {
   // Métodos mantidos para compatibilidade, mas redirecionam para API backend
   async getCattlePurchases(): Promise<CattlePurchase[]> {
     this.logDeprecation('getCattlePurchases');
-    const response = await apiClient.get('/cattle-lots');
+    const response = await apiClient.get('/cattle-purchases');
     return response.data || [];
   }
 
   async createCattlePurchase(lot: Omit<CattlePurchase, 'id' | 'createdAt' | 'updatedAt'>): Promise<CattlePurchase> {
     this.logDeprecation('createCattlePurchase');
-    const response = await apiClient.post('/cattle-lots', lot);
+    const response = await apiClient.post('/cattle-purchases', lot);
     return response;
   }
 
   async updateCattlePurchase(id: string, updates: Partial<CattlePurchase>): Promise<CattlePurchase> {
     this.logDeprecation('updateCattlePurchase');
-    const response = await apiClient.put(`/cattle-lots/${id}`, updates);
+    const response = await apiClient.put(`/cattle-purchases/${id}`, updates);
     return response;
   }
 
   async deleteCattlePurchase(id: string): Promise<void> {
     this.logDeprecation('deleteCattlePurchase');
-    await apiClient.delete(`/cattle-lots/${id}`);
+    await apiClient.delete(`/cattle-purchases/${id}`);
   }
 
   // Outros métodos seguem o mesmo padrão...
   async getCattlePurchases(): Promise<CattlePurchase[]> {
     this.logDeprecation('getCattlePurchases');
-    const response = await apiClient.get('/purchase-orders');
+    const response = await apiClient.get('/cattle-purchases');
     return response.data || [];
   }
 
