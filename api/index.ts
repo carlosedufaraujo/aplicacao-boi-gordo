@@ -8,7 +8,11 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 // Configuração do PostgreSQL direto
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://postgres.vffxtvuqhlhcbbyqmynz:368308450Ce*@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true';
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error('❌ DATABASE_URL não está configurada nas variáveis de ambiente');
+}
 
 // Cache simples para conexões
 let cachedConnection: any = null;
@@ -56,11 +60,13 @@ async function executeQuery(query: string, params: any[] = []): Promise<any[]> {
 }
 
 // Configuração do Supabase
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
-// Tentando chaves legacy mais recentes encontradas no projeto
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwNjA1NzAsImV4cCI6MjA1MDYzNjU3MH0.KsVx8CJLm9s5EqiTQPTFB1CsGPMmf93pALCWNMpkUEI';
-// Service key legacy mais recente
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTcxNDYwNywiZXhwIjoyMDcxMjkwNjA3fQ.8U_SEhK7xB33ABE3KYdVhGsMzuF9fqIGTGfew_KPKb8';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('❌ Variáveis de ambiente do Supabase não configuradas');
+}
 
 // Função para ler dados locais como fallback
 function readLocalData(tableName: string) {
@@ -78,14 +84,15 @@ function readLocalData(tableName: string) {
 async function supabaseRequest(endpoint: string, options: any = {}) {
   try {
     // PRIMEIRA TENTATIVA: Conexão direta ao PostgreSQL via REST API
-    const supabaseUrl = 'https://vffxtvuqhlhcbbyqmynz.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTcxNDYwNywiZXhwIjoyMDcxMjkwNjA3fQ.8U_SEhK7xB33ABE3KYdVhGsMzuF9fqIGTGfew_KPKb8';
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      throw new Error('Configuração do Supabase incompleta');
+    }
     
-    const url = `${supabaseUrl}/rest/v1/${endpoint}`;
+    const url = `${SUPABASE_URL}/rest/v1/${endpoint}`;
     const response = await fetch(url, {
       headers: {
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation',
         ...options.headers

@@ -5,12 +5,12 @@
 
 export const APP_CONFIG = {
   api: {
-    baseUrl: 'http://localhost:3001/api/v1',
-    backendUrl: 'http://localhost:3001',
+    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1',
+    backendUrl: import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001',
   },
   supabase: {
-    url: 'https://vffxtvuqhlhcbbyqmynz.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZnh0dnVxaGxoY2JieXFteW56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwNjA1NzAsImV4cCI6MjA1MDYzNjU3MH0.KsVx8CJLm9s5EqiTQPTFB1CsGPMmf93pALCWNMpkUEI',
+    url: import.meta.env.VITE_SUPABASE_URL || '',
+    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   },
   frontend: {
     port: 5173,

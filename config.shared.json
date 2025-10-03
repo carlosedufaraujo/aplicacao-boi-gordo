@@ -12,7 +12,7 @@
     "production_url": "https://aplicacao-boi-gordo.vercel.app/api/v1"
   },
   "database": {
-    "url": "postgresql://postgres.vffxtvuqhlhcbbyqmynz:368308450Ce*@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true"
+    "url": "USE_ENV_VARIABLE_DATABASE_URL"
   },
   "vercel": {
     "domains": [
