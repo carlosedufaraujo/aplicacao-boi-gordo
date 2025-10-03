@@ -157,6 +157,17 @@ async function supabaseAuthRequest(endpoint: string, options: any = {}) {
 // Handler principal para Vercel
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    // DEBUG: Log completo para troubleshooting
+    const debugInfo = {
+      url: req.url,
+      method: req.method,
+      path: req.url?.split('?')[0],
+      hasUsersInUrl: req.url?.includes('/users'),
+      isGetMethod: req.method === 'GET',
+      timestamp: new Date().toISOString()
+    };
+    console.log('🔍 REQUEST DEBUG:', JSON.stringify(debugInfo));
+    
     // Configurar CORS
     const allowedOrigins = [
       'https://aplicacao-boi-gordo.vercel.app',
@@ -178,6 +189,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === 'OPTIONS') {
       res.status(200).end();
+      return;
+    }
+    
+    // Rota de diagnóstico - NOVA
+    if (req.url === '/api/debug' || req.url === '/debug') {
+      const connectionTest = await getConnection();
+      res.status(200).json({
+        status: 'debug',
+        timestamp: new Date().toISOString(),
+        request: {
+          url: req.url,
+          method: req.method,
+          headers: Object.keys(req.headers || {})
+        },
+        database: {
+          configured: !!process.env.DATABASE_URL,
+          connected: !!connectionTest
+        },
+        routes: {
+          users: '/api/users está configurada',
+          expenses: '/api/expenses está configurada',
+          partners: '/api/partners está configurada',
+          cattlePurchases: '/api/cattle-purchases está configurada'
+        },
+        lastDeploy: process.env.VERCEL_GIT_COMMIT_SHA || 'unknown'
+      });
       return;
     }
 
@@ -376,9 +413,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Rota de users (com e sem /api/v1/) - CONEXÃO DIRETA
-    if (req.url?.includes('/users') && req.method === 'GET') {
+    if (req.url?.includes('/users') && req.method === 'GET' && !req.url?.includes('/auth')) {
+      console.log('📊 ROTA DE USUÁRIOS ATIVADA!');
+      console.log('URL:', req.url);
+      console.log('Method:', req.method);
+      
       try {
         // PRIMEIRA TENTATIVA: PostgreSQL direto
+        console.log('🔄 Tentando buscar usuários do PostgreSQL...');
         const users = await executeQuery(`
           SELECT id, email, name, role, is_active, is_master, created_at, updated_at
           FROM users
@@ -386,6 +428,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           ORDER BY created_at DESC
           LIMIT 100
         `);
+        
+        console.log(`📊 Resultado da query: ${users.length} usuários encontrados`);
         
         if (users.length > 0) {
           console.log('✅ Dados em tempo real do PostgreSQL: users');
