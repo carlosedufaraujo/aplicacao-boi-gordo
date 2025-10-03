@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Completo de Integração</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        .endpoint {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f9fafb;
+            border-radius: 4px;
+        }
+        .loading { color: #6b7280; }
+        pre { 
+            background: #1f2937; 
+            color: #10b981; 
+            padding: 10px; 
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste Completo de Integração</h1>
+    
+    <div class="card">
+        <h2>📊 Status Geral</h2>
+        <div id="generalStatus">Iniciando testes...</div>
+    </div>
+
+    <div class="card">
+        <h2>🔌 Testes de API</h2>
+        <div id="apiTests"></div>
+    </div>
+
+    <div class="card">
+        <h2>💾 Dados Recebidos</h2>
+        <pre id="dataPreview"></pre>
+    </div>
+
+    <script>
+        const BASE_URL = 'https://aplicacao-boi-gordo.vercel.app';
+        const API_URL = `${BASE_URL}/api/v1`;
+        
+        const endpoints = [
+            { name: 'Health Check', path: '/health', method: 'GET' },
+            { name: 'Stats', path: '/stats', method: 'GET' },
+            { name: 'Cattle Purchases', path: '/cattle-purchases', method: 'GET' },
+            { name: 'Expenses', path: '/expenses', method: 'GET' },
+            { name: 'Partners', path: '/partners', method: 'GET' },
+            { name: 'Revenues', path: '/revenues', method: 'GET' },
+            { name: 'Users', path: '/users', method: 'GET' }
+        ];
+
+        async function testEndpoint(endpoint) {
+            const startTime = Date.now();
+            try {
+                const response = await fetch(`${API_URL}${endpoint.path}`, {
+                    method: endpoint.method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const endTime = Date.now();
+                const responseTime = endTime - startTime;
+                const data = await response.json();
+                
+                return {
+                    success: response.ok,
+                    status: response.status,
+                    time: responseTime,
+                    data: data,
+                    dataCount: data.data?.length || data.items?.length || 0
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message,
+                    time: Date.now() - startTime
+                };
+            }
+        }
+
+        async function runTests() {
+            const apiTestsDiv = document.getElementById('apiTests');
+            const dataPreview = document.getElementById('dataPreview');
+            const generalStatus = document.getElementById('generalStatus');
+            
+            let successCount = 0;
+            let totalDataPoints = 0;
+            const results = {};
+            
+            for (const endpoint of endpoints) {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'endpoint';
+                testDiv.innerHTML = `
+                    <span>${endpoint.name}</span>
+                    <span class="loading">Testando...</span>
+                `;
+                apiTestsDiv.appendChild(testDiv);
+                
+                const result = await testEndpoint(endpoint);
+                results[endpoint.name] = result;
+                
+                if (result.success) {
+                    successCount++;
+                    totalDataPoints += result.dataCount;
+                    testDiv.innerHTML = `
+                        <span>${endpoint.name}</span>
+                        <span class="success">✅ OK (${result.time}ms) - ${result.dataCount} registros</span>
+                    `;
+                } else {
+                    testDiv.innerHTML = `
+                        <span>${endpoint.name}</span>
+                        <span class="error">❌ Erro: ${result.error || `Status ${result.status}`}</span>
+                    `;
+                }
+            }
+            
+            // Atualizar status geral
+            const percentage = Math.round((successCount / endpoints.length) * 100);
+            let statusClass = 'success';
+            let statusEmoji = '✅';
+            
+            if (percentage < 100 && percentage >= 75) {
+                statusClass = 'warning';
+                statusEmoji = '⚠️';
+            } else if (percentage < 75) {
+                statusClass = 'error';
+                statusEmoji = '❌';
+            }
+            
+            generalStatus.innerHTML = `
+                <div class="${statusClass}">
+                    <h3>${statusEmoji} ${percentage}% dos endpoints funcionando</h3>
+                    <p>✅ Sucessos: ${successCount}/${endpoints.length}</p>
+                    <p>📊 Total de dados: ${totalDataPoints} registros</p>
+                    <p>🌐 URL Base: ${API_URL}</p>
+                </div>
+            `;
+            
+            // Mostrar preview dos dados
+            const sampleData = {
+                'Cattle Purchases': results['Cattle Purchases']?.data?.items?.slice(0, 2),
+                'Expenses': results['Expenses']?.data?.data?.slice(0, 2),
+                'Partners': results['Partners']?.data?.data?.slice(0, 2)
+            };
+            
+            dataPreview.textContent = JSON.stringify(sampleData, null, 2);
+        }
+
+        // Executar testes ao carregar
+        window.addEventListener('load', runTests);
+        
+        // Adicionar botão de refresh
+        const refreshButton = document.createElement('button');
+        refreshButton.textContent = '🔄 Testar Novamente';
+        refreshButton.style = 'padding: 10px 20px; margin: 20px 0; cursor: pointer;';
+        refreshButton.onclick = () => {
+            document.getElementById('apiTests').innerHTML = '';
+            runTests();
+        };
+        document.querySelector('.card').appendChild(refreshButton);
+    </script>
+</body>
+</html>

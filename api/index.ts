@@ -240,7 +240,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     
     // ROTA DE USUÁRIOS - MOVIDA PARA O TOPO (PRIORIDADE)
-    if ((req.url === '/api/users' || req.url === '/api/v1/users' || req.url === '/users') && req.method === 'GET') {
+    if (req.url?.includes('/users') && req.method === 'GET') {
       console.log('🎯 ROTA DE USUÁRIOS DETECTADA!');
       try {
         const users = await executeQuery(`

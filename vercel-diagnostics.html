@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Completo Vercel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .warning {
+            background: #fed7aa;
+            color: #92400e;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .loading {
+            background: #f3f4f6;
+            color: #6b7280;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        pre {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f9fafb;
+            border-radius: 6px;
+            margin: 5px 0;
+        }
+        .metric-label {
+            color: #6b7280;
+        }
+        .metric-value {
+            font-weight: bold;
+            color: #111827;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnóstico Completo - Vercel</h1>
+        
+        <div class="grid">
+            <!-- Status do Deploy -->
+            <div class="card">
+                <h2>🚀 Status do Deploy</h2>
+                <div id="deployStatus">
+                    <div class="status loading">Verificando deploy...</div>
+                </div>
+            </div>
+
+            <!-- Saúde da API -->
+            <div class="card">
+                <h2>💾 API Backend</h2>
+                <div id="apiHealth">
+                    <div class="status loading">Testando API...</div>
+                </div>
+            </div>
+
+            <!-- Variáveis de Ambiente -->
+            <div class="card">
+                <h2>🔐 Variáveis de Ambiente</h2>
+                <div id="envVars">
+                    <div class="status loading">Verificando variáveis...</div>
+                </div>
+            </div>
+
+            <!-- Erros do Console -->
+            <div class="card">
+                <h2>⚠️ Erros Detectados</h2>
+                <div id="errors">
+                    <div class="status loading">Analisando erros...</div>
+                </div>
+            </div>
+
+            <!-- Performance -->
+            <div class="card">
+                <h2>⚡ Performance</h2>
+                <div id="performance">
+                    <div class="status loading">Medindo performance...</div>
+                </div>
+            </div>
+
+            <!-- Dados do Banco -->
+            <div class="card">
+                <h2>📊 Integração com Banco</h2>
+                <div id="dbIntegration">
+                    <div class="status loading">Verificando dados...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h2>📝 Logs Detalhados</h2>
+            <pre id="logs">Aguardando análise...</pre>
+            <button onclick="runDiagnostics()">🔄 Executar Diagnóstico Novamente</button>
+        </div>
+    </div>
+
+    <script>
+        const PROD_URL = 'https://aplicacao-boi-gordo.vercel.app';
+        const API_URL = `${PROD_URL}/api/v1`;
+        
+        const logs = [];
+        const addLog = (message, type = 'info') => {
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            logs.push(`[${timestamp}] [${type.toUpperCase()}] ${message}`);
+            document.getElementById('logs').textContent = logs.join('\n');
+        };
+
+        async function checkDeployStatus() {
+            const container = document.getElementById('deployStatus');
+            addLog('Verificando status do deploy...');
+            
+            try {
+                const response = await fetch(PROD_URL);
+                const text = await response.text();
+                
+                if (response.ok) {
+                    container.innerHTML = `
+                        <div class="status success">✅ Site Online</div>
+                        <div class="metric">
+                            <span class="metric-label">Status HTTP</span>
+                            <span class="metric-value">${response.status}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Tamanho HTML</span>
+                            <span class="metric-value">${(text.length / 1024).toFixed(2)} KB</span>
+                        </div>
+                    `;
+                    addLog('Deploy verificado com sucesso', 'success');
+                    
+                    // Verificar se há erros no HTML
+                    if (text.includes('localhost:3001')) {
+                        container.innerHTML += `<div class="status error">❌ Referências a localhost detectadas!</div>`;
+                        addLog('ERRO: HTML contém referências a localhost:3001', 'error');
+                    }
+                } else {
+                    container.innerHTML = `<div class="status error">❌ Site Offline (${response.status})</div>`;
+                    addLog(`Site offline: HTTP ${response.status}`, 'error');
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="status error">❌ Erro: ${error.message}</div>`;
+                addLog(`Erro ao verificar deploy: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkAPIHealth() {
+            const container = document.getElementById('apiHealth');
+            addLog('Testando saúde da API...');
+            
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    container.innerHTML = `
+                        <div class="status success">✅ API Funcionando</div>
+                        <div class="metric">
+                            <span class="metric-label">Versão</span>
+                            <span class="metric-value">${data.version}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Ambiente</span>
+                            <span class="metric-value">${data.environment}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Rotas Disponíveis</span>
+                            <span class="metric-value">${data.availableRoutes?.length || 0}</span>
+                        </div>
+                    `;
+                    addLog('API respondendo corretamente', 'success');
+                } else {
+                    container.innerHTML = `<div class="status error">❌ API com Problema (${response.status})</div>`;
+                    addLog(`API com erro: HTTP ${response.status}`, 'error');
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="status error">❌ API Inacessível: ${error.message}</div>`;
+                addLog(`API inacessível: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkEnvVars() {
+            const container = document.getElementById('envVars');
+            addLog('Verificando variáveis de ambiente...');
+            
+            // Verificar se o frontend tem acesso às variáveis
+            try {
+                const response = await fetch(PROD_URL);
+                const text = await response.text();
+                
+                const checks = {
+                    'VITE_API_URL': text.includes('VITE_API_URL') || text.includes('/api/v1'),
+                    'VITE_SUPABASE_URL': text.includes('supabase.co'),
+                    'Sem localhost': !text.includes('localhost:3001'),
+                    'Sem credenciais expostas': !text.includes('368308450Ce')
+                };
+                
+                let allGood = true;
+                let html = '';
+                
+                for (const [check, passed] of Object.entries(checks)) {
+                    if (passed) {
+                        html += `<div class="status success">✅ ${check}</div>`;
+                        addLog(`Variável OK: ${check}`, 'success');
+                    } else {
+                        html += `<div class="status error">❌ ${check}</div>`;
+                        addLog(`Problema com: ${check}`, 'error');
+                        allGood = false;
+                    }
+                }
+                
+                if (!allGood) {
+                    html = `<div class="status warning">⚠️ Variáveis precisam ser configuradas no Vercel Dashboard</div>` + html;
+                    addLog('ATENÇÃO: Variáveis de ambiente precisam ser configuradas', 'warning');
+                }
+                
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="status error">❌ Erro: ${error.message}</div>`;
+                addLog(`Erro ao verificar variáveis: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkErrors() {
+            const container = document.getElementById('errors');
+            addLog('Procurando por erros...');
+            
+            const errors = [];
+            
+            // Testar endpoints principais
+            const endpoints = [
+                '/cattle-purchases',
+                '/expenses',
+                '/partners',
+                '/stats'
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${API_URL}${endpoint}`);
+                    if (!response.ok) {
+                        errors.push(`${endpoint}: HTTP ${response.status}`);
+                        addLog(`Erro no endpoint ${endpoint}: ${response.status}`, 'error');
+                    }
+                } catch (error) {
+                    errors.push(`${endpoint}: ${error.message}`);
+                    addLog(`Erro ao acessar ${endpoint}: ${error.message}`, 'error');
+                }
+            }
+            
+            if (errors.length === 0) {
+                container.innerHTML = `<div class="status success">✅ Nenhum erro detectado</div>`;
+                addLog('Nenhum erro detectado nos endpoints', 'success');
+            } else {
+                container.innerHTML = errors.map(e => 
+                    `<div class="status error">❌ ${e}</div>`
+                ).join('');
+            }
+        }
+
+        async function checkPerformance() {
+            const container = document.getElementById('performance');
+            addLog('Medindo performance...');
+            
+            const metrics = {};
+            
+            // Medir tempo de resposta do site
+            const t1 = performance.now();
+            try {
+                await fetch(PROD_URL);
+                const siteTime = performance.now() - t1;
+                metrics['Site'] = siteTime;
+                
+                // Medir tempo de resposta da API
+                const t2 = performance.now();
+                await fetch(`${API_URL}/health`);
+                const apiTime = performance.now() - t2;
+                metrics['API'] = apiTime;
+                
+                // Medir tempo de dados
+                const t3 = performance.now();
+                await fetch(`${API_URL}/stats`);
+                const dataTime = performance.now() - t3;
+                metrics['Dados'] = dataTime;
+                
+                let html = '';
+                for (const [name, time] of Object.entries(metrics)) {
+                    const status = time < 500 ? 'success' : time < 1000 ? 'warning' : 'error';
+                    const emoji = time < 500 ? '✅' : time < 1000 ? '⚠️' : '❌';
+                    html += `
+                        <div class="status ${status}">${emoji} ${name}: ${time.toFixed(0)}ms</div>
+                    `;
+                    addLog(`Performance ${name}: ${time.toFixed(0)}ms`, time < 1000 ? 'success' : 'warning');
+                }
+                
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="status error">❌ Erro: ${error.message}</div>`;
+                addLog(`Erro ao medir performance: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkDBIntegration() {
+            const container = document.getElementById('dbIntegration');
+            addLog('Verificando integração com banco de dados...');
+            
+            try {
+                const [cattle, expenses, partners] = await Promise.all([
+                    fetch(`${API_URL}/cattle-purchases`).then(r => r.json()),
+                    fetch(`${API_URL}/expenses`).then(r => r.json()),
+                    fetch(`${API_URL}/partners`).then(r => r.json())
+                ]);
+                
+                const counts = {
+                    'Lotes de Gado': cattle.items?.length || 0,
+                    'Despesas': expenses.data?.length || 0,
+                    'Parceiros': partners.data?.length || 0
+                };
+                
+                let html = '';
+                let hasData = false;
+                
+                for (const [name, count] of Object.entries(counts)) {
+                    if (count > 0) {
+                        html += `<div class="status success">✅ ${name}: ${count} registros</div>`;
+                        hasData = true;
+                        addLog(`${name}: ${count} registros encontrados`, 'success');
+                    } else {
+                        html += `<div class="status warning">⚠️ ${name}: Sem dados</div>`;
+                        addLog(`${name}: Sem dados`, 'warning');
+                    }
+                }
+                
+                if (!hasData) {
+                    html = `<div class="status error">❌ Banco sem dados ou desconectado</div>` + html;
+                    addLog('ATENÇÃO: Banco pode estar desconectado', 'error');
+                }
+                
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="status error">❌ Erro: ${error.message}</div>`;
+                addLog(`Erro ao verificar banco: ${error.message}`, 'error');
+            }
+        }
+
+        async function runDiagnostics() {
+            logs.length = 0;
+            addLog('=== INICIANDO DIAGNÓSTICO COMPLETO ===', 'info');
+            
+            // Resetar todos os containers
+            document.querySelectorAll('.card > div[id]').forEach(el => {
+                if (el.id !== 'logs') {
+                    el.innerHTML = '<div class="status loading">Analisando...</div>';
+                }
+            });
+            
+            // Executar todos os testes
+            await checkDeployStatus();
+            await checkAPIHealth();
+            await checkEnvVars();
+            await checkErrors();
+            await checkPerformance();
+            await checkDBIntegration();
+            
+            addLog('=== DIAGNÓSTICO COMPLETO ===', 'info');
+            
+            // Resumo final
+            const errorCount = logs.filter(l => l.includes('[ERROR]')).length;
+            const warningCount = logs.filter(l => l.includes('[WARNING]')).length;
+            
+            if (errorCount === 0 && warningCount === 0) {
+                addLog('✅ SISTEMA 100% OPERACIONAL!', 'success');
+            } else {
+                addLog(`📊 Resumo: ${errorCount} erros, ${warningCount} avisos`, 'warning');
+            }
+        }
+
+        // Executar ao carregar
+        window.addEventListener('load', runDiagnostics);
+    </script>
+</body>
+</html>
