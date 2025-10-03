@@ -875,6 +875,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // NOVA ROTA DE USUÁRIOS (ALTERNATIVA)
+    if (req.url === '/api/v1/list-users' && req.method === 'GET') {
+      console.log('🎯 NOVA ROTA LIST-USERS ATIVADA!');
+      
+      try {
+        // Verificar se DATABASE_URL está configurada
+        if (!DATABASE_URL) {
+          res.status(200).json({
+            status: 'success',
+            data: readLocalData('users'),
+            message: 'Usuários carregados (fallback local)'
+          });
+          return;
+        }
+        
+        // Executar query direta
+        const users = await executeQuery(`
+          SELECT id, email, name, role, is_active, is_master, created_at, updated_at
+          FROM users
+          WHERE is_active = true
+          ORDER BY created_at DESC
+          LIMIT 100
+        `);
+        
+        console.log(`✅ Query executada: ${users.length} usuários encontrados`);
+        
+        // Retornar dados (mesmo se vazio)
+        res.status(200).json({
+          status: 'success',
+          data: users || [],
+          count: users.length,
+          message: users.length > 0 ? `${users.length} usuários carregados com sucesso` : 'Nenhum usuário ativo encontrado',
+          source: 'database'
+        });
+        return;
+        
+      } catch (error) {
+        console.error('Erro ao buscar usuários:', error);
+        
+        // Em caso de erro, usar dados locais
+        const localUsers = readLocalData('users');
+        res.status(200).json({
+          status: 'success',
+          data: localUsers,
+          count: localUsers.length,
+          message: 'Usuários carregados (fallback após erro)',
+          source: 'local',
+          error: error.message
+        });
+        return;
+      }
+    }
+    
     // Resposta padrão para outras rotas
     res.status(200).json({
       message: 'BoviControl API - Vercel Serverless',
