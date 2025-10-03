@@ -225,9 +225,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'production',
         message: 'BoviControl API is running on Vercel',
-        database: process.env.DATABASE_URL ? 'connected' : 'not configured'
+        database: process.env.DATABASE_URL ? 'connected' : 'not configured',
+        version: '2.0.1',
+        lastUpdate: '2025-10-03T12:03:00Z'
       });
       return;
+    }
+    
+    // ROTA DE USUÁRIOS - MOVIDA PARA O TOPO (PRIORIDADE)
+    if ((req.url === '/api/users' || req.url === '/api/v1/users' || req.url === '/users') && req.method === 'GET') {
+      console.log('🎯 ROTA DE USUÁRIOS DETECTADA!');
+      try {
+        const users = await executeQuery(`
+          SELECT id, email, name, role, is_active, is_master, created_at, updated_at
+          FROM users
+          WHERE is_active = true
+          ORDER BY created_at DESC
+          LIMIT 100
+        `);
+        
+        if (users.length > 0) {
+          res.status(200).json({
+            status: 'success',
+            data: users,
+            message: `${users.length} usuários carregados em tempo real`
+          });
+          return;
+        }
+        
+        // Fallback
+        const localUsers = readLocalData('users');
+        res.status(200).json({
+          status: 'success',
+          data: localUsers,
+          message: localUsers.length > 0 ? 'Usuários carregados (fallback)' : 'Nenhum usuário encontrado'
+        });
+        return;
+      } catch (error) {
+        console.error('Erro ao buscar usuários:', error);
+        res.status(500).json({
+          status: 'error',
+          message: 'Erro ao carregar usuários'
+        });
+        return;
+      }
     }
 
     // Rota de login
@@ -412,58 +453,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de users (com e sem /api/v1/) - CONEXÃO DIRETA
-    if (req.url?.includes('/users') && req.method === 'GET' && !req.url?.includes('/auth')) {
-      console.log('📊 ROTA DE USUÁRIOS ATIVADA!');
-      console.log('URL:', req.url);
-      console.log('Method:', req.method);
-      
-      try {
-        // PRIMEIRA TENTATIVA: PostgreSQL direto
-        console.log('🔄 Tentando buscar usuários do PostgreSQL...');
-        const users = await executeQuery(`
-          SELECT id, email, name, role, is_active, is_master, created_at, updated_at
-          FROM users
-          WHERE is_active = true
-          ORDER BY created_at DESC
-          LIMIT 100
-        `);
-        
-        console.log(`📊 Resultado da query: ${users.length} usuários encontrados`);
-        
-        if (users.length > 0) {
-          console.log('✅ Dados em tempo real do PostgreSQL: users');
-          res.status(200).json({
-            status: 'success',
-            data: users,
-            message: `${users.length} usuários carregados em tempo real`
-          });
-          return;
-        }
-        
-        // FALLBACK: Dados locais
-        console.log('⚠️ PostgreSQL vazio, usando fallback local');
-        const localUsers = readLocalData('users');
-        res.status(200).json({
-          status: 'success',
-          data: localUsers,
-          message: localUsers.length > 0 ? 'Usuários carregados (fallback)' : 'Nenhum usuário encontrado'
-        });
-        return;
-        
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        
-        // FALLBACK: Dados locais em caso de erro
-        const localUsers = readLocalData('users');
-        res.status(200).json({
-          status: 'success',
-          data: localUsers,
-          message: 'Usuários carregados (fallback devido a erro)'
-        });
-        return;
-      }
-    }
+    // ROTA DE USUÁRIOS JÁ MOVIDA PARA O TOPO - REMOVENDO DUPLICATA
 
     // Rota de expenses (com e sem /api/v1/) - CONEXÃO DIRETA
     if (req.url?.includes('/expenses') && !req.url?.includes('/stats')) {
@@ -870,9 +860,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       environment: process.env.NODE_ENV || 'production',
       availableRoutes: [
         '/api/health',
+        '/api/debug (NEW)',
         '/api/auth/login (POST)',
         '/api/auth/me (GET)',
-        '/api/v1/users',
+        '/api/users (GET)',
+        '/api/v1/users (GET)',
         '/api/v1/stats',
         '/api/v1/expenses',
         '/api/v1/expenses/stats',
