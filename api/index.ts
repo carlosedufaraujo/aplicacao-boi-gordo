@@ -239,9 +239,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
     
+    // DEBUG ESPECIAL PARA ROTA DE USUÁRIOS
+    console.log('🔍 DEBUG URL:', req.url);
+    console.log('🔍 Inclui /users?', req.url?.includes('/users'));
+    
     // ROTA DE USUÁRIOS - MOVIDA PARA O TOPO (PRIORIDADE)
     if (req.url?.includes('/users') && req.method === 'GET') {
       console.log('🎯 ROTA DE USUÁRIOS DETECTADA!');
+      
+      // Testar conexão primeiro
+      if (!DATABASE_URL) {
+        res.status(500).json({
+          status: 'error',
+          message: 'DATABASE_URL não configurada'
+        });
+        return;
+      }
+      
       try {
         const users = await executeQuery(`
           SELECT id, email, name, role, is_active, is_master, created_at, updated_at
@@ -251,14 +265,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           LIMIT 100
         `);
         
-        if (users.length > 0) {
-          res.status(200).json({
-            status: 'success',
-            data: users,
-            message: `${users.length} usuários carregados em tempo real`
-          });
-          return;
-        }
+        // Sempre retornar resposta, mesmo vazia
+        res.status(200).json({
+          status: 'success',
+          data: users || [],
+          message: users.length > 0 ? `${users.length} usuários carregados` : 'Nenhum usuário encontrado',
+          debug: {
+            hasDatabase: !!DATABASE_URL,
+            queryExecuted: true,
+            resultCount: users.length
+          }
+        });
+        return;
         
         // Fallback
         const localUsers = readLocalData('users');
