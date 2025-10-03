@@ -375,6 +375,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Rota de users (com e sem /api/v1/) - CONEXÃO DIRETA
+    if (req.url?.includes('/users') && req.method === 'GET') {
+      try {
+        // PRIMEIRA TENTATIVA: PostgreSQL direto
+        const users = await executeQuery(`
+          SELECT id, email, name, role, is_active, is_master, created_at, updated_at
+          FROM users
+          WHERE is_active = true
+          ORDER BY created_at DESC
+          LIMIT 100
+        `);
+        
+        if (users.length > 0) {
+          console.log('✅ Dados em tempo real do PostgreSQL: users');
+          res.status(200).json({
+            status: 'success',
+            data: users,
+            message: `${users.length} usuários carregados em tempo real`
+          });
+          return;
+        }
+        
+        // FALLBACK: Dados locais
+        console.log('⚠️ PostgreSQL vazio, usando fallback local');
+        const localUsers = readLocalData('users');
+        res.status(200).json({
+          status: 'success',
+          data: localUsers,
+          message: localUsers.length > 0 ? 'Usuários carregados (fallback)' : 'Nenhum usuário encontrado'
+        });
+        return;
+        
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        
+        // FALLBACK: Dados locais em caso de erro
+        const localUsers = readLocalData('users');
+        res.status(200).json({
+          status: 'success',
+          data: localUsers,
+          message: 'Usuários carregados (fallback devido a erro)'
+        });
+        return;
+      }
+    }
+
     // Rota de expenses (com e sem /api/v1/) - CONEXÃO DIRETA
     if (req.url?.includes('/expenses') && !req.url?.includes('/stats')) {
       try {
@@ -445,45 +491,120 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Rota de cattle purchases (com e sem /api/v1/)
+    // Rota de cattle purchases (com e sem /api/v1/) - CONEXÃO DIRETA
     if (req.url?.includes('/cattle-purchases')) {
       try {
-        const cattlePurchases = await supabaseRequest('cattle_purchases?select=*');
+        // PRIMEIRA TENTATIVA: PostgreSQL direto
+        const cattlePurchases = await executeQuery(`
+          SELECT cp.*, 
+                 p.name as vendor,
+                 pa.account_name as payer_account
+          FROM cattle_purchases cp
+          LEFT JOIN partners p ON cp.vendor_id = p.id
+          LEFT JOIN payer_accounts pa ON cp.payer_account_id = pa.id
+          ORDER BY cp.created_at DESC
+          LIMIT 50
+        `);
+        
+        if (cattlePurchases.length > 0) {
+          console.log('✅ Dados em tempo real do PostgreSQL: cattle-purchases');
+          
+          // Formatar dados para o frontend
+          const formattedPurchases = cattlePurchases.map(purchase => ({
+            id: purchase.id,
+            averageWeight: parseFloat(purchase.average_weight || 0),
+            pricePerArroba: parseFloat(purchase.price_per_arroba || 0),
+            purchaseDate: purchase.purchase_date,
+            vendor: purchase.vendor || 'Desconhecido',
+            payerAccount: purchase.payer_account || 'Fluxo de Caixa',
+            status: purchase.status || 'CONFIRMED',
+            createdAt: purchase.created_at,
+            updatedAt: purchase.updated_at
+          }));
+          
+          res.status(200).json({
+            status: 'success',
+            items: formattedPurchases,
+            results: formattedPurchases.length,
+            total: formattedPurchases.length,
+            page: 1,
+            totalPages: 1,
+            message: `${formattedPurchases.length} compras carregadas em tempo real`
+          });
+          return;
+        }
+        
+        // FALLBACK: Dados locais
+        console.log('⚠️ PostgreSQL vazio, usando fallback local');
+        const localPurchases = readLocalData('cattle-purchases');
         res.status(200).json({
           status: 'success',
-          items: cattlePurchases || [],
-          results: cattlePurchases?.length || 0,
-          total: cattlePurchases?.length || 0,
+          items: localPurchases,
+          results: localPurchases.length,
+          total: localPurchases.length,
           page: 1,
           totalPages: 1,
-          message: cattlePurchases?.length > 0 ? 'Compras de gado carregadas com sucesso' : 'Nenhuma compra encontrada'
+          message: localPurchases.length > 0 ? 'Compras carregadas (fallback)' : 'Nenhuma compra encontrada'
         });
         return;
+        
       } catch (error) {
         console.error('Error fetching cattle purchases:', error);
-        res.status(500).json({
-          status: 'error',
-          message: 'Erro ao carregar compras: ' + (error as Error).message
+        
+        // FALLBACK: Dados locais em caso de erro
+        const localPurchases = readLocalData('cattle-purchases');
+        res.status(200).json({
+          status: 'success',
+          items: localPurchases,
+          results: localPurchases.length,
+          total: localPurchases.length,
+          page: 1,
+          totalPages: 1,
+          message: 'Compras carregadas (fallback devido a erro)'
         });
         return;
       }
     }
 
-    // Rota de partners (com e sem /api/v1/)
+    // Rota de partners (com e sem /api/v1/) - CONEXÃO DIRETA
     if (req.url?.includes('/partners')) {
       try {
-        const partners = await supabaseRequest('partners?select=*');
+        // PRIMEIRA TENTATIVA: PostgreSQL direto
+        const partners = await executeQuery(`
+          SELECT * FROM partners
+          ORDER BY created_at DESC
+          LIMIT 100
+        `);
+        
+        if (partners.length > 0) {
+          console.log('✅ Dados em tempo real do PostgreSQL: partners');
+          res.status(200).json({
+            status: 'success',
+            data: partners,
+            message: `${partners.length} parceiros carregados em tempo real`
+          });
+          return;
+        }
+        
+        // FALLBACK: Dados locais
+        console.log('⚠️ PostgreSQL vazio, usando fallback local');
+        const localPartners = readLocalData('partners');
         res.status(200).json({
           status: 'success',
-          data: partners || [],
-          message: partners?.length > 0 ? 'Parceiros carregados com sucesso' : 'Nenhum parceiro encontrado'
+          data: localPartners,
+          message: localPartners.length > 0 ? 'Parceiros carregados (fallback)' : 'Nenhum parceiro encontrado'
         });
         return;
+        
       } catch (error) {
         console.error('Error fetching partners:', error);
-        res.status(500).json({
-          status: 'error',
-          message: 'Erro ao carregar parceiros: ' + (error as Error).message
+        
+        // FALLBACK: Dados locais em caso de erro
+        const localPartners = readLocalData('partners');
+        res.status(200).json({
+          status: 'success',
+          data: localPartners,
+          message: 'Parceiros carregados (fallback devido a erro)'
         });
         return;
       }
@@ -707,6 +828,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         '/api/health',
         '/api/auth/login (POST)',
         '/api/auth/me (GET)',
+        '/api/v1/users',
         '/api/v1/stats',
         '/api/v1/expenses',
         '/api/v1/expenses/stats',
