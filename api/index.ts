@@ -890,14 +890,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return;
         }
         
-        // Executar query direta
+        // Executar query direta - REMOVENDO FILTRO is_active PARA VER TODOS
         const users = await executeQuery(`
           SELECT id, email, name, role, is_active, is_master, created_at, updated_at
           FROM users
-          WHERE is_active = true
           ORDER BY created_at DESC
           LIMIT 100
         `);
+        
+        console.log(`📊 Total de usuários no banco (ativos e inativos): ${users.length}`);
+        if (users.length > 0) {
+          console.log(`👤 Primeiro usuário: ${users[0].email} - Ativo: ${users[0].is_active}`);
+        }
         
         console.log(`✅ Query executada: ${users.length} usuários encontrados`);
         
