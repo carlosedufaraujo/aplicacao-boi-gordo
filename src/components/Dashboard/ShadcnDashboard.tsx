@@ -117,6 +117,7 @@ import { usePayerAccountsApi } from '@/hooks/api/usePayerAccountsApi';
 import { usePartnersApi } from '@/hooks/api/usePartnersApi';
 import { useFinancialData } from '@/providers/FinancialDataProvider';
 import { useInterventionsApi } from '@/hooks/api/useInterventionsApi';
+import { useDeathRecordsApi } from '@/hooks/api/useDeathRecordsApi';
 import { useNavigate } from 'react-router-dom';
 import { usePDFGenerator } from '@/hooks/usePDFGenerator';
 import { toast } from 'sonner';
@@ -147,6 +148,7 @@ export function ShadcnDashboard() {
 
   // Hooks da Nova Arquitetura API
   const { cattlePurchases, loading: lotsLoading } = useCattlePurchasesApi();
+  const { deathRecords, loading: deathRecordsLoading } = useDeathRecordsApi();
   const { cattlePurchases: orders, loading: ordersLoading } = useCattlePurchasesApi();
   const { partners, loading: partnersLoading } = usePartnersApi();
   const { expenses, loading: expensesLoading } = useExpensesApi();
@@ -358,15 +360,28 @@ export function ShadcnDashboard() {
       }
       setAverageDaysConfined(avgDays);
 
-      // Calcular mortalidade (simulado - baseado em dados existentes)
-      const totalAnimals = confirmedAnimals + pendingAnimals;
-      const mortalitySimulated = Math.floor(totalAnimals * 0.02); // 2% de mortalidade simulada
-      const mortalityRateCalculated = totalAnimals > 0 ? (mortalitySimulated / totalAnimals) * 100 : 0;
+      // Calcular mortalidade REAL baseada nos registros de morte
+      let totalDeathCount = 0;
 
-      setMortalityCount(mortalitySimulated);
+      // Se temos registros de morte, usar dados reais
+      if (deathRecords && deathRecords.length > 0) {
+        totalDeathCount = deathRecords.reduce((total, record) => {
+          return total + (record.quantity || 1);
+        }, 0);
+      } else {
+        // Fallback: calcular mortalidade baseada no campo deathCount das compras
+        cattlePurchases?.forEach(purchase => {
+          totalDeathCount += purchase.deathCount || 0;
+        });
+      }
+
+      const totalAnimals = confirmedAnimals + pendingAnimals;
+      const mortalityRateCalculated = totalAnimals > 0 ? (totalDeathCount / totalAnimals) * 100 : 0;
+
+      setMortalityCount(totalDeathCount);
       setMortalityRate(mortalityRateCalculated);
     }
-  }, [cattlePurchases, cattlePurchases]);
+  }, [cattlePurchases, deathRecords]);
 
   // Calcular métricas financeiras integradas
   useEffect(() => {

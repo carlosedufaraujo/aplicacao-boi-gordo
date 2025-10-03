@@ -4,20 +4,31 @@ import { env } from '@/config/env';
 import { logger } from '@/config/logger';
 import { initializeSocket } from '@/config/socket';
 import { ensureAdminUser } from '@/utils/ensureAdminUser';
+import { backupService } from '@/services/backup.service';
 
 async function startServer(): Promise<void> {
   try {
     // Garante que existe um usuário administrador
     await ensureAdminUser();
-    
+
     // Cria a aplicação Express
     const app = createApp();
-    
+
     // Cria servidor HTTP
     const httpServer = createServer(app);
-    
+
     // Inicializa Socket.io
     initializeSocket(httpServer);
+
+    // Inicializa o serviço de backup
+    await backupService.initialize({
+      frequency: 'daily',
+      retention: 30,
+      location: 'local',
+      compress: true,
+      encrypt: false,
+      includeMedia: false
+    });
 
     // Inicia o servidor
     const server = httpServer.listen(env.PORT, () => {

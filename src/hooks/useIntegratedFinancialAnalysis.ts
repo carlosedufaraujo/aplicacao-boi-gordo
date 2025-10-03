@@ -58,11 +58,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao gerar análise';
       setError(errorMessage);
       
-      toast({
-        title: 'Erro',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage ? `${'Erro'}: ${errorMessage}` : 'Erro');
       
       console.error('❌ Erro ao gerar análise:', err);
       throw err;
@@ -92,11 +88,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       setError(errorMessage);
       
       if (err.response?.status !== 404) {
-        toast({
-          title: 'Erro',
-          description: errorMessage,
-          variant: 'destructive',
-        });
+        toast.error(errorMessage ? `${'Erro'}: ${errorMessage}` : 'Erro');
       }
       
       console.error('❌ Erro ao carregar análise:', err);
@@ -126,11 +118,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao carregar análises do ano';
       setError(errorMessage);
       
-      toast({
-        title: 'Erro',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage ? `${'Erro'}: ${errorMessage}` : 'Erro');
       
       console.error('❌ Erro ao carregar análises do ano:', err);
       throw err;
@@ -158,11 +146,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao carregar dashboard';
       setError(errorMessage);
       
-      toast({
-        title: 'Erro',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage ? `${'Erro'}: ${errorMessage}` : 'Erro');
       
       console.error('❌ Erro ao carregar dashboard:', err);
       throw err;
@@ -190,11 +174,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao comparar análises';
       setError(errorMessage);
       
-      toast({
-        title: 'Erro',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage ? `${'Erro'}: ${errorMessage}` : 'Erro');
       
       console.error('❌ Erro ao comparar análises:', err);
       throw err;
@@ -268,11 +248,7 @@ export const useIntegratedFinancialAnalysis = (options: UseIntegratedAnalysisOpt
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao carregar transações';
       setError(errorMessage);
       
-      toast({
-        title: 'Erro',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      toast.error(errorMessage ? `${'Erro'}: ${errorMessage}` : 'Erro');
       
       console.error('❌ Erro ao carregar transações:', err);
       throw err;

@@ -1,1 +1,54 @@
-[]
+[
+  {
+    "id": "revenue-001",
+    "description": "Venda de 45 Bois",
+    "amount": 255774.36,
+    "date": "2025-10-03",
+    "quantity": 45,
+    "unitPrice": 5683.87,
+    "category": "VENDA_GADO",
+    "paymentStatus": "PENDENTE",
+    "notes": "Venda registrada em 03/10/2025",
+    "createdAt": "2025-10-03T14:00:00Z",
+    "updatedAt": "2025-10-03T14:00:00Z"
+  },
+  {
+    "id": "revenue-002",
+    "description": "Venda de 50 Bois",
+    "amount": 237525.79,
+    "date": "2025-10-03",
+    "quantity": 50,
+    "unitPrice": 4750.52,
+    "category": "VENDA_GADO",
+    "paymentStatus": "PENDENTE",
+    "notes": "Venda registrada em 03/10/2025",
+    "createdAt": "2025-10-03T14:00:00Z",
+    "updatedAt": "2025-10-03T14:00:00Z"
+  },
+  {
+    "id": "revenue-003",
+    "description": "Venda de 100 Bois (Lote 1)",
+    "amount": 455734.26,
+    "date": "2025-10-03",
+    "quantity": 100,
+    "unitPrice": 4557.34,
+    "category": "VENDA_GADO",
+    "paymentStatus": "PENDENTE",
+    "notes": "Primeira venda de 100 bois",
+    "createdAt": "2025-10-03T14:00:00Z",
+    "updatedAt": "2025-10-03T14:00:00Z"
+  },
+  {
+    "id": "revenue-004",
+    "description": "Venda de 100 Bois (Lote 2)",
+    "amount": 470881.50,
+    "date": "2025-10-03",
+    "quantity": 100,
+    "unitPrice": 4708.82,
+    "category": "VENDA_GADO",
+    "paymentStatus": "PENDENTE",
+    "notes": "Segunda venda de 100 bois",
+    "createdAt": "2025-10-03T14:00:00Z",
+    "updatedAt": "2025-10-03T14:00:00Z"
+  }
+]

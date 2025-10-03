@@ -254,11 +254,7 @@ const CleanUserManagement: React.FC = () => {
       });
     } catch (error: any) {
       console.error('Erro ao alterar status:', error);
-      toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível alterar o status do usuário.',
-        variant: 'destructive'
-      });
+      toast.error(error.message || 'Não foi possível alterar o status do usuário.' ? `${'Erro'}: ${error.message || 'Não foi possível alterar o status do usuário.'}` : 'Erro');
     } finally {
       setIsLoading(false);
     }
@@ -267,11 +263,7 @@ const CleanUserManagement: React.FC = () => {
   // Handler para abrir dialog de confirmação
   const handleDeleteUser = (userId: string) => {
     if (userId === currentUser?.id) {
-      toast({
-        title: 'Erro',
-        description: 'Você não pode excluir seu próprio usuário.',
-        variant: 'destructive'
-      });
+      toast.error('Você não pode excluir seu próprio usuário.' ? `${'Erro'}: ${'Você não pode excluir seu próprio usuário.'}` : 'Erro');
       return;
     }
     setDeleteConfirmDialog({ isOpen: true, userId });
@@ -287,17 +279,10 @@ const CleanUserManagement: React.FC = () => {
       await usersService.delete(userId);
       // Recarregar a lista de usuários
       await loadUsers();
-      toast({
-        title: 'Usuário Excluído',
-        description: 'O usuário foi excluído com sucesso.',
-      });
+      toast('O usuário foi excluído com sucesso.' ? `${'Usuário Excluído'}: ${'O usuário foi excluído com sucesso.'}` : 'Usuário Excluído');
     } catch (error: any) {
       console.error('Erro ao excluir usuário:', error);
-      toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível excluir o usuário. Tente novamente.',
-        variant: 'destructive'
-      });
+      toast.error(error.message || 'Não foi possível excluir o usuário. Tente novamente.' ? `${'Erro'}: ${error.message || 'Não foi possível excluir o usuário. Tente novamente.'}` : 'Erro');
     } finally {
       setIsLoading(false);
       setDeleteConfirmDialog({ isOpen: false, userId: null });
@@ -337,17 +322,10 @@ const CleanUserManagement: React.FC = () => {
 
       await loadUsers();
       setSelectedUser(null);
-      toast({
-        title: 'Usuário Atualizado',
-        description: 'As informações do usuário foram atualizadas com sucesso.',
-      });
+      toast('As informações do usuário foram atualizadas com sucesso.' ? `${'Usuário Atualizado'}: ${'As informações do usuário foram atualizadas com sucesso.'}` : 'Usuário Atualizado');
     } catch (error: any) {
       console.error('Erro ao atualizar usuário:', error);
-      toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível atualizar o usuário. Tente novamente.',
-        variant: 'destructive'
-      });
+      toast.error(error.message || 'Não foi possível atualizar o usuário. Tente novamente.' ? `${'Erro'}: ${error.message || 'Não foi possível atualizar o usuário. Tente novamente.'}` : 'Erro');
     } finally {
       setIsLoading(false);
     }
@@ -359,17 +337,10 @@ const CleanUserManagement: React.FC = () => {
       await usersService.create(userData);
       await loadUsers();
       setShowCreateDialog(false);
-      toast({
-        title: 'Usuário Criado',
-        description: 'O novo usuário foi criado com sucesso.',
-      });
+      toast('O novo usuário foi criado com sucesso.' ? `${'Usuário Criado'}: ${'O novo usuário foi criado com sucesso.'}` : 'Usuário Criado');
     } catch (error: any) {
       console.error('Erro ao criar usuário:', error);
-      toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível criar o usuário. Tente novamente.',
-        variant: 'destructive'
-      });
+      toast.error(error.message || 'Não foi possível criar o usuário. Tente novamente.' ? `${'Erro'}: ${error.message || 'Não foi possível criar o usuário. Tente novamente.'}` : 'Erro');
     } finally {
       setIsLoading(false);
     }

@@ -1323,11 +1323,7 @@ export const CompleteRegistrations: React.FC = () => {
       setCategories(allCategories);
     } catch (_error) {
       console.error('Erro ao carregar categorias:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar as categorias',
-        variant: 'destructive'
-      });
+      toast.error('Não foi possível carregar as categorias' ? `${'Erro'}: ${'Não foi possível carregar as categorias'}` : 'Erro');
     } finally {
       setCategoriesLoading(false);
     }
@@ -1337,19 +1333,12 @@ export const CompleteRegistrations: React.FC = () => {
     try {
       const newCategory = await categoryAPI.create(data);
       await loadCategories();
-      toast({
-        title: 'Categoria criada',
-        description: 'Categoria criada com sucesso',
-      });
+      toast('Categoria criada com sucesso' ? `${'Categoria criada'}: ${'Categoria criada com sucesso'}` : 'Categoria criada');
       return newCategory;
     } catch (error: any) {
       console.error('Erro ao criar categoria:', error);
       const errorMessage = error.response?.data?.error || 'Não foi possível criar a categoria';
-      toast({
-        title: 'Erro',
-        description: errorMessage,
-        variant: 'destructive'
-      });
+      toast.error(errorMessage ? `${'Erro'}: ${errorMessage}` : 'Erro');
       return null;
     }
   };
@@ -1358,19 +1347,12 @@ export const CompleteRegistrations: React.FC = () => {
     try {
       await categoryAPI.update(id, data);
       await loadCategories();
-      toast({
-        title: 'Categoria atualizada',
-        description: 'Categoria atualizada com sucesso',
-      });
+      toast('Categoria atualizada com sucesso' ? `${'Categoria atualizada'}: ${'Categoria atualizada com sucesso'}` : 'Categoria atualizada');
       return true;
     } catch (error: any) {
       console.error('Erro ao atualizar categoria:', error);
       const errorMessage = error.response?.data?.error || 'Não foi possível atualizar a categoria';
-      toast({
-        title: 'Erro',
-        description: errorMessage,
-        variant: 'destructive'
-      });
+      toast.error(errorMessage ? `${'Erro'}: ${errorMessage}` : 'Erro');
       return false;
     }
   };
@@ -1379,19 +1361,12 @@ export const CompleteRegistrations: React.FC = () => {
     try {
       await categoryAPI.delete(id);
       await loadCategories();
-      toast({
-        title: 'Categoria excluída',
-        description: 'Categoria excluída com sucesso',
-      });
+      toast('Categoria excluída com sucesso' ? `${'Categoria excluída'}: ${'Categoria excluída com sucesso'}` : 'Categoria excluída');
       return true;
     } catch (error: any) {
       console.error('Erro ao excluir categoria:', error);
       const errorMessage = error.response?.data?.error || 'Não foi possível excluir a categoria. Verifique se não há movimentações usando esta categoria.';
-      toast({
-        title: 'Erro',
-        description: errorMessage,
-        variant: 'destructive'
-      });
+      toast.error(errorMessage ? `${'Erro'}: ${errorMessage}` : 'Erro');
       return false;
     }
   };
@@ -1560,11 +1535,7 @@ export const CompleteRegistrations: React.FC = () => {
       setItemToDelete(null);
     } catch (_error) {
       console.error('Erro ao excluir item:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível excluir o item. Tente novamente.',
-        variant: 'destructive'
-      });
+      toast.error('Não foi possível excluir o item. Tente novamente.' ? `${'Erro'}: ${'Não foi possível excluir o item. Tente novamente.'}` : 'Erro');
     }
   };
 
@@ -1645,11 +1616,7 @@ export const CompleteRegistrations: React.FC = () => {
       console.error('Erro ao salvar item:', error);
       // Não mostrar notificação de erro para categorias pois já é mostrada nas funções específicas
       if (activeTab !== 'categories') {
-        toast({
-          title: 'Erro',
-          description: 'Não foi possível salvar as informações. Tente novamente.',
-          variant: 'destructive'
-        });
+        toast.error('Não foi possível salvar as informações. Tente novamente.' ? `${'Erro'}: ${'Não foi possível salvar as informações. Tente novamente.'}` : 'Erro');
       }
     }
   };

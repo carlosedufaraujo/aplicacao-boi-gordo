@@ -275,35 +275,23 @@ export class CategoryService {
   // Resetar para categorias padrão
   public async resetToDefaults(): Promise<void> {
     try {
-      // Desativar todas as categorias customizadas
-      const { error } = await supabase
-        .from('categories')
-        .update({ is_active: false })
-        .eq('is_default', false);
+      // Usar API REST ao invés do Supabase direto
+      const response = await api.post('/categories/reset-to-defaults');
 
-      if (error) throw error;
-
-      // Reativar apenas as categorias padrão
-      const { error: reactivateError } = await supabase
-        .from('categories')
-        .update({ is_active: true })
-        .eq('is_default', true);
-
-      if (reactivateError) throw reactivateError;
-
-      // Recarregar
-      await this.loadCategories();
+      if (response.status === 200) {
+        // Recarregar
+        await this.loadCategories();
+      }
     } catch (error) {
       console.error('Erro ao resetar categorias:', error);
+      // Fallback: carregar categorias padrão em memória
+      this.loadDefaultCategories();
     }
   }
 
   // Limpar recursos ao destruir
   public destroy(): void {
-    if (this.channel) {
-      supabase.removeChannel(this.channel);
-      this.channel = null;
-    }
+    // Limpar listeners
     this.listeners.clear();
   }
 
@@ -335,16 +323,23 @@ export const categoryService = {
     return getCategoryService();
   },
   // Proxy all methods to the singleton instance
-  async getCategories() { return this.instance.getCategories(); },
-  async getCategoryById(id: string) { return this.instance.getCategoryById(id); },
-  async createCategory(category: Omit<FinancialCategory, 'id' | 'createdAt' | 'updatedAt'>) { 
-    return this.instance.createCategory(category); 
+  getAll() { return this.instance.getAll(); },
+  getByType(type: 'INCOME' | 'EXPENSE') { return this.instance.getByType(type); },
+  getById(id: string) { return this.instance.getById(id); },
+  getByCode(code: string) { return this.instance.getByCode(code); },
+  async create(category: Omit<Category, 'id' | 'created_at' | 'updated_at'>) {
+    return this.instance.create(category);
   },
-  async updateCategory(id: string, updates: Partial<FinancialCategory>) { 
-    return this.instance.updateCategory(id, updates); 
+  async update(id: string, updates: Partial<Omit<Category, 'id' | 'created_at' | 'updated_at'>>) {
+    return this.instance.update(id, updates);
   },
-  async deleteCategory(id: string) { return this.instance.deleteCategory(id); },
+  async delete(id: string) { return this.instance.delete(id); },
   async canDelete(id: string) { return this.instance.canDelete(id); },
-  async importCategories(categories: any[]) { return this.instance.importCategories(categories); },
-  isLoading() { return this.instance.isLoading(); }
+  search(query: string) { return this.instance.search(query); },
+  async exportCategories() { return this.instance.exportCategories(); },
+  async importCategories(jsonString: string) { return this.instance.importCategories(jsonString); },
+  async resetToDefaults() { return this.instance.resetToDefaults(); },
+  isLoading() { return this.instance.isLoading(); },
+  addChangeListener(callback: () => void) { return this.instance.addChangeListener(callback); },
+  destroy() { return this.instance.destroy(); }
 };

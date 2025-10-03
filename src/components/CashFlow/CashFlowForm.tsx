@@ -128,12 +128,7 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
     if (hasValidationErrors(validationErrors)) {
       setErrors(validationErrors);
       const message = formatValidationMessage(validationErrors);
-      toast({
-        title: 'Erro de Validação',
-        description: message,
-        variant: 'destructive',
-        duration: 5000,
-      });
+      toast.error(message ? `${'Erro de Validação'}: ${message}` : 'Erro de Validação');
       return;
     }
     

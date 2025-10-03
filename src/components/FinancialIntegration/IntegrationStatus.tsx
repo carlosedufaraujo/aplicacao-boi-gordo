@@ -98,22 +98,14 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
       });
       
       if (response.ok) {
-        toast({
-          title: 'Sincronização concluída',
-          description: 'As despesas foram criadas no centro financeiro',
-          variant: 'default'
-        });
+        toast('As despesas foram criadas no centro financeiro' ? `${'Sincronização concluída'}: ${'As despesas foram criadas no centro financeiro'}` : 'Sincronização concluída');
         await checkIntegrationStatus();
         onSync?.();
       } else {
         throw new Error('Falha na sincronização');
       }
     } catch (_error) {
-      toast({
-        title: 'Erro na sincronização',
-        description: 'Não foi possível sincronizar as despesas',
-        variant: 'destructive'
-      });
+      toast.error('Não foi possível sincronizar as despesas' ? `${'Erro na sincronização'}: ${'Não foi possível sincronizar as despesas'}` : 'Erro na sincronização');
     } finally {
       setLoading(false);
     }

@@ -323,16 +323,10 @@ export function EnhancedPurchaseForm({
       };
       if (editingPurchase) {
         await updatePurchase(editingPurchase.id, purchaseData);
-        toast({
-          title: 'Compra atualizada',
-          description: 'A compra foi atualizada com sucesso.',
-        });
+        toast('A compra foi atualizada com sucesso.' ? `${'Compra atualizada'}: ${'A compra foi atualizada com sucesso.'}` : 'Compra atualizada');
       } else {
         await createPurchase(purchaseData);
-        toast({
-          title: 'Compra criada',
-          description: 'A compra foi criada com sucesso.',
-        });
+        toast('A compra foi criada com sucesso.' ? `${'Compra criada'}: ${'A compra foi criada com sucesso.'}` : 'Compra criada');
       }
 
       onSuccess?.();

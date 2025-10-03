@@ -165,12 +165,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     setNotifications(prev => [newNotification, ...prev]);
 
-    // Show toast
-    toast({
-      title: notification.title,
-      description: notification.description,
-      variant: notification.type === 'error' ? 'destructive' : 'default'
-    });
+    // Show toast - Sonner expects a string or custom component
+    const message = notification.description
+      ? `${notification.title}: ${notification.description}`
+      : notification.title;
+
+    if (notification.type === 'error') {
+      toast.error(message);
+    } else if (notification.type === 'success') {
+      toast.success(message);
+    } else if (notification.type === 'warning') {
+      toast.warning(message);
+    } else {
+      toast(message);
+    }
 
     // Play sound if enabled
     if (preferences.sound) {
