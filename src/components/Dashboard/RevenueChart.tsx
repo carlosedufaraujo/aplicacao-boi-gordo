@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 export const RevenueChart: React.FC = () => {
-  const { cattlePurchases, cattlePurchases, saleRecords } = useAppStore();
+  const { cattlePurchases, saleRecords } = useAppStore();
 
   // Gerar dados reais baseados nas transações do sistema
   const data = React.useMemo(() => {
@@ -23,9 +23,8 @@ export const RevenueChart: React.FC = () => {
       // Calcular valor alocado (compras no mês)
       let allocatedValue = 0;
       cattlePurchases.forEach(order => {
-        if (order.date >= monthStart && order.date <= monthEnd) {
-          const animalValue = (order.totalWeight / 15) * order.pricePerArroba;
-          allocatedValue += animalValue + order.commission + order.taxes + order.otherCosts;
+        if (order.purchaseDate >= monthStart && order.purchaseDate <= monthEnd) {
+          allocatedValue += order.purchaseValue;
         }
       });
       
@@ -33,7 +32,7 @@ export const RevenueChart: React.FC = () => {
       let marketValue = 0;
       saleRecords.forEach(sale => {
         if (sale.saleDate >= monthStart && sale.saleDate <= monthEnd) {
-          marketValue += sale.grossRevenue;
+          marketValue += sale.totalValue || sale.netValue || 0;
         }
       });
       

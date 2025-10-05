@@ -5,7 +5,7 @@ import { RefreshCw, Database, CheckCircle, AlertCircle } from 'lucide-react';
 
 export const RealDataSync: React.FC = () => {
   const { loading, error, lastSync, sync, hasRealData, dataCounts } = useRealDataSync();
-  const { cycles, cattlePurchases, partners, expenses, revenues, penRegistrations, healthRecords, currentWeightReadings } = useAppStore();
+  const { cycles, cattlePurchases, partners, expenses, penRegistrations, healthRecords, currentWeightReadings } = useAppStore();
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">

@@ -389,13 +389,13 @@ export function ShadcnDashboard() {
       
       // Calcular total de receitas
       const revenuesTotal = revenues.reduce((total, revenue) => {
-        return total + toSafeNumber(revenue.amount || revenue.value || revenue.purchaseValue, 0);
+        return total + toSafeNumber(revenue.totalAmount, 0);
       }, 0);
       setTotalRevenues(revenuesTotal);
-      
+
       // Calcular total de despesas
       const expensesTotal = expenses.reduce((total, expense) => {
-        return total + toSafeNumber(expense.amount || expense.value || expense.purchaseValue, 0);
+        return total + toSafeNumber(expense.totalAmount, 0);
       }, 0);
       setTotalExpenses(expensesTotal);
       
@@ -415,17 +415,17 @@ export function ShadcnDashboard() {
       
       // Calcular receitas pendentes
       const pendingRevenuesTotal = revenues
-        .filter(revenue => !revenue.isReceived && revenue.status !== 'paid')
+        .filter(revenue => !revenue.isReceived)
         .reduce((total, revenue) => {
-          return total + toSafeNumber(revenue.amount || revenue.value || revenue.purchaseValue, 0);
+          return total + toSafeNumber(revenue.totalAmount, 0);
         }, 0);
       setPendingRevenues(pendingRevenuesTotal);
-      
+
       // Calcular despesas pendentes
       const pendingExpensesTotal = expenses
-        .filter(expense => expense.status === 'pending' || expense.status === 'overdue')
+        .filter(expense => !expense.isPaid)
         .reduce((total, expense) => {
-          return total + toSafeNumber(expense.amount || expense.value || expense.purchaseValue, 0);
+          return total + toSafeNumber(expense.totalAmount, 0);
         }, 0);
       setPendingExpenses(pendingExpensesTotal);
 
@@ -468,22 +468,22 @@ export function ShadcnDashboard() {
       }).reduce((sum, s) => sum + toSafeNumber(s.totalValue || s.netValue, 0), 0);
       
       const monthOtherRevenues = (revenues || []).filter(r => {
-        const date = toSafeDate(r.date || r.createdAt || r.dueDate);
+        const date = toSafeDate(r.dueDate || r.createdAt);
         return date >= monthStart && date <= monthEnd;
-      }).reduce((sum, r) => sum + toSafeNumber(r.amount || r.totalAmount, 0), 0);
+      }).reduce((sum, r) => sum + toSafeNumber(r.totalAmount, 0), 0);
       
       const totalRevenues = monthSalesRevenue + monthOtherRevenues;
 
       // Calcular custos do mês (compras + despesas)
       const monthPurchases = (cattlePurchases || []).filter(order => {
-        const date = toSafeDate(order.createdAt || order.purchaseDate);
+        const date = toSafeDate(order.purchaseDate || order.createdAt);
         return date >= monthStart && date <= monthEnd;
-      }).reduce((sum, order) => sum + toSafeNumber(order.totalValue || order.purchaseValue, 0), 0);
-      
+      }).reduce((sum, order) => sum + toSafeNumber(order.purchaseValue, 0), 0);
+
       const monthExpenses = (expenses || []).filter(e => {
-        const date = toSafeDate(e.date || e.createdAt || e.dueDate);
+        const date = toSafeDate(e.dueDate || e.createdAt);
         return date >= monthStart && date <= monthEnd;
-      }).reduce((sum, e) => sum + toSafeNumber(e.amount || e.totalAmount, 0), 0);
+      }).reduce((sum, e) => sum + toSafeNumber(e.totalAmount, 0), 0);
 
       const totalCosts = monthPurchases + monthExpenses;
       const profit = totalRevenues - totalCosts;
@@ -510,7 +510,7 @@ export function ShadcnDashboard() {
     // Adicionar ordens de compra
     (cattlePurchases || []).forEach(order => {
       const quantity = order.currentQuantity || order.initialQuantity || order.quantity || 0;
-      const value = order.purchaseValue || order.totalValue || 0;
+      const value = order.purchaseValue || 0;
       const dateStr = order.purchaseDate || order.createdAt;
       
       if (dateStr) {
@@ -529,8 +529,8 @@ export function ShadcnDashboard() {
 
     // Adicionar despesas
     (expenses || []).forEach(expense => {
-      const value = expense.totalAmount || expense.amount || expense.value || 0;
-      const dateStr = expense.date || expense.dueDate || expense.createdAt;
+      const value = expense.totalAmount || 0;
+      const dateStr = expense.dueDate || expense.createdAt;
       const description = expense.description || expense.category || 'Despesa';
       
       if (dateStr && value > 0) {
@@ -549,8 +549,8 @@ export function ShadcnDashboard() {
 
     // Adicionar receitas
     (revenues || []).forEach(revenue => {
-      const value = revenue.amount || revenue.value || revenue.totalAmount || 0;
-      const dateStr = revenue.date || revenue.receivedDate || revenue.createdAt;
+      const value = revenue.totalAmount || 0;
+      const dateStr = revenue.dueDate || revenue.createdAt;
       const description = revenue.description || 'Receita';
       
       if (dateStr && value > 0) {
