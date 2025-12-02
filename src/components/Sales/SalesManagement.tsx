@@ -87,6 +87,13 @@ import { usePartnersApi } from '@/hooks/api/usePartnersApi';
 import { usePensApi } from '@/hooks/api/usePensApi';
 import { formatCurrency, formatWeight, formatCompactCurrency } from '@/utils/formatters';
 import { showErrorNotification, showSuccessNotification, showWarningNotification } from '@/utils/errorHandler';
+import {
+  exportToExcel,
+  formatDateForExport,
+  formatCurrencyForExport,
+  formatWeightForExport
+} from '@/utils/exportUtils';
+import { usePDFGenerator } from '@/hooks/usePDFGenerator';
 
 // Componentes
 import { EnhancedSalesForm } from './EnhancedSalesForm';
@@ -104,14 +111,17 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
   const [activeView, setActiveView] = useState<'table' | 'cards'>('table');
 
   // Hooks de API
-  const { 
-    saleRecords, 
-    loading: salesLoading, 
-    error: salesError, 
+  const {
+    saleRecords,
+    loading: salesLoading,
+    error: salesError,
     stats,
     deleteSaleRecord,
-    refresh: refreshSales 
+    refresh: refreshSales
   } = useSaleRecordsApi();
+
+  // Hook para geração de PDF
+  const { generateReportPDF } = usePDFGenerator();
   
   // Teste direto da API ao montar o componente
   React.useEffect(() => {
@@ -230,11 +240,98 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
   };
 
   const handleExport = () => {
-    showWarningNotification('Exportação em desenvolvimento');
+    if (filteredSales.length === 0) {
+      showErrorNotification('Não há vendas para exportar');
+      return;
+    }
+
+    const exportData = filteredSales.map(sale => ({
+      'Data da Venda': formatDateForExport(sale.saleDate),
+      'Código do Lote': sale.purchase?.lotCode || '-',
+      'Número do Curral': sale.pen?.penNumber || '-',
+      'Comprador': sale.buyer?.name || 'Desconhecido',
+      'CPF/CNPJ': sale.buyer?.cpfCnpj || '',
+      'Quantidade': sale.quantity,
+      'Peso de Saída (kg)': sale.exitWeight,
+      'Peso de Carcaça (kg)': sale.carcassWeight,
+      'Rendimento de Carcaça (%)': sale.carcassYield?.toFixed(2) || '0',
+      'Preço por Arroba': formatCurrencyForExport(sale.pricePerArroba),
+      'Arrobas': (sale.carcassWeight / 15).toFixed(2),
+      'Valor Total': formatCurrencyForExport(sale.totalValue),
+      'Valor Líquido': formatCurrencyForExport(sale.netValue),
+      'Tipo de Pagamento': sale.paymentType === 'cash' ? 'À Vista' : sale.paymentType === 'installment' ? 'Parcelado' : sale.paymentType,
+      'Lucro': formatCurrencyForExport(sale.netValue - (sale.purchase?.totalCost || 0)),
+      'Margem (%)': sale.totalValue > 0
+        ? ((sale.netValue / sale.totalValue) * 100).toFixed(2) + '%'
+        : '0%',
+      'Observações': sale.notes || ''
+    }));
+
+    const result = exportToExcel(exportData, 'vendas-gado', 'Vendas');
+
+    if (result.success) {
+      showSuccessNotification(result.message);
+    } else {
+      showErrorNotification(result.message);
+    }
   };
+
+  const handleExportPDF = async () => {
+    if (filteredSales.length === 0) {
+      showErrorNotification('Não há vendas para exportar');
+      return;
+    }
+
+    const reportData = {
+      title: 'Relatório de Vendas de Gado',
+      subtitle: `Total de ${filteredSales.length} venda(s) | Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+      data: filteredSales.map(sale => ({
+        data: formatDateForExport(sale.saleDate),
+        comprador: sale.buyer?.name || 'Desconhecido',
+        qtd: sale.quantity.toString(),
+        peso: `${sale.exitWeight.toLocaleString('pt-BR')} kg`,
+        arroba: formatCurrencyForExport(sale.pricePerArroba),
+        total: formatCurrencyForExport(sale.totalValue),
+        liquido: formatCurrencyForExport(sale.netValue),
+        rend: `${sale.carcassYield?.toFixed(1) || '0'}%`
+      })),
+      columns: [
+        { key: 'data', label: 'Data', width: 30 },
+        { key: 'comprador', label: 'Comprador', width: 50 },
+        { key: 'qtd', label: 'Qtd', width: 20 },
+        { key: 'peso', label: 'Peso', width: 30 },
+        { key: 'arroba', label: 'R$/@', width: 30 },
+        { key: 'total', label: 'Total', width: 35 },
+        { key: 'liquido', label: 'Líquido', width: 35 },
+        { key: 'rend', label: 'Rend.', width: 20 }
+      ],
+      summary: {
+        'Total de Vendas': filteredSales.length,
+        'Total de Animais': metrics.totalAnimals.toLocaleString('pt-BR'),
+        'Receita Total': formatCurrencyForExport(metrics.totalRevenue),
+        'Valor Líquido Total': formatCurrencyForExport(metrics.totalNetValue),
+        'Preço Médio/@': formatCurrencyForExport(metrics.averagePrice),
+        'Rendimento Médio': `${metrics.averageYield.toFixed(1)}%`
+      }
+    };
+
+    const result = await generateReportPDF(reportData, {
+      filename: `vendas-gado-${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`,
+      format: 'a4',
+      orientation: 'landscape'
+    });
+
+    if (result.success) {
+      showSuccessNotification(result.message);
+    } else {
+      showErrorNotification(result.message);
+    }
+  };
+
   const handleImport = () => {
     showWarningNotification("Importação em desenvolvimento");
   };
+
   const getPaymentTypeBadge = (type: string) => {
     switch (type) {
       case 'cash':
@@ -270,10 +367,26 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Formato de Exportação</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleExport}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPDF}>
+                  <Download className="mr-2 h-4 w-4" />
+                  PDF (.pdf)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="outline" size="sm" onClick={handleImport}>
               <Upload className="h-4 w-4 mr-2" />
               Importar

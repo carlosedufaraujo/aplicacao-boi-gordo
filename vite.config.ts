@@ -51,16 +51,15 @@ export default defineConfig({
     force: true
   },
   build: {
-    // FORÇA REBUILD COMPLETO - CACHE BUSTING EXTREMO
+    // Configuração otimizada para Cloudflare Pages
     sourcemap: false,
     chunkSizeWarningLimit: 2000,
-    // FORÇA NOVOS HASHES - TIMESTAMP ÚNICO
+    // Hash normal (Cloudflare faz cache busting automaticamente)
     rollupOptions: {
       output: {
-        // FORÇA HASH ÚNICO BASEADO EM TIMESTAMP
-        entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
-        chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
-        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`,
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
+        assetFileNames: `assets/[name]-[hash].[ext]`,
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-ui': [

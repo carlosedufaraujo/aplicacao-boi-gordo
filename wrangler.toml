@@ -1,0 +1,9 @@
+# Cloudflare Pages Configuration
+
+name = "aplicacao-boi-gordo"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-01-01"
+
+# Variáveis de ambiente (serão configuradas no dashboard do Cloudflare)
+# Configure no Cloudflare Dashboard → Pages → Settings → Environment variables
+

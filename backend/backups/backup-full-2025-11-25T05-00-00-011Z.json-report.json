@@ -1,0 +1,68 @@
+{
+  "timestamp": "2025-11-25T05:00:01.717Z",
+  "path": "/Users/carloseduardo/App/aplicacao-boi-gordo/backend/backups/backup-full-2025-11-25T05-00-00-011Z.json.zip",
+  "size": "0.02 MB",
+  "tables": [
+    {
+      "name": "user",
+      "records": 2
+    },
+    {
+      "name": "partner",
+      "records": 23
+    },
+    {
+      "name": "payerAccount",
+      "records": 2
+    },
+    {
+      "name": "cattlePurchase",
+      "records": 22
+    },
+    {
+      "name": "saleRecord",
+      "records": 4
+    },
+    {
+      "name": "expense",
+      "records": 44
+    },
+    {
+      "name": "revenue",
+      "records": 4
+    },
+    {
+      "name": "cashFlow",
+      "records": 76
+    },
+    {
+      "name": "financialTransaction",
+      "records": 40
+    },
+    {
+      "name": "deathRecord",
+      "records": 70
+    },
+    {
+      "name": "pen",
+      "records": 44
+    },
+    {
+      "name": "category",
+      "records": 38
+    },
+    {
+      "name": "calendarEvent",
+      "records": 58
+    },
+    {
+      "name": "notification",
+      "records": 0
+    },
+    {
+      "name": "auditLog",
+      "records": 0
+    }
+  ],
+  "totalRecords": 427
+}

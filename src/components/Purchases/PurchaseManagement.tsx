@@ -26,6 +26,13 @@ import { usePartnersApi } from '@/hooks/api/usePartnersApi';
 import { EnhancedPurchaseForm } from '../Forms/EnhancedPurchaseForm';
 import { PurchaseDetailsModal } from './PurchaseDetailsModal';
 import { eventBus, EVENTS } from '@/utils/eventBus';
+import {
+  exportToExcel,
+  formatDateForExport,
+  formatCurrencyForExport,
+  formatWeightForExport
+} from '@/utils/exportUtils';
+import { usePDFGenerator } from '@/hooks/usePDFGenerator';
 
 // Componentes UI
 import {
@@ -120,16 +127,19 @@ export const PurchaseManagement: React.FC = () => {
   const [selectedPurchaseDetails, setSelectedPurchaseDetails] = useState<any>(null);
 
   // Hooks de API
-  const { 
-    cattlePurchases, 
-    loading: ordersLoading, 
+  const {
+    cattlePurchases,
+    loading: ordersLoading,
     loadCattlePurchases,
     createCattlePurchase,
     updateCattlePurchase,
     deleteCattlePurchase
   } = useCattlePurchasesApi();
-  
+
   const { partners, loadPartners } = usePartnersApi();
+
+  // Hook para geração de PDF
+  const { generateReportPDF } = usePDFGenerator();
 
   // Carregar dados
   useEffect(() => {
@@ -344,6 +354,109 @@ export const PurchaseManagement: React.FC = () => {
     }
   };
 
+  const handleExport = () => {
+    if (filteredPurchases.length === 0) {
+      toast.error('Não há dados para exportar');
+      return;
+    }
+
+    const exportData = filteredPurchases.map(purchase => ({
+      'Código do Lote': purchase.lotCode,
+      'Número do Lote': purchase.lotNumber,
+      'Fornecedor': purchase.vendorName,
+      'Data de Compra': formatDateForExport(purchase.purchaseDate),
+      'Data de Entrada': purchase.entryDate ? formatDateForExport(purchase.entryDate) : 'Não recebido',
+      'Quantidade Atual': purchase.currentQuantity,
+      'Quantidade de Entrada': purchase.entryQuantity || purchase.currentQuantity,
+      'Peso Total (kg)': purchase.totalWeight,
+      'Peso Médio/Animal (kg)': purchase.averageWeight.toFixed(2),
+      'Peso em Toneladas': (purchase.totalWeight / 1000).toFixed(2),
+      'Arrobas Peso Vivo': (purchase.totalWeight / 30).toFixed(2),
+      'Rendimento Carcaça (%)': purchase.carcassYield,
+      'Preço por Arroba': formatCurrencyForExport(purchase.pricePerArroba),
+      'Preço por Kg': formatCurrencyForExport(purchase.pricePerKg),
+      'Valor de Compra': formatCurrencyForExport(purchase.purchasePrice),
+      'Custo de Frete': formatCurrencyForExport(purchase.additionalCosts.freight),
+      'Custo de Sanidade': formatCurrencyForExport(purchase.additionalCosts.health),
+      'Custo de Alimentação': formatCurrencyForExport(purchase.additionalCosts.feed),
+      'Custo Operacional': formatCurrencyForExport(purchase.additionalCosts.operational),
+      'Outros Custos': formatCurrencyForExport(purchase.additionalCosts.others),
+      'Custo Total': formatCurrencyForExport(purchase.totalCost),
+      'Status': getStatusLabel(purchase.status),
+      'Observações': purchase.notes || ''
+    }));
+
+    const result = exportToExcel(exportData, 'compras-gado', 'Compras');
+
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (filteredPurchases.length === 0) {
+      toast.error('Não há dados para exportar');
+      return;
+    }
+
+    const reportData = {
+      title: 'Relatório de Compras de Gado',
+      subtitle: `Total de ${filteredPurchases.length} compra(s) | Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+      data: filteredPurchases.map(purchase => ({
+        lote: purchase.lotCode,
+        fornecedor: purchase.vendorName,
+        data: formatDateForExport(purchase.purchaseDate),
+        qtd: purchase.currentQuantity.toString(),
+        peso: `${purchase.totalWeight.toLocaleString('pt-BR')} kg`,
+        arroba: formatCurrencyForExport(purchase.pricePerArroba),
+        total: formatCurrencyForExport(purchase.totalCost),
+        status: getStatusLabel(purchase.status)
+      })),
+      columns: [
+        { key: 'lote', label: 'Lote', width: 30 },
+        { key: 'fornecedor', label: 'Fornecedor', width: 50 },
+        { key: 'data', label: 'Data', width: 30 },
+        { key: 'qtd', label: 'Qtd', width: 20 },
+        { key: 'peso', label: 'Peso', width: 30 },
+        { key: 'arroba', label: 'R$/@', width: 30 },
+        { key: 'total', label: 'Total', width: 35 },
+        { key: 'status', label: 'Status', width: 25 }
+      ],
+      summary: {
+        'Total de Lotes': filteredPurchases.length,
+        'Total de Animais': metrics.totalAnimals.toLocaleString('pt-BR'),
+        'Peso Total': `${metrics.totalWeight.toLocaleString('pt-BR')} kg`,
+        'Investimento Total': formatCurrencyForExport(metrics.totalInvestment),
+        'Preço Médio/@': formatCurrencyForExport(metrics.averagePricePerArroba)
+      }
+    };
+
+    const result = await generateReportPDF(reportData, {
+      filename: `compras-gado-${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`,
+      format: 'a4',
+      orientation: 'landscape'
+    });
+
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  const getStatusLabel = (status: PurchaseData['status']): string => {
+    const labels = {
+      PENDING: 'Pendente',
+      RECEIVED: 'Recebido',
+      ACTIVE: 'Ativo',
+      SOLD: 'Vendido',
+      CANCELLED: 'Cancelado'
+    };
+    return labels[status] || status;
+  };
+
   const toggleRowExpansion = (id: string) => {
     const newExpanded = new Set(expandedRows);
     if (newExpanded.has(id)) {
@@ -500,18 +613,40 @@ export const PurchaseManagement: React.FC = () => {
                 Gerencie todas as compras e lotes de gado
               </CardDescription>
             </div>
-            <Button size="sm" onClick={() => {
-              // Verificar se os dados necessários estão carregados
-              if (partners.length === 0) {
-                toast.error('Aguarde o carregamento dos parceiros para criar uma nova compra');
-                return;
-              }
-              
-              setShowForm(true);
-            }}>
-              <Plus className="mr-2 h-3 w-3" />
-              Nova Compra
-            </Button>
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Download className="mr-2 h-3 w-3" />
+                    Exportar
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Formato de Exportação</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleExport}>
+                    <Download className="mr-2 h-3 w-3" />
+                    Excel (.xlsx)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportPDF}>
+                    <Download className="mr-2 h-3 w-3" />
+                    PDF (.pdf)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" onClick={() => {
+                // Verificar se os dados necessários estão carregados
+                if (partners.length === 0) {
+                  toast.error('Aguarde o carregamento dos parceiros para criar uma nova compra');
+                  return;
+                }
+
+                setShowForm(true);
+              }}>
+                <Plus className="mr-2 h-3 w-3" />
+                Nova Compra
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

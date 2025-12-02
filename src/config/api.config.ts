@@ -4,9 +4,14 @@
  * Retorna a URL base da API dependendo do ambiente
  */
 export const getApiBaseUrl = (): string => {
-  // Em produção (Vercel), usar a URL relativa
+  // Priorizar variável de ambiente (Cloudflare Pages)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Em produção (Cloudflare Pages), usar a URL relativa com /api/v1
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return window.location.origin + '/api';
+    return window.location.origin + '/api/v1';
   }
   // Em desenvolvimento, usar localhost
   return 'http://localhost:3001/api/v1';

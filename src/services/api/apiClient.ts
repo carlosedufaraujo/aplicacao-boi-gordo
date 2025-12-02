@@ -16,11 +16,15 @@ export class ApiClient {
   private baseURL: string;
 
   constructor() {
-    // Em produção, usar cattle-purchases como proxy
-    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-      this.baseURL = window.location.origin + '/api/cattle-purchases';
+    // Priorizar variável de ambiente (Cloudflare Pages)
+    if (import.meta.env.VITE_API_URL) {
+      this.baseURL = import.meta.env.VITE_API_URL;
+    } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      // Em produção (Cloudflare Pages), usar a URL relativa com /api/v1
+      this.baseURL = window.location.origin + '/api/v1';
     } else {
-      this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+      // Em desenvolvimento, usar localhost
+      this.baseURL = 'http://localhost:3001/api/v1';
     }
   }
 
@@ -79,11 +83,19 @@ export class ApiClient {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
 
-        // Se erro for de autenticação (401), limpar token inválido
-        if (response.status === 401) {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-          localStorage.removeItem('session');
+        // Se erro for de autenticação (401) em requisição GET, retornar array vazio
+        // Isso evita erros quando o usuário ainda não fez login
+        const isGetRequest = (options.method || 'GET').toUpperCase() === 'GET';
+        if (response.status === 401 && isGetRequest) {
+          console.warn(`[ApiClient] Erro 401 em GET, retornando array vazio: ${endpoint}`);
+          return [] as T;
+        }
+
+        // Se erro for de autenticação (401) e não for endpoint público, limpar token inválido
+        if (response.status === 401 && !isPublicEndpoint) {
+          // Não limpar token imediatamente - pode ser que o usuário ainda não fez login
+          // Apenas logar o erro
+          console.warn(`[ApiClient] Erro 401 para endpoint não público: ${endpoint}`);
         }
 
         throw new Error(errorData.message || `HTTP Error: ${response.status}`);

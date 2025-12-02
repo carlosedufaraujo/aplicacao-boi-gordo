@@ -127,6 +127,13 @@ import { usePartnersApi } from '@/hooks/api/usePartnersApi';
 import { usePensApi } from '@/hooks/api/usePensApi';
 import { usePenOccupancyApi } from '@/hooks/api/usePenOccupancyApi';
 import { useAnalyticsApi } from '@/hooks/api/useAnalyticsApi';
+import { usePDFGenerator } from '@/hooks/usePDFGenerator';
+import {
+  exportToExcel,
+  formatDateForExport,
+  formatCurrencyForExport,
+  formatWeightForExport
+} from '@/utils/exportUtils';
 
 // Modais integrados da página de Compras
 import { PurchaseDetailsModal } from '@/components/Purchases/PurchaseDetailsModal';
@@ -301,9 +308,9 @@ export const CompleteLots: React.FC = () => {
     getInterventionStatistics,
     loading: interventionLoading 
   } = useInterventionsApi();
-  const { 
-    occupancyData, 
-    loading: occupancyLoading, 
+  const {
+    occupancyData,
+    loading: occupancyLoading,
     error: occupancyError,
     isConnected,
     totalPens: totalPensOccupied,
@@ -312,7 +319,10 @@ export const CompleteLots: React.FC = () => {
     totalOccupancy,
     averageOccupancyRate
   } = usePenOccupancyApi();
-  
+
+  // Hook para geração de PDF
+  const { generateReportPDF } = usePDFGenerator();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [penFilter, setPenFilter] = useState<string>('all');
@@ -988,6 +998,92 @@ export const CompleteLots: React.FC = () => {
     }
   };
 
+  // Função para exportar para Excel
+  const handleExportExcel = () => {
+    if (filteredAllLots.length === 0) {
+      toast.error('Não há lotes para exportar');
+      return;
+    }
+
+    const exportData = filteredAllLots.map(lot => ({
+      'Código do Lote': lot.lotCode || lot.lotNumber,
+      'Fornecedor': lot.partnerName,
+      'Data de Entrada': lot.purchaseDate ? formatDateForExport(lot.purchaseDate) : '-',
+      'Curral(is)': lot.penNumber || lot.allPensInfo || 'Sem curral',
+      'Quantidade Inicial': lot.initialQuantity || 0,
+      'Quantidade Atual': lot.currentQuantity || 0,
+      'Mortes': lot.deaths || 0,
+      'Vendas': lot.sales || 0,
+      'Peso Médio (kg)': lot.averageWeight ? lot.averageWeight.toFixed(2) : '0',
+      'Peso Total (kg)': lot.entryWeight || lot.purchaseWeight || 0,
+      'Custo Total': formatCurrencyForExport(lot.totalCost),
+      'Custo/Cabeça': formatCurrencyForExport(lot.costPerHead),
+      'Raça': lot.breed || 'N/A',
+      'Origem': lot.origin || 'N/A',
+      'Status': lot.status || 'N/A'
+    }));
+
+    const result = exportToExcel(exportData, 'lotes-gado', 'Lotes');
+
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+  };
+
+  // Função para exportar para PDF
+  const handleExportPDF = async () => {
+    if (filteredAllLots.length === 0) {
+      toast.error('Não há lotes para exportar');
+      return;
+    }
+
+    const reportData = {
+      title: 'Relatório de Lotes em Confinamento',
+      subtitle: `Total de ${filteredAllLots.length} lote(s) | Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+      data: filteredAllLots.map(lot => ({
+        lote: lot.lotCode || lot.lotNumber,
+        fornecedor: (lot.partnerName || '').substring(0, 20),
+        data: lot.purchaseDate ? formatDateForExport(lot.purchaseDate) : '-',
+        curral: lot.penNumber || 'S/C',
+        qtdInicial: (lot.initialQuantity || 0).toString(),
+        qtdAtual: (lot.currentQuantity || 0).toString(),
+        peso: lot.averageWeight ? `${lot.averageWeight.toFixed(0)} kg` : '-',
+        custo: formatCurrencyForExport(lot.totalCost)
+      })),
+      columns: [
+        { key: 'lote', label: 'Lote', width: 30 },
+        { key: 'fornecedor', label: 'Fornecedor', width: 40 },
+        { key: 'data', label: 'Data', width: 25 },
+        { key: 'curral', label: 'Curral', width: 20 },
+        { key: 'qtdInicial', label: 'Qtd.Ini', width: 20 },
+        { key: 'qtdAtual', label: 'Qtd.Atu', width: 20 },
+        { key: 'peso', label: 'Peso Méd.', width: 25 },
+        { key: 'custo', label: 'Custo Total', width: 30 }
+      ],
+      summary: {
+        'Total de Lotes': filteredAllLots.length,
+        'Total de Animais': filteredAllLots.reduce((sum, lot) => sum + (lot.currentQuantity || 0), 0).toLocaleString('pt-BR'),
+        'Investimento Total': formatCurrencyForExport(
+          filteredAllLots.reduce((sum, lot) => sum + (lot.totalCost || 0), 0)
+        )
+      }
+    };
+
+    const result = await generateReportPDF(reportData, {
+      filename: `lotes-gado-${format(new Date(), 'yyyy-MM-dd_HHmmss')}.pdf`,
+      format: 'a4',
+      orientation: 'landscape'
+    });
+
+    if (result.success) {
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+  };
+
   const isLoading = lotsLoading || ordersLoading;
 
   if (isLoading) {
@@ -1014,13 +1110,29 @@ export const CompleteLots: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Formato de Exportação</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleExportExcel}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPDF}>
+                  <Download className="mr-2 h-4 w-4" />
+                  PDF (.pdf)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setShowInterventionHistory(true)}
               className="gap-2"
             >

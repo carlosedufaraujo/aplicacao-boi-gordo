@@ -430,32 +430,47 @@ export const activityLogger = {
     return getActivityLogger();
   },
   // Proxy all methods to the singleton instance
-  logCreate(entity: string, entityId: string, details?: any) { 
-    return this.instance.logCreate(entity, entityId, details); 
+  log(params: any) {
+    return this.instance.log(params);
   },
-  logUpdate(entity: string, entityId: string, changes?: any, details?: any) { 
-    return this.instance.logUpdate(entity, entityId, changes, details); 
+  logCreate(category: ActivityCategory, entityName: string, entityId?: string, details?: any) {
+    return this.instance.logCreate(category, entityName, entityId, details);
   },
-  logDelete(entity: string, entityId: string, details?: any) { 
-    return this.instance.logDelete(entity, entityId, details); 
+  logUpdate(category: ActivityCategory, entityName: string, entityId?: string, oldValue?: any, newValue?: any) {
+    return this.instance.logUpdate(category, entityName, entityId, oldValue, newValue);
   },
-  logCustom(action: string, entity: string, entityId: string, details?: any) { 
-    return this.instance.logCustom(action, entity, entityId, details); 
+  logDelete(category: ActivityCategory, entityName: string, entityId?: string, details?: any) {
+    return this.instance.logDelete(category, entityName, entityId, details);
   },
-  getActivities(filters?: any) { 
-    return this.instance.getActivities(filters); 
+  logStatusChange(category: ActivityCategory, entityName: string, oldStatus: string, newStatus: string, entityId?: string) {
+    return this.instance.logStatusChange(category, entityName, oldStatus, newStatus, entityId);
   },
-  getEntityHistory(entity: string, entityId: string) { 
-    return this.instance.getEntityHistory(entity, entityId); 
+  logFinancialTransaction(type: 'expense' | 'revenue', description: string, amount: number, entityId?: string, metadata?: Record<string, any>) {
+    return this.instance.logFinancialTransaction(type, description, amount, entityId, metadata);
   },
-  getUserActivities(userId: string, limit?: number) { 
-    return this.instance.getUserActivities(userId, limit); 
+  getAll() {
+    return this.instance.getAll();
   },
-  getRecentActivities(limit?: number) { 
-    return this.instance.getRecentActivities(limit); 
+  getByCategory(category: ActivityCategory) {
+    return this.instance.getByCategory(category);
   },
-  clearOldActivities(daysToKeep?: number) { 
-    return this.instance.clearOldActivities(daysToKeep); 
+  getByType(type: ActivityType) {
+    return this.instance.getByType(type);
+  },
+  getRecent(limit?: number) {
+    return this.instance.getRecent(limit);
+  },
+  getByDateRange(startDate: Date, endDate: Date) {
+    return this.instance.getByDateRange(startDate, endDate);
+  },
+  search(query: string) {
+    return this.instance.search(query);
+  },
+  clear() {
+    return this.instance.clear();
+  },
+  subscribe(listener: (activity: Activity) => void) {
+    return this.instance.subscribe(listener);
   }
 };
 
