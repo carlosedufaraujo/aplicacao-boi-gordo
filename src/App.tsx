@@ -79,7 +79,7 @@ const AppContent: React.FC = () => {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <ShadcnDashboard />;
+        return <ShadcnDashboard onNavigate={setCurrentPage} />;
       case 'lots':
         return <CompleteLots />;
       case 'integrated-analysis':

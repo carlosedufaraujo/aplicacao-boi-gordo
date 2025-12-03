@@ -138,7 +138,11 @@ type DateRange = {
   to: Date | undefined;
 };
 
-export function ShadcnDashboard() {
+interface ShadcnDashboardProps {
+  onNavigate?: (page: string) => void;
+}
+
+export function ShadcnDashboard({ onNavigate }: ShadcnDashboardProps = { onNavigate: undefined }) {
   const navigate = useNavigate();
   
   // Estados
@@ -728,7 +732,29 @@ export function ShadcnDashboard() {
           </Card>
 
           {/* KPI 3: Custo Total */}
-          <Card className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all">
+          <Card 
+            className="cursor-pointer hover:shadow-md dark:hover:shadow-lg transition-all"
+            onClick={() => {
+              if (onNavigate) {
+                onNavigate('purchases');
+              } else {
+                navigate('/purchases');
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label="Navegar para página de Compras"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (onNavigate) {
+                  onNavigate('purchases');
+                } else {
+                  navigate('/purchases');
+                }
+              }
+            }}
+          >
             <CardHeader className="p-3 pb-2">
               <div className="flex items-center justify-between">
                 <ShoppingCart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
