@@ -46,52 +46,66 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
-        # -> Enter invalid email and password to test login failure.
+        # -> Input email and password, then click login button.
         frame = context.pages[-1]
-        # Enter invalid email in email input field
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
-        await page.wait_for_timeout(3000); await elem.fill('invalid@email.com')
-        
-
-        # -> Try to trigger error message by clicking 'Entrar' button again or check for any hidden error messages or alerts.
-        frame = context.pages[-1]
-        # Click on Entrar button again to see if error message appears
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
-        
-
-        # -> Click the 'Entrar' button to attempt login with invalid credentials and verify error message.
-        frame = context.pages[-1]
-        # Click on 'Entrar' button to attempt login with invalid credentials
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
-        
-
-        # -> Clear password field and click 'Entrar' to verify client-side validation error message appears.
-        frame = context.pages[-1]
-        # Clear password field to trigger client-side validation
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
-        await page.wait_for_timeout(3000); await elem.fill('')
-        
-
-        frame = context.pages[-1]
-        # Click 'Entrar' button to trigger client-side validation error message
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
-        
-
-        # -> Test login with valid email and invalid password to verify error message display.
-        frame = context.pages[-1]
-        # Enter valid email
+        # Input the email for login
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
+        # -> Click the login button to submit credentials and log in.
+        frame = context.pages[-1]
+        # Click the login button to submit credentials and log in
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Click the login button with index 8 to submit login form and attempt login.
+        frame = context.pages[-1]
+        # Click the login button to submit credentials and log in
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[4]/label').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Click the login button with index 9 to submit login form and attempt login.
+        frame = context.pages[-1]
+        # Click the login button to submit credentials and log in
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Input valid email and password, then click the login button to submit the login form.
+        frame = context.pages[-1]
+        # Input the email for login
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
+        
+
+        frame = context.pages[-1]
+        # Input the password for login
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('368308450Ce*')
+        
+
+        frame = context.pages[-1]
+        # Click the login button to submit credentials and log in
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Click the 'Calendário' button in the sidebar to navigate to the calendar events page.
+        frame = context.pages[-1]
+        # Click the 'Calendário' button to navigate to the calendar events page
+        elem = frame.locator('xpath=html/body/div/div/div/div/div/div[2]/div/div[2]/div[3]/div[2]/ul/li[2]/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
         # --> Assertions to verify final state
         frame = context.pages[-1]
-        await expect(frame.locator('text=Bem-vindo de volta').first).to_be_visible(timeout=30000)
-        await expect(frame.locator('text=Entre com suas credenciais para acessar o sistema').first).to_be_visible(timeout=30000)
-        await expect(frame.locator('text=Entrar').first).to_be_visible(timeout=30000)
+        try:
+            await expect(frame.locator('text=Reminder Successfully Set for Farm Event').first).to_be_visible(timeout=1000)
+        except AssertionError:
+            raise AssertionError("Test case failed: The calendar event creation or reminder notification did not occur as expected according to the test plan.")
         await asyncio.sleep(5)
     
     finally:

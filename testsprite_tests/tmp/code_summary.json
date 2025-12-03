@@ -3,170 +3,129 @@
     "TypeScript",
     "React",
     "Vite",
-    "TailwindCSS",
-    "Zustand",
-    "React Router",
-    "Supabase",
-    "PostgreSQL",
-    "Prisma",
-    "Node.js",
-    "Express",
+    "Tailwind CSS",
     "shadcn/ui",
-    "Recharts",
-    "React Hook Form",
-    "Zod"
+    "Supabase",
+    "Cloudflare Pages",
+    "PostgreSQL"
   ],
   "features": [
     {
       "name": "Authentication",
-      "description": "Sistema de autenticação com JWT, login, logout e gerenciamento de sessão",
+      "description": "Sistema de autenticação com JWT, validação de credenciais e controle de acesso baseado em roles",
       "files": [
         "src/pages/Login02.tsx",
         "src/services/backendAuth.ts",
-        "src/hooks/useBackendAuth.ts",
-        "src/providers/BackendProvider.tsx",
-        "src/services/api/auth.ts"
+        "functions/api/[[path]].ts"
       ]
     },
     {
       "name": "Dashboard",
-      "description": "Dashboard principal com KPIs, gráficos de receita vs custos, valor do rebanho e atividades recentes",
+      "description": "Dashboard principal com KPIs, gráficos e métricas do sistema",
       "files": [
         "src/components/Dashboard/ShadcnDashboard.tsx",
-        "src/components/Dashboard/KPICard.tsx",
-        "src/components/Dashboard/RevenueChart.tsx",
-        "src/components/Dashboard/HerdValueChart.tsx",
-        "src/components/Dashboard/SystemActivities.tsx"
+        "src/hooks/api/useCattlePurchasesApi.ts",
+        "src/hooks/api/useExpensesApi.ts",
+        "src/hooks/api/useRevenuesApi.ts"
       ]
     },
     {
-      "name": "Lots Management",
-      "description": "Gestão completa de lotes de gado com rastreamento de peso, saúde, alocação em currais e histórico de movimentações",
+      "name": "Cattle Purchases Management",
+      "description": "Gestão de compras de gado com cadastro, listagem e detalhamento",
       "files": [
-        "src/components/Lots/CompleteLots.tsx",
-        "src/components/Lots/LotsTable.tsx",
-        "src/components/Lots/LotDetailModal.tsx",
-        "src/components/Lots/PenAllocationForm.tsx",
-        "src/components/Lots/SaleSimulationModal.tsx",
-        "src/services/api/lots.ts"
+        "src/components/Purchases/PurchaseManagement.tsx",
+        "src/components/Forms/EnhancedPurchaseForm.tsx"
+      ]
+    },
+    {
+      "name": "Sales Management",
+      "description": "Gestão de vendas com pipeline Kanban e registro de vendas",
+      "files": [
+        "src/components/Sales/SalesManagement.tsx",
+        "src/components/Sales/SalesPipeline"
       ]
     },
     {
       "name": "Financial Center",
-      "description": "Centro financeiro com controle de receitas, despesas, conciliação bancária, DRE e orçamento",
+      "description": "Centro financeiro com gestão de despesas, receitas e fluxo de caixa",
       "files": [
-        "src/components/FinancialCenter/FinancialCenter.tsx",
         "src/components/CashFlow/CashFlowDashboard.tsx",
-        "src/components/FinancialAnalysis/IntegratedDashboard.tsx",
-        "src/components/FinancialAnalysis/DREStatement.tsx",
-        "src/services/api/financial.ts",
-        "src/services/api/cashFlow.ts"
-      ]
-    },
-    {
-      "name": "Sales Pipeline",
-      "description": "Pipeline de vendas com Kanban visual, acompanhamento de entregas, controle de pagamentos e analytics",
-      "files": [
-        "src/components/Sales/SalesManagement.tsx",
-        "src/services/api/sales.ts",
-        "src/services/api/saleRecordsApi.ts",
-        "src/services/api/kanbanApi.ts"
-      ]
-    },
-    {
-      "name": "Purchase Pipeline",
-      "description": "Pipeline de compras com ordem de compra, validação de pagamento, recepção e confinamento",
-      "files": [
-        "src/components/Purchases/PurchaseManagement.tsx",
-        "src/components/Forms/EnhancedPurchaseForm.tsx",
-        "src/services/api/pipeline.ts"
-      ]
-    },
-    {
-      "name": "Calendar",
-      "description": "Calendário integrado para agendamento de vacinações, controle de transporte, eventos e lembretes",
-      "files": [
-        "src/components/Calendar/CompleteCalendar.tsx",
-        "src/services/api/calendar.ts",
-        "src/services/api/calendarEvent.ts"
-      ]
-    },
-    {
-      "name": "Pen Management",
-      "description": "Gestão de currais com mapa visual, controle de ocupação, alocação de animais e histórico",
-      "files": [
-        "src/components/Lots/PenMap.tsx",
-        "src/components/Lots/PenMapIntegrated.tsx",
-        "src/components/Lots/PenOccupancyIndicators.tsx",
-        "src/services/api/penApi.ts"
+        "src/components/FinancialCenter/FinancialCenter.tsx"
       ]
     },
     {
       "name": "Partners Management",
-      "description": "Cadastro e gestão de parceiros (vendedores, corretores, frigoríficos)",
+      "description": "Gestão de parceiros (fornecedores, corretores, transportadoras)",
       "files": [
-        "src/components/Forms/ModernPartnerForm.tsx",
-        "src/services/api/partnerApi.ts"
+        "src/components/Registrations/CompleteRegistrations.tsx"
       ]
     },
     {
-      "name": "Reports",
-      "description": "Sistema de relatórios com análises de performance de lotes e relatórios financeiros",
+      "name": "Veterinary Interventions",
+      "description": "Gestão de intervenções veterinárias e saúde animal",
       "files": [
-        "src/components/Reports/LotPerformanceReport.tsx",
-        "src/services/api/reports.ts",
-        "src/services/api/reportApi.ts"
+        "src/components/Interventions/InterventionsManagement.tsx"
       ]
     },
     {
-      "name": "Settings",
-      "description": "Configurações do sistema incluindo perfil, organização, notificações e preferências gerais",
+      "name": "Lots Management",
+      "description": "Gestão de lotes de gado com mapas de currais e movimentações",
       "files": [
-        "src/components/System/GeneralSettings.tsx",
-        "src/components/Profile/OrganizationSettings.tsx",
-        "src/services/api/settings.ts"
+        "src/components/Lots/CompleteLots.tsx",
+        "src/components/Lots/PenMap.tsx"
+      ]
+    },
+    {
+      "name": "LGPD Compliance",
+      "description": "Conformidade LGPD com exportação e exclusão de dados do usuário",
+      "files": [
+        "src/components/Settings/LGPDCompliance.tsx",
+        "functions/api/[[path]].ts"
       ]
     },
     {
       "name": "API Client",
-      "description": "Cliente API centralizado para comunicação com backend, incluindo tratamento de erros e autenticação",
+      "description": "Cliente API com tratamento de erros, timeout e métricas de performance",
       "files": [
         "src/services/api/apiClient.ts",
-        "src/services/api/index.ts",
-        "src/config/api.config.ts"
+        "src/services/api/users.ts"
       ]
     },
     {
-      "name": "Domain Configuration",
-      "description": "Sistema de configuração de domínio personalizado para diferentes organizações",
+      "name": "Layout and Navigation",
+      "description": "Layout principal com sidebar responsivo e navegação",
       "files": [
-        "src/utils/domainConfig.ts"
+        "src/components/Layout/AppLayout.tsx",
+        "src/components/Layout/ShadcnSidebar.tsx"
+      ]
+    },
+    {
+      "name": "Settings",
+      "description": "Configurações do sistema e perfil do usuário",
+      "files": [
+        "src/components/Settings/ModernSettings.tsx",
+        "src/components/Profile/ProfileSettings.tsx"
+      ]
+    },
+    {
+      "name": "Cloudflare Pages Function",
+      "description": "Backend API usando Cloudflare Pages Functions como proxy para Supabase",
+      "files": [
+        "functions/api/[[path]].ts"
       ]
     },
     {
       "name": "Safari Compatibility",
-      "description": "Utilitários para compatibilidade com Safari incluindo fallback de localStorage e headers CORS",
+      "description": "Utilitários para compatibilidade com Safari (localStorage, CORS)",
       "files": [
         "src/utils/safariCompatibility.ts"
       ]
     },
     {
-      "name": "Layout Components",
-      "description": "Componentes de layout incluindo sidebar, header e estrutura principal da aplicação",
+      "name": "Export Utilities",
+      "description": "Utilitários para exportação de dados em Excel e CSV",
       "files": [
-        "src/components/Layout/AppLayout.tsx",
-        "src/components/Layout/ModernSidebar.tsx",
-        "src/components/Layout/Header.tsx"
-      ]
-    },
-    {
-      "name": "UI Components",
-      "description": "Biblioteca de componentes UI baseada em shadcn/ui incluindo botões, inputs, dialogs, etc",
-      "files": [
-        "src/components/ui/button.tsx",
-        "src/components/ui/input.tsx",
-        "src/components/ui/dialog.tsx",
-        "src/components/ui/table.tsx"
+        "src/utils/exportUtils.ts"
       ]
     }
   ]

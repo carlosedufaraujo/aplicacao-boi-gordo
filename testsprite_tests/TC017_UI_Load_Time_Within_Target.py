@@ -46,52 +46,26 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
-        # -> Enter invalid email and password to test login failure.
+        # -> Input valid credentials and submit login form to access dashboard.
         frame = context.pages[-1]
-        # Enter invalid email in email input field
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
-        await page.wait_for_timeout(3000); await elem.fill('invalid@email.com')
-        
-
-        # -> Try to trigger error message by clicking 'Entrar' button again or check for any hidden error messages or alerts.
-        frame = context.pages[-1]
-        # Click on Entrar button again to see if error message appears
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
-        
-
-        # -> Click the 'Entrar' button to attempt login with invalid credentials and verify error message.
-        frame = context.pages[-1]
-        # Click on 'Entrar' button to attempt login with invalid credentials
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
-        
-
-        # -> Clear password field and click 'Entrar' to verify client-side validation error message appears.
-        frame = context.pages[-1]
-        # Clear password field to trigger client-side validation
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
-        await page.wait_for_timeout(3000); await elem.fill('')
-        
-
-        frame = context.pages[-1]
-        # Click 'Entrar' button to trigger client-side validation error message
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
-        
-
-        # -> Test login with valid email and invalid password to verify error message display.
-        frame = context.pages[-1]
-        # Enter valid email
+        # Input email for login
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
+        # -> Click the 'Entrar' button to submit login form and access dashboard.
+        frame = context.pages[-1]
+        # Click 'Entrar' button to submit login form
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
         # --> Assertions to verify final state
         frame = context.pages[-1]
-        await expect(frame.locator('text=Bem-vindo de volta').first).to_be_visible(timeout=30000)
-        await expect(frame.locator('text=Entre com suas credenciais para acessar o sistema').first).to_be_visible(timeout=30000)
-        await expect(frame.locator('text=Entrar').first).to_be_visible(timeout=30000)
+        try:
+            await expect(frame.locator('text=Page loaded successfully within 2 seconds').first).to_be_visible(timeout=2000)
+        except AssertionError:
+            raise AssertionError('Test case failed: Key UI pages did not load completely within 2 seconds as required by the test plan.')
         await asyncio.sleep(5)
     
     finally:

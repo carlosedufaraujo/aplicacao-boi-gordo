@@ -54,10 +54,30 @@ import { categoryService } from '@/services/categoryService';
 import { useEffect } from 'react';
 
 import { useSafeToast } from '@/hooks/useSafeToast';
-export const CashFlowDashboard: React.FC = () => {
+
+interface CashFlowDashboardProps {
+  initialFormOpen?: boolean;
+  initialFormType?: 'revenue' | 'expense';
+  onFormClose?: () => void;
+}
+
+export const CashFlowDashboard: React.FC<CashFlowDashboardProps> = ({ 
+  initialFormOpen = false, 
+  initialFormType,
+  onFormClose 
+}) => {
   const toast = useSafeToast();
 
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(initialFormOpen);
+  const [formType, setFormType] = useState<'revenue' | 'expense' | undefined>(initialFormType);
+
+  // Atualizar showForm quando initialFormOpen mudar
+  useEffect(() => {
+    if (initialFormOpen) {
+      setShowForm(true);
+      setFormType(initialFormType);
+    }
+  }, [initialFormOpen, initialFormType]);
   const [editingCashFlow, setEditingCashFlow] = useState<any>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string | null }>({
     isOpen: false,
@@ -896,10 +916,15 @@ export const CashFlowDashboard: React.FC = () => {
           cashFlow={editingCashFlow}
           categories={categories}
           accounts={accounts}
+          initialType={formType}
           onSubmit={handleSubmit}
           onCancel={() => {
             setShowForm(false);
             setEditingCashFlow(null);
+            setFormType(undefined);
+            if (onFormClose) {
+              onFormClose();
+            }
           }}
         />
       )}

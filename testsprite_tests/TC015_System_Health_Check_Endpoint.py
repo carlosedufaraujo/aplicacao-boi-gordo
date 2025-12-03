@@ -46,52 +46,67 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
-        # -> Enter invalid email and password to test login failure.
+        # -> Input email and password, then click the login button to authenticate.
         frame = context.pages[-1]
-        # Enter invalid email in email input field
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
-        await page.wait_for_timeout(3000); await elem.fill('invalid@email.com')
-        
-
-        # -> Try to trigger error message by clicking 'Entrar' button again or check for any hidden error messages or alerts.
-        frame = context.pages[-1]
-        # Click on Entrar button again to see if error message appears
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
-        
-
-        # -> Click the 'Entrar' button to attempt login with invalid credentials and verify error message.
-        frame = context.pages[-1]
-        # Click on 'Entrar' button to attempt login with invalid credentials
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
-        
-
-        # -> Clear password field and click 'Entrar' to verify client-side validation error message appears.
-        frame = context.pages[-1]
-        # Clear password field to trigger client-side validation
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
-        await page.wait_for_timeout(3000); await elem.fill('')
-        
-
-        frame = context.pages[-1]
-        # Click 'Entrar' button to trigger client-side validation error message
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
-        
-
-        # -> Test login with valid email and invalid password to verify error message display.
-        frame = context.pages[-1]
-        # Enter valid email
+        # Input the email for login
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
+        # -> Click the 'Entrar' button to submit login credentials and authenticate.
+        frame = context.pages[-1]
+        # Click the 'Entrar' button to submit login credentials
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Re-enter the password correctly in the password field and submit the login form again.
+        frame = context.pages[-1]
+        # Re-enter the password in the password field to ensure it is properly filled
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('368308450Ce*')
+        
+
+        frame = context.pages[-1]
+        # Click the 'Entrar' button to submit login credentials again
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/div[2]/div[3]/a').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Send a GET request to the /health API endpoint to verify system and database status.
+        await page.goto('http://localhost:5173/health', timeout=10000)
+        await asyncio.sleep(3)
+        
+
+        # -> Send a GET request to the /health API endpoint to verify system and database status.
+        await page.goto('http://localhost:5173/health', timeout=10000)
+        await asyncio.sleep(3)
+        
+
+        # -> Send a GET request to the /health API endpoint to verify system and database status.
+        await page.goto('http://localhost:5173/health', timeout=10000)
+        await asyncio.sleep(3)
+        
+
+        # -> Send a GET request to the /health API endpoint using a direct API call to verify system and database status.
+        await page.goto('http://localhost:5173/health', timeout=10000)
+        await asyncio.sleep(3)
+        
+
+        # -> Send a direct GET request to the /health API endpoint to verify system and database status.
+        await page.goto('http://localhost:5173/health', timeout=10000)
+        await asyncio.sleep(3)
+        
+
+        # -> Perform a direct API GET request to the /health endpoint to verify system and database status, bypassing UI navigation.
+        await page.goto('http://localhost:5173/api/health', timeout=10000)
+        await asyncio.sleep(3)
+        
+
         # --> Assertions to verify final state
         frame = context.pages[-1]
-        await expect(frame.locator('text=Bem-vindo de volta').first).to_be_visible(timeout=30000)
-        await expect(frame.locator('text=Entre com suas credenciais para acessar o sistema').first).to_be_visible(timeout=30000)
-        await expect(frame.locator('text=Entrar').first).to_be_visible(timeout=30000)
+        await expect(frame.locator('text=system is healthy').first).to_be_visible(timeout=30000)
+        await expect(frame.locator('text=database connection is active').first).to_be_visible(timeout=30000)
         await asyncio.sleep(5)
     
     finally:

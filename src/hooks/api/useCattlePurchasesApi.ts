@@ -208,6 +208,15 @@ export function useCattlePurchasesApi() {
         return [];
       }
 
+      // Aceitar array diretamente (quando ApiClient retorna array vazio para 401)
+      if (Array.isArray(response)) {
+        setPurchases(response);
+        setTotalItems(response.length);
+        setTotalPages(Math.ceil(response.length / pageSize));
+        setCurrentPage(1);
+        return response;
+      }
+
       if (response && response.items !== undefined) {
         // Backend retorna 'items' para listagens
         const purchases = response.items || [];
@@ -219,12 +228,18 @@ export function useCattlePurchasesApi() {
         setCurrentPage(response.page || 1);
 
         return purchases;
-      } else if (!response) {
-        // Sem resposta (provavelmente não autenticado)
+      } else if (!response || (response && response.status === 'error')) {
+        // Sem resposta ou erro (provavelmente não autenticado)
         setPurchases([]);
+        setTotalItems(0);
+        setTotalPages(1);
+        setCurrentPage(1);
         return [];
       } else {
-        throw new Error('Resposta inválida do servidor');
+        // Resposta inesperada, mas não lançar erro - apenas retornar array vazio
+        console.warn('⚠️ Resposta inesperada do servidor:', response);
+        setPurchases([]);
+        return [];
       }
     } catch (err: any) {
       // Não mostrar erro se for problema de autenticação

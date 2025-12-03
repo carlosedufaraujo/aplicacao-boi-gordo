@@ -46,19 +46,26 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
-        # -> Input valid email and password, then submit the login form to verify successful login and JWT token reception.
+        # -> Input valid email and password into the respective fields.
         frame = context.pages[-1]
-        # Input valid email for login
+        # Input valid email into email field
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
+        
+
+        # -> Click the login button to attempt login.
+        frame = context.pages[-1]
+        # Click the 'Entrar' button to submit login form
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
         # --> Assertions to verify final state
         frame = context.pages[-1]
         try:
-            await expect(frame.locator('text=Login Successful - JWT Token Received').first).to_be_visible(timeout=1000)
+            await expect(frame.locator('text=Login Successful - JWT Token Received')).to_be_visible(timeout=1000)
         except AssertionError:
-            raise AssertionError('Test case failed: User login was not successful, JWT token and valid user details were not received as expected.')
+            raise AssertionError('Test case failed: User login was not successful and JWT token was not received as expected.')
         await asyncio.sleep(5)
     
     finally:

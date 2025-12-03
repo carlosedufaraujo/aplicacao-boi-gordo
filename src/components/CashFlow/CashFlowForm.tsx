@@ -34,6 +34,7 @@ interface CashFlowFormProps {
   cashFlow?: any;
   categories: any[];
   accounts: any[];
+  initialType?: 'revenue' | 'expense';
   onSubmit: (data: any) => void;
   onCancel: () => void;
 }
@@ -42,6 +43,7 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
   cashFlow,
   categories,
   accounts,
+  initialType,
   onSubmit,
   onCancel,
 }) => {
@@ -87,7 +89,7 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
   };
   
   const [formData, setFormData] = useState({
-    type: cashFlow?.type || 'EXPENSE',
+    type: cashFlow?.type || (initialType === 'revenue' ? 'REVENUE' : initialType === 'expense' ? 'EXPENSE' : 'EXPENSE'),
     categoryId: cashFlow?.categoryId || '',
     accountId: cashFlow?.accountId || '',
     description: cashFlow?.description || '',
@@ -103,6 +105,16 @@ const CashFlowForm: React.FC<CashFlowFormProps> = ({
   });
 
   const filteredCategories = categories?.filter(cat => cat.type === formData.type) || [];
+  
+  // Atualizar tipo quando initialType mudar
+  useEffect(() => {
+    if (initialType && !cashFlow) {
+      setFormData(prev => ({
+        ...prev,
+        type: initialType === 'revenue' ? 'REVENUE' : 'EXPENSE'
+      }));
+    }
+  }, [initialType, cashFlow]);
   
   // Debug: log das categorias filtradas
 

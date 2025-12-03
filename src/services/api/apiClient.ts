@@ -25,8 +25,16 @@ export class ApiClient {
       // Em produção (Cloudflare Pages), usar a URL relativa com /api/v1
       this.baseURL = window.location.origin + '/api/v1';
     } else {
-      // Em desenvolvimento, usar localhost
-      this.baseURL = 'http://localhost:3001/api/v1';
+      // Em desenvolvimento local, tentar usar Cloudflare Pages primeiro
+      // Se não disponível, usar localhost (para quando backend local estiver rodando)
+      // Para testes locais com TestSprite, usar produção
+      const productionUrl = 'https://aplicacao-boi-gordo.pages.dev/api/v1';
+      // Em desenvolvimento, preferir produção para testes, mas permitir override via env
+      if (import.meta.env.VITE_USE_PRODUCTION_API === 'true' || import.meta.env.MODE === 'test') {
+        this.baseURL = productionUrl;
+      } else {
+        this.baseURL = 'http://localhost:3001/api/v1';
+      }
     }
   }
 

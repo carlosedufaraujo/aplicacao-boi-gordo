@@ -39,6 +39,7 @@ interface FinancialCenterProps {
 const FinancialCenter: React.FC<FinancialCenterProps> = ({ className }) => {
   const [activeTab, setActiveTab] = useState('cashflow');
   const [showNewTransactionForm, setShowNewTransactionForm] = useState(false);
+  const [newTransactionType, setNewTransactionType] = useState<'revenue' | 'expense' | undefined>(undefined);
 
   return (
     <div className={className}>
@@ -61,11 +62,16 @@ const FinancialCenter: React.FC<FinancialCenterProps> = ({ className }) => {
                   size="sm"
                   onClick={() => {
                     // Se estiver em receitas ou despesas, mudar para fluxo de caixa e abrir formulário
-                    if (activeTab === 'revenues' || activeTab === 'expenses') {
+                    if (activeTab === 'revenues') {
                       setActiveTab('cashflow');
-                      // O CashFlowDashboard já tem o botão, então apenas mudamos a aba
-                      // O usuário pode clicar no botão "Nova Movimentação" na aba de fluxo de caixa
+                      setNewTransactionType('revenue');
+                      setShowNewTransactionForm(true);
+                    } else if (activeTab === 'expenses') {
+                      setActiveTab('cashflow');
+                      setNewTransactionType('expense');
+                      setShowNewTransactionForm(true);
                     } else {
+                      setNewTransactionType(undefined);
                       setShowNewTransactionForm(true);
                     }
                   }}
@@ -118,7 +124,14 @@ const FinancialCenter: React.FC<FinancialCenterProps> = ({ className }) => {
 
             {/* Fluxo de Caixa */}
             <TabsContent value="cashflow" className="space-y-4">
-              <CashFlowDashboard />
+              <CashFlowDashboard 
+                initialFormOpen={showNewTransactionForm}
+                initialFormType={newTransactionType}
+                onFormClose={() => {
+                  setShowNewTransactionForm(false);
+                  setNewTransactionType(undefined);
+                }}
+              />
             </TabsContent>
 
             {/* DRE - Demonstração do Resultado do Exercício */}
