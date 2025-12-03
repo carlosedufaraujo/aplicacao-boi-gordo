@@ -123,12 +123,19 @@ export function useInterventionsApi() {
           : data.deathDate
       });
       
+      // Aceitar resposta direta ou resposta com data
       if (response?.data) {
         toast.success(`${data.quantity} morte(s) registrada(s) com sucesso!`);
         return response.data;
+      } else if (response && !response.status) {
+        // Resposta direta (sem wrapper)
+        toast.success(`${data.quantity} morte(s) registrada(s) com sucesso!`);
+        return response;
       }
       
-      throw new Error('Resposta inválida do servidor');
+      // Se não houver dados, retornar null ao invés de lançar erro
+      console.warn('⚠️ Resposta inesperada ao criar registro de mortalidade:', response);
+      return null;
     } catch (err: any) {
       console.error('❌ Erro ao criar registro de mortalidade:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao registrar mortalidade';
@@ -152,12 +159,19 @@ export function useInterventionsApi() {
           : data.movementDate
       });
       
+      // Aceitar resposta direta ou resposta com data
       if (response?.data) {
         toast.success(`${data.quantity} animais movidos com sucesso!`);
         return response.data;
+      } else if (response && !response.status) {
+        // Resposta direta (sem wrapper)
+        toast.success(`${data.quantity} animais movidos com sucesso!`);
+        return response;
       }
       
-      throw new Error('Resposta inválida do servidor');
+      // Se não houver dados, retornar null ao invés de lançar erro
+      console.warn('⚠️ Resposta inesperada ao criar movimentação de curral:', response);
+      return null;
     } catch (err: any) {
       console.error('❌ Erro ao criar movimentação:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao registrar movimentação';
@@ -275,17 +289,14 @@ export function useInterventionsApi() {
       // Aceitar resposta direta ou resposta com data
       if (response?.data) {
         return response.data;
-      } else if (Array.isArray(response)) {
-        // Resposta é um array direto
-        return response;
       } else if (response && !response.status) {
         // Resposta direta (sem wrapper)
         return response;
       }
       
-      // Se não houver dados, retornar array vazio ao invés de lançar erro
-      console.warn('⚠️ Resposta inesperada ao buscar histórico de intervenções:', response);
-      return [];
+      // Se não houver dados, retornar null ao invés de lançar erro
+      console.warn('⚠️ Resposta inesperada ao buscar estatísticas de intervenções:', response);
+      return null;
     } catch (err: any) {
       console.error('❌ Erro ao buscar estatísticas de intervenções:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao buscar estatísticas';
