@@ -87,12 +87,19 @@ export function useInterventionsApi() {
           : undefined
       });
       
+      // Aceitar resposta direta ou resposta com data
       if (response?.data) {
         toast.success('Intervenção de saúde registrada com sucesso!');
         return response.data;
+      } else if (response && !response.status) {
+        // Resposta direta (sem wrapper)
+        toast.success('Intervenção de saúde registrada com sucesso!');
+        return response;
       }
       
-      throw new Error('Resposta inválida do servidor');
+      // Se não houver dados, retornar null ao invés de lançar erro
+      console.warn('⚠️ Resposta inesperada ao criar intervenção de saúde:', response);
+      return null;
     } catch (err: any) {
       console.error('❌ Erro ao criar intervenção de saúde:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao registrar intervenção';
@@ -174,12 +181,19 @@ export function useInterventionsApi() {
           : data.weighingDate
       });
       
+      // Aceitar resposta direta ou resposta com data
       if (response?.data) {
         toast.success('Pesagem registrada com sucesso!');
         return response.data;
+      } else if (response && !response.status) {
+        // Resposta direta (sem wrapper)
+        toast.success('Pesagem registrada com sucesso!');
+        return response;
       }
       
-      throw new Error('Resposta inválida do servidor');
+      // Se não houver dados, retornar null ao invés de lançar erro
+      console.warn('⚠️ Resposta inesperada ao criar pesagem:', response);
+      return null;
     } catch (err: any) {
       console.error('❌ Erro ao criar leitura de peso:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao registrar pesagem';
@@ -249,11 +263,20 @@ export function useInterventionsApi() {
       const params = cycleId ? `?cycleId=${cycleId}` : '';
       const response = await apiClient.get(`/interventions/statistics${params}`);
       
+      // Aceitar resposta direta ou resposta com data
       if (response?.data) {
         return response.data;
+      } else if (Array.isArray(response)) {
+        // Resposta é um array direto
+        return response;
+      } else if (response && !response.status) {
+        // Resposta direta (sem wrapper)
+        return response;
       }
       
-      throw new Error('Resposta inválida do servidor');
+      // Se não houver dados, retornar array vazio ao invés de lançar erro
+      console.warn('⚠️ Resposta inesperada ao buscar histórico de intervenções:', response);
+      return [];
     } catch (err: any) {
       console.error('❌ Erro ao buscar estatísticas de intervenções:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao buscar estatísticas';
