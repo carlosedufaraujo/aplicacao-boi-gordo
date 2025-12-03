@@ -233,6 +233,8 @@ export function useInterventionsApi() {
       const queryString = params.toString();
       const url = `/interventions/history${queryString ? `?${queryString}` : ''}`;
       const response = await apiClient.get(url);
+      
+      // Aceitar múltiplas estruturas de resposta
       if (response?.data?.data) {
         return response.data.data; // Retornar apenas o array de intervenções
       }
@@ -242,7 +244,14 @@ export function useInterventionsApi() {
         return response.data;
       }
       
-      throw new Error('Resposta inválida do servidor');
+      // Aceitar array direto
+      if (Array.isArray(response)) {
+        return response;
+      }
+      
+      // Se não houver dados, retornar array vazio ao invés de lançar erro
+      console.warn('⚠️ Resposta inesperada ao buscar histórico de intervenções:', response);
+      return [];
     } catch (err: any) {
       console.error('❌ [useInterventionsApi] Erro ao buscar histórico de intervenções:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Erro ao buscar histórico';
