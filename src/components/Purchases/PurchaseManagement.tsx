@@ -507,7 +507,7 @@ export const PurchaseManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Cards de Métricas */}
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
             <CardTitle className="text-xs font-medium">Total de Lotes</CardTitle>
@@ -683,8 +683,9 @@ export const PurchaseManagement: React.FC = () => {
           </div>
 
           {/* Tabela */}
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
+          <div className="border rounded-lg overflow-x-auto">
+            <div className="min-w-[800px] md:min-w-0">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12"></TableHead>
@@ -936,6 +937,7 @@ export const PurchaseManagement: React.FC = () => {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -1698,15 +1698,25 @@ export const CompleteRegistrations: React.FC = () => {
               <Upload className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
               Importar
             </Button>
-            <Button size="sm" onClick={() => setShowForm(true)}>
+            <Button 
+              size="sm" 
+              onClick={() => {
+                setEditingItem(null); // Limpar item de edição
+                setShowForm(true); // Abrir formulário
+              }}
+            >
               <Plus className="h-4 w-4 mr-2" />
-              Novo Cadastro
+              {activeTab === 'partners' ? 'Novo Parceiro' :
+               activeTab === 'pens' ? 'Novo Curral' :
+               activeTab === 'accounts' ? 'Nova Conta' :
+               activeTab === 'categories' ? 'Nova Categoria' :
+               'Novo Cadastro'}
             </Button>
           </div>
         </div>
 
         {/* Cards de Navegação */}
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {registrationTypes.map((type) => {
             const Icon = type.icon;
             const isActive = activeTab === type.id;
@@ -1744,7 +1754,7 @@ export const CompleteRegistrations: React.FC = () => {
             <CardTitle className="text-base font-medium">Filtros e Busca</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
@@ -1823,9 +1833,19 @@ export const CompleteRegistrations: React.FC = () => {
                   <p className="text-lg font-medium text-muted-foreground">
                     Nenhum parceiro encontrado
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-sm text-muted-foreground mt-1 mb-4">
                     Tente ajustar os filtros ou criar um novo parceiro
                   </p>
+                  <Button 
+                    onClick={() => {
+                      setEditingItem(null);
+                      setShowForm(true);
+                    }}
+                    variant="default"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Criar Novo Parceiro
+                  </Button>
                 </CardContent>
               </Card>
             )}

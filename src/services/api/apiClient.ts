@@ -8,9 +8,11 @@ export function safeExtractData<T>(response: any, fallback: T): T {
   return fallback;
 }
 
+import { safeLocalStorage, isSafari, getSafariCompatibleHeaders } from '@/utils/safariCompatibility';
+
 /**
  * Cliente API para comunicação com o Backend
- * Usa autenticação JWT própria via localStorage
+ * Usa autenticação JWT própria via localStorage (com fallback para Safari)
  */
 export class ApiClient {
   private baseURL: string;
@@ -29,18 +31,18 @@ export class ApiClient {
   }
 
   /**
-   * Obtém o token de autenticação do Backend (localStorage)
+   * Obtém o token de autenticação do Backend (localStorage com fallback Safari)
    */
   private async getAuthToken(): Promise<string | null> {
-    return localStorage.getItem('authToken');
+    return safeLocalStorage.getItem('authToken');
   }
 
   /**
    * Verifica se o usuário está autenticado
    */
   private isAuthenticated(): boolean {
-    const token = localStorage.getItem('authToken');
-    const user = localStorage.getItem('user');
+    const token = safeLocalStorage.getItem('authToken');
+    const user = safeLocalStorage.getItem('user');
     return !!(token && user);
   }
 
@@ -51,6 +53,9 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    const startTime = performance.now();
+    const method = (options.method || 'GET').toUpperCase();
+    
     try {
       // Verificar se precisa de autenticação (endpoints públicos não precisam)
       const publicEndpoints = [
@@ -71,14 +76,34 @@ export class ApiClient {
 
       const config: RequestInit = {
         headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-          ...options.headers,
+          ...getSafariCompatibleHeaders({
+            ...(token && { Authorization: `Bearer ${token}` }),
+            ...options.headers,
+          }),
         },
+        credentials: 'include', // Importante para Safari
         ...options,
       };
 
       const response = await fetch(url, config);
+      
+      // Medir tempo de resposta
+      const responseTime = performance.now() - startTime;
+      
+      // Log de performance para requisições lentas (>500ms)
+      if (responseTime > 500) {
+        console.warn(`[ApiClient] ⚠️ Requisição lenta: ${method} ${endpoint} - ${responseTime.toFixed(2)}ms`);
+      } else if (process.env.NODE_ENV === 'development') {
+        console.debug(`[ApiClient] ✅ ${method} ${endpoint} - ${responseTime.toFixed(2)}ms`);
+      }
+      
+      // Adicionar header de performance se disponível
+      if (response.headers) {
+        const serverTiming = response.headers.get('Server-Timing');
+        if (serverTiming) {
+          console.debug(`[ApiClient] Server-Timing: ${serverTiming}`);
+        }
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -88,21 +113,41 @@ export class ApiClient {
         const isGetRequest = (options.method || 'GET').toUpperCase() === 'GET';
         if (response.status === 401 && isGetRequest) {
           console.warn(`[ApiClient] Erro 401 em GET, retornando array vazio: ${endpoint}`);
+          // Retornar array vazio para GET requests com 401
           return [] as T;
         }
 
-        // Se erro for de autenticação (401) e não for endpoint público, limpar token inválido
+        // Se erro for de autenticação (401) e não for endpoint público
         if (response.status === 401 && !isPublicEndpoint) {
-          // Não limpar token imediatamente - pode ser que o usuário ainda não fez login
-          // Apenas logar o erro
           console.warn(`[ApiClient] Erro 401 para endpoint não público: ${endpoint}`);
+          // Para métodos não-GET, lançar erro mas com mensagem amigável
+          if (!isGetRequest) {
+            throw new Error('Sessão expirada. Por favor, faça login novamente.');
+          }
         }
 
-        throw new Error(errorData.message || `HTTP Error: ${response.status}`);
+        // Para outros erros, lançar exceção normalmente
+        const errorMessage = errorData.message || errorData.error || `HTTP Error: ${response.status}`;
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      return data;
+      // Tentar parsear resposta JSON
+      const responseText = await response.text();
+      if (!responseText) {
+        // Resposta vazia - retornar array vazio para GET, null para outros
+        const isGetRequest = (options.method || 'GET').toUpperCase() === 'GET';
+        return (isGetRequest ? [] : null) as T;
+      }
+
+      try {
+        const data = JSON.parse(responseText);
+        return data;
+      } catch (parseError) {
+        console.error(`[ApiClient] Erro ao parsear JSON de ${endpoint}:`, responseText);
+        // Se não conseguir parsear, retornar array vazio para GET
+        const isGetRequest = (options.method || 'GET').toUpperCase() === 'GET';
+        return (isGetRequest ? [] : null) as T;
+      }
     } catch (error) {
       // Se backend não estiver disponível, usar Supabase direto como fallback
       throw error; // Os hooks vão usar dados do Supabase como fallback

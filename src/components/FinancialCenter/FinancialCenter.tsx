@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DollarSign,
   TrendingUp,
@@ -11,7 +12,8 @@ import {
   BarChart3,
   Wallet,
   FileText,
-  Activity
+  Activity,
+  Plus
 } from 'lucide-react';
 
 // Importar componentes financeiros existentes
@@ -36,6 +38,7 @@ interface FinancialCenterProps {
  */
 const FinancialCenter: React.FC<FinancialCenterProps> = ({ className }) => {
   const [activeTab, setActiveTab] = useState('cashflow');
+  const [showNewTransactionForm, setShowNewTransactionForm] = useState(false);
 
   return (
     <div className={className}>
@@ -51,10 +54,36 @@ const FinancialCenter: React.FC<FinancialCenterProps> = ({ className }) => {
                 Gestão completa e integrada das finanças da operação
               </CardDescription>
             </div>
-            <Badge variant="outline" className="text-sm">
-              <Activity className="h-3 w-3 mr-1" />
-              Dados em tempo real
-            </Badge>
+            <div className="flex items-center gap-2">
+              {/* Botão Nova Movimentação - visível nas abas de Receitas e Despesas */}
+              {(activeTab === 'revenues' || activeTab === 'expenses' || activeTab === 'cashflow') && (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    // Se estiver em receitas ou despesas, mudar para fluxo de caixa e abrir formulário
+                    if (activeTab === 'revenues' || activeTab === 'expenses') {
+                      setActiveTab('cashflow');
+                      // O CashFlowDashboard já tem o botão, então apenas mudamos a aba
+                      // O usuário pode clicar no botão "Nova Movimentação" na aba de fluxo de caixa
+                    } else {
+                      setShowNewTransactionForm(true);
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="text-sm">
+                    {activeTab === 'expenses' ? 'Nova Despesa' : 
+                     activeTab === 'revenues' ? 'Nova Receita' : 
+                     'Nova Movimentação'}
+                  </span>
+                </Button>
+              )}
+              <Badge variant="outline" className="text-sm">
+                <Activity className="h-3 w-3 mr-1" />
+                Dados em tempo real
+              </Badge>
+            </div>
           </div>
         </CardHeader>
 
@@ -99,12 +128,24 @@ const FinancialCenter: React.FC<FinancialCenterProps> = ({ className }) => {
 
             {/* Receitas */}
             <TabsContent value="revenues" className="space-y-4">
-              <ExpandedCashFlow type="revenue" />
+              <ExpandedCashFlow 
+                type="revenue" 
+                onNewTransaction={() => {
+                  // Mudar para aba de fluxo de caixa onde o formulário pode ser aberto
+                  setActiveTab('cashflow');
+                }}
+              />
             </TabsContent>
 
             {/* Despesas */}
             <TabsContent value="expenses" className="space-y-4">
-              <ExpandedCashFlow type="expense" />
+              <ExpandedCashFlow 
+                type="expense" 
+                onNewTransaction={() => {
+                  // Mudar para aba de fluxo de caixa onde o formulário pode ser aberto
+                  setActiveTab('cashflow');
+                }}
+              />
             </TabsContent>
 
             {/* Análise Integrada */}

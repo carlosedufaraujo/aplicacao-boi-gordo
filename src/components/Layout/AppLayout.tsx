@@ -262,8 +262,10 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
                         onClick={() => setCurrentPage(item.page)}
                         isActive={currentPage === item.page}
                         tooltip={item.title}
+                        aria-label={`Navegar para ${item.title}`}
+                        aria-current={currentPage === item.page ? 'page' : undefined}
                       >
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className="h-4 w-4" aria-hidden="true" />
                         <span className={cn(
                           "transition-all duration-300",
                           state === 'collapsed' && !open && "opacity-0 w-0 overflow-hidden"
@@ -330,8 +332,12 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
                     )}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut} className="text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem 
+                    onClick={signOut} 
+                    className="text-destructive"
+                    aria-label="Sair da aplicação"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                     <span>Sair</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -366,15 +372,15 @@ function SidebarLayout({ currentPage, setCurrentPage, children }: { currentPage:
         </SidebarFooter>
       </Sidebar>
       
-      <SidebarInset className="flex flex-col h-screen">
-        <header className="flex items-center border-b px-2 py-2 flex-shrink-0 bg-background">
+      <SidebarInset className="flex flex-col h-screen overflow-hidden">
+        <header className="flex items-center border-b px-2 py-2 flex-shrink-0 bg-background overflow-x-auto">
           {/* TradingView Widget integrado no cabeçalho - ocupa toda a largura */}
-          <div className="w-full">
+          <div className="w-full min-w-[320px]">
             <TradingViewWidget />
           </div>
         </header>
         
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-6">
           {children}
         </div>
       </SidebarInset>

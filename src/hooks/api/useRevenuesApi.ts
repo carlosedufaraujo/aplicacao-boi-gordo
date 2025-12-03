@@ -374,11 +374,37 @@ export const useRevenuesApi = (initialFilters: RevenueFilters = {}) => {
     }
   }, []);
 
-  // Carregamento inicial (SEM DEPENDÊNCIAS para evitar loops)
+  // Carregamento inicial com timeout de segurança
   useEffect(() => {
-    loadRevenues({ page: 1, limit: 50 });
-    loadStats();
-  }, []); // ← CORRIGIDO: sem dependências para evitar loops infinitos
+    let timeoutId: NodeJS.Timeout;
+    
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          loadRevenues({ page: 1, limit: 50 }),
+          loadStats()
+        ]);
+      } catch (error) {
+        console.error('Erro no carregamento inicial de receitas:', error);
+        // Garantir que loading seja finalizado mesmo em caso de erro
+        setLoading(false);
+      }
+    };
+
+    // Timeout de segurança: se após 30 segundos ainda estiver carregando, finalizar
+    timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn('⚠️ Timeout no carregamento de receitas - finalizando loading');
+        setLoading(false);
+      }
+    }, 30000);
+
+    loadData();
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, []); // Executar apenas na montagem
 
   // Funções de paginação
   const changePage = useCallback((page: number) => {

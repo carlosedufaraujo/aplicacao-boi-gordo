@@ -648,28 +648,45 @@ export function ShadcnDashboard() {
 
   return (
     <TooltipProvider>
-      <div id="dashboard-content" className="flex-1 space-y-6">
+      <div id="dashboard-content" className="flex-1 space-y-4 sm:space-y-6 px-3 sm:px-6">
         {/* Header com Filtros */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="page-title">Dashboard</h2>
-            <p className="text-muted-foreground">
+            <h2 className="text-xl sm:text-2xl font-bold">Dashboard</h2>
+            <p className="text-sm text-muted-foreground">
               Visão geral do sistema e métricas principais
             </p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleGenerateDashboardPDF}>
-              <FileDown className="h-4 w-4 mr-2" />
-              PDF Visual
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleGenerateDashboardPDF} 
+              className="flex-1 sm:flex-initial"
+              aria-label="Gerar PDF visual do dashboard"
+            >
+              <FileDown className="h-4 w-4 sm:mr-2" aria-hidden="true" />
+              <span className="hidden sm:inline">PDF Visual</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={handleGenerateStructuredReport}>
-              <FileText className="h-4 w-4 mr-2" />
-              Relatório
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleGenerateStructuredReport} 
+              className="flex-1 sm:flex-initial"
+              aria-label="Gerar relatório estruturado"
+            >
+              <FileText className="h-4 w-4 sm:mr-2" aria-hidden="true" />
+              <span className="hidden sm:inline">Relatório</span>
             </Button>
-            <Button onClick={handleExport} size="sm">
-              <Download className="mr-2 h-4 w-4" />
-              Exportar
+            <Button 
+              onClick={handleExport} 
+              size="sm" 
+              className="flex-1 sm:flex-initial"
+              aria-label="Exportar dados do dashboard"
+            >
+              <Download className="h-4 w-4 sm:mr-2" aria-hidden="true" />
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
           </div>
         </div>

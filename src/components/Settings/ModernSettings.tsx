@@ -18,6 +18,7 @@ import type { SettingsData } from '@/hooks/useSettings';
 const UserManagement = lazy(() => import('@/components/System/UserManagement'));
 const DataImport = lazy(() => import('@/pages/DataImport'));
 const CompleteRegistrations = lazy(() => import('@/components/Registrations/CompleteRegistrations'));
+const LGPDCompliance = lazy(() => import('@/components/Settings/LGPDCompliance'));
 import {
   Globe,
   Database,
@@ -234,6 +235,10 @@ export const ModernSettings: React.FC = () => {
           <TabsTrigger value="registrations" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <FolderOpen className="h-4 w-4 mr-2" />
             Cadastros
+          </TabsTrigger>
+          <TabsTrigger value="lgpd" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Shield className="h-4 w-4 mr-2" />
+            LGPD
           </TabsTrigger>
         </TabsList>
 
@@ -860,6 +865,17 @@ export const ModernSettings: React.FC = () => {
               </Suspense>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Tab LGPD */}
+        <TabsContent value="lgpd" className="space-y-4">
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-96">
+              <Skeleton className="h-full w-full" />
+            </div>
+          }>
+            <LGPDCompliance />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>

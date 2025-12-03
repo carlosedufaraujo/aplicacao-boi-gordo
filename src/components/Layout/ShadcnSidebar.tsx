@@ -28,6 +28,7 @@ import {
   LogOut,
   ChevronRight,
   Building2,
+  Activity,
 } from "lucide-react";
 import { useSupabase } from "@/providers/SupabaseProvider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -98,6 +99,11 @@ export function ShadcnSidebar({ currentPage, setCurrentPage }: ShadcnSidebarProp
       title: "Cadastros",
       icon: Users,
       page: "registrations",
+    },
+    {
+      title: "Intervenções",
+      icon: Activity,
+      page: "interventions",
     },
   ];
 

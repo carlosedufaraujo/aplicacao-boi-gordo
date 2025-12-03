@@ -677,10 +677,34 @@ export function useCattlePurchasesApi() {
     loadPurchases({ page: 1, limit: size });
   }, [loadPurchases]);
 
-  // Carregar dados ao montar o hook
+  // Carregar dados ao montar o hook com timeout de segurança
   React.useEffect(() => {
-    loadPurchases({ page: 1, limit: pageSize });
-  }, []);
+    let timeoutId: NodeJS.Timeout;
+    
+    const loadData = async () => {
+      try {
+        await loadPurchases({ page: 1, limit: pageSize });
+      } catch (error) {
+        console.error('Erro no carregamento inicial de compras:', error);
+        // Garantir que loading seja finalizado mesmo em caso de erro
+        setLoading(false);
+      }
+    };
+
+    // Timeout de segurança: se após 30 segundos ainda estiver carregando, finalizar
+    timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn('⚠️ Timeout no carregamento de compras - finalizando loading');
+        setLoading(false);
+      }
+    }, 30000);
+
+    loadData();
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, []); // Executar apenas na montagem
 
   return {
     // Estado

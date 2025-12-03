@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, Wifi, WifiOff, AlertCircle, Moon, Sun } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Wifi, WifiOff, AlertCircle, Moon, Sun, Globe } from 'lucide-react';
 import { useBackend } from '../providers/BackendProvider';
 import { useTheme } from '../providers/ThemeProvider';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getDomainConfig, getOrganizationName, getOrganizationLogo, getBackgroundImage, getCustomBranding } from '@/utils/domainConfig';
+import { safeLocalStorage, isSafari, logSafariDiagnostics } from '@/utils/safariCompatibility';
 
 interface Login02Props {
   className?: string;
@@ -23,10 +25,27 @@ export function Login02({ className }: Login02Props) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    domain: '',
     rememberMe: false
   });
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  
+  // Configuração do domínio atual
+  const domainConfig = getDomainConfig();
+  const organizationName = getOrganizationName();
+  const organizationLogo = getOrganizationLogo() || '/fazenda-ceac.jpg';
+  const backgroundImage = getBackgroundImage() || '/fazenda-ceac.jpg';
+  const customBranding = getCustomBranding();
+  
+  // Detectar domínio automaticamente
+  useEffect(() => {
+    const currentDomain = window.location.hostname.split(':')[0];
+    setFormData(prev => ({
+      ...prev,
+      domain: currentDomain
+    }));
+  }, []);
 
   // Monitorar status de conexão
   useEffect(() => {
@@ -49,15 +68,22 @@ export function Login02({ className }: Login02Props) {
     }
   }, [isAuthenticated, authLoading, navigate]);
 
-  // Carregar email salvo
+  // Carregar email salvo (compatível com Safari)
   useEffect(() => {
-    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    const rememberedEmail = safeLocalStorage.getItem('rememberedEmail');
     if (rememberedEmail) {
       setFormData(prev => ({
         ...prev,
         email: rememberedEmail,
         rememberMe: true
       }));
+    }
+  }, []);
+
+  // Diagnóstico Safari na inicialização
+  useEffect(() => {
+    if (isSafari()) {
+      logSafariDiagnostics();
     }
   }, []);
 
@@ -82,25 +108,39 @@ export function Login02({ className }: Login02Props) {
     try {
       await signIn(formData.email, formData.password);
       
-      // Salvar/remover email conforme preferência
+      // Salvar/remover email conforme preferência (compatível com Safari)
       if (formData.rememberMe) {
-        localStorage.setItem('rememberedEmail', formData.email);
+        safeLocalStorage.setItem('rememberedEmail', formData.email);
       } else {
-        localStorage.removeItem('rememberedEmail');
+        safeLocalStorage.removeItem('rememberedEmail');
       }
 
     } catch (error: any) {
       console.error('❌ Erro no login:', error);
       
-      // Mensagens de erro mais amigáveis
-      if (error.message?.includes('Invalid login credentials')) {
-        setError('Email ou senha incorretos.');
-      } else if (error.message?.includes('Network')) {
+      // Mensagens de erro mais amigáveis e específicas
+      const errorMessage = error.message || '';
+      
+      if (errorMessage.includes('Email ou senha incorretos') || 
+          errorMessage.includes('Invalid login credentials') ||
+          errorMessage.includes('Credenciais inválidas')) {
+        setError('Email ou senha incorretos. Verifique suas credenciais e tente novamente.');
+      } else if (errorMessage.includes('Email é obrigatório') || 
+                 errorMessage.includes('Senha é obrigatória')) {
+        setError(errorMessage);
+      } else if (errorMessage.includes('Formato de email inválido')) {
+        setError('Por favor, insira um email válido.');
+      } else if (errorMessage.includes('Network') || 
+                 errorMessage.includes('Failed to fetch') ||
+                 errorMessage.includes('fetch')) {
         setError('Erro de conexão. Verifique sua internet e tente novamente.');
-      } else if (error.message?.includes('timeout')) {
+      } else if (errorMessage.includes('timeout')) {
         setError('O servidor está demorando para responder. Tente novamente.');
+      } else if (errorMessage.includes('Resposta inválida') || 
+                 errorMessage.includes('incompleta')) {
+        setError('Erro no servidor. Tente novamente mais tarde.');
       } else {
-        setError(error.message || 'Erro ao fazer login. Tente novamente.');
+        setError(errorMessage || 'Erro ao fazer login. Tente novamente.');
       }
     } finally {
       setIsLoading(false);
@@ -168,20 +208,27 @@ export function Login02({ className }: Login02Props) {
       {/* Lado esquerdo - Imagem da Fazenda */}
       <div className="hidden bg-muted lg:block relative overflow-hidden">
         <img
-          src="/fazenda-ceac.jpg"
-          alt="Fazenda CEAC - Peões Trabalhando no Curral"
+          src={backgroundImage}
+          alt={`${organizationName} - ${domainConfig.organizationSubtitle || ''}`}
           className="h-full w-full object-cover dark:brightness-[0.3] dark:contrast-125"
         />
         {/* Overlay com informações */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent dark:from-black/80 dark:via-black/40" />
         <div className="absolute bottom-0 left-0 p-8 text-white">
-          <h2 className="text-3xl font-bold mb-2 drop-shadow-lg">CEAC Agropecuária</h2>
+          <h2 className="text-3xl font-bold mb-2 drop-shadow-lg">{organizationName}</h2>
           <p className="text-lg opacity-90 drop-shadow-md">
-            Sistema de Gestão Completa para Pecuária de Corte
+            {domainConfig.organizationSubtitle || customBranding.tagline || 'Sistema de Gestão Completa'}
           </p>
-          <p className="text-sm opacity-75 mt-2 drop-shadow-md">
-            Controle total do seu rebanho, desde a compra até a venda
-          </p>
+          {customBranding.tagline && (
+            <p className="text-sm opacity-75 mt-2 drop-shadow-md">
+              {customBranding.tagline}
+            </p>
+          )}
+          {/* Exibir domínio atual */}
+          <div className="mt-4 flex items-center space-x-2 text-xs opacity-60">
+            <Globe className="w-4 h-4" />
+            <span>{domainConfig.domain}</span>
+          </div>
         </div>
       </div>
 
@@ -192,11 +239,13 @@ export function Login02({ className }: Login02Props) {
           onClick={toggleTheme}
           className="absolute top-4 right-4 p-2 rounded-lg bg-background/80 backdrop-blur-sm border border-border hover:bg-accent transition-colors z-10"
           title={theme === 'dark' ? "Alternar para modo claro" : "Alternar para modo escuro"}
+          aria-label={theme === 'dark' ? "Alternar para modo claro" : "Alternar para modo escuro"}
+          type="button"
         >
           {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-foreground" />
+            <Sun className="w-5 h-5 text-foreground" aria-hidden="true" />
           ) : (
-            <Moon className="w-5 h-5 text-foreground" />
+            <Moon className="w-5 h-5 text-foreground" aria-hidden="true" />
           )}
         </button>
 
@@ -207,8 +256,8 @@ export function Login02({ className }: Login02Props) {
             <div className="lg:hidden flex justify-center mb-6">
               <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg border-4 border-white/20">
                 <img
-                  src="/fazenda-ceac.jpg"
-                  alt="CEAC Agropecuária - Trabalho no Campo"
+                  src={organizationLogo}
+                  alt={`${organizationName} - Logo`}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -218,6 +267,11 @@ export function Login02({ className }: Login02Props) {
             <p className="text-balance text-muted-foreground">
               Entre com suas credenciais para acessar o sistema
             </p>
+            {/* Exibir domínio atual */}
+            <div className="flex items-center justify-center space-x-2 text-xs text-muted-foreground mt-2">
+              <Globe className="w-3 h-3" />
+              <span>{domainConfig.domain}</span>
+            </div>
           </div>
 
           {/* Formulário */}
@@ -242,6 +296,32 @@ export function Login02({ className }: Login02Props) {
                   <p className="font-medium">Email enviado com sucesso!</p>
                   <p>Verifique sua caixa de entrada para redefinir sua senha.</p>
                 </div>
+              </div>
+            )}
+
+            {/* Campo de Domínio (opcional, pode ser oculto se não necessário) */}
+            {formData.domain && (
+              <div className="grid gap-2">
+                <Label htmlFor="domain" className="text-xs text-muted-foreground">
+                  Domínio da Plataforma
+                </Label>
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="domain"
+                    name="domain"
+                    type="text"
+                    value={formData.domain}
+                    onChange={handleInputChange}
+                    placeholder="seu-dominio.com"
+                    className="pl-9"
+                    disabled={true}
+                    readOnly
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Domínio detectado automaticamente
+                </p>
               </div>
             )}
 
@@ -334,8 +414,14 @@ export function Login02({ className }: Login02Props) {
 
           {/* Footer */}
           <div className="text-center text-sm text-muted-foreground">
-            <div>© 2025 CEAC Agropecuária e Mercantil Ltda.</div>
+            <div>© 2025 {customBranding.companyName || organizationName}</div>
             <div>Todos os direitos reservados.</div>
+            {domainConfig.supportEmail && (
+              <div className="mt-2 text-xs">
+                Suporte: <a href={`mailto:${domainConfig.supportEmail}`} className="text-primary hover:underline">{domainConfig.supportEmail}</a>
+                {domainConfig.supportPhone && ` | ${domainConfig.supportPhone}`}
+              </div>
+            )}
           </div>
         </div>
       </div>

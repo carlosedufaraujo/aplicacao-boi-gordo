@@ -53,4 +53,12 @@ export const usersService = {
   
   getActivity: async (id: string, days: number = 30): Promise<any> => 
     apiClient.get(`/users/${id}/activity`, { days }),
+  
+  // LGPD: Exportação de dados do usuário
+  exportMyData: async (): Promise<any> => 
+    apiClient.get('/users/me/export'),
+  
+  // LGPD: Exclusão de dados do usuário
+  deleteMyData: async (): Promise<void> => 
+    apiClient.delete('/users/me/delete'),
 };

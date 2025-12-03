@@ -23,7 +23,8 @@ import {
   AlertCircle,
   Wallet,
   Target,
-  Activity
+  Activity,
+  Plus
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addMonths, addWeeks, subMonths, subWeeks, isWithinInterval, parseISO, isSameMonth, isSameWeek, getWeekOfMonth, differenceInWeeks, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -107,7 +108,12 @@ const CASHFLOW_STRUCTURE: CashFlowCategory[] = [
   { name: 'SALDO FINAL', type: 'balance', level: 0, isCalculated: true }
 ];
 
-export function ExpandedCashFlow() {
+interface ExpandedCashFlowProps {
+  type?: 'revenue' | 'expense';
+  onNewTransaction?: () => void;
+}
+
+export function ExpandedCashFlow({ type, onNewTransaction }: ExpandedCashFlowProps = {}) {
   const { cashFlows, loading: cashFlowLoading, fetchCashFlows } = useCashFlow();
   const { purchases, sales, expenses, revenues, loading: financialLoading, refresh: refreshFinancial } = useFinancialData();
   const [viewMode, setViewMode] = useState<'month' | 'week' | 'structured'>('structured');
@@ -584,6 +590,28 @@ export function ExpandedCashFlow() {
               {showIntegratedData ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
               Compras/Vendas
             </Button>
+
+            {/* Botão Nova Movimentação - visível quando há callback ou quando type está definido */}
+            {(onNewTransaction || type) && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  if (onNewTransaction) {
+                    onNewTransaction();
+                  } else {
+                    // Redirecionar para página de centro financeiro com formulário aberto
+                    // Ou usar navegação para abrir formulário
+                    window.location.hash = '#financial';
+                  }
+                }}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="text-sm">
+                  {type === 'expense' ? 'Nova Despesa' : type === 'revenue' ? 'Nova Receita' : 'Nova Movimentação'}
+                </span>
+              </Button>
+            )}
 
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'month' | 'week' | 'structured')}>
               <TabsList>

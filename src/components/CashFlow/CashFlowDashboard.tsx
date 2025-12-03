@@ -288,19 +288,20 @@ export const CashFlowDashboard: React.FC = () => {
     };
     
     return (
-    <div className="rounded-md border bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="table-header w-[25%]">Descrição</TableHead>
-            <TableHead className="table-header w-[15%]">Categoria</TableHead>
-            <TableHead className="table-header w-[15%]">Conta</TableHead>
-            <TableHead className="table-header w-[12%]">Vencimento</TableHead>
-            <TableHead className="table-header w-[13%] text-right">Valor</TableHead>
-            <TableHead className="table-header w-[12%]">Status</TableHead>
-            <TableHead className="table-header w-[8%] text-center">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
+    <div className="rounded-md border bg-card overflow-x-auto">
+      <div className="min-w-[640px] md:min-w-0">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="table-header w-[25%] min-w-[150px]">Descrição</TableHead>
+              <TableHead className="table-header w-[15%] hidden md:table-cell">Categoria</TableHead>
+              <TableHead className="table-header w-[15%] hidden lg:table-cell">Conta</TableHead>
+              <TableHead className="table-header w-[12%] min-w-[100px]">Vencimento</TableHead>
+              <TableHead className="table-header w-[13%] text-right min-w-[100px]">Valor</TableHead>
+              <TableHead className="table-header w-[12%] hidden sm:table-cell">Status</TableHead>
+              <TableHead className="table-header w-[8%] text-center min-w-[60px]">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
@@ -318,7 +319,7 @@ export const CashFlowDashboard: React.FC = () => {
           ) : (
             data.map((cashFlow) => (
               <TableRow key={cashFlow.id} className="hover:bg-muted/50">
-                <TableCell className="py-3">
+                <TableCell className="py-3 min-w-[150px]">
                   <div className="space-y-1">
                     <p className="text-sm font-medium line-clamp-1">{cashFlow.description}</p>
                     {(cashFlow.supplier || cashFlow.customer) && (
@@ -327,10 +328,32 @@ export const CashFlowDashboard: React.FC = () => {
                         {cashFlow.supplier || cashFlow.customer}
                       </p>
                     )}
+                    {/* Mostrar categoria em mobile */}
+                    <div className="md:hidden mt-1">
+                      {(() => {
+                        const category = categories.find(cat => cat.id === cashFlow.categoryId);
+                        if (category) {
+                          return (
+                            <Badge
+                              className={cn(
+                                "text-xs font-medium border",
+                                !category.color && (category.type === 'INCOME'
+                                  ? "bg-green-100 text-green-800 border-green-300"
+                                  : "bg-red-100 text-red-800 border-red-300")
+                              )}
+                              variant="secondary"
+                            >
+                              {category.name}
+                            </Badge>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </div>
                 </TableCell>
                 
-                <TableCell className="py-3">
+                <TableCell className="py-3 hidden md:table-cell">
                   {(() => {
                     // Busca a categoria pelo ID
                     const category = categories.find(cat => cat.id === cashFlow.categoryId);
@@ -365,7 +388,7 @@ export const CashFlowDashboard: React.FC = () => {
                   })()}
                 </TableCell>
                 
-                <TableCell className="py-3">
+                <TableCell className="py-3 hidden lg:table-cell">
                   {cashFlow.account ? (
                     <div className="space-y-0.5">
                       <p className="kpi-label">{cashFlow.account.accountName}</p>
@@ -376,7 +399,7 @@ export const CashFlowDashboard: React.FC = () => {
                   )}
                 </TableCell>
                 
-                <TableCell className="py-3">
+                <TableCell className="py-3 min-w-[100px]">
                   <div className="space-y-0.5">
                     <p className="text-sm">
                       {format(new Date(cashFlow.dueDate || cashFlow.date), 'dd/MM/yyyy', { locale: ptBR })}
@@ -395,7 +418,7 @@ export const CashFlowDashboard: React.FC = () => {
                   </div>
                 </TableCell>
                 
-                <TableCell className="py-3 text-right">
+                <TableCell className="py-3 text-right min-w-[100px]">
                   <p className={cn(
                     "text-sm font-semibold",
                     cashFlow.type === 'INCOME' ? "text-green-600" : "text-red-600"
@@ -404,7 +427,7 @@ export const CashFlowDashboard: React.FC = () => {
                   </p>
                 </TableCell>
                 
-                <TableCell className="py-3">
+                <TableCell className="py-3 hidden sm:table-cell">
                   <StatusChangeButton
                     currentStatus={cashFlow.status}
                     transactionType={cashFlow.type}
@@ -416,20 +439,30 @@ export const CashFlowDashboard: React.FC = () => {
                 <TableCell className="py-3">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        aria-label={`Ações para movimentação ${cashFlow.description}`}
+                      >
+                        <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => handleEdit(cashFlow)} className="text-sm">
-                        <Edit className="h-3.5 w-3.5 mr-2" />
+                      <DropdownMenuItem 
+                        onClick={() => handleEdit(cashFlow)} 
+                        className="text-sm"
+                        aria-label={`Editar movimentação ${cashFlow.description}`}
+                      >
+                        <Edit className="h-3.5 w-3.5 mr-2" aria-hidden="true" />
                         Editar
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => handleDelete(cashFlow.id)} 
                         className="text-sm text-destructive focus:text-destructive"
+                        aria-label={`Excluir movimentação ${cashFlow.description}`}
                       >
-                        <Trash2 className="h-3.5 w-3.5 mr-2" />
+                        <Trash2 className="h-3.5 w-3.5 mr-2" aria-hidden="true" />
                         Excluir
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -440,33 +473,39 @@ export const CashFlowDashboard: React.FC = () => {
           )}
         </TableBody>
       </Table>
+      </div>
     </div>
     );
   };
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-3 sm:p-6 space-y-6 sm:space-y-8">
       {/* Header com símbolo $ */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="space-y-1">
-          <h1 className="page-title flex items-center gap-2">
-            <DollarSign className="h-6 w-6 text-green-600" />
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-green-600" />
             Centro Financeiro
           </h1>
-          <p className="page-subtitle">Gerencie o fluxo de caixa da fazenda</p>
+          <p className="text-sm text-muted-foreground">Gerencie o fluxo de caixa da fazenda</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => fetchCashFlows()}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 flex-1 sm:flex-initial"
+            aria-label="Atualizar lista de movimentações"
           >
-            <RefreshCw className="h-4 w-4" />
-            <span className="text-sm">Atualizar</span>
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+            <span className="text-sm hidden sm:inline">Atualizar</span>
           </Button>
-          <Button onClick={() => setShowForm(true)} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
+          <Button 
+            onClick={() => setShowForm(true)} 
+            className="flex items-center gap-2 flex-1 sm:flex-initial"
+            aria-label="Criar nova movimentação financeira"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
             <span className="text-sm">Nova Movimentação</span>
           </Button>
         </div>

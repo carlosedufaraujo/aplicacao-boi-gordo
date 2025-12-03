@@ -6,6 +6,7 @@
  */
 
 import { getApiBaseUrl } from '@/config/api.config';
+import { safeLocalStorage, isSafari, getSafariCompatibleHeaders } from '@/utils/safariCompatibility';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
 
@@ -38,31 +39,61 @@ export class BackendAuthService {
    * Login via Backend API
    */
   async signIn(email: string, password: string): Promise<{ user: User; session: Session }> {
+    // Validação básica no cliente também
+    if (!email || !email.trim()) {
+      throw new Error('Email é obrigatório');
+    }
+    if (!password || !password.trim()) {
+      throw new Error('Senha é obrigatória');
+    }
+
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      headers: getSafariCompatibleHeaders(),
+      credentials: 'include', // Importante para Safari
+      body: JSON.stringify({ email: email.trim(), password })
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Erro HTTP: ${response.status}`);
-    }
-
-    const data: AuthResponse = await response.json();
+    // Ler resposta como texto primeiro para poder parsear corretamente
+    const responseText = await response.text();
+    let data: AuthResponse;
     
-    if (data.status !== 'success') {
-      throw new Error('Erro no login');
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Erro ao parsear resposta do servidor:', responseText);
+      throw new Error('Resposta inválida do servidor');
     }
 
-    // Salvar no localStorage
-    localStorage.setItem('authToken', data.data.token);
-    localStorage.setItem('user', JSON.stringify(data.data.user));
+    // Verificar se houve erro na resposta
+    if (!response.ok || data.status === 'error') {
+      const errorMessage = data.message || `Erro HTTP: ${response.status}`;
+      console.warn(`⚠️ Login falhou: ${errorMessage}`);
+      throw new Error(errorMessage);
+    }
+
+    // Validar que temos os dados necessários
+    if (!data.data || !data.data.token || !data.data.user) {
+      console.error('❌ Resposta de login incompleta:', data);
+      throw new Error('Resposta de login incompleta');
+    }
+
+    // Validar que o token não está vazio
+    if (!data.data.token.trim()) {
+      console.error('❌ Token vazio na resposta');
+      throw new Error('Token não foi gerado corretamente');
+    }
+
+    // Salvar no localStorage (com fallback para Safari)
+    safeLocalStorage.setItem('authToken', data.data.token);
+    safeLocalStorage.setItem('user', JSON.stringify(data.data.user));
 
     const session: Session = {
       access_token: data.data.token,
       user: data.data.user
     };
+    
+    console.log('✅ Login bem-sucedido para:', email);
     return { user: data.data.user, session };
   }
 
@@ -70,16 +101,16 @@ export class BackendAuthService {
    * Logout
    */
   async signOut(): Promise<void> {
-    // Limpar localStorage
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+    // Limpar localStorage (com fallback para Safari)
+    safeLocalStorage.removeItem('authToken');
+    safeLocalStorage.removeItem('user');
   }
 
   /**
    * Obter usuário atual do localStorage
    */
   async getCurrentUser(): Promise<User | null> {
-    const userData = localStorage.getItem('user');
+    const userData = safeLocalStorage.getItem('user');
     return userData ? JSON.parse(userData) : null;
   }
 
@@ -87,8 +118,8 @@ export class BackendAuthService {
    * Obter sessão atual do localStorage
    */
   async getCurrentSession(): Promise<Session | null> {
-    const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('user');
+    const token = safeLocalStorage.getItem('authToken');
+    const userData = safeLocalStorage.getItem('user');
     
     if (!token || !userData) return null;
     
@@ -102,12 +133,15 @@ export class BackendAuthService {
    * Verificar se token é válido
    */
   async validateToken(): Promise<boolean> {
-    const token = localStorage.getItem('authToken');
+    const token = safeLocalStorage.getItem('authToken');
     if (!token) return false;
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          ...getSafariCompatibleHeaders({ Authorization: `Bearer ${token}` })
+        },
+        credentials: 'include', // Importante para Safari
       });
       return response.ok;
     } catch {
@@ -134,7 +168,7 @@ export class BackendAuthService {
    * Obter token de autorização para requests
    */
   getAuthHeader(): Record<string, string> {
-    const token = localStorage.getItem('authToken');
+    const token = safeLocalStorage.getItem('authToken');
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 }
