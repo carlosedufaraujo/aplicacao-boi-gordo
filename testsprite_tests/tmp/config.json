@@ -9,10 +9,9 @@
     "projectName": "aplicacao-boi-gordo",
     "projectPath": "/Users/carloseduardo/App/aplicacao-boi-gordo",
     "testIds": [],
-    "additionalInstruction": "Testar todas as correções implementadas nas Fases 1-4: autenticação com validação rigorosa, carregamento do dashboard, responsividade mobile, acessibilidade WCAG, performance de APIs e conformidade LGPD. Usar credenciais válidas: carlosedufaraujo@outlook.com / 368308450Ce*. Validar que os problemas anteriores foram resolvidos.",
+    "additionalInstruction": "Testar a aplicação após todas as correções implementadas. Validar que os problemas corrigidos estão funcionando: botão Compras navega corretamente, botão Nova Movimentação abre formulário, erros 'Resposta inválida do servidor' foram resolvidos. Usar credenciais válidas: carlosedufaraujo@outlook.com / 368308450Ce*",
     "envs": {
       "API_KEY": "sk-user--qOrsYiHop-KLboNRXaVJZmLPIE2bmJzOGv5ANLbzdM-nTIaU88nHePdFF-vui0oVk4jyX4G19fG1FNmUbS37SYgehu_q3UplmmGl9eBg7fqPqqGfERlTSjw4Hsx0kctBGc"
     }
-  },
-  "proxy": "http://b7dc611f-9f54-481b-b5c3-bc0bc2c1877d:cAxJXDlXAmRPwcEtjS1CWqTHwoi86ta8@tun.testsprite.com:8080"
+  }
 }

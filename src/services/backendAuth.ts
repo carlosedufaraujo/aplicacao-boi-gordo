@@ -59,10 +59,29 @@ export class BackendAuthService {
     let data: AuthResponse;
     
     try {
+      // Verificar se a resposta é HTML (erro do servidor) em vez de JSON
+      if (responseText.trim().startsWith('<') || responseText.trim().startsWith('<!DOCTYPE')) {
+        console.error('❌ Servidor retornou HTML em vez de JSON. Backend pode não estar disponível.');
+        throw new Error('Servidor não está disponível. Verifique se o backend está rodando.');
+      }
+      
       data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('❌ Erro ao parsear resposta do servidor:', responseText);
-      throw new Error('Resposta inválida do servidor');
+    } catch (parseError: any) {
+      // Se já lançamos um erro específico acima, propagar
+      if (parseError.message && parseError.message.includes('Servidor não está disponível')) {
+        throw parseError;
+      }
+      
+      // Caso contrário, erro de parsing JSON
+      console.error('❌ Erro ao parsear resposta do servidor:', responseText.substring(0, 200));
+      
+      // Verificar se é erro de rede ou servidor não disponível
+      if (response.status === 0 || response.status >= 500) {
+        throw new Error('Servidor não está disponível. Verifique se o backend está rodando.');
+      }
+      
+      // Outros erros de parsing
+      throw new Error('Resposta inválida do servidor. Tente novamente.');
     }
 
     // Verificar se houve erro na resposta
