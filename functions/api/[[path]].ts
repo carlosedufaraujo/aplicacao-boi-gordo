@@ -730,6 +730,7 @@ export async function onRequest(context: any): Promise<Response> {
       'mortality-records': 'mortality_records',
       'pen-movements': 'pen_movements',
       'weight-readings': 'weight_readings',
+      'cash-flows': 'cash_flows', // Fluxo de caixa
       'stats': 'stats', // Rota especial
     };
 
@@ -738,6 +739,126 @@ export async function onRequest(context: any): Promise<Response> {
     const pathParts = pathStr.split('/').filter(p => p);
     const resourceName = pathParts[0] || '';
     const tableName = routeMapping[resourceName] || resourceName;
+
+    // Rota especial para cash-flows - combinar expenses e revenues
+    if (resourceName === 'cash-flows') {
+      try {
+        // Buscar despesas
+        const expensesResponse = await fetch(`${SUPABASE_URL}/rest/v1/expenses?select=*`, {
+          headers: {
+            'apikey': MCP_ANON_KEY,
+            'Authorization': `Bearer ${MCP_ANON_KEY}`,
+          },
+        });
+        const expenses = await expensesResponse.json().catch(() => []);
+        
+        // Buscar receitas
+        const revenuesResponse = await fetch(`${SUPABASE_URL}/rest/v1/revenues?select=*`, {
+          headers: {
+            'apikey': MCP_ANON_KEY,
+            'Authorization': `Bearer ${MCP_ANON_KEY}`,
+          },
+        });
+        const revenues = await revenuesResponse.json().catch(() => []);
+        
+        // Combinar em formato de cash flow
+        const cashFlows = [
+          ...(Array.isArray(expenses) ? expenses : []).map((e: any) => ({
+            id: e.id,
+            type: 'EXPENSE',
+            category: e.category || 'Despesa',
+            description: e.description,
+            amount: e.totalAmount || e.amount || 0,
+            date: e.dueDate || e.paymentDate || e.createdAt,
+            isPaid: e.isPaid,
+            payerAccountId: e.payerAccountId,
+            createdAt: e.createdAt,
+          })),
+          ...(Array.isArray(revenues) ? revenues : []).map((r: any) => ({
+            id: r.id,
+            type: 'INCOME',
+            category: r.category || 'Receita',
+            description: r.description,
+            amount: r.totalAmount || r.amount || 0,
+            date: r.dueDate || r.receiptDate || r.createdAt,
+            isReceived: r.isReceived,
+            payerAccountId: r.payerAccountId,
+            createdAt: r.createdAt,
+          })),
+        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        return new Response(
+          JSON.stringify({
+            status: 'success',
+            data: cashFlows,
+            message: 'Fluxo de caixa carregado com sucesso',
+          }),
+          {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      } catch (err) {
+        console.error('Erro ao buscar cash-flows:', err);
+        return new Response(
+          JSON.stringify({
+            status: 'success',
+            data: [],
+            message: 'Nenhum dado de fluxo de caixa encontrado',
+          }),
+          {
+            status: 200,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+    }
+
+    // Rota especial para categories - retornar categorias padrão
+    if (resourceName === 'categories') {
+      const defaultCategories = [
+        { id: 'cat-income-1', name: 'Venda de Gado', type: 'INCOME', color: '#22c55e', icon: 'cattle', isDefault: true, isActive: true },
+        { id: 'cat-income-2', name: 'Outras Receitas', type: 'INCOME', color: '#3b82f6', icon: 'dollar', isDefault: true, isActive: true },
+        { id: 'cat-income-3', name: 'Recebimento de Vendas', type: 'INCOME', color: '#10b981', icon: 'receipt', isDefault: true, isActive: true },
+        { id: 'cat-expense-1', name: 'Compra de Gado', type: 'EXPENSE', color: '#ef4444', icon: 'cattle', isDefault: true, isActive: true },
+        { id: 'cat-expense-2', name: 'Alimentação/Ração', type: 'EXPENSE', color: '#f97316', icon: 'food', isDefault: true, isActive: true },
+        { id: 'cat-expense-3', name: 'Medicamentos/Veterinário', type: 'EXPENSE', color: '#8b5cf6', icon: 'medicine', isDefault: true, isActive: true },
+        { id: 'cat-expense-4', name: 'Frete', type: 'EXPENSE', color: '#06b6d4', icon: 'truck', isDefault: true, isActive: true },
+        { id: 'cat-expense-5', name: 'Comissão', type: 'EXPENSE', color: '#ec4899', icon: 'percent', isDefault: true, isActive: true },
+        { id: 'cat-expense-6', name: 'Mão de Obra', type: 'EXPENSE', color: '#f59e0b', icon: 'users', isDefault: true, isActive: true },
+        { id: 'cat-expense-7', name: 'Manutenção', type: 'EXPENSE', color: '#6366f1', icon: 'tool', isDefault: true, isActive: true },
+        { id: 'cat-expense-8', name: 'Combustível', type: 'EXPENSE', color: '#84cc16', icon: 'fuel', isDefault: true, isActive: true },
+        { id: 'cat-expense-9', name: 'Outras Despesas', type: 'EXPENSE', color: '#94a3b8', icon: 'other', isDefault: true, isActive: true },
+      ];
+      
+      // Filtrar por tipo se solicitado
+      const typeFilter = url.searchParams.get('type');
+      let filteredCategories = defaultCategories;
+      if (typeFilter) {
+        filteredCategories = defaultCategories.filter(c => c.type === typeFilter);
+      }
+      
+      return new Response(
+        JSON.stringify({
+          status: 'success',
+          data: filteredCategories,
+          message: 'Categorias carregadas com sucesso',
+        }),
+        {
+          status: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
 
     // Rota especial para stats - retornar dados básicos
     if (resourceName === 'stats') {

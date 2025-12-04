@@ -30,8 +30,8 @@ class CategoryAPI {
       const response = await api.get(`/categories${params.toString() ? `?${params}` : ''}`);
       return response.data;
     } catch (_error) {
-      console.error('Erro ao buscar categorias:', error);
-      throw error;
+      console.error('Erro ao buscar categorias:', _error);
+      throw _error;
     }
   }
 
@@ -41,8 +41,8 @@ class CategoryAPI {
       const response = await api.get(`/categories/${id}`);
       return response.data;
     } catch (_error) {
-      console.error('Erro ao buscar categoria:', error);
-      throw error;
+      console.error('Erro ao buscar categoria:', _error);
+      throw _error;
     }
   }
 
@@ -52,8 +52,8 @@ class CategoryAPI {
       const response = await api.post('/categories', data);
       return response.data;
     } catch (_error) {
-      console.error('Erro ao criar categoria:', error);
-      throw error;
+      console.error('Erro ao criar categoria:', _error);
+      throw _error;
     }
   }
 
@@ -63,8 +63,8 @@ class CategoryAPI {
       const response = await api.put(`/categories/${id}`, data);
       return response.data;
     } catch (_error) {
-      console.error('Erro ao atualizar categoria:', error);
-      throw error;
+      console.error('Erro ao atualizar categoria:', _error);
+      throw _error;
     }
   }
 
@@ -73,8 +73,8 @@ class CategoryAPI {
     try {
       await api.delete(`/categories/${id}`);
     } catch (_error) {
-      console.error('Erro ao deletar categoria:', error);
-      throw error;
+      console.error('Erro ao deletar categoria:', _error);
+      throw _error;
     }
   }
 
@@ -84,8 +84,8 @@ class CategoryAPI {
       const response = await api.get('/categories/stats/summary');
       return response.data;
     } catch (_error) {
-      console.error('Erro ao buscar estatísticas:', error);
-      throw error;
+      console.error('Erro ao buscar estatísticas:', _error);
+      throw _error;
     }
   }
 
@@ -100,7 +100,7 @@ class CategoryAPI {
       const category = await this.getById(id);
       return !category._count || category._count.cashFlows === 0;
     } catch (_error) {
-      console.error('Erro ao verificar se pode deletar:', error);
+      console.error('Erro ao verificar se pode deletar:', _error);
       return false;
     }
   }
