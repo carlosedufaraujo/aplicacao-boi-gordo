@@ -399,12 +399,23 @@ export function Login02({ className }: Login02Props) {
                   autoComplete="current-password"
                   disabled={isLoading}
                   required
+                  data-testid="password-input"
+                  aria-required="true"
+                  aria-invalid={error ? 'true' : 'false'}
+                  onKeyDown={(e) => {
+                    // Permitir Enter para submeter mesmo em automação
+                    if (e.key === 'Enter' && !isLoading && formData.email && formData.password) {
+                      handleSubmit(e as any);
+                    }
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   disabled={isLoading}
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  data-testid="toggle-password-visibility"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -434,7 +445,9 @@ export function Login02({ className }: Login02Props) {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading || !isOnline}
+              disabled={isLoading || !isOnline || !formData.email || !formData.password}
+              data-testid="login-submit-button"
+              aria-label="Entrar no sistema"
             >
               {isLoading ? (
                 <>
