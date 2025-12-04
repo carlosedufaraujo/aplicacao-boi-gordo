@@ -8,7 +8,8 @@
 import { getApiBaseUrl } from '@/config/api.config';
 import { safeLocalStorage, isSafari, getSafariCompatibleHeaders } from '@/utils/safariCompatibility';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
+// Usar função para obter URL em runtime (não em build time)
+const getApiUrl = () => import.meta.env.VITE_API_URL || getApiBaseUrl();
 
 export interface User {
   id: string;
@@ -47,7 +48,7 @@ export class BackendAuthService {
       throw new Error('Senha é obrigatória');
     }
 
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    const response = await fetch(`${getApiUrl()}/auth/login`, {
       method: 'POST',
       headers: getSafariCompatibleHeaders(),
       credentials: 'include', // Importante para Safari
@@ -156,7 +157,7 @@ export class BackendAuthService {
     if (!token) return false;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      const response = await fetch(`${getApiUrl()}/auth/me`, {
         headers: {
           ...getSafariCompatibleHeaders({ Authorization: `Bearer ${token}` })
         },

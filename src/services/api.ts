@@ -3,7 +3,8 @@ import { backendAuth } from './backendAuth';
 
 // Usar variável de ambiente do Vite
 import { getApiBaseUrl } from '@/config/api.config';
-const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
+// Usar função para obter URL em runtime (não em build time)
+const getApiUrl = () => import.meta.env.VITE_API_URL || getApiBaseUrl();
 
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -11,7 +12,7 @@ class ApiService {
       // Obter headers de autenticação
       const authHeaders = backendAuth.getAuthHeader();
 
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${getApiUrl()}${endpoint}`, {
         headers: {
           'Content-Type': 'application/json',
           ...authHeaders,
@@ -34,7 +35,7 @@ class ApiService {
 
   // Health check
   async healthCheck() {
-    const response = await fetch(`${API_BASE_URL}/health`);
+    const response = await fetch(`${getApiUrl()}/health`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 
 import { getApiBaseUrl } from '@/config/api.config';
-const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
+// Usar função para obter URL em runtime (não em build time)
+const getApiUrl = () => import.meta.env.VITE_API_URL || getApiBaseUrl();
 
 interface PenAllocation {
   id: string;
@@ -33,7 +34,7 @@ export const usePenAllocationsApi = () => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/pen-allocations`, {
+      const response = await fetch(`${getApiUrl()}/pen-allocations`, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -58,7 +59,7 @@ export const usePenAllocationsApi = () => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/pen-allocations`, {
+      const response = await fetch(`${getApiUrl()}/pen-allocations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +95,7 @@ export const usePenAllocationsApi = () => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/pen-allocations/${id}`, {
+      const response = await fetch(`${getApiUrl()}/pen-allocations/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +130,7 @@ export const usePenAllocationsApi = () => {
     setError(null);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/pen-allocations/${id}`, {
+      const response = await fetch(`${getApiUrl()}/pen-allocations/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

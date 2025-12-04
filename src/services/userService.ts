@@ -1,6 +1,7 @@
 // Serviço temporário para usar a nova rota de usuários
 import { getApiBaseUrl } from '@/config/api.config';
-const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
+// Usar função para obter URL em runtime (não em build time)
+const getApiUrl = () => import.meta.env.VITE_API_URL || getApiBaseUrl();
 
 export interface User {
   id: string;
@@ -17,7 +18,7 @@ export const userService = {
   // Usar a nova rota list-users ao invés de users
   async getUsers(): Promise<{ data: User[], message: string }> {
     try {
-      const response = await fetch(`${API_BASE_URL}/list-users`, {
+      const response = await fetch(`${getApiUrl()}/list-users`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -40,7 +41,7 @@ export const userService = {
       
       // Fallback: tentar a rota antiga
       try {
-        const fallbackResponse = await fetch(`${API_BASE_URL}/users`);
+        const fallbackResponse = await fetch(`${getApiUrl()}/users`);
         const fallbackResult = await fallbackResponse.json();
         
         if (fallbackResult.data) {
@@ -69,7 +70,7 @@ export const userService = {
 
   async updateUser(id: string, updates: Partial<User>): Promise<boolean> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${id}`, {
+      const response = await fetch(`${getApiUrl()}/users/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

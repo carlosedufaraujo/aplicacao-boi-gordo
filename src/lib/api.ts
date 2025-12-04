@@ -3,15 +3,21 @@ import { getAuthToken } from './auth-helper';
 
 // Configuração base da API
 import { getApiBaseUrl } from '@/config/api.config';
-const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
+// Usar função para obter URL em runtime (não em build time)
+const getApiUrl = () => import.meta.env.VITE_API_URL || getApiBaseUrl();
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
   timeout: 30000, // Aumentado para 30 segundos
   withCredentials: true, // Importante para enviar cookies
+});
+
+// Definir baseURL dinamicamente em runtime (não em build time)
+api.interceptors.request.use((config) => {
+  config.baseURL = getApiUrl();
+  return config;
 });
 
 // Interceptador de requisição para adicionar token de autenticação
