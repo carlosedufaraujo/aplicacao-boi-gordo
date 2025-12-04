@@ -7,15 +7,15 @@ class SocketService {
   connect(token: string) {
     if (this.connected) return;
 
-    // Detectar URL do WebSocket baseado no ambiente
+    // Sempre usar WebSocket do Cloudflare Pages (ambiente online)
     const getWebSocketUrl = (): string => {
-      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-        // Em produção, usar WSS com o mesmo host
+      if (typeof window !== 'undefined') {
+        // Sempre usar WSS do Cloudflare Pages
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         return `${protocol}//${window.location.host}`;
       }
-      // Em desenvolvimento, usar localhost
-      return 'http://localhost:3001';
+      // Fallback para WSS do Cloudflare Pages em build time
+      return 'wss://aplicacao-boi-gordo.pages.dev';
     };
 
     this.socket = io(getWebSocketUrl(), {

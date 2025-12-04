@@ -180,7 +180,7 @@ export const dashboardService = {
 
   // Exportar dados do dashboard
   exportData: async (format: 'pdf' | 'excel' | 'csv' = 'pdf'): Promise<Blob> => {
-    const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'http://localhost:3001/api/v1');
+    const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'https://aplicacao-boi-gordo.pages.dev/api/v1');
     const response = await fetch(`${apiUrl}/dashboard/export?format=${format}`, {
       method: 'GET',
       headers: {

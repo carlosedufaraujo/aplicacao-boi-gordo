@@ -1,45 +1,46 @@
 // Configuração centralizada das URLs da API
 
 /**
- * Retorna a URL base da API dependendo do ambiente
+ * Retorna a URL base da API (sempre Cloudflare Pages - ambiente online)
  */
 export const getApiBaseUrl = (): string => {
-  // Priorizar variável de ambiente (Cloudflare Pages)
+  // Priorizar variável de ambiente se configurada
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Em produção (Cloudflare Pages), usar a URL relativa com /api/v1
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+  // Sempre usar URL relativa do Cloudflare Pages
+  if (typeof window !== 'undefined') {
     return window.location.origin + '/api/v1';
   }
-  // Em desenvolvimento, usar localhost
-  return 'http://localhost:3001/api/v1';
+  
+  // Fallback para URL do Cloudflare Pages em build time
+  return 'https://aplicacao-boi-gordo.pages.dev/api/v1';
 };
 
 /**
- * Retorna a URL base sem o prefixo /api/v1
+ * Retorna a URL base sem o prefixo /api/v1 (sempre Cloudflare Pages)
  */
 export const getBaseUrl = (): string => {
-  // Em produção (Vercel), usar a URL relativa
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+  // Sempre usar URL relativa do Cloudflare Pages
+  if (typeof window !== 'undefined') {
     return window.location.origin;
   }
-  // Em desenvolvimento, usar localhost
-  return 'http://localhost:3001';
+  // Fallback para URL do Cloudflare Pages em build time
+  return 'https://aplicacao-boi-gordo.pages.dev';
 };
 
 /**
- * Retorna a URL do WebSocket
+ * Retorna a URL do WebSocket (sempre Cloudflare Pages)
  */
 export const getWebSocketUrl = (): string => {
-  // Em produção (Vercel), usar WSS
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+  // Sempre usar WSS do Cloudflare Pages
+  if (typeof window !== 'undefined') {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${protocol}//${window.location.host}`;
   }
-  // Em desenvolvimento, usar localhost
-  return 'ws://localhost:3001';
+  // Fallback para WSS do Cloudflare Pages em build time
+  return 'wss://aplicacao-boi-gordo.pages.dev';
 };
 
 // Exporta as URLs para uso direto (calculadas no momento da importação)

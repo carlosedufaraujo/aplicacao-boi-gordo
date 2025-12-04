@@ -13,20 +13,8 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
-    proxy: {
-      '/api': {
-        target: process.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false,
-        // Só usar proxy em desenvolvimento local
-        configure: (proxy, _options) => {
-          // Se estiver usando produção API, não usar proxy
-          if (process.env.VITE_USE_PRODUCTION_API === 'true') {
-            return;
-          }
-        }
-      }
-    }
+    // Removido proxy - sempre usar Cloudflare Pages diretamente
+    // As requisições vão direto para aplicacao-boi-gordo.pages.dev/api/v1
   },
   optimizeDeps: {
     // Incluir dependências problemáticas explicitamente

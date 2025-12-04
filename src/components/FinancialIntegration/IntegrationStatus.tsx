@@ -40,7 +40,7 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
 
   const checkIntegrationStatus = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'http://localhost:3001/api/v1');
+      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'https://aplicacao-boi-gordo.pages.dev/api/v1');
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       const response = await fetch(`${apiUrl}/expenses?purchaseId=${purchaseId}`, {
         headers: {
@@ -90,7 +90,7 @@ export const IntegrationStatus: React.FC<IntegrationStatusProps> = ({
     setLoading(true);
     try {
       // Chamar API para sincronizar
-      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'http://localhost:3001/api/v1');
+      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'https://aplicacao-boi-gordo.pages.dev/api/v1');
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
       const response = await fetch(`${apiUrl}/cattle-purchases/${purchaseId}/sync-expenses`, {
         method: 'POST',

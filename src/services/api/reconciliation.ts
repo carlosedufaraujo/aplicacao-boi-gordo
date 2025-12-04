@@ -12,7 +12,7 @@ export const reconciliationService = {
     formData.append('file', file);
     formData.append('accountId', accountId);
     
-    const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'http://localhost:3001/api/v1');
+    const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'https://aplicacao-boi-gordo.pages.dev/api/v1');
     const response = await fetch(`${apiUrl}/reconciliation/import`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },

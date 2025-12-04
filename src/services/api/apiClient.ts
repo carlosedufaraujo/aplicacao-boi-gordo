@@ -18,23 +18,16 @@ export class ApiClient {
   private baseURL: string;
 
   constructor() {
-    // Priorizar variável de ambiente (Cloudflare Pages)
+    // Sempre usar Cloudflare Pages (ambiente online)
+    // Priorizar variável de ambiente se configurada
     if (import.meta.env.VITE_API_URL) {
       this.baseURL = import.meta.env.VITE_API_URL;
-    } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-      // Em produção (Cloudflare Pages), usar a URL relativa com /api/v1
+    } else if (typeof window !== 'undefined') {
+      // Sempre usar URL relativa do Cloudflare Pages
       this.baseURL = window.location.origin + '/api/v1';
     } else {
-      // Em desenvolvimento local, tentar usar Cloudflare Pages primeiro
-      // Se não disponível, usar localhost (para quando backend local estiver rodando)
-      // Para testes locais com TestSprite, usar produção
-      const productionUrl = 'https://aplicacao-boi-gordo.pages.dev/api/v1';
-      // Em desenvolvimento, preferir produção para testes, mas permitir override via env
-      if (import.meta.env.VITE_USE_PRODUCTION_API === 'true' || import.meta.env.MODE === 'test') {
-        this.baseURL = productionUrl;
-      } else {
-        this.baseURL = 'http://localhost:3001/api/v1';
-      }
+      // Fallback para URL do Cloudflare Pages em build time
+      this.baseURL = 'https://aplicacao-boi-gordo.pages.dev/api/v1';
     }
   }
 
