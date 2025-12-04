@@ -9,7 +9,7 @@
     "projectName": "aplicacao-boi-gordo",
     "projectPath": "/Users/carloseduardo/App/aplicacao-boi-gordo",
     "testIds": [],
-    "additionalInstruction": "Testar a aplicação após todas as correções implementadas. Validar que os problemas corrigidos estão funcionando: botão Compras navega corretamente, botão Nova Movimentação abre formulário, erros 'Resposta inválida do servidor' foram resolvidos. Usar credenciais válidas: carlosedufaraujo@outlook.com / 368308450Ce*",
+    "additionalInstruction": "Testar após correção do .env que estava sobrescrevendo .env.local. O .env foi corrigido para não sobrescrever VITE_API_URL, e o servidor foi reiniciado. Agora deve usar backend em produção. Validar login, navegação e funcionalidades. Credenciais: carlosedufaraujo@outlook.com / 368308450Ce*",
     "envs": {
       "API_KEY": "sk-user--qOrsYiHop-KLboNRXaVJZmLPIE2bmJzOGv5ANLbzdM-nTIaU88nHePdFF-vui0oVk4jyX4G19fG1FNmUbS37SYgehu_q3UplmmGl9eBg7fqPqqGfERlTSjw4Hsx0kctBGc"
     }

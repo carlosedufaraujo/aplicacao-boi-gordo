@@ -211,6 +211,10 @@ export function Login02({ className }: Login02Props) {
           src={backgroundImage}
           alt={`${organizationName} - ${domainConfig.organizationSubtitle || ''}`}
           className="h-full w-full object-cover dark:brightness-[0.3] dark:contrast-125"
+          width={1920}
+          height={1080}
+          loading="eager"
+          style={{ aspectRatio: '16/9' }}
         />
         {/* Overlay com informações */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent dark:from-black/80 dark:via-black/40" />

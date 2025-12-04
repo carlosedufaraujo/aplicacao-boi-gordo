@@ -132,6 +132,10 @@ export const UpdateDetailModal: React.FC<UpdateDetailModalProps> = ({
                 src={update.imageUrl}
                 alt={update.title}
                 className="w-full rounded-lg shadow-soft"
+                width={800}
+                height={450}
+                loading="lazy"
+                style={{ aspectRatio: '16/9' }}
               />
             </div>
           )}
