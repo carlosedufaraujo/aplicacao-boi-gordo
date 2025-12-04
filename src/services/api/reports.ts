@@ -35,12 +35,9 @@ export const reportsService = {
   
   // Download de relatório
   download: async (id: string, format: 'pdf' | 'excel' | 'csv' = 'pdf'): Promise<Blob> => {
+    const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'http://localhost:3001/api/v1');
     const response = await fetch(
-      (() => {
-        import { getApiBaseUrl } from '@/config/api.config';
-        const apiUrl = import.meta.env.VITE_API_URL || getApiBaseUrl();
-        return `${apiUrl}/reports/${id}/download?format=${format}`;
-      })(),
+      `${apiUrl}/reports/${id}/download?format=${format}`,
       {
         method: 'GET',
         headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
