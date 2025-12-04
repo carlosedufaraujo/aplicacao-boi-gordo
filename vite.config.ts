@@ -15,9 +15,16 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3333',
+        target: process.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:3001',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        // Só usar proxy em desenvolvimento local
+        configure: (proxy, _options) => {
+          // Se estiver usando produção API, não usar proxy
+          if (process.env.VITE_USE_PRODUCTION_API === 'true') {
+            return;
+          }
+        }
       }
     }
   },

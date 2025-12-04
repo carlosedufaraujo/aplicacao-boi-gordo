@@ -123,14 +123,7 @@ export const SalesManagement: React.FC<SalesManagementProps> = ({ className }) =
   // Hook para geração de PDF
   const { generateReportPDF } = usePDFGenerator();
   
-  // Teste direto da API ao montar o componente
-  React.useEffect(() => {
-    fetch('http://localhost:3001/api/v1/sale-records')
-      .then(res => res.json())
-      .then(data => {
-      })
-      .catch(err => console.error('❌ Erro no fetch direto:', err));
-  }, []);
+  // Teste direto da API ao montar o componente (removido - usar hook useSaleRecordsApi)
   
   const { cattlePurchases, loading: purchasesLoading } = useCattlePurchasesApi();
   const { partners, loading: partnersLoading } = usePartnersApi();

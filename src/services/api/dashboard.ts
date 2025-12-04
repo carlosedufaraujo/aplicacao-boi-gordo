@@ -180,7 +180,9 @@ export const dashboardService = {
 
   // Exportar dados do dashboard
   exportData: async (format: 'pdf' | 'excel' | 'csv' = 'pdf'): Promise<Blob> => {
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/dashboard/export?format=${format}`, {
+      import { getApiBaseUrl } from '@/config/api.config';
+      const apiUrl = import.meta.env.VITE_API_URL || getApiBaseUrl();
+      const response = await fetch(`${apiUrl}/dashboard/export?format=${format}`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${localStorage.getItem('authToken')}`,

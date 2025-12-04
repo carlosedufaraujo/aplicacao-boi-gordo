@@ -7,7 +7,18 @@ class SocketService {
   connect(token: string) {
     if (this.connected) return;
 
-    this.socket = io('http://localhost:3001', {
+    // Detectar URL do WebSocket baseado no ambiente
+    const getWebSocketUrl = (): string => {
+      if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+        // Em produção, usar WSS com o mesmo host
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        return `${protocol}//${window.location.host}`;
+      }
+      // Em desenvolvimento, usar localhost
+      return 'http://localhost:3001';
+    };
+
+    this.socket = io(getWebSocketUrl(), {
       auth: {
         token,
       },

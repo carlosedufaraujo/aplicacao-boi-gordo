@@ -40,8 +40,9 @@ export function useRealDataSync() {
       setSyncState(prev => ({ ...prev, loading: true, error: null }));
 
       // Buscar TODOS os dados do backend
+      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'http://localhost:3001/api/v1');
       const [allData, statsData] = await Promise.all([
-        fetch('http://localhost:3001/api/v1/all-data').then(r => r.json()),
+        fetch(`${apiUrl}/all-data`).then(r => r.json()),
         apiService.getStats()
       ]);
       // Converter TODOS os dados do backend para o formato do frontend

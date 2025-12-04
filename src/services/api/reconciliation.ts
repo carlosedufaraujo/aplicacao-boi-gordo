@@ -12,7 +12,9 @@ export const reconciliationService = {
     formData.append('file', file);
     formData.append('accountId', accountId);
     
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1'}/reconciliation/import`, {
+    import { getApiBaseUrl } from '@/config/api.config';
+    const apiUrl = import.meta.env.VITE_API_URL || getApiBaseUrl();
+    const response = await fetch(`${apiUrl}/reconciliation/import`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` },
       body: formData,

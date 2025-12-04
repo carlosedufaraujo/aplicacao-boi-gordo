@@ -226,7 +226,9 @@ class OfflineService {
     };
 
     try {
-      const response = await fetch(`http://localhost:3001${endpoint}`, {
+      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'http://localhost:3001/api/v1');
+      const baseUrl = apiUrl.replace('/api/v1', '');
+      const response = await fetch(`${baseUrl}${endpoint}`, {
         method: methods[operation.type],
         headers: {
           'Authorization': `Bearer ${token}`,

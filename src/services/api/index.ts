@@ -13,7 +13,8 @@ import { settingsService } from './settings';
 import { usersService } from './users';
 import { reportsService } from './reports';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+import { getApiBaseUrl } from '@/config/api.config';
+const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
 
 // Configuração base para todas as requisições
 export const apiConfig = {

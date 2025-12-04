@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api/v1';
+import { getApiBaseUrl } from '@/config/api.config';
+const API_BASE_URL = import.meta.env.VITE_API_URL || getApiBaseUrl();
 
 interface PenAllocation {
   id: string;

@@ -18,22 +18,25 @@ export const TestConnection: React.FC = () => {
     
     try {
       
+      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'http://localhost:3001/api/v1');
+      const baseUrl = apiUrl.replace('/api/v1', '');
+      
       // Teste 1: Health check
-      const healthResponse = await fetch('http://localhost:3001/health');
+      const healthResponse = await fetch(`${baseUrl}/health`);
       if (!healthResponse.ok) {
         throw new Error(`Health check falhou: ${healthResponse.status} ${healthResponse.statusText}`);
       }
       const healthData = await healthResponse.json();
       
       // Teste 2: Stats
-      const statsResponse = await fetch('http://localhost:3001/api/v1/stats');
+      const statsResponse = await fetch(`${apiUrl}/stats`);
       if (!statsResponse.ok) {
         throw new Error(`Stats falhou: ${statsResponse.status} ${statsResponse.statusText}`);
       }
       const statsData = await statsResponse.json();
       
       // Teste 3: Frontend data
-      const frontendResponse = await fetch('http://localhost:3001/api/v1/frontend-data');
+      const frontendResponse = await fetch(`${apiUrl}/frontend-data`);
       if (!frontendResponse.ok) {
         throw new Error(`Frontend data falhou: ${frontendResponse.status} ${frontendResponse.statusText}`);
       }

@@ -109,7 +109,8 @@ const CleanUserManagement: React.FC = () => {
     const loadUsers = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3001/api/v1/users', {
+        const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'http://localhost:3001/api/v1');
+        const response = await fetch(`${apiUrl}/users`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
             'Content-Type': 'application/json'
@@ -207,7 +208,8 @@ const CleanUserManagement: React.FC = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/v1/users', {
+      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'http://localhost:3001/api/v1');
+      const response = await fetch(`${apiUrl}/users`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
           'Content-Type': 'application/json'
