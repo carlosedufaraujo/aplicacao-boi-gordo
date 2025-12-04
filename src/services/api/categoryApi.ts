@@ -20,6 +20,20 @@ export interface CategoryStats {
 }
 
 class CategoryAPI {
+  // Helper para extrair dados da resposta
+  private extractData<T>(response: any): T {
+    // Se a resposta tem formato { status: 'success', data: [...] }, extrair data
+    if (response?.data?.status === 'success' && response?.data?.data !== undefined) {
+      return response.data.data;
+    }
+    // Se response.data é o próprio objeto com status
+    if (response?.status === 'success' && response?.data !== undefined) {
+      return response.data;
+    }
+    // Fallback para formato antigo
+    return response?.data || response || [];
+  }
+
   // Buscar todas as categorias
   async getAll(filters?: { type?: 'INCOME' | 'EXPENSE'; isActive?: boolean }): Promise<Category[]> {
     try {
@@ -28,7 +42,7 @@ class CategoryAPI {
       if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
 
       const response = await api.get(`/categories${params.toString() ? `?${params}` : ''}`);
-      return response.data;
+      return this.extractData<Category[]>(response);
     } catch (_error) {
       console.error('Erro ao buscar categorias:', _error);
       throw _error;
@@ -39,7 +53,7 @@ class CategoryAPI {
   async getById(id: string): Promise<Category & { _count?: { cashFlows: number } }> {
     try {
       const response = await api.get(`/categories/${id}`);
-      return response.data;
+      return this.extractData(response);
     } catch (_error) {
       console.error('Erro ao buscar categoria:', _error);
       throw _error;
@@ -50,7 +64,7 @@ class CategoryAPI {
   async create(data: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>): Promise<Category> {
     try {
       const response = await api.post('/categories', data);
-      return response.data;
+      return this.extractData(response);
     } catch (_error) {
       console.error('Erro ao criar categoria:', _error);
       throw _error;
@@ -61,7 +75,7 @@ class CategoryAPI {
   async update(id: string, data: Partial<Omit<Category, 'id' | 'type' | 'createdAt' | 'updatedAt'>>): Promise<Category> {
     try {
       const response = await api.put(`/categories/${id}`, data);
-      return response.data;
+      return this.extractData(response);
     } catch (_error) {
       console.error('Erro ao atualizar categoria:', _error);
       throw _error;
@@ -82,7 +96,7 @@ class CategoryAPI {
   async getStats(): Promise<CategoryStats[]> {
     try {
       const response = await api.get('/categories/stats/summary');
-      return response.data;
+      return this.extractData<CategoryStats[]>(response);
     } catch (_error) {
       console.error('Erro ao buscar estatísticas:', _error);
       throw _error;
