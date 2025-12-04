@@ -981,6 +981,22 @@ export async function onRequest(context: any): Promise<Response> {
     // Construir query string para Supabase
     const queryParts: string[] = [];
     
+    // Definir relacionamentos para cada tabela (JOINs do PostgREST)
+    // Isso traz os dados relacionados junto com a query principal
+    const tableRelationships: Record<string, string> = {
+      'cattle_purchases': '*,vendor:partners!vendorId(*),broker:partners!brokerId(*),transportCompany:partners!transportCompanyId(*),payerAccount:payer_accounts!payerAccountId(*)',
+      'sale_records': '*,buyer:partners!buyerId(*),pen:pens!penId(*)',
+      'expenses': '*,payerAccount:payer_accounts!payerAccountId(*)',
+      'revenues': '*,payerAccount:payer_accounts!payerAccountId(*)',
+      'health_interventions': '*,pen:pens!penId(*)',
+      'pen_movements': '*,fromPen:pens!fromPenId(*),toPen:pens!toPenId(*)',
+    };
+    
+    // Se a tabela tem relacionamentos definidos e não foi especificado um select customizado
+    if (tableRelationships[tableName] && !searchParams.has('select')) {
+      queryParts.push(`select=${encodeURIComponent(tableRelationships[tableName])}`);
+    }
+    
     // Adicionar filtros de ID se for uma rota específica (ex: /api/v1/cattle-purchases/123)
     if (pathParts.length > 1 && pathParts[1]) {
       const id = pathParts[1];
