@@ -96,9 +96,25 @@ export function Login02({ className }: Login02Props) {
       return;
     }
 
-    // Validações básicas
-    if (!formData.email || !formData.password) {
+    // Validações básicas com trim
+    const email = formData.email?.trim() || '';
+    const password = formData.password?.trim() || '';
+    
+    if (!email || !password) {
       setError('Por favor, preencha todos os campos.');
+      return;
+    }
+    
+    // Validação de formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Por favor, insira um email válido.');
+      return;
+    }
+    
+    // Validação de senha mínima
+    if (password.length < 3) {
+      setError('A senha deve ter pelo menos 3 caracteres.');
       return;
     }
 
@@ -106,11 +122,11 @@ export function Login02({ className }: Login02Props) {
     setIsLoading(true);
 
     try {
-      await signIn(formData.email, formData.password);
+      await signIn(email, password);
       
       // Salvar/remover email conforme preferência (compatível com Safari)
       if (formData.rememberMe) {
-        safeLocalStorage.setItem('rememberedEmail', formData.email);
+        safeLocalStorage.setItem('rememberedEmail', email);
       } else {
         safeLocalStorage.removeItem('rememberedEmail');
       }
@@ -345,6 +361,17 @@ export function Login02({ className }: Login02Props) {
                 autoComplete="email"
                 disabled={isLoading}
                 required
+                data-testid="email-input"
+                aria-required="true"
+                aria-invalid={error ? 'true' : 'false'}
+                onKeyDown={(e) => {
+                  // Permitir Enter para avançar para senha ou submeter
+                  if (e.key === 'Enter' && formData.email && !formData.password) {
+                    e.preventDefault();
+                    const passwordInput = document.getElementById('password') as HTMLInputElement;
+                    passwordInput?.focus();
+                  }
+                }}
               />
             </div>
 
