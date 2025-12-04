@@ -15,20 +15,25 @@ import { safeLocalStorage, isSafari, getSafariCompatibleHeaders } from '@/utils/
  * Usa autenticação JWT própria via localStorage (com fallback para Safari)
  */
 export class ApiClient {
-  private baseURL: string;
-
-  constructor() {
-    // Sempre usar Cloudflare Pages (ambiente online)
+  /**
+   * Obtém a URL base da API em runtime (não em build time)
+   * Isso garante que window.location.origin seja usado corretamente
+   */
+  private getBaseURL(): string {
     // Priorizar variável de ambiente se configurada
     if (import.meta.env.VITE_API_URL) {
-      this.baseURL = import.meta.env.VITE_API_URL;
-    } else if (typeof window !== 'undefined') {
-      // Sempre usar URL relativa do Cloudflare Pages
-      this.baseURL = window.location.origin + '/api/v1';
-    } else {
-      // Fallback para URL do Cloudflare Pages em build time
-      this.baseURL = 'https://aplicacao-boi-gordo.pages.dev/api/v1';
+      return import.meta.env.VITE_API_URL;
     }
+    // Sempre usar URL relativa do Cloudflare Pages em runtime
+    if (typeof window !== 'undefined') {
+      return window.location.origin + '/api/v1';
+    }
+    // Fallback para URL do Cloudflare Pages em build time (nunca deve chegar aqui no browser)
+    return 'https://aplicacao-boi-gordo.pages.dev/api/v1';
+  }
+
+  constructor() {
+    // Construtor vazio - URL é calculada em runtime via getBaseURL()
   }
 
   /**
@@ -76,7 +81,7 @@ export class ApiClient {
         console.warn(`[ApiClient] Requisição não autenticada para: ${endpoint}`);
       }
 
-      const url = `${this.baseURL}${endpoint}`;
+      const url = `${this.getBaseURL()}${endpoint}`;
 
       const config: RequestInit = {
         headers: {
@@ -272,7 +277,7 @@ export class ApiClient {
     
     // Build query string from params if provided
     if (params) {
-      const url = new URL(`${this.baseURL}${endpoint}`);
+      const url = new URL(`${this.getBaseURL()}${endpoint}`);
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           url.searchParams.append(key, String(value));
