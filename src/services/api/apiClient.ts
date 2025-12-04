@@ -273,13 +273,14 @@ export class ApiClient {
     
     // Build query string from params if provided
     if (params) {
-      const url = new URL(`${this.getBaseURL()}${endpoint}`);
+      const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          url.searchParams.append(key, String(value));
+          searchParams.append(key, String(value));
         }
       });
-      return this.request<T>(endpoint + url.search);
+      const queryString = searchParams.toString();
+      return this.request<T>(endpoint + (queryString ? `?${queryString}` : ''));
     }
 
     return this.request<T>(endpoint);
