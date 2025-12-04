@@ -967,17 +967,51 @@ export async function onRequest(context: any): Promise<Response> {
     // Construir URL do Supabase
     let supabaseUrl = `${SUPABASE_URL}/rest/v1/${tableName}`;
     
+    // Processar query parameters
+    const searchParams = new URLSearchParams(url.search);
+    
+    // Extrair paginação (page e limit) e converter para formato Supabase
+    const page = searchParams.get('page') ? parseInt(searchParams.get('page')!) : null;
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : null;
+    
+    // Remover page e limit dos parâmetros para não serem interpretados como filtros
+    searchParams.delete('page');
+    searchParams.delete('limit');
+    
+    // Construir query string para Supabase
+    const queryParts: string[] = [];
+    
     // Adicionar filtros de ID se for uma rota específica (ex: /api/v1/cattle-purchases/123)
     if (pathParts.length > 1 && pathParts[1]) {
       const id = pathParts[1];
-      supabaseUrl = `${SUPABASE_URL}/rest/v1/${tableName}?id=eq.${id}`;
+      queryParts.push(`id=eq.${id}`);
     }
     
-    // Adicionar query parameters se existirem (depois do ID)
-    if (url.search && pathParts.length <= 1) {
-      supabaseUrl += url.search;
-    } else if (url.search && pathParts.length > 1) {
-      supabaseUrl += `&${url.search.substring(1)}`;
+    // Adicionar outros query parameters (filtros, ordenação, etc.)
+    // Filtrar apenas parâmetros válidos do PostgREST
+    const validPostgrestParams = ['select', 'order', 'filter', 'or', 'and', 'not', 'is', 'in', 'cs', 'cd', 'sl', 'sr', 'nxr', 'nxl', 'adj'];
+    for (const [key, value] of searchParams.entries()) {
+      // Se for um parâmetro válido do PostgREST ou um filtro customizado
+      if (validPostgrestParams.includes(key.toLowerCase()) || key.includes('.')) {
+        queryParts.push(`${key}=${encodeURIComponent(value)}`);
+      } else {
+        // Para outros parâmetros, tratar como filtro de igualdade
+        queryParts.push(`${key}=eq.${encodeURIComponent(value)}`);
+      }
+    }
+    
+    // Adicionar paginação no formato correto do Supabase
+    if (limit !== null) {
+      queryParts.push(`limit=${limit}`);
+    }
+    if (page !== null && limit !== null) {
+      const offset = (page - 1) * limit;
+      queryParts.push(`offset=${offset}`);
+    }
+    
+    // Construir URL final
+    if (queryParts.length > 0) {
+      supabaseUrl += `?${queryParts.join('&')}`;
     }
 
     // Verificar se as chaves estão configuradas

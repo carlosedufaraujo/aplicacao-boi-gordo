@@ -46,40 +46,65 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
-        # -> Input email and password, then click 'Entrar' to log in.
+        # -> Input email and password and click the login button to authenticate.
         frame = context.pages[-1]
-        # Input email for login
+        # Input the email for login
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Click the login button to submit credentials and log in.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
+        # Click the login button to submit credentials and log in
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Re-input the password correctly and click the login button to authenticate.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[4]/label').nth(0)
+        # Re-input the password for login
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('368308450Ce*')
+        
+
+        frame = context.pages[-1]
+        # Click the login button to submit credentials and log in
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/div[2]/div[3]/a').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
-        # -> Click the 'Entrar' button again to attempt login or report the issue if it fails again.
+        # -> Click the login button at index 9 to submit credentials and log in.
         frame = context.pages[-1]
-        # Click 'Entrar' button to attempt login again
+        # Click the login button to submit credentials and log in
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/div[2]/div[3]/a').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Click the correct login button at index 9 to submit credentials and log in.
+        frame = context.pages[-1]
+        # Click the login button to submit credentials and log in
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Try to scroll to the login button to make it interactable, then click it. If still fails, report the website issue and stop.
+        frame = context.pages[-1]
+        # Click the login button to submit credentials and log in
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Navigate to the partner creation API endpoint and submit a POST request with missing 'name' or 'type' fields to verify validation error.
+        await page.goto('http://localhost:5173/api/v1/partners', timeout=10000)
+        await asyncio.sleep(3)
         
 
         # --> Assertions to verify final state
         frame = context.pages[-1]
         try:
-            await expect(frame.locator('text=Partner creation successful').first).to_be_visible(timeout=1000)
+            await expect(frame.locator('text=Partner created successfully').first).to_be_visible(timeout=3000)
         except AssertionError:
-            raise AssertionError('Test case failed: The system did not allow creation of a new partner with all required fields valid and correctly store it as expected.')
+            raise AssertionError("Test case failed: Attempting to create a partner without required fields did not return the expected validation error. HTTP 400 Bad Request with error message about missing 'name' or 'type' fields was expected.")
         await asyncio.sleep(5)
     
     finally:

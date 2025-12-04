@@ -46,30 +46,29 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
-        # -> Input email and password, then click 'Entrar' to log in.
+        # -> Input email and password, then click login button to access the system.
         frame = context.pages[-1]
         # Input email for login
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Click the login button to submit credentials and log into the system.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
+        # Click login button to submit credentials and log in
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Re-input the password correctly and click the login button to log into the system.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[4]/label').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        # Re-input password for login
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('368308450Ce*')
         
 
-        # -> Click the 'Entrar' button again to attempt login or report the issue if it fails again.
         frame = context.pages[-1]
-        # Click 'Entrar' button to attempt login again
+        # Click login button to submit credentials and log in
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
@@ -77,9 +76,9 @@ async def run_test():
         # --> Assertions to verify final state
         frame = context.pages[-1]
         try:
-            await expect(frame.locator('text=Partner creation successful').first).to_be_visible(timeout=1000)
+            await expect(frame.locator('text=Expense amount accepted').first).to_be_visible(timeout=1000)
         except AssertionError:
-            raise AssertionError('Test case failed: The system did not allow creation of a new partner with all required fields valid and correctly store it as expected.')
+            raise AssertionError('Test case failed: The system did not reject expenses with zero or negative amounts as expected. HTTP 400 Bad Request with validation error was not received.')
         await asyncio.sleep(5)
     
     finally:

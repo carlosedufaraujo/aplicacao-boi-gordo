@@ -9,9 +9,10 @@
     "projectName": "aplicacao-boi-gordo",
     "projectPath": "/Users/carloseduardo/App/aplicacao-boi-gordo",
     "testIds": [],
-    "additionalInstruction": "Testar após correção do .env que estava sobrescrevendo .env.local. O .env foi corrigido para não sobrescrever VITE_API_URL, e o servidor foi reiniciado. Agora deve usar backend em produção. Validar login, navegação e funcionalidades. Credenciais: carlosedufaraujo@outlook.com / 368308450Ce*",
+    "additionalInstruction": "",
     "envs": {
       "API_KEY": "sk-user--qOrsYiHop-KLboNRXaVJZmLPIE2bmJzOGv5ANLbzdM-nTIaU88nHePdFF-vui0oVk4jyX4G19fG1FNmUbS37SYgehu_q3UplmmGl9eBg7fqPqqGfERlTSjw4Hsx0kctBGc"
     }
-  }
+  },
+  "proxy": "http://14bb725a-82fe-4d0b-87d9-b47142724949:24uY7eheONEkyFPA2Y7cbxrKpfeLS4dv@tun.testsprite.com:8080"
 }

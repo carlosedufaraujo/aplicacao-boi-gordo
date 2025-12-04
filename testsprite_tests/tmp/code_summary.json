@@ -3,129 +3,115 @@
     "TypeScript",
     "React",
     "Vite",
-    "Tailwind CSS",
-    "shadcn/ui",
-    "Supabase",
     "Cloudflare Pages",
-    "PostgreSQL"
+    "Supabase",
+    "Tailwind CSS",
+    "React Router",
+    "Zustand",
+    "React Query",
+    "Zod"
   ],
   "features": [
     {
       "name": "Authentication",
-      "description": "Sistema de autenticação com JWT, validação de credenciais e controle de acesso baseado em roles",
+      "description": "Sistema de autenticação JWT com login e gerenciamento de sessão",
       "files": [
-        "src/pages/Login02.tsx",
         "src/services/backendAuth.ts",
-        "functions/api/[[path]].ts"
+        "src/components/Auth/ProtectedRoute.tsx",
+        "src/pages/Login02.tsx",
+        "src/components/ModernLoginForm.tsx"
       ]
     },
     {
       "name": "Dashboard",
-      "description": "Dashboard principal com KPIs, gráficos e métricas do sistema",
+      "description": "Painel principal com estatísticas e métricas do sistema",
       "files": [
         "src/components/Dashboard/ShadcnDashboard.tsx",
-        "src/hooks/api/useCattlePurchasesApi.ts",
+        "src/hooks/api/useDashboardApi.ts"
+      ]
+    },
+    {
+      "name": "Cattle Purchases Management",
+      "description": "Gerenciamento de compras de gado com CRUD completo",
+      "files": [
+        "src/components/Purchases/PurchaseManagement.tsx",
+        "src/hooks/api/useCattlePurchasesApi.ts"
+      ]
+    },
+    {
+      "name": "Financial Center",
+      "description": "Centro financeiro com gestão de receitas e despesas",
+      "files": [
+        "src/components/FinancialCenter/FinancialCenter.tsx",
+        "src/components/CashFlow/CashFlowDashboard.tsx",
+        "src/components/CashFlow/CashFlowForm.tsx",
         "src/hooks/api/useExpensesApi.ts",
         "src/hooks/api/useRevenuesApi.ts"
       ]
     },
     {
-      "name": "Cattle Purchases Management",
-      "description": "Gestão de compras de gado com cadastro, listagem e detalhamento",
+      "name": "Partners Management",
+      "description": "Gerenciamento de parceiros (fornecedores e compradores)",
       "files": [
-        "src/components/Purchases/PurchaseManagement.tsx",
-        "src/components/Forms/EnhancedPurchaseForm.tsx"
+        "src/components/Partners/PartnersManagement.tsx",
+        "src/hooks/api/usePartnersApi.ts"
       ]
     },
     {
       "name": "Sales Management",
-      "description": "Gestão de vendas com pipeline Kanban e registro de vendas",
+      "description": "Gerenciamento de vendas de gado",
       "files": [
         "src/components/Sales/SalesManagement.tsx",
-        "src/components/Sales/SalesPipeline"
+        "src/hooks/api/useSaleRecordsApi.ts"
       ]
     },
     {
-      "name": "Financial Center",
-      "description": "Centro financeiro com gestão de despesas, receitas e fluxo de caixa",
+      "name": "Interventions Management",
+      "description": "Gerenciamento de intervenções veterinárias e zootécnicas",
       "files": [
-        "src/components/CashFlow/CashFlowDashboard.tsx",
-        "src/components/FinancialCenter/FinancialCenter.tsx"
-      ]
-    },
-    {
-      "name": "Partners Management",
-      "description": "Gestão de parceiros (fornecedores, corretores, transportadoras)",
-      "files": [
-        "src/components/Registrations/CompleteRegistrations.tsx"
-      ]
-    },
-    {
-      "name": "Veterinary Interventions",
-      "description": "Gestão de intervenções veterinárias e saúde animal",
-      "files": [
+        "src/hooks/api/useInterventionsApi.ts",
         "src/components/Interventions/InterventionsManagement.tsx"
       ]
     },
     {
-      "name": "Lots Management",
-      "description": "Gestão de lotes de gado com mapas de currais e movimentações",
+      "name": "Pens Management",
+      "description": "Gerenciamento de currais e alocação de animais",
       "files": [
-        "src/components/Lots/CompleteLots.tsx",
-        "src/components/Lots/PenMap.tsx"
+        "src/components/Pens/PensManagement.tsx",
+        "src/hooks/api/usePensApi.ts",
+        "src/hooks/api/usePenAllocationsApi.ts"
       ]
     },
     {
-      "name": "LGPD Compliance",
-      "description": "Conformidade LGPD com exportação e exclusão de dados do usuário",
+      "name": "Sales Pipeline",
+      "description": "Pipeline de vendas com Kanban board",
       "files": [
-        "src/components/Settings/LGPDCompliance.tsx",
-        "functions/api/[[path]].ts"
+        "src/components/Sales/SalesPipeline/ModernSalesPipeline.tsx",
+        "src/components/Sales/SalesPipeline/SalesKanbanColumn.tsx"
+      ]
+    },
+    {
+      "name": "User Management",
+      "description": "Gerenciamento de usuários e permissões",
+      "files": [
+        "src/components/System/CleanUserManagement.tsx",
+        "src/services/userService.ts"
       ]
     },
     {
       "name": "API Client",
-      "description": "Cliente API com tratamento de erros, timeout e métricas de performance",
+      "description": "Cliente API centralizado para comunicação com backend",
       "files": [
         "src/services/api/apiClient.ts",
-        "src/services/api/users.ts"
+        "src/config/api.config.ts"
       ]
     },
     {
       "name": "Layout and Navigation",
-      "description": "Layout principal com sidebar responsivo e navegação",
+      "description": "Layout principal com sidebar e navegação",
       "files": [
         "src/components/Layout/AppLayout.tsx",
         "src/components/Layout/ShadcnSidebar.tsx"
-      ]
-    },
-    {
-      "name": "Settings",
-      "description": "Configurações do sistema e perfil do usuário",
-      "files": [
-        "src/components/Settings/ModernSettings.tsx",
-        "src/components/Profile/ProfileSettings.tsx"
-      ]
-    },
-    {
-      "name": "Cloudflare Pages Function",
-      "description": "Backend API usando Cloudflare Pages Functions como proxy para Supabase",
-      "files": [
-        "functions/api/[[path]].ts"
-      ]
-    },
-    {
-      "name": "Safari Compatibility",
-      "description": "Utilitários para compatibilidade com Safari (localStorage, CORS)",
-      "files": [
-        "src/utils/safariCompatibility.ts"
-      ]
-    },
-    {
-      "name": "Export Utilities",
-      "description": "Utilitários para exportação de dados em Excel e CSV",
-      "files": [
-        "src/utils/exportUtils.ts"
       ]
     }
   ]

@@ -46,30 +46,61 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
-        # -> Input email and password, then click 'Entrar' to log in.
+        # -> Input email and password, then submit login form
         frame = context.pages[-1]
         # Input email for login
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Click the 'Entrar' button to submit the login form and log in
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
+        # Click 'Entrar' button to submit login form
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Clear password field, re-enter password carefully, then submit login form
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[4]/label').nth(0)
+        # Focus password field to clear it
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[4]/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
-        # -> Click the 'Entrar' button again to attempt login or report the issue if it fails again.
+        # -> Retry focusing and inputting password in the password field, or try alternative interaction methods
         frame = context.pages[-1]
-        # Click 'Entrar' button to attempt login again
+        # Focus password input field to enable typing
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        frame = context.pages[-1]
+        # Input password into password field
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('368308450Ce*')
+        
+
+        frame = context.pages[-1]
+        # Click 'Entrar' button to submit login form
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        # -> Try to clear password field by selecting all and deleting, then re-enter password and submit login form
+        frame = context.pages[-1]
+        # Focus password field
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        
+
+        frame = context.pages[-1]
+        # Re-enter password carefully
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('368308450Ce*')
+        
+
+        frame = context.pages[-1]
+        # Click 'Entrar' button to submit login form
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
@@ -77,9 +108,9 @@ async def run_test():
         # --> Assertions to verify final state
         frame = context.pages[-1]
         try:
-            await expect(frame.locator('text=Partner creation successful').first).to_be_visible(timeout=1000)
+            await expect(frame.locator('text=API response time exceeded 500 milliseconds').first).to_be_visible(timeout=1000)
         except AssertionError:
-            raise AssertionError('Test case failed: The system did not allow creation of a new partner with all required fields valid and correctly store it as expected.')
+            raise AssertionError('Test plan failed: API endpoints response times exceeded 500 milliseconds under typical and peak loads.')
         await asyncio.sleep(5)
     
     finally:

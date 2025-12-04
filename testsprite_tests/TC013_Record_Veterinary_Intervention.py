@@ -53,23 +53,47 @@ async def run_test():
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Click the 'Entrar' button to submit the login form and log in.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
+        # Click 'Entrar' button to submit login form
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Clear the password field at index 4, re-enter the password '368308450Ce*', and click the 'Entrar' button at index 8 to attempt login again.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[4]/label').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        # Clear the password field to fix validation error
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('')
         
 
-        # -> Click the 'Entrar' button again to attempt login or report the issue if it fails again.
+        # -> Clear and re-enter email at index 3, clear and re-enter password at index 5, then click 'Entrar' button at index 9 to attempt login.
         frame = context.pages[-1]
-        # Click 'Entrar' button to attempt login again
+        # Clear email field
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('')
+        
+
+        frame = context.pages[-1]
+        # Re-enter email
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
+        
+
+        frame = context.pages[-1]
+        # Clear password field
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('')
+        
+
+        frame = context.pages[-1]
+        # Re-enter password
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('368308450Ce*')
+        
+
+        frame = context.pages[-1]
+        # Click 'Entrar' button to submit login form
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
@@ -77,9 +101,9 @@ async def run_test():
         # --> Assertions to verify final state
         frame = context.pages[-1]
         try:
-            await expect(frame.locator('text=Partner creation successful').first).to_be_visible(timeout=1000)
+            await expect(frame.locator('text=Intervention logged successfully').first).to_be_visible(timeout=1000)
         except AssertionError:
-            raise AssertionError('Test case failed: The system did not allow creation of a new partner with all required fields valid and correctly store it as expected.')
+            raise AssertionError("Test case failed: The intervention could not be created or retrieved as expected according to the test plan.")
         await asyncio.sleep(5)
     
     finally:

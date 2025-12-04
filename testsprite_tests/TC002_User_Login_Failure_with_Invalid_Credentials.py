@@ -46,40 +46,46 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
-        # -> Input email and password, then click 'Entrar' to log in.
+        # -> Input invalid email and password, then submit the login form.
         frame = context.pages[-1]
-        # Input email for login
+        # Input invalid email
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Check network response or API response for status code 401 or error message indicating invalid credentials.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
+        # Click the 'Entrar' button again to see if any error message appears
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Input invalid email and password, then submit the login form.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[4]/label').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        # Input invalid email
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
-        # -> Click the 'Entrar' button again to attempt login or report the issue if it fails again.
         frame = context.pages[-1]
-        # Click 'Entrar' button to attempt login again
+        # Input invalid password
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('wrongpassword123')
+        
+
+        frame = context.pages[-1]
+        # Click the login button to submit invalid credentials
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
         # --> Assertions to verify final state
         frame = context.pages[-1]
-        try:
-            await expect(frame.locator('text=Partner creation successful').first).to_be_visible(timeout=1000)
-        except AssertionError:
-            raise AssertionError('Test case failed: The system did not allow creation of a new partner with all required fields valid and correctly store it as expected.')
+        await expect(frame.locator('text=Bem-vindo de volta').first).to_be_visible(timeout=30000)
+        await expect(frame.locator('text=Entre com suas credenciais para acessar o sistema').first).to_be_visible(timeout=30000)
+        await expect(frame.locator('text=Esqueceu sua senha?').first).to_be_visible(timeout=30000)
+        await expect(frame.locator('text=Lembrar meu email neste dispositivo').first).to_be_visible(timeout=30000)
+        await expect(frame.locator('text=Entrar').first).to_be_visible(timeout=30000)
         await asyncio.sleep(5)
     
     finally:

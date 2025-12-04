@@ -46,30 +46,29 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
-        # -> Input email and password, then click 'Entrar' to log in.
+        # -> Input email and password, then submit login form to obtain JWT token.
         frame = context.pages[-1]
         # Input email for login
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Input email and password, then submit login form to attempt login and obtain JWT token.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        # Input email for login
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Input password and click the 'Entrar' button to submit login form and obtain JWT token.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[4]/label').nth(0)
-        await page.wait_for_timeout(3000); await elem.click(timeout=5000)
+        # Input password for login
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[3]/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('368308450Ce*')
         
 
-        # -> Click the 'Entrar' button again to attempt login or report the issue if it fails again.
         frame = context.pages[-1]
-        # Click 'Entrar' button to attempt login again
+        # Click Entrar button to submit login form
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
@@ -77,9 +76,9 @@ async def run_test():
         # --> Assertions to verify final state
         frame = context.pages[-1]
         try:
-            await expect(frame.locator('text=Partner creation successful').first).to_be_visible(timeout=1000)
+            await expect(frame.locator('text=Access Granted with Status 200').first).to_be_visible(timeout=30000)
         except AssertionError:
-            raise AssertionError('Test case failed: The system did not allow creation of a new partner with all required fields valid and correctly store it as expected.')
+            raise AssertionError("Test case failed: The JWT token did not allow access to protected routes with status 200 as expected, or token expiration handling did not deny access with 401 Unauthorized.")
         await asyncio.sleep(5)
     
     finally:

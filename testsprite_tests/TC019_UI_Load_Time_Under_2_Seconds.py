@@ -46,30 +46,44 @@ async def run_test():
                 pass
         
         # Interact with the page elements to simulate user flow
-        # -> Input email and password, then click 'Entrar' to log in.
+        # -> Input email and password, then submit login form to proceed and measure UI load time.
         frame = context.pages[-1]
         # Input email for login
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
         await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Click the 'Entrar' button to submit login form and proceed to main UI.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
+        # Click Entrar button to submit login form
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
-        # -> Click 'Entrar' button to log in.
+        # -> Try to clear and re-enter email and password fields to ensure proper input, then click 'Entrar' button again to attempt login and observe any changes or error messages.
         frame = context.pages[-1]
-        # Click 'Entrar' button to log in
-        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[4]/label').nth(0)
+        # Clear email field to re-enter email
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('')
+        
+
+        # -> Click 'Entrar' button again to attempt login and observe any changes or error messages. If no change, extract page content to analyze error messages or UI state.
+        frame = context.pages[-1]
+        # Click 'Entrar' button to submit login form again
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
 
-        # -> Click the 'Entrar' button again to attempt login or report the issue if it fails again.
+        # -> Input the email 'carlosedufaraujo@outlook.com' into the email field (index 2) and the password '368308450Ce*' into the password field (index 4), then click the 'Entrar' button (index 8) to submit the login form and proceed.
         frame = context.pages[-1]
-        # Click 'Entrar' button to attempt login again
+        # Input email into email field
+        elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/div[2]/input').nth(0)
+        await page.wait_for_timeout(3000); await elem.fill('carlosedufaraujo@outlook.com')
+        
+
+        # -> Click the 'Entrar' button to submit the login form and proceed to the main UI. Measure the UI load time after login to verify it loads within 2 seconds.
+        frame = context.pages[-1]
+        # Click 'Entrar' button to submit login form and proceed to main UI
         elem = frame.locator('xpath=html/body/div/div/div/div[2]/div/form/button').nth(0)
         await page.wait_for_timeout(3000); await elem.click(timeout=5000)
         
@@ -77,9 +91,9 @@ async def run_test():
         # --> Assertions to verify final state
         frame = context.pages[-1]
         try:
-            await expect(frame.locator('text=Partner creation successful').first).to_be_visible(timeout=1000)
+            await expect(frame.locator('text=UI Load Successful').first).to_be_visible(timeout=1000)
         except AssertionError:
-            raise AssertionError('Test case failed: The system did not allow creation of a new partner with all required fields valid and correctly store it as expected.')
+            raise AssertionError('Test failed: The web-based UI did not load completely within 2 seconds under standardized network and device conditions as required by the test plan.')
         await asyncio.sleep(5)
     
     finally:

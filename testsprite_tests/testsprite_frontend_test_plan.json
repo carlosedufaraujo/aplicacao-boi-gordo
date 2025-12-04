@@ -1,469 +1,449 @@
 [
   {
     "id": "TC001",
-    "title": "User Login with Valid Credentials",
-    "description": "Verify that a user can successfully log in with valid email and password, receiving a JWT token.",
+    "title": "User Login Success",
+    "description": "Verify that a user can successfully login with valid email and password and receive a valid JWT token.",
     "category": "functional",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to the login page."
+        "description": "Navigate to the login API endpoint."
       },
       {
         "type": "action",
-        "description": "Enter a valid email and password."
-      },
-      {
-        "type": "action",
-        "description": "Click the login button."
+        "description": "Submit valid email and password via POST /api/v1/auth/login."
       },
       {
         "type": "assertion",
-        "description": "Verify login is successful and a JWT token is received."
+        "description": "Verify HTTP status 200 is returned."
+      },
+      {
+        "type": "assertion",
+        "description": "Check response contains status 'success', a valid JWT token, and user object."
       }
     ]
   },
   {
     "id": "TC002",
-    "title": "User Login with Invalid Credentials",
-    "description": "Verify that login fails with incorrect email or password and appropriate error message is shown.",
+    "title": "User Login Failure with Invalid Credentials",
+    "description": "Verify the system denies login when submitting incorrect email or password.",
     "category": "error handling",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to the login page."
+        "description": "Navigate to the login API endpoint."
       },
       {
         "type": "action",
-        "description": "Enter an invalid email or password."
-      },
-      {
-        "type": "action",
-        "description": "Attempt to log in."
+        "description": "Submit invalid email or password via POST /api/v1/auth/login."
       },
       {
         "type": "assertion",
-        "description": "Verify login fails and error message is displayed."
+        "description": "Verify HTTP status 401 or appropriate error code is returned."
+      },
+      {
+        "type": "assertion",
+        "description": "Check response contains an error message indicating invalid credentials."
       }
     ]
   },
   {
     "id": "TC003",
-    "title": "Create New Partner Record",
-    "description": "Verify that a user can create a new partner (supplier, buyer, investor, etc.) with all required fields.",
-    "category": "functional",
+    "title": "JWT Token Validation and Session Management",
+    "description": "Test that after login, the issued JWT token allows access to protected routes and expires appropriately.",
+    "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to the partners management page."
+        "description": "Obtain JWT token via successful login."
       },
       {
         "type": "action",
-        "description": "Click create new partner."
-      },
-      {
-        "type": "action",
-        "description": "Fill in valid partner details including name, type, CPF/CNPJ, email, and phone."
-      },
-      {
-        "type": "action",
-        "description": "Submit the new partner form."
+        "description": "Access a protected API endpoint with the token in Authorization header."
       },
       {
         "type": "assertion",
-        "description": "Verify the partner is created and appears in the partners list."
+        "description": "Verify access is granted with status 200."
+      },
+      {
+        "type": "action",
+        "description": "Simulate token expiration or tampering."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to access the protected endpoint with expired or invalid token."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is denied with 401 Unauthorized."
       }
     ]
   },
   {
     "id": "TC004",
-    "title": "Create Partner with Missing Required Fields",
-    "description": "Verify the system prevents creation of a partner when required fields are missing and displays validation errors.",
-    "category": "error handling",
-    "priority": "Medium",
+    "title": "Create New Partner with Valid Data",
+    "description": "Verify the system allows creation of a new partner with all required fields valid and correctly stores it.",
+    "category": "functional",
+    "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to the partners management page."
-      },
-      {
-        "type": "action",
-        "description": "Attempt to create a new partner with missing required fields."
-      },
-      {
-        "type": "action",
-        "description": "Submit the new partner form."
+        "description": "Send POST request to /api/v1/partners with valid name, type, cpfCnpj, email, and phone."
       },
       {
         "type": "assertion",
-        "description": "Verify validation errors are displayed and partner is not created."
+        "description": "Verify HTTP status 201 Created or 200 OK."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm the partner data is returned with an assigned identifier."
+      },
+      {
+        "type": "action",
+        "description": "Retrieve partner list and verify the new partner is included."
       }
     ]
   },
   {
     "id": "TC005",
-    "title": "Register New Cattle Purchase",
-    "description": "Ensure that a cattle purchase can be registered with valid vendor, payer account, total animals, weight, price per kg, and total amount.",
-    "category": "functional",
-    "priority": "High",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to cattle purchase registration page."
-      },
-      {
-        "type": "action",
-        "description": "Fill in valid details including vendor ID, payer account ID, total animals, total weight, price per kg, and total amount."
-      },
-      {
-        "type": "action",
-        "description": "Submit the purchase."
-      },
-      {
-        "type": "assertion",
-        "description": "Verify the cattle purchase is recorded correctly and listed in purchase history."
-      }
-    ]
-  },
-  {
-    "id": "TC006",
-    "title": "Prevent Cattle Purchase with Negative Numbers",
-    "description": "Verify that negative values in total animals, total weight, price per kg, or total amount are rejected with validation errors.",
+    "title": "Create Partner with Missing Mandatory Fields",
+    "description": "Verify that attempting to create a partner without required fields returns a validation error.",
     "category": "error handling",
     "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to cattle purchase registration page."
-      },
-      {
-        "type": "action",
-        "description": "Enter negative values in numeric fields."
-      },
-      {
-        "type": "action",
-        "description": "Attempt to submit the purchase."
+        "description": "Submit POST request to /api/v1/partners with missing or empty 'name' or 'type'."
       },
       {
         "type": "assertion",
-        "description": "Verify validation errors are shown and purchase is not accepted."
+        "description": "Verify HTTP 400 Bad Request is returned."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm error message details missing required fields."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "List Partners with Pagination and Filtering",
+    "description": "Verify partner list endpoint supports paging and filtering by type correctly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send GET request to /api/v1/partners with page=1, limit=10, and type filter set to 'VENDOR'."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response status 200 and contains up to 10 partners all with type 'VENDOR'."
+      },
+      {
+        "type": "action",
+        "description": "Repeat with page=2 and verify different set of results or empty list if none."
       }
     ]
   },
   {
     "id": "TC007",
-    "title": "Record a New Expense",
-    "description": "Verify that financial officers can record a new expense with category, description, total amount, and due date.",
+    "title": "Register New Cattle Purchase with Valid Data",
+    "description": "Verify registering a cattle purchase with valid vendor, payer account, animal counts, weights, and price calculates and stores total amount correctly.",
     "category": "functional",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to the financial expense entry page."
-      },
-      {
-        "type": "action",
-        "description": "Fill in a valid category, description, positive total amount, and future due date."
-      },
-      {
-        "type": "action",
-        "description": "Submit the expense form."
+        "description": "Send POST request to /api/v1/cattle-purchases with valid vendorId, payerAccountId, totalAnimals, totalWeight, pricePerKg."
       },
       {
         "type": "assertion",
-        "description": "Verify the new expense is saved and listed correctly."
+        "description": "Verify HTTP 201 Created or 200 OK returned."
+      },
+      {
+        "type": "assertion",
+        "description": "Check returned totalAmount equals totalWeight multiplied by pricePerKg."
       }
     ]
   },
   {
     "id": "TC008",
-    "title": "Record Revenue Entry",
-    "description": "Verify that users can record new revenues and the data is accurately stored and reflected in cash flow.",
-    "category": "functional",
+    "title": "Register Cattle Purchase Error on Negative Values",
+    "description": "Verify that negative values for animals, weight, or price are rejected with validation errors.",
+    "category": "error handling",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to revenue recording page."
-      },
-      {
-        "type": "action",
-        "description": "Enter valid revenue details."
-      },
-      {
-        "type": "action",
-        "description": "Submit the revenue data."
+        "description": "Send POST /api/v1/cattle-purchases with totalAnimals=-5 or totalWeight=-100."
       },
       {
         "type": "assertion",
-        "description": "Verify revenue is recorded and appears in financial reports and cash flow."
+        "description": "Verify HTTP 400 Bad Request with relevant validation error."
       }
     ]
   },
   {
     "id": "TC009",
-    "title": "Create New Pen and Validate Capacity",
-    "description": "Verify infrastructure managers can create pens with capacity limits and the system enforces capacity when allocating animals.",
+    "title": "Record New Expense with Valid Inputs",
+    "description": "Verify financial expense records are created properly with categorization, description, amount, and due date.",
     "category": "functional",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to pens management page."
-      },
-      {
-        "type": "action",
-        "description": "Create a new pen with a specified capacity."
+        "description": "POST /api/v1/expenses with valid category, description, totalAmount, dueDate."
       },
       {
         "type": "assertion",
-        "description": "Verify the pen is created successfully."
-      },
-      {
-        "type": "action",
-        "description": "Attempt to allocate animals exceeding the pen capacity."
+        "description": "Confirm HTTP 201 Created or 200 OK."
       },
       {
         "type": "assertion",
-        "description": "Verify the system prevents allocations beyond capacity and shows an appropriate error."
+        "description": "Verify the new expense is retrievable from GET /api/v1/expenses."
       }
     ]
   },
   {
     "id": "TC010",
-    "title": "Schedule Farm Activity with Reminder",
-    "description": "Verify that users can create calendar events for farm activities with scheduled reminders and that the reminders trigger correctly.",
-    "category": "functional",
+    "title": "Record Expense with Invalid Amount",
+    "description": "Check the system rejects expenses with zero or negative amounts.",
+    "category": "error handling",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to calendar events page."
-      },
-      {
-        "type": "action",
-        "description": "Create a new event with all required details and set a reminder."
-      },
-      {
-        "type": "action",
-        "description": "Save the event."
+        "description": "POST /api/v1/expenses with totalAmount=0 or -50."
       },
       {
         "type": "assertion",
-        "description": "Verify the event appears in calendar and the reminder notification is triggered as scheduled."
+        "description": "Verify HTTP 400 Bad Request with validation error."
       }
     ]
   },
   {
     "id": "TC011",
-    "title": "Record Veterinary Intervention",
-    "description": "Verify that veterinarians can log new health interventions, including vaccinations and medications, and that the entries are stored properly.",
+    "title": "Create New Pen with Capacity Constraints",
+    "description": "Test that a new pen can be created, and its capacity is enforced during animal allocations.",
     "category": "functional",
-    "priority": "High",
+    "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to interventions management page."
-      },
-      {
-        "type": "action",
-        "description": "Enter complete details of a new veterinary intervention."
-      },
-      {
-        "type": "action",
-        "description": "Submit the intervention record."
+        "description": "POST /api/v1/pens to create a pen with defined maximum capacity."
       },
       {
         "type": "assertion",
-        "description": "Verify the new intervention is listed and associated with correct cattle lots."
+        "description": "Confirm pen creation success response."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to allocate animals beyond capacity to the pen."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify system prevents over-allocation with error message."
       }
     ]
   },
   {
     "id": "TC012",
-    "title": "Access Financial Analytics Dashboard",
-    "description": "Verify that users can access and view financial analytics and reports with correct data summaries and visualizations.",
+    "title": "Manage Sales Pipeline Using Kanban Board",
+    "description": "Verify sales records can be created, listed, and manipulated to reflect status changes on the Kanban sales pipeline.",
     "category": "functional",
-    "priority": "Medium",
+    "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Navigate to the financial analytics dashboard."
+        "description": "POST /api/v1/sale-records to register new sale including status."
       },
       {
         "type": "assertion",
-        "description": "Verify the dashboard loads within 2 seconds."
+        "description": "Verify response confirms registration."
+      },
+      {
+        "type": "action",
+        "description": "GET /api/v1/sale-records and ensure new sale is present."
+      },
+      {
+        "type": "action",
+        "description": "Simulate status change of a sale (e.g., 'Negotiation' -> 'Closed')."
       },
       {
         "type": "assertion",
-        "description": "Verify financial summaries, charts, and reports display accurate data."
+        "description": "Confirm the status updates and reflects in subsequent GET calls."
       }
     ]
   },
   {
     "id": "TC013",
-    "title": "Secure API Access Requires Valid JWT",
-    "description": "Verify that API endpoints are secured and reject requests without a valid JWT token.",
-    "category": "security",
+    "title": "Record Veterinary Intervention",
+    "description": "Test that health officers can successfully log vaccination, medication, and other interventions with details.",
+    "category": "functional",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Send API request to a protected endpoint without JWT token."
+        "description": "POST /api/v1/interventions with valid intervention data (type, date, animals involved)."
       },
       {
         "type": "assertion",
-        "description": "Verify the request is denied with an unauthorized error."
-      },
-      {
-        "type": "action",
-        "description": "Send API request with expired or invalid JWT token."
-      },
-      {
-        "type": "assertion",
-        "description": "Verify the request is denied and appropriate error is returned."
+        "description": "Verify intervention is created and retrievable."
       }
     ]
   },
   {
     "id": "TC014",
-    "title": "Data Encryption Verification",
-    "description": "Verify that sensitive data fields are stored encrypted and cannot be retrieved in plaintext via APIs or UI.",
-    "category": "security",
-    "priority": "High",
+    "title": "Validation on Intervention Data Input",
+    "description": "Check that incomplete or invalid intervention data submissions are rejected with proper errors.",
+    "category": "error handling",
+    "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Create or retrieve records containing sensitive data."
+        "description": "POST /api/v1/interventions with missing mandatory fields or invalid dates."
       },
       {
         "type": "assertion",
-        "description": "Verify stored data is encrypted in the database."
-      },
-      {
-        "type": "assertion",
-        "description": "Verify that the frontend and APIs do not expose sensitive data unencrypted."
+        "description": "Verify HTTP 400 with validation error."
       }
     ]
   },
   {
     "id": "TC015",
-    "title": "System Health Check Endpoint",
-    "description": "Verify that the health check API endpoint returns the system and database status successfully.",
+    "title": "Create and Retrieve Calendar Events",
+    "description": "Ensure farm activities can be scheduled, stored, and retrieved via integrated calendar with reminders.",
     "category": "functional",
     "priority": "Medium",
     "steps": [
       {
         "type": "action",
-        "description": "Send a GET request to the /health endpoint."
+        "description": "POST /api/v1/calendar-events with valid event details including date and description."
       },
       {
         "type": "assertion",
-        "description": "Verify the response indicates the system is healthy and database connection is active."
+        "description": "Verify event creation success."
+      },
+      {
+        "type": "action",
+        "description": "GET /api/v1/calendar-events to verify event presence."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm event data matches input."
       }
     ]
   },
   {
     "id": "TC016",
-    "title": "API Response Time Within Target",
-    "description": "Verify that all API responses for core features respond within 500ms under normal load conditions.",
-    "category": "performance",
+    "title": "System Health Check Endpoint",
+    "description": "Verify that the /health endpoint returns system and database health status.",
+    "category": "functional",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Send requests to key API endpoints such as authentication, purchases, sales, and financial records."
+        "description": "Send GET request to /health endpoint."
       },
       {
         "type": "assertion",
-        "description": "Verify each API response time is less than 500 milliseconds."
+        "description": "Validate HTTP 200 OK and status indicating healthy system and DB connections."
       }
     ]
   },
   {
     "id": "TC017",
-    "title": "UI Load Time Within Target",
-    "description": "Verify that key UI pages load completely within 2 seconds on supported browsers and devices.",
-    "category": "performance",
-    "priority": "High",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to major UI pages like dashboard, cattle lot management, financial center, sales pipeline."
-      },
-      {
-        "type": "assertion",
-        "description": "Verify each page fully loads within 2 seconds."
-      }
-    ]
-  },
-  {
-    "id": "TC018",
-    "title": "Test Data Cleanup Endpoint",
-    "description": "Verify the test data API correctly cleans up all test data when triggered, ensuring no residual test records remain.",
-    "category": "functional",
-    "priority": "Low",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Create test data using test data API endpoints."
-      },
-      {
-        "type": "action",
-        "description": "Send DELETE request to /api/v1/test-data/cleanup."
-      },
-      {
-        "type": "assertion",
-        "description": "Verify all test data records are deleted from the system."
-      }
-    ]
-  },
-  {
-    "id": "TC019",
-    "title": "Sales Kanban Board Functionality",
-    "description": "Verify that sales teams can manage sales records via Kanban board with drag-and-drop between stages and that changes persist.",
-    "category": "functional",
-    "priority": "High",
-    "steps": [
-      {
-        "type": "action",
-        "description": "Navigate to the sales pipeline Kanban board."
-      },
-      {
-        "type": "action",
-        "description": "Create a new sale record."
-      },
-      {
-        "type": "action",
-        "description": "Drag the sale record between different stages."
-      },
-      {
-        "type": "assertion",
-        "description": "Verify the changes are saved and reflected on refresh."
-      }
-    ]
-  },
-  {
-    "id": "TC020",
-    "title": "Role-Based Access Control Enforcement",
-    "description": "Verify that users can only access features and data according to their role permissions.",
+    "title": "Data Protection and LGPD Compliance Testing",
+    "description": "Verify encryption is applied to sensitive data, API requests validate input properly, and audit logs are generated for sensitive operations.",
     "category": "security",
     "priority": "High",
     "steps": [
       {
         "type": "action",
-        "description": "Login with a user having limited role permissions."
-      },
-      {
-        "type": "action",
-        "description": "Attempt to access restricted modules or actions."
+        "description": "Create or update user and partner data containing PII."
       },
       {
         "type": "assertion",
-        "description": "Verify access is denied or UI elements are hidden for unauthorized features."
+        "description": "Check in database that sensitive fields are encrypted."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to submit malformed or malicious input."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify input validation rejects request."
+      },
+      {
+        "type": "action",
+        "description": "Check audit logs for the recorded changes."
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm audit logs contain timestamp, user id, action description."
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Performance: API Response Time Under 500ms",
+    "description": "Measure key API endpoints response times under typical and peak loads to verify they are under 500 milliseconds.",
+    "category": "performance",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send multiple concurrent GET and POST requests to core endpoints (auth/login, partners, purchases, financial, sales)."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify response times consistently under 500 milliseconds."
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "UI Load Time Under 2 Seconds",
+    "description": "Test that the web-based UI loads completely within 2 seconds on standardized network and device conditions.",
+    "category": "performance",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open the main web app in browser under controlled network throttling."
+      },
+      {
+        "type": "assertion",
+        "description": "Measure and confirm full UI load time is less than 2 seconds."
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Test Data API for Cleanup and Token Generation",
+    "description": "Validate the test data API endpoints to obtain test tokens and clean test data from the system.",
+    "category": "functional",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "GET /api/v1/test-data/auth-token to receive test JWT token."
+      },
+      {
+        "type": "assertion",
+        "description": "Check token format and validity."
+      },
+      {
+        "type": "action",
+        "description": "DELETE /api/v1/test-data/cleanup to clean up test data."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify successful deletion response."
       }
     ]
   }
