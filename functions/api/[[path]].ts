@@ -1084,7 +1084,11 @@ export async function onRequest(context: any): Promise<Response> {
               errorJson.message?.includes('Unauthorized') || statusCode === 401) {
             console.warn(`⚠️ Permissão negada para ${tableName}, retornando array vazio`);
             return new Response(
-              JSON.stringify([]),
+              JSON.stringify({
+                status: 'success',
+                data: [],
+                message: 'Sem dados disponíveis',
+              }),
               {
                 status: 200,
                 headers: {
@@ -1100,7 +1104,11 @@ export async function onRequest(context: any): Promise<Response> {
           if (method === 'GET' && (statusCode === 401 || statusCode === 403)) {
             console.warn(`⚠️ Erro ${statusCode} para ${tableName}, retornando array vazio`);
             return new Response(
-              JSON.stringify([]),
+              JSON.stringify({
+                status: 'success',
+                data: [],
+                message: 'Sem dados disponíveis',
+              }),
               {
                 status: 200,
                 headers: {
@@ -1143,8 +1151,16 @@ export async function onRequest(context: any): Promise<Response> {
       console.warn(`⚠️ [Pages Function] Requisição lenta: ${method} ${path} - ${responseTime}ms`);
     }
 
+    // Encapsular resposta no formato esperado pelo frontend
+    // O frontend espera: { status: 'success', data: [...] }
+    const formattedResponse = {
+      status: 'success' as const,
+      data: data,
+      message: 'Dados carregados com sucesso',
+    };
+
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify(formattedResponse),
       {
         status: 200,
         headers: {
