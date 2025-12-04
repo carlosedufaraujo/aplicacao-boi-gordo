@@ -263,6 +263,10 @@ export function Login02({ className }: Login02Props) {
                   src={organizationLogo}
                   alt={`${organizationName} - Logo`}
                   className="w-full h-full object-cover"
+                  width={96}
+                  height={96}
+                  loading="eager"
+                  style={{ aspectRatio: '1/1' }}
                 />
               </div>
             </div>

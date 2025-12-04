@@ -76,7 +76,15 @@ export const OrganizationSettings: React.FC = () => {
           <div className="relative">
             <div className="w-24 h-24 bg-gradient-to-br from-b3x-lime-400 to-b3x-lime-600 rounded-xl flex items-center justify-center shadow-soft">
               {orgData.logo ? (
-                <img src={orgData.logo} alt="Logo" className="w-full h-full rounded-xl object-cover" />
+                <img 
+                  src={orgData.logo} 
+                  alt="Logo" 
+                  className="w-full h-full rounded-xl object-cover"
+                  width={200}
+                  height={200}
+                  loading="lazy"
+                  style={{ aspectRatio: '1/1' }}
+                />
               ) : (
                 <span className="text-b3x-navy-900 font-black text-2xl">CEAC</span>
               )}
