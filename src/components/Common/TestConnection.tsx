@@ -18,7 +18,7 @@ export const TestConnection: React.FC = () => {
     
     try {
       
-      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'https://aplicacao-boi-gordo.pages.dev/api/v1');
+      const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
       const baseUrl = apiUrl.replace('/api/v1', '');
       
       // Teste 1: Health check

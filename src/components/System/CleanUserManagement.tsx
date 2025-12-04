@@ -109,7 +109,7 @@ const CleanUserManagement: React.FC = () => {
     const loadUsers = async () => {
       try {
         setLoading(true);
-        const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'https://aplicacao-boi-gordo.pages.dev/api/v1');
+        const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
         const response = await fetch(`${apiUrl}/users`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
@@ -208,7 +208,7 @@ const CleanUserManagement: React.FC = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const apiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'https://aplicacao-boi-gordo.pages.dev/api/v1');
+      const apiUrl = import.meta.env.VITE_API_URL || '/api/v1';
       const response = await fetch(`${apiUrl}/users`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`,

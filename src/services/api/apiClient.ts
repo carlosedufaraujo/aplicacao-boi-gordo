@@ -16,20 +16,16 @@ import { safeLocalStorage, isSafari, getSafariCompatibleHeaders } from '@/utils/
  */
 export class ApiClient {
   /**
-   * Obtém a URL base da API em runtime (não em build time)
-   * Isso garante que window.location.origin seja usado corretamente
+   * Obtém a URL base da API
+   * IMPORTANTE: Usa URL RELATIVA para funcionar em qualquer deploy (preview ou produção)
    */
   private getBaseURL(): string {
     // Priorizar variável de ambiente se configurada
     if (import.meta.env.VITE_API_URL) {
       return import.meta.env.VITE_API_URL;
     }
-    // Sempre usar URL relativa do Cloudflare Pages em runtime
-    if (typeof window !== 'undefined') {
-      return window.location.origin + '/api/v1';
-    }
-    // Fallback para URL do Cloudflare Pages em build time (nunca deve chegar aqui no browser)
-    return 'https://aplicacao-boi-gordo.pages.dev/api/v1';
+    // Usar URL RELATIVA - funciona em qualquer domínio/deploy
+    return '/api/v1';
   }
 
   constructor() {

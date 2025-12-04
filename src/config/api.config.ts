@@ -1,7 +1,8 @@
 // Configuração centralizada das URLs da API
 
 /**
- * Retorna a URL base da API (sempre Cloudflare Pages - ambiente online)
+ * Retorna a URL base da API
+ * IMPORTANTE: Usa URL RELATIVA para funcionar em qualquer deploy (preview ou produção)
  */
 export const getApiBaseUrl = (): string => {
   // Priorizar variável de ambiente se configurada
@@ -9,25 +10,17 @@ export const getApiBaseUrl = (): string => {
     return import.meta.env.VITE_API_URL;
   }
   
-  // Sempre usar URL relativa do Cloudflare Pages
-  if (typeof window !== 'undefined') {
-    return window.location.origin + '/api/v1';
-  }
-  
-  // Fallback para URL do Cloudflare Pages em build time
-  return 'https://aplicacao-boi-gordo.pages.dev/api/v1';
+  // Usar URL RELATIVA - funciona em qualquer domínio/deploy
+  return '/api/v1';
 };
 
 /**
- * Retorna a URL base sem o prefixo /api/v1 (sempre Cloudflare Pages)
+ * Retorna a URL base sem o prefixo /api/v1
+ * IMPORTANTE: Usa URL RELATIVA para funcionar em qualquer deploy
  */
 export const getBaseUrl = (): string => {
-  // Sempre usar URL relativa do Cloudflare Pages
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  // Fallback para URL do Cloudflare Pages em build time
-  return 'https://aplicacao-boi-gordo.pages.dev';
+  // Usar URL RELATIVA - funciona em qualquer domínio/deploy
+  return '';
 };
 
 /**

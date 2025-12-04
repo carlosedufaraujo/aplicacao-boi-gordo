@@ -131,7 +131,7 @@ export const DebugRegistrations: React.FC = () => {
                 <ul className="mt-1 space-y-1 text-yellow-700">
                   <li>• Componente renderizado {renderCount} vez(es)</li>
                   <li>• Token de autenticação: {localStorage.getItem('authToken') ? '✅ Presente' : '❌ Ausente'}</li>
-                  <li>• Backend URL: {import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin + '/api/v1' : 'https://aplicacao-boi-gordo.pages.dev/api/v1')}</li>
+                  <li>• Backend URL: {import.meta.env.VITE_API_URL || '/api/v1'}</li>
                 </ul>
               </div>
             </div>
