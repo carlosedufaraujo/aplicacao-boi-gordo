@@ -297,7 +297,7 @@ export function WeeklyCashFlow() {
             }
 
             if (targetItem) {
-              targetItem.values[weekKey] += expense.amount || 0;
+              targetItem.values[weekKey] += expense.totalAmount || expense.amount || 0;
             }
           }
         }
