@@ -48,12 +48,15 @@ export class ApiClient {
   }
 
   /**
-   * Executa uma requisição HTTP com fallback para Supabase
+   * Executa uma requisição HTTP com retry automático e tratamento de erros melhorado
    */
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retryCount: number = 0
   ): Promise<T> {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000; // 1 segundo
     const startTime = performance.now();
     const method = (options.method || 'GET').toUpperCase();
     
@@ -107,28 +110,69 @@ export class ApiClient {
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        // Tentar ler mensagem de erro do servidor
+        let errorData: any = {};
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            errorData = JSON.parse(errorText);
+          }
+        } catch {
+          // Se não conseguir parsear, usar objeto vazio
+        }
+
+        const isGetRequest = method === 'GET';
+
+        // Tratamento específico para erro 400 (Bad Request)
+        if (response.status === 400) {
+          const errorMessage = this.getErrorMessage(errorData, response.status, endpoint);
+          
+          // Se for erro de parsing de filtro, tentar retry apenas uma vez
+          if (errorMessage.includes('parse filter') || errorMessage.includes('processar filtros')) {
+            if (retryCount < 1) {
+              console.warn(`[ApiClient] Erro de parsing detectado, tentando retry: ${endpoint}`);
+              await this.delay(RETRY_DELAY);
+              return this.request<T>(endpoint, options, retryCount + 1);
+            }
+          }
+          
+          throw new Error(errorMessage);
+        }
 
         // Se erro for de autenticação (401) em requisição GET, retornar array vazio
         // Isso evita erros quando o usuário ainda não fez login
-        const isGetRequest = (options.method || 'GET').toUpperCase() === 'GET';
         if (response.status === 401 && isGetRequest) {
           console.warn(`[ApiClient] Erro 401 em GET, retornando array vazio: ${endpoint}`);
-          // Retornar array vazio para GET requests com 401
           return [] as T;
         }
 
         // Se erro for de autenticação (401) e não for endpoint público
         if (response.status === 401 && !isPublicEndpoint) {
           console.warn(`[ApiClient] Erro 401 para endpoint não público: ${endpoint}`);
-          // Para métodos não-GET, lançar erro mas com mensagem amigável
           if (!isGetRequest) {
             throw new Error('Sessão expirada. Por favor, faça login novamente.');
           }
         }
 
-        // Para outros erros, lançar exceção normalmente
-        const errorMessage = errorData.message || errorData.error || `HTTP Error: ${response.status}`;
+        // Tratamento específico para erro 403 (Forbidden)
+        if (response.status === 403) {
+          throw new Error('Você não tem permissão para realizar esta ação.');
+        }
+
+        // Tratamento específico para erro 404 (Not Found)
+        if (response.status === 404) {
+          throw new Error('Recurso não encontrado.');
+        }
+
+        // Tratamento específico para erro 500+ (Server Error) - tentar retry
+        if (response.status >= 500 && retryCount < MAX_RETRIES) {
+          console.warn(`[ApiClient] Erro ${response.status}, tentando retry (${retryCount + 1}/${MAX_RETRIES}): ${endpoint}`);
+          await this.delay(RETRY_DELAY * (retryCount + 1));
+          return this.request<T>(endpoint, options, retryCount + 1);
+        }
+
+        // Para outros erros, usar mensagem amigável
+        const errorMessage = this.getErrorMessage(errorData, response.status, endpoint);
         throw new Error(errorMessage);
       }
 
@@ -136,7 +180,7 @@ export class ApiClient {
       const responseText = await response.text();
       if (!responseText) {
         // Resposta vazia - retornar array vazio para GET, null para outros
-        const isGetRequest = (options.method || 'GET').toUpperCase() === 'GET';
+        const isGetRequest = method === 'GET';
         return (isGetRequest ? [] : null) as T;
       }
 
@@ -146,13 +190,75 @@ export class ApiClient {
       } catch (parseError) {
         console.error(`[ApiClient] Erro ao parsear JSON de ${endpoint}:`, responseText);
         // Se não conseguir parsear, retornar array vazio para GET
-        const isGetRequest = (options.method || 'GET').toUpperCase() === 'GET';
+        const isGetRequest = method === 'GET';
         return (isGetRequest ? [] : null) as T;
       }
-    } catch (error) {
-      // Se backend não estiver disponível, usar Supabase direto como fallback
-      throw error; // Os hooks vão usar dados do Supabase como fallback
+    } catch (error: any) {
+      // Se for erro de rede e ainda tiver tentativas, fazer retry
+      if (
+        (error.message?.includes('Failed to fetch') || 
+         error.message?.includes('NetworkError') ||
+         error.message?.includes('network') ||
+         error.name === 'TypeError') &&
+        retryCount < MAX_RETRIES
+      ) {
+        console.warn(`[ApiClient] Erro de rede, tentando retry (${retryCount + 1}/${MAX_RETRIES}): ${endpoint}`);
+        await this.delay(RETRY_DELAY * (retryCount + 1));
+        return this.request<T>(endpoint, options, retryCount + 1);
+      }
+
+      console.error(`[ApiClient] Erro na requisição ${method} ${endpoint}:`, error);
+      throw error;
     }
+  }
+
+  /**
+   * Retorna mensagem de erro amigável baseada no status e dados do erro
+   */
+  private getErrorMessage(errorData: any, status: number, endpoint: string): string {
+    // Se houver mensagem específica do servidor, usar ela
+    if (errorData?.message) {
+      // Traduzir mensagens comuns de erro
+      const message = errorData.message.toLowerCase();
+      
+      if (message.includes('parse filter') || message.includes('failed to parse')) {
+        return 'Erro ao processar filtros. Por favor, verifique os parâmetros e tente novamente.';
+      }
+      
+      if (message.includes('invalid') || message.includes('inválid')) {
+        return 'Dados inválidos. Por favor, verifique as informações e tente novamente.';
+      }
+      
+      if (message.includes('required') || message.includes('obrigatório')) {
+        return 'Campos obrigatórios não preenchidos. Por favor, verifique o formulário.';
+      }
+      
+      // Retornar mensagem original se não houver tradução específica
+      return errorData.message;
+    }
+
+    // Mensagens padrão por status code
+    const statusMessages: Record<number, string> = {
+      400: 'Requisição inválida. Por favor, verifique os dados e tente novamente.',
+      401: 'Sessão expirada. Por favor, faça login novamente.',
+      403: 'Você não tem permissão para realizar esta ação.',
+      404: 'Recurso não encontrado.',
+      422: 'Dados inválidos. Por favor, verifique as informações e tente novamente.',
+      429: 'Muitas requisições. Por favor, aguarde um momento e tente novamente.',
+      500: 'Erro interno do servidor. Por favor, tente novamente mais tarde.',
+      502: 'Servidor temporariamente indisponível. Por favor, tente novamente mais tarde.',
+      503: 'Serviço temporariamente indisponível. Por favor, tente novamente mais tarde.',
+      504: 'Tempo limite excedido. Por favor, tente novamente.',
+    };
+
+    return statusMessages[status] || `Erro ao processar requisição (${status}). Por favor, tente novamente.`;
+  }
+
+  /**
+   * Delay helper para retry
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
