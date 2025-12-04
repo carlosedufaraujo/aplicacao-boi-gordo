@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Activity, History, Syringe, Skull, ArrowRightLeft, Weight } from 'lucide-react';
-import { InterventionHistory } from './InterventionHistory';
+import InterventionHistory from './InterventionHistory';
 import { IntegratedInterventionForm } from './IntegratedInterventionForm';
 import { useInterventionsApi } from '@/hooks/api/useInterventionsApi';
 import { useCattlePurchasesApi } from '@/hooks/api/useCattlePurchasesApi';
