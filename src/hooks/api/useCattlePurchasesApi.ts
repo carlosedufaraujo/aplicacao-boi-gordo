@@ -217,16 +217,6 @@ export function useCattlePurchasesApi() {
         return response;
       }
 
-      // Aceitar formato { status: 'success', data: [...] } da Cloudflare Function
-      if (response && response.status === 'success' && response.data !== undefined) {
-        const purchases = Array.isArray(response.data) ? response.data : response.data.items || [];
-        setPurchases(purchases);
-        setTotalItems(response.data.total || response.data.results || purchases.length);
-        setTotalPages(response.data.totalPages || Math.ceil(purchases.length / pageSize));
-        setCurrentPage(response.data.page || 1);
-        return purchases;
-      }
-
       if (response && response.items !== undefined) {
         // Backend retorna 'items' para listagens
         const purchases = response.items || [];

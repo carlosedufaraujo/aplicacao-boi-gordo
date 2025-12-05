@@ -337,12 +337,12 @@ export function ExpandedCashFlow({ type, onNewTransaction }: ExpandedCashFlowPro
           return isWithinInterval(expenseDate, { start: startDate, end: endDate });
         })
         .filter(expense => !expense.description?.includes('Compra de Gado')) // Evitar duplicação
-        .filter(expense => (expense.totalAmount || expense.amount) && (expense.totalAmount || expense.amount) > 0) // Apenas despesas com valor
+        .filter(expense => expense.amount && expense.amount > 0) // Apenas despesas com valor
         .map(expense => ({
           id: `expense-${expense.id}`,
-          date: new Date(expense.date || expense.dueDate || expense.createdAt),
+          date: new Date(expense.date || expense.createdAt),
           description: expense.description || 'Despesa operacional',
-          amount: expense.totalAmount || expense.amount,
+          amount: expense.amount,
           type: 'EXPENSE' as const,
           category: expense.category || 'Outras Despesas',
           status: 'PAID',

@@ -137,8 +137,8 @@ export const FinancialDataProvider: React.FC<{ children: React.ReactNode }> = ({
       .reduce((sum, s) => sum + (s.totalValue || 0), 0) || 0;
     
     // Despesas e Outras Receitas
-    const totalExpenses = expenses?.reduce((sum, e) => sum + (e.totalAmount || e.amount || 0), 0) || 0;
-    const totalOtherRevenues = revenues?.reduce((sum, r) => sum + (r.totalAmount || r.amount || 0), 0) || 0;
+    const totalExpenses = expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+    const totalOtherRevenues = revenues?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0;
     
     // Breakdown de Despesas das Compras
     const totalCommissionExpenses = cattlePurchases?.reduce((sum, p) => {
@@ -361,8 +361,8 @@ export const FinancialDataProvider: React.FC<{ children: React.ReactNode }> = ({
     // Recalcular métricas para o mês
     const totalPurchaseValue = monthPurchases.reduce((sum, p) => sum + (p.purchaseValue || p.totalValue || 0), 0);
     const totalSalesValue = monthSales.reduce((sum, s) => sum + (s.totalValue || 0), 0);
-    const totalExpensesValue = monthExpenses.reduce((sum, e) => sum + (e.totalAmount || e.amount || 0), 0);
-    const totalRevenuesValue = monthRevenues.reduce((sum, r) => sum + (r.totalAmount || r.amount || 0), 0);
+    const totalExpensesValue = monthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const totalRevenuesValue = monthRevenues.reduce((sum, r) => sum + (r.amount || 0), 0);
     
     const totalCosts = totalPurchaseValue + totalExpensesValue;
     const totalRevenue = totalSalesValue + totalRevenuesValue;

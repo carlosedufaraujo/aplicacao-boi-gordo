@@ -69,24 +69,10 @@ export interface CashFlowSummary {
 }
 
 class CashFlowService {
-  // Helper para extrair dados da resposta
-  private extractData<T>(response: any, defaultValue: T): T {
-    // Se a resposta tem formato { status: 'success', data: [...] }, extrair data
-    if (response?.data?.status === 'success' && response?.data?.data !== undefined) {
-      return response.data.data;
-    }
-    // Se response.data é o próprio objeto com status
-    if (response?.status === 'success' && response?.data !== undefined) {
-      return response.data;
-    }
-    // Fallback para formato antigo
-    return response?.data || response || defaultValue;
-  }
-
   // Cash Flow CRUD
   async create(data: Partial<CashFlow>) {
     const response = await api.post('/cash-flows', data);
-    return this.extractData(response, null);
+    return response.data;
   }
 
   async findAll(filters?: CashFlowFilters) {
@@ -97,17 +83,17 @@ class CashFlowService {
       });
     }
     const response = await api.get(`/cash-flows?${params.toString()}`);
-    return this.extractData(response, []);
+    return response.data;
   }
 
   async findById(id: string) {
     const response = await api.get(`/cash-flows/${id}`);
-    return this.extractData(response, null);
+    return response.data;
   }
 
   async update(id: string, data: Partial<CashFlow>) {
     const response = await api.put(`/cash-flows/${id}`, data);
-    return this.extractData(response, null);
+    return response.data;
   }
 
   async delete(id: string) {
@@ -119,7 +105,7 @@ class CashFlowService {
       status,
       paymentDate,
     });
-    return this.extractData(response, null);
+    return response.data;
   }
 
   async getSummary(filters?: CashFlowFilters): Promise<CashFlowSummary> {
@@ -130,70 +116,57 @@ class CashFlowService {
       });
     }
     const response = await api.get(`/cash-flows/summary?${params.toString()}`);
-    return this.extractData(response, {
-      totalIncome: 0,
-      totalExpense: 0,
-      pendingIncome: 0,
-      pendingExpense: 0,
-      paidIncome: 0,
-      paidExpense: 0,
-      balance: 0,
-    });
+    return response.data;
   }
 
   // Categories
   async getCategories(type?: 'INCOME' | 'EXPENSE') {
     const params = type ? `?type=${type}` : '';
-    const response = await api.get(`/categories${params}`);
-    return this.extractData(response, []);
+    const response = await api.get(`/financial-categories${params}`);
+    return response.data;
   }
 
   async createCategory(data: Partial<FinancialCategory>) {
-    const response = await api.post('/categories', data);
-    return this.extractData(response, null);
+    const response = await api.post('/financial-categories', data);
+    return response.data;
   }
 
   async updateCategory(id: string, data: Partial<FinancialCategory>) {
-    const response = await api.put(`/categories/${id}`, data);
-    return this.extractData(response, null);
+    const response = await api.put(`/financial-categories/${id}`, data);
+    return response.data;
   }
 
   async deleteCategory(id: string) {
-    await api.delete(`/categories/${id}`);
+    await api.delete(`/financial-categories/${id}`);
   }
-
   // Accounts
   async getAccounts() {
-    const response = await api.get('/payer-accounts');
-    return this.extractData(response, []);
+    const response = await api.get('/financial-accounts');
+    return response.data;
   }
 
   async createAccount(data: Partial<FinancialAccount>) {
-    const response = await api.post('/payer-accounts', data);
-    return this.extractData(response, null);
+    const response = await api.post('/financial-accounts', data);
+    return response.data;
   }
 
   async updateAccount(id: string, data: Partial<FinancialAccount>) {
-    const response = await api.put(`/payer-accounts/${id}`, data);
-    return this.extractData(response, null);
+    const response = await api.put(`/financial-accounts/${id}`, data);
+    return response.data;
   }
 
   async deleteAccount(id: string) {
-    await api.delete(`/payer-accounts/${id}`);
+    await api.delete(`/financial-accounts/${id}`);
   }
 
   async getAccountBalance(id: string) {
-    const response = await api.get(`/payer-accounts/${id}`);
-    const account = this.extractData(response, null);
-    return account?.balance || 0;
+    const response = await api.get(`/financial-accounts/${id}/balance`);
+    return response.data;
   }
 
   async getTotalBalance() {
-    const response = await api.get('/payer-accounts');
-    const accounts = this.extractData(response, []);
-    return Array.isArray(accounts) 
-      ? accounts.reduce((sum: number, acc: any) => sum + (acc.balance || 0), 0)
-      : 0;
+    const response = await api.get('/financial-accounts/total-balance');
+    return response.data;
   }
 
 }
